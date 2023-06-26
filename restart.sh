@@ -1,7 +1,7 @@
 #!/bin/bash
 killall node
-cd dex
+cd dexBack
 nohup node index.js &
-cd ..
+cd ../dex
 yarn build
 nohup serve -s build &
