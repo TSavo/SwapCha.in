@@ -105,3 +105,13 @@ code {
 .ant-modal-close-icon:hover {
   color: white !important;
 }
+
+.about-title {
+  font-size: 30px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+a {
+  color: #55adff;
+}

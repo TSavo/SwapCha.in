@@ -5,3 +5,5 @@ nohup node index.js &
 cd ../dex
 yarn build
 nohup serve -s build &
+cd ..
+

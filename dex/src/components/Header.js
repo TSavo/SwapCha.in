@@ -1,5 +1,4 @@
 import React from "react";
-import Logo from "../moralis-logo.svg";
 import Eth from "../eth.svg";
 import { Link } from "react-router-dom";
 
@@ -10,12 +9,14 @@ function Header(props) {
   return (
     <header>
       <div className="leftH">
-        <img src={Logo} alt="logo" className="logo" />
+        <div className="logo-name">
+          SwapChan Dex
+        </div>
         <Link to="/" className="link">
           <div className="headerItem">Swap</div>
         </Link>
-        <Link to="/tokens" className="link">
-          <div className="headerItem">Tokens</div>
+        <Link to="/about" className="link">
+          <div className="headerItem">About</div>
         </Link>
       </div>
       <div className="rightH">
