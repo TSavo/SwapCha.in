@@ -110,7 +110,7 @@ export function jupiter(
   f: Fetch = fetch,
   accounts = feeAccounts(
     env.SWAPCHAN_FEE_RECIPIENT_SOLANA ?? "",
-    env.SOLANA_RPC_URL ?? env.RPC_URL_792703809 ?? "https://api.mainnet-beta.solana.com",
+    env.SOLANA_RPC_URL || env.RPC_URL_792703809 || "https://api.mainnet-beta.solana.com",
     f,
   ),
 ): ProviderAdapter {
@@ -205,7 +205,7 @@ export function jupiter(
     async status(req, signal) {
       const r = await getJson<{
         result?: { value: ({ err: unknown; confirmationStatus?: string } | null)[] };
-      }>(f, env.SOLANA_RPC_URL ?? env.RPC_URL_792703809 ?? "https://api.mainnet-beta.solana.com", {
+      }>(f, env.SOLANA_RPC_URL || env.RPC_URL_792703809 || "https://api.mainnet-beta.solana.com", {
         method: "POST",
         headers: { "content-type": "application/json" },
         signal,
