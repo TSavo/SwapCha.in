@@ -31,6 +31,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Link href="/cast" className="hover:text-amber-300">
                 Cast
               </Link>
+              <Link href="/how-it-works" className="hidden hover:text-amber-300 sm:inline">
+                How it works
+              </Link>
               <ConnectButton />
             </nav>
           </header>

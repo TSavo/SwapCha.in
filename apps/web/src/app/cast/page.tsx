@@ -1,5 +1,4 @@
 import { Character } from "@/components/Character";
-import { Onboarding } from "@/components/Onboarding";
 import { CHARACTERS } from "@/lib/characters";
 
 export const metadata = { title: "The Cast · SwapChan" };
@@ -29,7 +28,6 @@ export default function CastPage() {
           </div>
         ))}
       </div>
-      <Onboarding forceOpen={false} />
     </>
   );
 }

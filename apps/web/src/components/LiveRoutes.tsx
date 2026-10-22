@@ -26,7 +26,7 @@ export async function LiveRoutes() {
   }
   const dec = tokenList.find((t) => t.address.toLowerCase() === USDC_ETH)?.decimals ?? 6;
   return (
-    <section data-testid="live-routes" className="mt-8 rounded-2xl bg-violet-900/60 p-4">
+    <section data-testid="live-routes" className="rounded-2xl bg-violet-900/60 p-4">
       <h2 className="mb-2 font-bold">Live: 100 USDC Ethereum → Base</h2>
       {!data || data.quotes.length === 0 ? (
         <p className="text-violet-300">

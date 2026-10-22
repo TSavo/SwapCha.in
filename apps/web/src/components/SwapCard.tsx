@@ -1,6 +1,13 @@
 "use client";
 
-import { NATIVE_TOKEN, type Quote, type QuoteRequest, type Token } from "@swapchan/shared";
+import {
+  NATIVE_TOKEN,
+  type Quote,
+  type QuoteRequest,
+  SUPPORTED_CHAINS,
+  type Token,
+  tokenList,
+} from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { erc20Abi, maxUint256 } from "viem";
@@ -19,12 +26,26 @@ import { formatAmount, parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import { api, cowExplorer, submitCowOrder } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
 import { Character, SpeechBubble } from "./Character";
+import { ConnectButton } from "./ConnectButton";
 import { ChainPicker, TokenPicker } from "./Pickers";
 import { RouteList, RoutesLoading } from "./RouteList";
 import { StatusTracker, type TrackParams } from "./StatusTracker";
 
 const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
 const SLIPPAGES = [10, 50, 100, 300];
+
+// Prefilled example so the first paint already shows a real quote: 100 USDC Ethereum -> Base.
+const BASE_USDC: Token = {
+  chainId: 8453,
+  symbol: "USDC",
+  name: "USD Coin",
+  address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  decimals: 6,
+};
+const usdc = (chainId: number) =>
+  tokenList.find((t) => t.chainId === chainId && t.symbol === "USDC") ??
+  (chainId === 8453 ? BASE_USDC : undefined);
+const STATIC_CHAINS = Object.entries(SUPPORTED_CHAINS).map(([id, c]) => ({ id: Number(id), ...c }));
 
 const isNative = (t: Token | undefined) => t?.address.toLowerCase() === NATIVE_TOKEN.toLowerCase();
 
@@ -55,15 +76,19 @@ export function SwapCard() {
 
   const [fromChain, setFromChain] = useState(1);
   const [toChain, setToChain] = useState(8453);
-  const [fromToken, setFromToken] = useState<Token>();
-  const [toToken, setToToken] = useState<Token>();
-  const [amountStr, setAmountStr] = useState("");
+  const [fromToken, setFromToken] = useState<Token | undefined>(() => usdc(1));
+  const [toToken, setToToken] = useState<Token | undefined>(() => usdc(8453));
+  const [amountStr, setAmountStr] = useState("100");
   const [slippageBps, setSlippage] = useState(50);
   const [approveMode, setApproveMode] = useState<"exact" | "permit2">("exact");
   const [selected, setSelected] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ k: "idle" });
 
-  const chains = useQuery({ queryKey: ["chains"], queryFn: api.chains });
+  const chains = useQuery({
+    queryKey: ["chains"],
+    queryFn: api.chains,
+    placeholderData: { data: STATIC_CHAINS, mocked: false },
+  });
   const fromTokens = useQuery({
     queryKey: ["tokens", fromChain],
     queryFn: () => api.tokens(fromChain),
@@ -453,14 +478,20 @@ export function SwapCard() {
         </div>
       )}
 
-      <button
-        type="button"
-        disabled={!cta.action || busy}
-        onClick={cta.action}
-        className="mt-4 w-full rounded-2xl bg-gradient-to-r from-amber-400 to-fuchsia-500 py-4 text-lg font-black text-violet-950 shadow-[0_0_30px_rgba(245,183,0,.35)] transition enabled:hover:scale-[1.01] disabled:opacity-40"
-      >
-        {cta.label}
-      </button>
+      {!address ? (
+        <div className="mt-4" data-testid="connect-cta">
+          <ConnectButton primary />
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={!cta.action || busy}
+          onClick={cta.action}
+          className="mt-4 w-full rounded-2xl bg-gradient-to-r from-amber-400 to-fuchsia-500 py-4 text-lg font-black text-violet-950 shadow-[0_0_30px_rgba(245,183,0,.35)] transition enabled:hover:scale-[1.01] disabled:opacity-40"
+        >
+          {cta.label}
+        </button>
+      )}
     </Card>
   );
 }
