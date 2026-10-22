@@ -104,7 +104,7 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
         gasUsd,
         feeUsd,
         netUsd: out.amountUsd ? Number(out.amountUsd) - gasUsd : null, // currencyOut already net of relayer fees
-        etaSeconds: r.details.timeEstimate ?? 10,
+        etaSeconds: Math.max(0, Math.round(r.details.timeEstimate ?? 10)),
         steps: [
           {
             type: req.fromChainId === req.toChainId ? "swap" : "bridge",

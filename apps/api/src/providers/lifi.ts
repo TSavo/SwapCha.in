@@ -60,9 +60,26 @@ const sumUsd = (xs: { amountUSD?: string; included?: boolean }[] = []) =>
 const hexToDec = (v: string | undefined) => (v ? BigInt(v).toString() : undefined);
 
 export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter {
-  const headers: Record<string, string> = env.LIFI_API_KEY
+  const keyed: Record<string, string> = env.LIFI_API_KEY
     ? { "x-lifi-api-key": env.LIFI_API_KEY }
     : {};
+  let headers = keyed;
+  // A revoked/invalid key 401s every call (code 1010); fall back to keyless rather than go dark.
+  const get = async <T>(url: string, init: RequestInit): Promise<T> => {
+    try {
+      return await getJson<T>(f, url, { ...init, headers });
+    } catch (e) {
+      if (
+        headers === keyed &&
+        env.LIFI_API_KEY &&
+        /^401 .*1010/.test(String((e as Error).message))
+      ) {
+        headers = {};
+        return getJson<T>(f, url, { ...init, headers });
+      }
+      throw e;
+    }
+  };
   const feeBps = Number(env.SWAPCHAN_FEE_BPS ?? 0);
   const integrator = env.LIFI_INTEGRATOR || "myswapchan";
   return {
@@ -91,13 +108,13 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
         const qf = new URLSearchParams(q);
         qf.set("fee", String(feeBps / 10_000));
         try {
-          s = await getJson<LifiStep>(f, `${BASE}/quote?${qf}`, { headers, signal });
+          s = await get<LifiStep>(`${BASE}/quote?${qf}`, { signal });
           charged = true;
         } catch (e) {
           if (!/1011|not configured for collecting fees/.test(String(e))) throw e;
-          s = await getJson<LifiStep>(f, `${BASE}/quote?${q}`, { headers, signal });
+          s = await get<LifiStep>(`${BASE}/quote?${q}`, { signal });
         }
-      } else s = await getJson<LifiStep>(f, `${BASE}/quote?${q}`, { headers, signal });
+      } else s = await get<LifiStep>(`${BASE}/quote?${q}`, { signal });
       const ourStep = (s.includedSteps ?? []).find((st) => st.tool === "feeCollection");
       // feeCollection carries LI.FI's own 0.25% plus ours in one line; take only our share.
       const ourPct = feeBps / 10_000;
@@ -177,10 +194,9 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
         fromChain: String(lifiChain(req.fromChainId)),
         toChain: String(lifiChain(req.toChainId)),
       });
-      const r = await getJson<{ status: string; receiving?: { txHash?: string } }>(
-        f,
+      const r = await get<{ status: string; receiving?: { txHash?: string } }>(
         `${BASE}/status?${q}`,
-        { headers, signal },
+        { signal },
       );
       const map: Record<string, StatusResponse["status"]> = {
         DONE: "done",

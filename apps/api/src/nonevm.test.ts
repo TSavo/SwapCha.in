@@ -129,4 +129,39 @@ describe("non-EVM chains", () => {
     expect(q.steps[0]?.toChainId).toBe(BTC);
     expect(q.steps[0]?.toToken).toBe(BTC_NATIVE);
   });
+
+  it("lifi: a rejected API key (401/1010) falls back to keyless", async () => {
+    const seen: (string | undefined)[] = [];
+    const f = (async (_url: string, init?: RequestInit) => {
+      const k = (init?.headers as Record<string, string> | undefined)?.["x-lifi-api-key"];
+      seen.push(k);
+      return k
+        ? new Response('{"message":"Unauthorized","code":1010}', { status: 401 })
+        : Response.json({
+            id: "s",
+            type: "lifi",
+            tool: "relay",
+            action: {
+              fromChainId: 8453,
+              toChainId: 1151111081099710,
+              fromToken: { address: BASE_USDC },
+              toToken: { address: SOL_NATIVE },
+              fromAmount: "1",
+            },
+            estimate: { toAmount: "5", toAmountMin: "4", executionDuration: 12.5 },
+          });
+    }) as unknown as typeof fetch;
+    const q = await lifi({ ...env, LIFI_API_KEY: "bad" }, f).quote(toSol, sig());
+    expect(seen).toEqual(["bad", undefined]);
+    expect(q.toAmount).toBe("5");
+  });
+
+  it("relay: fractional time estimates round to whole seconds", async () => {
+    const { f } = capture({
+      steps: [],
+      fees: {},
+      details: { currencyOut: { amount: "1" }, timeEstimate: 612.4 },
+    });
+    expect((await relay(env, f).quote(toSol, sig())).etaSeconds).toBe(612);
+  });
 });
