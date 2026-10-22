@@ -30,6 +30,17 @@ Any MCP client, via stdio bridge:
 }
 ```
 
+### Earn 5 bp as an agent builder
+
+Register a partner id with your payout address and pass `partner` to `get_quote` / `compare_routes` (REST: `&partner=<id>`). You earn half of SwapChan's 0.1% fee on every swap with a verified fee:
+
+```sh
+curl -X POST https://api.swapchan.com/partners -H 'content-type: application/json' \
+  -d '{"name":"My Agent","siteUrl":"https://github.com/me/my-agent","evmAddress":"0xYourPayoutAddress"}'
+```
+
+Returns `id`, a private dashboard `token` and `dashboardUrl`. Sites can embed the [widget](https://swapchan.com/widget) or use `?ref=<id>` links. Details: [swapchan.com/partners](https://swapchan.com/partners).
+
 ### Tools
 
 | Tool                                                | What it does                                                                                                         |

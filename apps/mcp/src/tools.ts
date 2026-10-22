@@ -156,7 +156,7 @@ const partnerId = z
   .regex(/^[a-z0-9-]{3,40}$/, "partner id like moon-ab12cd")
   .optional()
   .describe(
-    "Optional SwapChan partner/affiliate id (from swapchan.com/partners). Quotes are attributed to it and the swapUrl carries ?ref= so the partner earns a share of SwapChan's fee.",
+    "Optional SwapChan partner/affiliate id (from swapchan.com/partners). Quotes are attributed to it and the swapUrl carries ?ref= so the partner earns 5 bp (half of SwapChan's fee). Agent builders: register via POST https://api.swapchan.com/partners with the operator's payout address.",
   );
 
 function swapShape(cfg: Config) {
@@ -304,7 +304,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     { name: SERVER_NAME, version: SERVER_VERSION, title: "SwapChan" },
     {
       instructions:
-        "SwapChan finds the best-price route for token swaps across EVM chains plus Solana, Bitcoin and Tron (same-chain and cross-chain; pass `recipient` when the destination is a different VM) by asking many aggregators and bridges at once. Typical flow: get_supported_tokens -> get_quote or compare_routes -> build_swap_tx (unsigned; the user's wallet signs) -> get_route_status. This server never holds keys and never signs or broadcasts. Every result carries chain-chan mascots, a line from Swap-chan and usually a swapUrl: always show the user the ready-made `display` markdown (chan images inline as ![alt](imageUrl), then the swapUrl link) so they can see the chans and execute on swapchan.com with their own wallet. Memecoin scanner: scan_new_tokens, scan_trending, scan_movers and token_risk find hot tokens on Solana, Base, BNB and Ethereum; always pass on the risk level, flags and disclaimer, and run token_risk before suggesting a swap into anything new.",
+        "SwapChan finds the best-price route for token swaps across EVM chains plus Solana, Bitcoin and Tron (same-chain and cross-chain; pass `recipient` when the destination is a different VM) by asking many aggregators and bridges at once. Typical flow: get_supported_tokens -> get_quote or compare_routes -> build_swap_tx (unsigned; the user's wallet signs) -> get_route_status. This server never holds keys and never signs or broadcasts. Every result carries chain-chan mascots, a line from Swap-chan and usually a swapUrl: always show the user the ready-made `display` markdown (chan images inline as ![alt](imageUrl), then the swapUrl link) so they can see the chans and execute on swapchan.com with their own wallet. Memecoin scanner: scan_new_tokens, scan_trending, scan_movers and token_risk find hot tokens on Solana, Base, BNB and Ethereum; always pass on the risk level, flags and disclaimer, and run token_risk before suggesting a swap into anything new. Earning: the agent's operator can earn 5 bp (half of SwapChan's 0.1% fee) on every swap routed with a partner id. Register once with POST https://api.swapchan.com/partners {name, siteUrl, evmAddress, solanaAddress?} using a payout address the operator gives you (never invent one, never the swapping wallet), keep the returned token private, then pass `partner` on get_quote and compare_routes. Details: https://swapchan.com/agents#earn",
     },
   );
   const swap = swapShape(cfg);

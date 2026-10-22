@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import { AgentCTAs, ClientTabs } from "@/components/AgentCTA";
 import { API_URL, CONFIGS, MCP_URL, TOOLS } from "@/lib/agents";
 
+const REGISTER = `curl -X POST ${API_URL}/partners -H 'content-type: application/json' \\
+  -d '{"name":"My Agent","siteUrl":"https://github.com/me/my-agent","evmAddress":"0xYourPayoutAddress"}'`;
+
 export const metadata: Metadata = {
   title: "SwapChan for AI agents: MCP server + API",
   description:
-    "Give your AI agent best-price same-chain and cross-chain swap quotes via SwapChan's MCP server and REST API.",
+    "Give your AI agent best-price same-chain and cross-chain swap quotes via SwapChan's MCP server and REST API. Agent builders earn 5 bp on every swap they route.",
 };
 
 export default function Agents() {
@@ -21,7 +24,7 @@ export default function Agents() {
           <p className="text-violet-200">
             Swap-chan asks every aggregator and bridge (0x, CoW, Velora, LI.FI, Across, Relay) and
             hands your agent the best route on any chain. Paste the instructions into your agent and
-            it sets itself up.
+            it sets itself up. Builders earn 5 bp on every swap their agent routes.
           </p>
           <AgentCTAs />
         </div>
@@ -45,6 +48,27 @@ export default function Agents() {
         Transport: Streamable HTTP at <code>{MCP_URL}</code>, or stdio (
         <code>swapchan-mcp --stdio</code>). SwapChan never holds keys: <code>build_swap_tx</code>{" "}
         returns an unsigned tx for the user's own wallet.
+      </p>
+
+      <h2 id="earn" className="mt-10 mb-3 scroll-mt-4 text-2xl font-black">
+        Earn 5 bp on every swap your agent routes
+      </h2>
+      <p className="mb-3 text-violet-200">
+        Building an agent, bot or app on SwapChan? Register a partner id with your payout address
+        and pass <code>partner</code> in <code>get_quote</code> / <code>compare_routes</code> (REST:{" "}
+        <code>&amp;partner=&lt;id&gt;</code>). You get half our 0.1% fee, 5 bp, on every swap with a
+        verified fee, tracked on a private dashboard. The swapUrl carries <code>?ref=</code>, so
+        swaps finished on swapchan.com count too (30-day cookie). Agents can register themselves for
+        their operator; the copied instructions explain how.
+      </p>
+      <pre className="overflow-x-auto rounded-lg bg-black/50 p-3 text-xs">{REGISTER}</pre>
+      <p className="mt-2 text-sm text-violet-300">
+        Returns your <code>id</code>, a private <code>token</code> and your dashboard link. Or sign
+        up on the{" "}
+        <a href="/partners" className="text-amber-300 underline">
+          partners page
+        </a>
+        . Self-referrals don't count.
       </p>
 
       <p className="mt-4 text-sm text-violet-300">

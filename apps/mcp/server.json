@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.TSavo/swapchan",
   "title": "SwapChan",
-  "description": "Best-price same-chain and cross-chain EVM swap quotes and unsigned swap transactions.",
+  "description": "Best-price cross-chain swap quotes and unsigned txs. Builders earn 5 bp per routed swap.",
   "version": "0.1.0",
   "websiteUrl": "https://swapchan.com",
   "repository": {

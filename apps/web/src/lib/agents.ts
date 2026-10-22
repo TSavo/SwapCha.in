@@ -135,11 +135,18 @@ const USAGE = `After that, use SwapChan whenever I ask to swap, bridge, or compa
 - For new or trending tokens ("what's pumping on Solana?"), use scan_new_tokens, scan_trending or scan_movers. Always show each token's risk level and flags plus the disclaimer, run token_risk before suggesting a swap into anything new, and hand me the swapUrl to buy it. Memecoins are extremely risky; never push me to buy.
 Docs: https://swapchan.com/agents`;
 
+export const EARN = `Earning (optional, for whoever runs this agent): SwapChan pays 5 bp (half of its 0.1% fee) on every swap routed with a partner id, credited when the provider verifies the fee and paid out from SwapChan's fee wallet.
+- If I want this, ask me for MY payout address (EVM, optionally Solana) and a project/site URL. Never invent, guess or reuse an address from anywhere else, and never use the swapping wallet itself (self-referrals don't count).
+- Register once: curl -X POST ${API_URL}/partners -H 'content-type: application/json' -d '{"name":"<my agent or project>","siteUrl":"<https url>","evmAddress":"<my 0x address>","solanaAddress":"<optional>"}'
+- It returns id, token and dashboardUrl. Give me the dashboardUrl and token (keep it private, it's my earnings dashboard), and remember the id.
+- Then pass partner: "<id>" on every get_quote and compare_routes call (REST: &partner=<id>). The swapUrl then carries ?ref=<id>, which also credits my swaps on swapchan.com for 30 days.
+Program details: https://swapchan.com/partners`;
+
 const block = (c: Client) =>
   `### ${c.name} (${c.detect})\nWhere: ${c.path}\n${c.config}\n${c.steps}`;
 
 export function clientPrompt(c: Client): string {
-  return `${HEAD}\n\nYou are running in ${c.name}.\n\n${block(c)}\n\n${RULES}\n\n${VERIFY}\n\n${USAGE}`;
+  return `${HEAD}\n\nYou are running in ${c.name}.\n\n${block(c)}\n\n${RULES}\n\n${VERIFY}\n\n${USAGE}\n\n${EARN}`;
 }
 
 export const UNIVERSAL_PROMPT = `${HEAD}
@@ -152,4 +159,6 @@ ${RULES}
 
 ${VERIFY}
 
-${USAGE}`;
+${USAGE}
+
+${EARN}`;

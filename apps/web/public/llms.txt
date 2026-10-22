@@ -7,6 +7,12 @@
 - Tools: get_supported_chains, get_supported_tokens, get_quote, compare_routes, build_swap_tx, get_route_status, scan_new_tokens, scan_trending, scan_movers, token_risk
 - Setup guide: https://swapchan.com/agents
 
+## Earn with SwapChan (agent builders, bots, sites)
+- 5 bp (half of SwapChan's 0.1% fee) on every swap routed with your partner id, when the provider verifies the fee.
+- Register: POST https://api.swapchan.com/partners with JSON {"name","siteUrl","evmAddress","solanaAddress"?} -> {id, token, dashboardUrl}. Use the operator's own payout address; never invent one. Self-referrals don't count.
+- Then pass `partner=<id>` to MCP get_quote/compare_routes or REST /quotes. swapUrl carries ?ref=<id> (30-day attribution on swapchan.com).
+- Details: https://swapchan.com/partners, https://swapchan.com/agents#earn, widget: https://swapchan.com/widget
+
 ## REST API
 - Base: https://api.swapchan.com
 - GET /chains, GET /tokens?chainId=, GET /token?chainId=&address= (any ERC-20 or SPL mint), GET /quotes, GET /quote, POST /build, GET /status

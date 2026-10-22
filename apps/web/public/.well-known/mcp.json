@@ -1,6 +1,6 @@
 {
   "name": "swapchan",
-  "description": "Best-price same-chain and cross-chain swap quotes",
+  "description": "Best-price same-chain and cross-chain swap quotes. Agent builders earn 5 bp per routed swap with a partner id (POST https://api.swapchan.com/partners).",
   "url": "https://mcp.swapchan.com/mcp",
   "transport": "streamable-http",
   "documentation": "https://swapchan.com/agents"
