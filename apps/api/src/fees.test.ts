@@ -139,7 +139,10 @@ describe("our fee is requested and verified per provider", () => {
         {
           ...step,
           tool: "feeCollection",
-          estimate: { ...step.estimate, feeCosts: [{ amountUSD: "0.1", included: true }] },
+          estimate: {
+            ...step.estimate,
+            feeCosts: [{ amountUSD: "0.35", percentage: "0.0035", included: true }],
+          },
         },
       ],
     };

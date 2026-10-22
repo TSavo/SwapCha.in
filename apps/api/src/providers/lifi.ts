@@ -23,7 +23,7 @@ interface LifiStep {
     approvalAddress?: string;
     executionDuration: number;
     gasCosts?: { amountUSD?: string }[];
-    feeCosts?: { amountUSD?: string; included?: boolean }[];
+    feeCosts?: { amountUSD?: string; included?: boolean; percentage?: string }[];
   };
   includedSteps?: LifiStep[];
   transactionRequest?: {
@@ -76,9 +76,15 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
         }
       } else s = await getJson<LifiStep>(f, `${BASE}/quote?${q}`, { headers, signal });
       const ourStep = (s.includedSteps ?? []).find((st) => st.tool === "feeCollection");
+      // feeCollection carries LI.FI's own 0.25% plus ours in one line; take only our share.
+      const ourPct = feeBps / 10_000;
       const ourFeeUsd =
         charged && ourStep
-          ? (ourStep.estimate.feeCosts ?? []).reduce((a, x) => a + Number(x.amountUSD ?? 0), 0)
+          ? (ourStep.estimate.feeCosts ?? []).reduce((a, x) => {
+              const pct = Number(x.percentage ?? 0);
+              const usd = Number(x.amountUSD ?? 0);
+              return a + (pct > 0 ? (usd * Math.min(ourPct, pct)) / pct : usd);
+            }, 0)
           : 0;
       const gasUsd = sumUsd(s.estimate.gasCosts);
       const feeUsd = sumUsd(s.estimate.feeCosts);
