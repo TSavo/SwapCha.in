@@ -7,6 +7,7 @@
 #   secret/swapchan/fees        recipient, bps, lifi_enabled              (integrator fee; unset = no fee)
 #   secret/swapchan/providers   zerox, lifi, relay, velora  (API keys; unset = provider off / free tier)
 #   secret/swapchan/reown       project_id                  (wallet connect; unset = connect disabled)
+#   secret/swapchan/analytics   measurement_id              (GA4; unset = no analytics)
 #   secret/swapchan/api         keys                        (SWAPCHAN_API_KEYS; unset = API open)
 #   secret/swapchan/mcp         keys                        (MCP_API_KEYS; unset = MCP open, rate-limited)
 set -euo pipefail
@@ -34,6 +35,7 @@ export LIFI_INTEGRATOR=$(opt providers lifi_integrator)   # portal.li.fi integra
 export RELAY_API_KEY=$(opt providers relay)
 export VELORA_API_KEY=$(opt providers velora)
 export NEXT_PUBLIC_REOWN_PROJECT_ID=$(opt reown project_id)
+export NEXT_PUBLIC_GA_ID=$(opt analytics measurement_id)   # GA4 (property 389907174)
 export SWAPCHAN_API_KEYS=$(opt api keys)
 export MCP_API_KEYS=$(opt mcp keys)
 if [ -z "$MCP_API_KEYS" ]; then export MCP_ALLOW_ANONYMOUS=1; else export MCP_ALLOW_ANONYMOUS=0; fi

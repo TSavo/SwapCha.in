@@ -11,7 +11,8 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 # Baked into the client bundle at build time
 ARG NEXT_PUBLIC_API_URL=https://api.swapchan.com
 ARG NEXT_PUBLIC_REOWN_PROJECT_ID=
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_REOWN_PROJECT_ID=$NEXT_PUBLIC_REOWN_PROJECT_ID
+ARG NEXT_PUBLIC_GA_ID=
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_PUBLIC_REOWN_PROJECT_ID=$NEXT_PUBLIC_REOWN_PROJECT_ID NEXT_PUBLIC_GA_ID=$NEXT_PUBLIC_GA_ID
 RUN pnpm --filter @swapchan/web... build
 
 FROM node:24-slim

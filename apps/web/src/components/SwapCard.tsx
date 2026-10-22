@@ -9,7 +9,7 @@ import {
   tokenList,
 } from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { erc20Abi, maxUint256 } from "viem";
 import {
   useAccount,
@@ -25,6 +25,7 @@ import { waitForTransactionReceipt } from "wagmi/actions";
 import { formatAmount, parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import { api, cowExplorer, submitCowOrder } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
+import { quoteParams, track } from "@/lib/ga";
 import { publishSays, say, unverifiedWarning } from "@/lib/says";
 import { Character, SpeechBubble } from "./Character";
 import { ConnectButton } from "./ConnectButton";
@@ -141,6 +142,21 @@ export function SwapCard() {
   }, [qres, selected]);
   const quote: Quote | undefined = qres?.quotes.find((q) => q.id === selected);
   const quotesMocked = quotes.data?.mocked ?? mocked;
+  const submitted = useRef<Quote | null>(null);
+  const bestQuote = qres?.quotes[0];
+  useEffect(() => {
+    if (bestQuote && !quotesMocked)
+      track("quote_received", { ...quoteParams(bestQuote), routes: qres?.quotes.length ?? 0 });
+  }, [bestQuote, quotesMocked, qres?.quotes.length]);
+  useEffect(() => {
+    if (address) track("wallet_connected", { chain: walletChain });
+  }, [address, walletChain]);
+  useEffect(() => {
+    if (settled === "done" && submitted.current) {
+      track("swap_completed", quoteParams(submitted.current));
+      submitted.current = null;
+    }
+  }, [settled]);
 
   // Balances & allowance
   const nativeBal = useBalance({ address, chainId: fromChain, query: { enabled: !!address } });
@@ -258,6 +274,8 @@ export function SwapCard() {
         } as Parameters<typeof signTypedDataAsync>[0]);
         const uid = await submitCowOrder(fromChain, o, signature, address);
         setPhase({ k: "order", uid });
+        submitted.current = quote;
+        track("swap_submitted", { ...quoteParams(quote), execution: "order" });
         return;
       }
       if (built.simulation && !built.simulation.ok)
@@ -279,6 +297,8 @@ export function SwapCard() {
         chainId: tx.chainId,
         ...(tx.gasLimit ? { gas: BigInt(tx.gasLimit) } : {}),
       });
+      submitted.current = quote;
+      track("swap_submitted", { ...quoteParams(quote), execution: "tx", tx_hash: hash });
       setPhase({
         k: "tracking",
         p: {

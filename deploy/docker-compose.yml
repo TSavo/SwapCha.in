@@ -28,6 +28,7 @@ services:
       args:
         NEXT_PUBLIC_API_URL: https://api.swapchan.com
         NEXT_PUBLIC_REOWN_PROJECT_ID: ${NEXT_PUBLIC_REOWN_PROJECT_ID:-}
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
     image: swapchan-web:latest
     restart: unless-stopped
     environment:
