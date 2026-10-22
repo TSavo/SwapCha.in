@@ -5,7 +5,11 @@ export type CharacterKey =
   | "base"
   | "arbitrum"
   | "optimism"
-  | "polygon";
+  | "polygon"
+  | "bnb"
+  | "avalanche"
+  | "linea"
+  | "scroll";
 
 export interface Character {
   key: CharacterKey;
@@ -58,6 +62,34 @@ export const CHARACTERS: Record<CharacterKey, Character> = {
     color: "#8247e5",
     tagline: "Shapeshifting mage of the many sidechains.",
     chainId: 137,
+  },
+  bnb: {
+    key: "bnb",
+    name: "BNB-chan",
+    color: "#f0b90b",
+    tagline: "Golden guardian of the Smart Chain.",
+    chainId: 56,
+  },
+  avalanche: {
+    key: "avalanche",
+    name: "Avax-chan",
+    color: "#e84142",
+    tagline: "Snow-fast subnet samurai.",
+    chainId: 43114,
+  },
+  linea: {
+    key: "linea",
+    name: "Linea-chan",
+    color: "#61dfff",
+    tagline: "zk-sharp, straight as a line.",
+    chainId: 59144,
+  },
+  scroll: {
+    key: "scroll",
+    name: "Scroll-chan",
+    color: "#ffdbb0",
+    tagline: "Keeper of the zk scrolls.",
+    chainId: 534352,
   },
   solana: {
     key: "solana",

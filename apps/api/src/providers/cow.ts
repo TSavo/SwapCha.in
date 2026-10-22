@@ -7,6 +7,9 @@ const NETWORK: Record<number, string> = {
   8453: "base",
   42161: "arbitrum_one",
   137: "polygon",
+  56: "bnb",
+  43114: "avalanche",
+  59144: "linea",
 };
 export const COW_VAULT_RELAYER = "0xC92E8bdf79f0507f65a392b0ab4667716BFE0110";
 const SETTLEMENT = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41";

@@ -1,20 +1,28 @@
 import {
   type AppKitNetwork,
   arbitrum,
+  avalanche,
   base,
+  bsc,
+  linea,
   mainnet,
   optimism,
   polygon,
+  scroll,
 } from "@reown/appkit/networks";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { http } from "viem";
 import { cookieStorage, createConfig, createStorage, injected } from "wagmi";
 import {
   arbitrum as wArb,
+  avalanche as wAvax,
   base as wBase,
+  bsc as wBsc,
+  linea as wLinea,
   mainnet as wMain,
   optimism as wOp,
   polygon as wPoly,
+  scroll as wScroll,
 } from "wagmi/chains";
 
 export const projectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID ?? "";
@@ -26,6 +34,10 @@ export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   arbitrum,
   optimism,
   polygon,
+  bsc,
+  avalanche,
+  linea,
+  scroll,
 ];
 
 export const wagmiAdapter = hasAppKit
@@ -41,7 +53,7 @@ export const wagmiAdapter = hasAppKit
 export const wagmiConfig =
   wagmiAdapter?.wagmiConfig ??
   createConfig({
-    chains: [wMain, wBase, wArb, wOp, wPoly],
+    chains: [wMain, wBase, wArb, wOp, wPoly, wBsc, wAvax, wLinea, wScroll],
     connectors: [injected()],
     ssr: true,
     storage: createStorage({ storage: cookieStorage }),
@@ -51,5 +63,9 @@ export const wagmiConfig =
       [wArb.id]: http(),
       [wOp.id]: http(),
       [wPoly.id]: http(),
+      [wBsc.id]: http(),
+      [wAvax.id]: http(),
+      [wLinea.id]: http(),
+      [wScroll.id]: http(),
     },
   });

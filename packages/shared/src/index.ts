@@ -14,6 +14,10 @@ export const SUPPORTED_CHAINS = {
   42161: { name: "Arbitrum", mascot: "arb-chan" },
   10: { name: "Optimism", mascot: "op-chan" },
   137: { name: "Polygon", mascot: "poly-chan" },
+  56: { name: "BNB Chain", mascot: "bnb-chan" },
+  43114: { name: "Avalanche", mascot: "avax-chan" },
+  59144: { name: "Linea", mascot: "linea-chan" },
+  534352: { name: "Scroll", mascot: "scroll-chan" },
 } as const satisfies Record<number, { name: string; mascot: string }>;
 
 export const Chain = z.object({ id: ChainId, name: z.string(), mascot: z.string() });

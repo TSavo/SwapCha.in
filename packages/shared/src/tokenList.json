@@ -1,6 +1,69 @@
 [
   {
     "chainId": 1,
+    "symbol": "ETH",
+    "name": "Ether",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 8453,
+    "symbol": "ETH",
+    "name": "Ether",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 42161,
+    "symbol": "ETH",
+    "name": "Ether",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 10,
+    "symbol": "ETH",
+    "name": "Ether",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 137,
+    "symbol": "POL",
+    "name": "Polygon Ecosystem Token",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 56,
+    "symbol": "BNB",
+    "name": "BNB",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 43114,
+    "symbol": "AVAX",
+    "name": "Avalanche",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 59144,
+    "symbol": "ETH",
+    "name": "Ether",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 534352,
+    "symbol": "ETH",
+    "name": "Ether",
+    "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    "decimals": 18
+  },
+  {
+    "chainId": 1,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -102,5 +165,187 @@
     "address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
     "decimals": 18,
     "logoURI": "https://cdn.moralis.io/eth/0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9.png"
+  },
+  {
+    "chainId": 56,
+    "symbol": "WBNB",
+    "name": "Wrapped BNB",
+    "address": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+    "decimals": 18
+  },
+  {
+    "chainId": 56,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "0x55d398326f99059fF775485246999027B3197955",
+    "decimals": 18
+  },
+  {
+    "chainId": 56,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+    "decimals": 18
+  },
+  {
+    "chainId": 56,
+    "symbol": "ETH",
+    "name": "Binance-Peg Ether",
+    "address": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
+    "decimals": 18
+  },
+  {
+    "chainId": 43114,
+    "symbol": "WAVAX",
+    "name": "Wrapped AVAX",
+    "address": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+    "decimals": 18
+  },
+  {
+    "chainId": 43114,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    "decimals": 6
+  },
+  {
+    "chainId": 43114,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+    "decimals": 6
+  },
+  {
+    "chainId": 43114,
+    "symbol": "WETH.e",
+    "name": "Wrapped Ether",
+    "address": "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
+    "decimals": 18
+  },
+  {
+    "chainId": 59144,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+    "decimals": 6
+  },
+  {
+    "chainId": 59144,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+    "decimals": 6
+  },
+  {
+    "chainId": 59144,
+    "symbol": "WETH",
+    "name": "Wrapped Ether",
+    "address": "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",
+    "decimals": 18
+  },
+  {
+    "chainId": 534352,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+    "decimals": 6
+  },
+  {
+    "chainId": 534352,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+    "decimals": 6
+  },
+  {
+    "chainId": 534352,
+    "symbol": "WETH",
+    "name": "Wrapped Ether",
+    "address": "0x5300000000000000000000000000000000000004",
+    "decimals": 18
+  },
+  {
+    "chainId": 8453,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "decimals": 6
+  },
+  {
+    "chainId": 8453,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+    "decimals": 6
+  },
+  {
+    "chainId": 8453,
+    "symbol": "WETH",
+    "name": "Wrapped Ether",
+    "address": "0x4200000000000000000000000000000000000006",
+    "decimals": 18
+  },
+  {
+    "chainId": 42161,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    "decimals": 6
+  },
+  {
+    "chainId": 42161,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+    "decimals": 6
+  },
+  {
+    "chainId": 42161,
+    "symbol": "WETH",
+    "name": "Wrapped Ether",
+    "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+    "decimals": 18
+  },
+  {
+    "chainId": 10,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+    "decimals": 6
+  },
+  {
+    "chainId": 10,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+    "decimals": 6
+  },
+  {
+    "chainId": 10,
+    "symbol": "WETH",
+    "name": "Wrapped Ether",
+    "address": "0x4200000000000000000000000000000000000006",
+    "decimals": 18
+  },
+  {
+    "chainId": 137,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+    "decimals": 6
+  },
+  {
+    "chainId": 137,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+    "decimals": 6
+  },
+  {
+    "chainId": 137,
+    "symbol": "WETH",
+    "name": "Wrapped Ether",
+    "address": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+    "decimals": 18
   }
 ]

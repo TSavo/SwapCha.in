@@ -78,6 +78,9 @@ const COW_NETWORK: Record<number, string> = {
   8453: "base",
   42161: "arbitrum_one",
   137: "polygon",
+  56: "bnb",
+  43114: "avalanche",
+  59144: "linea",
 };
 
 /** Submit a signed CoW order (EIP-712). Returns the order UID. */

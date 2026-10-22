@@ -1,9 +1,29 @@
 import type { Simulation, TxRequest } from "@swapchan/shared";
 import { createPublicClient, http } from "viem";
-import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
+import {
+  arbitrum,
+  avalanche,
+  base,
+  bsc,
+  linea,
+  mainnet,
+  optimism,
+  polygon,
+  scroll,
+} from "viem/chains";
 import type { Fetch } from "./providers/types.js";
 
-const CHAINS = { 1: mainnet, 8453: base, 42161: arbitrum, 10: optimism, 137: polygon } as const;
+const CHAINS = {
+  1: mainnet,
+  8453: base,
+  42161: arbitrum,
+  10: optimism,
+  137: polygon,
+  56: bsc,
+  43114: avalanche,
+  59144: linea,
+  534352: scroll,
+} as const;
 
 export type Simulator = (tx: TxRequest, from: `0x${string}`) => Promise<Simulation>;
 

@@ -12,7 +12,7 @@ import {
 } from "@swapchan/shared";
 import { formatUnits, parseUnits, toHex } from "viem";
 
-const NATIVE_SYMBOL: Record<number, string> = { 137: "POL" };
+const NATIVE_SYMBOL: Record<number, string> = { 137: "POL", 56: "BNB", 43114: "AVAX" };
 
 const PRICES: Record<string, number> = {
   ETH: 3200,
@@ -43,7 +43,7 @@ const nativeToken = (chainId: number): Token => {
     chainId,
     address: NATIVE_TOKEN,
     symbol: sym,
-    name: sym === "ETH" ? "Ether" : "Polygon Ecosystem Token",
+    name: sym === "ETH" ? "Ether" : sym === "POL" ? "Polygon Ecosystem Token" : sym,
     decimals: 18,
   };
 };

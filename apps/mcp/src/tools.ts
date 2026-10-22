@@ -65,7 +65,9 @@ const chainId = z
   .number()
   .int()
   .positive()
-  .describe("EVM chain id, e.g. 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon");
+  .describe(
+    "EVM chain id, e.g. 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon, 56 BNB Chain, 43114 Avalanche, 59144 Linea, 534352 Scroll",
+  );
 
 function swapShape(cfg: Config) {
   return {

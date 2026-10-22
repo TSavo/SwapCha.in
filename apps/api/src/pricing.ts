@@ -19,6 +19,10 @@ const LLAMA_CHAIN: Record<number, string> = {
   42161: "arbitrum",
   10: "optimism",
   137: "polygon",
+  56: "bsc",
+  43114: "avax",
+  59144: "linea",
+  534352: "scroll",
 };
 const NATIVE_GECKO: Record<number, string> = {
   1: "ethereum",
@@ -26,6 +30,10 @@ const NATIVE_GECKO: Record<number, string> = {
   42161: "ethereum",
   10: "ethereum",
   137: "polygon-ecosystem-token",
+  56: "binancecoin",
+  43114: "avalanche-2",
+  59144: "ethereum",
+  534352: "ethereum",
 };
 const isNative = (a: string) =>
   a.toLowerCase() === ZERO_ADDRESS ||
