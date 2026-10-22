@@ -25,6 +25,8 @@ function themeVars(c: EmbedConfig): CSSProperties {
     v["--color-amber-300"] = c.accent;
     v["--color-fuchsia-500"] = c.accent;
   }
+  // Inherited text (e.g. the amount input) must follow the theme too.
+  v.color = c.theme === "light" ? "#1e1033" : "#f5f3ff";
   return v as CSSProperties;
 }
 
@@ -59,10 +61,10 @@ export function EmbedWidget() {
     return () => ro.disconnect();
   }, [cfg]);
 
-  if (!cfg) return <div className="fixed inset-0 z-[100] bg-violet-950" />;
+  if (!cfg) return <div className="fixed inset-0 z-[100]" />;
   return (
     <div
-      className={`fixed inset-0 z-[100] overflow-auto ${cfg.theme === "light" ? "bg-white" : "bg-[#12052a]"} ${cfg.chan ? "" : "embed-nochan"}`}
+      className={`fixed inset-0 z-[100] overflow-auto ${cfg.chan ? "" : "embed-nochan"}`}
       style={themeVars(cfg)}
     >
       <div ref={root} className="flex flex-col items-center gap-1 p-2">

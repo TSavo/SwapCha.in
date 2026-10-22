@@ -98,6 +98,11 @@ body {
 .embed-nochan img[src*="/characters/"] {
   display: none;
 }
+/* Widget (/embed): transparent page so the host's background shows around the card. */
+html[data-embed],
+html[data-embed] body {
+  background: transparent;
+}
 /* Widget (/embed): no site sparkles behind the iframe. */
 html[data-embed] .sparkles::before {
   display: none;

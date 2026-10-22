@@ -588,7 +588,7 @@ export function SwapCard({
             placeholder="0.0"
             value={amountStr}
             onChange={(e) => setAmountStr(sanitizeAmountInput(e.target.value))}
-            className={`w-full bg-transparent text-3xl font-black outline-none ${amountInvalid ? "text-rose-400" : ""}`}
+            className={`w-full bg-transparent text-3xl font-black text-white outline-none ${amountInvalid ? "text-rose-400" : ""}`}
           />
           <TokenPicker
             tokens={fromTokens.data?.data ?? []}
