@@ -34,6 +34,7 @@ export function HopAnimation({ steps, active = true }: { steps: RouteStep[]; act
               who={i === 0 && seq.length === 2 && seq[0] === seq[1] ? "swapchan" : ch.key}
               size={44}
               mood={active ? "run" : "idle"}
+              link="nested"
             />
           </div>
         );

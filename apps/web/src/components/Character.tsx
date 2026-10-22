@@ -1,5 +1,7 @@
 import Image from "next/image";
+import { castHref } from "@/lib/bios";
 import { CHARACTERS, type CharacterKey, characterSrc } from "@/lib/characters";
+import { CastLink } from "./CastLink";
 
 export type Mood = "idle" | "bounce" | "think" | "cheer" | "sad" | "run";
 
@@ -18,24 +20,36 @@ export function Character({
   mood = "idle",
   label = false,
   className = "",
+  link = true,
 }: {
   who: CharacterKey;
   size?: number;
   mood?: Mood;
   label?: boolean;
   className?: string;
+  /** Link to her cast page. "nested" when already inside a button; false to disable. */
+  link?: boolean | "nested";
 }) {
   const c = CHARACTERS[who];
+  const img = (
+    <Image
+      src={characterSrc(who)}
+      alt={c.name}
+      width={size}
+      height={size}
+      className={`drop-shadow-[0_0_14px_var(--glow)] ${moodClass[mood]}`}
+      style={{ ["--glow" as string]: `${c.color}aa` }}
+    />
+  );
   return (
     <figure className={`flex flex-col items-center ${className}`}>
-      <Image
-        src={characterSrc(who)}
-        alt={c.name}
-        width={size}
-        height={size}
-        className={`drop-shadow-[0_0_14px_var(--glow)] ${moodClass[mood]}`}
-        style={{ ["--glow" as string]: `${c.color}aa` }}
-      />
+      {link ? (
+        <CastLink href={castHref(who)} label={`Meet ${c.name}`} nested={link === "nested"}>
+          {img}
+        </CastLink>
+      ) : (
+        img
+      )}
       {label && (
         <figcaption className="mt-1 text-xs font-bold" style={{ color: c.color }}>
           {c.name}

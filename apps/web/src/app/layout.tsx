@@ -8,6 +8,7 @@ import { GA_ID } from "@/lib/ga";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://swapchan.com"),
   title: "SwapChan: best-price swaps, now with anime",
   description:
     "Swap-chan compares DEX aggregators and bridges to find your best same-chain or cross-chain route.",

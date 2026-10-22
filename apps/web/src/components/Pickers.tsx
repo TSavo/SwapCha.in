@@ -36,7 +36,7 @@ export function ChainPicker({
               className={`flex items-center gap-1 rounded-full border-2 py-0.5 pr-3 pl-0.5 text-xs font-bold transition ${active ? "scale-105 bg-white/10" : "border-transparent opacity-60 hover:opacity-100"}`}
               style={{ borderColor: active ? ch.color : undefined }}
             >
-              <Character who={ch.key} size={28} />
+              <Character who={ch.key} size={28} link={false} />
               {c.name}
             </button>
           );

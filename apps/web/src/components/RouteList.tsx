@@ -79,8 +79,8 @@ export function RouteList({
       {errors.length > 0 && (
         <details className="text-xs text-violet-400">
           <summary className="flex cursor-pointer items-center gap-1">
-            <Character who="swapchan" size={20} mood="sad" /> {errors.length} provider(s) didn't
-            answer
+            <Character who="swapchan" size={20} mood="sad" link={false} /> {errors.length}{" "}
+            provider(s) didn't answer
           </summary>
           <ul className="mt-1 pl-6">
             {errors.map((e) => (
