@@ -118,6 +118,10 @@ export const Quote = z.object({
   approvalAddress: Address.nullable(),
   tx: TxRequest.nullable(),
   expiresAt: z.number().int(),
+  /** SwapChan's own fee on this route, in USD. 0 = this route pays us nothing. */
+  ourFeeUsd: z.number().nonnegative().optional(),
+  /** True when the provider confirmed our fee in its quote/tx (not just requested). */
+  ourFeeVerified: z.boolean().optional(),
   /** Additive v1: "tx" = send `tx`; "order" = sign `order` typed data (CoW), no tx. Default "tx". */
   execution: z.enum(["tx", "order"]).optional(),
   /** EIP-712 order to sign when execution === "order". */

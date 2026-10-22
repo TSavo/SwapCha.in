@@ -9,11 +9,22 @@ interface AcrossSwap {
   expectedFillTime: number;
   quoteExpiryTimestamp: number;
   checks?: { allowance?: { spender: string } };
+  fees?: AcrossFees;
   swapTx: { chainId: number; to: string; data: string; value?: string; gas?: string };
 }
 
 /** Across: keyless, cross-chain only (intent bridge with optional origin/dest swaps). */
-export function across(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
+interface AcrossFees {
+  total?: { details?: { app?: { amount?: string; amountUsd?: string } } };
+}
+
+export function across(
+  pricer: Pricer,
+  f: Fetch = fetch,
+  env: NodeJS.ProcessEnv = process.env,
+): ProviderAdapter {
+  const feeBps = Number(env.SWAPCHAN_FEE_BPS ?? 0);
+  const recipient = env.SWAPCHAN_FEE_RECIPIENT;
   return {
     name: "across",
     enabled: () => true,
@@ -30,6 +41,10 @@ export function across(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
         slippage: String(req.slippageBps / 10_000),
         integratorId: "0x0000",
       });
+      if (recipient && feeBps > 0) {
+        q.set("appFee", String(feeBps / 10_000));
+        q.set("appFeeRecipient", recipient);
+      }
       const r = await getJson<AcrossSwap>(f, `https://app.across.to/api/swap/approval?${q}`, {
         signal,
       });
@@ -71,6 +86,8 @@ export function across(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
             }
           : null,
         expiresAt: r.quoteExpiryTimestamp * 1000,
+        ourFeeUsd: Number(r.fees?.total?.details?.app?.amountUsd ?? 0),
+        ourFeeVerified: Number(r.fees?.total?.details?.app?.amount ?? 0) > 0,
       });
     },
     async status(req, signal) {

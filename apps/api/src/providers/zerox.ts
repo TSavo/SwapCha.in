@@ -8,6 +8,7 @@ interface ZeroXQuote {
   buyAmount: string;
   minBuyAmount: string;
   totalNetworkFee?: string | null;
+  fees?: { integratorFee?: { amount: string; token: string } | null };
   issues?: { allowance?: { spender: string } | null };
   route?: { fills?: { source: string }[] };
   transaction?: { to: string; data: string; value: string; gas?: string };
@@ -52,6 +53,10 @@ export function zerox(env: NodeJS.ProcessEnv, pricer: Pricer, f: Fetch = fetch):
           ? pricer.usd(req.fromChainId, ZERO_ADDRESS, r.totalNetworkFee)
           : Promise.resolve(0),
       ]);
+      const ourFee = r.fees?.integratorFee;
+      const ourFeeUsd = ourFee
+        ? ((await pricer.usd(req.toChainId, ourFee.token, ourFee.amount)) ?? 0)
+        : 0;
       const t = r.transaction;
       return Quote.parse({
         id: `0x:${crypto.randomUUID()}`,
@@ -87,6 +92,8 @@ export function zerox(env: NodeJS.ProcessEnv, pricer: Pricer, f: Fetch = fetch):
               }
             : null,
         expiresAt: Date.now() + 30_000,
+        ourFeeUsd,
+        ourFeeVerified: BigInt(ourFee?.amount ?? "0") > 0n,
       });
     },
     /** Build via 0x Permit2 flow: returns tx + Permit2 typed data (sign it, append sig per 0x docs). */

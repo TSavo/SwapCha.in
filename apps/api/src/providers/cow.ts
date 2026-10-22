@@ -24,6 +24,7 @@ interface CowQuote {
     buyAmount: string;
     validTo: number;
     appData: string;
+    appDataHash?: string;
     feeAmount: string;
     kind: string;
     partiallyFillable: boolean;
@@ -33,7 +34,20 @@ interface CowQuote {
 }
 
 /** CoW Protocol: keyless, same-chain, intent-based (sign EIP-712 order, no tx, gas paid by solvers). */
-export function cow(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
+/** CoW appData carrying our partner fee (volume-based, taken from the buy token at settlement). */
+export function cowAppData(recipient: string | undefined, bps: number): string {
+  const metadata = recipient && bps > 0 ? { partnerFee: { volumeBps: bps, recipient } } : {};
+  return JSON.stringify({ appCode: "SwapChan", metadata, version: "1.4.0" });
+}
+
+export function cow(
+  pricer: Pricer,
+  f: Fetch = fetch,
+  env: NodeJS.ProcessEnv = process.env,
+): ProviderAdapter {
+  const feeBps = env.SWAPCHAN_FEE_RECIPIENT ? Number(env.SWAPCHAN_FEE_BPS ?? 0) : 0;
+  const appData = cowAppData(env.SWAPCHAN_FEE_RECIPIENT, feeBps);
+  const uploaded = new Set<string>();
   return {
     name: "cow",
     enabled: () => true,
@@ -54,20 +68,35 @@ export function cow(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
           from,
           kind: "sell",
           sellAmountBeforeFee: req.amount,
+          appData,
         }),
       });
       const q = r.quote;
-      // Slippage applied to buyAmount for the signed order.
-      const minBuy = (BigInt(q.buyAmount) * BigInt(10_000 - req.slippageBps)) / 10_000n;
-      const [buyUsd, feeUsd] = await Promise.all([
-        pricer.usd(req.toChainId, req.toToken, q.buyAmount),
+      const hash = q.appDataHash ?? q.appData;
+      // Register the full appData doc so orders signed with its hash carry our partner fee.
+      if (feeBps > 0 && hash.startsWith("0x") && !uploaded.has(`${net}:${hash}`)) {
+        const put = await f(`https://api.cow.fi/${net}/api/v1/app_data/${hash}`, {
+          method: "PUT",
+          signal,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ fullAppData: appData }),
+        });
+        if (put.ok) uploaded.add(`${net}:${hash}`);
+      }
+      // Partner fee is taken from the buy token at settlement: quote out net of it, then slippage.
+      const buyNet = (BigInt(q.buyAmount) * BigInt(10_000 - feeBps)) / 10_000n;
+      const ourFeeAmt = BigInt(q.buyAmount) - buyNet;
+      const minBuy = (buyNet * BigInt(10_000 - req.slippageBps)) / 10_000n;
+      const [buyUsd, feeUsd, ourFeeUsd] = await Promise.all([
+        pricer.usd(req.toChainId, req.toToken, buyNet.toString()),
         pricer.usd(req.fromChainId, req.fromToken, q.feeAmount),
+        ourFeeAmt > 0n ? pricer.usd(req.toChainId, req.toToken, ourFeeAmt.toString()) : 0,
       ]);
       return Quote.parse({
         id: `cow:${r.id ?? crypto.randomUUID()}`,
         provider: "cow",
         request: req,
-        toAmount: q.buyAmount,
+        toAmount: buyNet.toString(),
         toAmountMin: minBuy.toString(),
         gasUsd: 0,
         feeUsd: feeUsd ?? 0,
@@ -82,12 +111,15 @@ export function cow(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
             fromToken: req.fromToken,
             toToken: req.toToken,
             fromAmount: req.amount,
-            toAmount: q.buyAmount,
+            toAmount: buyNet.toString(),
           },
         ],
         approvalAddress: COW_VAULT_RELAYER,
         tx: null,
         expiresAt: q.validTo * 1000,
+        ourFeeUsd: ourFeeUsd ?? 0,
+        // Verified = CoW echoed our partnerFee appData back on the quote.
+        ourFeeVerified: ourFeeAmt > 0n && q.appData.includes("partnerFee"),
         execution: "order",
         order: {
           domain: {
@@ -119,7 +151,7 @@ export function cow(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
             buyToken: q.buyToken,
             receiver: from,
             validTo: q.validTo,
-            appData: q.appData,
+            appData: hash,
             kind: q.kind,
             partiallyFillable: q.partiallyFillable,
             sellTokenBalance: q.sellTokenBalance,

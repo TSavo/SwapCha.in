@@ -115,6 +115,8 @@ export function velora(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch)
         ],
         approvalAddress: priceRoute.tokenTransferProxy,
         tx,
+        ourFeeUsd: partnerFeeUsd,
+        ourFeeVerified: partnerFeeUsd > 0,
         expiresAt: Date.now() + 30_000,
       });
     },

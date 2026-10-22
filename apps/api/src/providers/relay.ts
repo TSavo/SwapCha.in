@@ -95,6 +95,8 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
               }
             : null,
         expiresAt: Date.now() + 30_000,
+        ourFeeUsd: Number(r.fees.app?.amountUsd ?? 0),
+        ourFeeVerified: BigInt(r.fees.app?.amount ?? "0") > 0n,
       });
     },
     async status(req, signal) {

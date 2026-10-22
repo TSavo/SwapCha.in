@@ -37,9 +37,9 @@ export function defaultProviders(
   return [
     lifi(env),
     zerox(env, pricer),
-    cow(pricer),
+    cow(pricer, fetch, env),
     velora(pricer, env),
-    across(pricer),
+    across(pricer, fetch, env),
     relay(env),
   ];
 }

@@ -60,6 +60,15 @@ export function RouteList({
             <div className="mt-1 flex gap-4 text-xs text-violet-300">
               <span>⛽ gas {formatUsd(q.gasUsd)}</span>
               <span>💸 fees {formatUsd(q.feeUsd)}</span>
+              {q.ourFeeVerified ? (
+                <span className="text-emerald-300" title="SwapChan fee confirmed by provider">
+                  ✓ our fee {formatUsd(q.ourFeeUsd ?? 0)}
+                </span>
+              ) : (
+                <span className="text-amber-300" title="This route pays SwapChan no fee">
+                  no SwapChan fee
+                </span>
+              )}
               <span>⏱ {formatEta(q.etaSeconds)}</span>
               <span>min {formatAmount(q.toAmountMin, toToken.decimals, 4)}</span>
             </div>

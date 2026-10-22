@@ -60,9 +60,26 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
         slippage: String(req.slippageBps / 10_000),
         integrator: "swapchan",
       });
-      // LI.FI rejects fee= until the "swapchan" integrator has a fee wallet set in portal.li.fi.
-      if (feeBps > 0 && env.SWAPCHAN_LIFI_FEE === "1") q.set("fee", String(feeBps / 10_000));
-      const s = await getJson<LifiStep>(f, `${BASE}/quote?${q}`, { headers, signal });
+      // LI.FI rejects fee= (code 1011) until the "swapchan" integrator has a fee wallet in
+      // portal.li.fi. Always ask for it; fall back to fee-less (ranked down, unverified) on rejection.
+      let s: LifiStep;
+      let charged = false;
+      if (feeBps > 0 && env.SWAPCHAN_LIFI_FEE !== "0") {
+        const qf = new URLSearchParams(q);
+        qf.set("fee", String(feeBps / 10_000));
+        try {
+          s = await getJson<LifiStep>(f, `${BASE}/quote?${qf}`, { headers, signal });
+          charged = true;
+        } catch (e) {
+          if (!/1011|not configured for collecting fees/.test(String(e))) throw e;
+          s = await getJson<LifiStep>(f, `${BASE}/quote?${q}`, { headers, signal });
+        }
+      } else s = await getJson<LifiStep>(f, `${BASE}/quote?${q}`, { headers, signal });
+      const ourStep = (s.includedSteps ?? []).find((st) => st.tool === "feeCollection");
+      const ourFeeUsd =
+        charged && ourStep
+          ? (ourStep.estimate.feeCosts ?? []).reduce((a, x) => a + Number(x.amountUSD ?? 0), 0)
+          : 0;
       const gasUsd = sumUsd(s.estimate.gasCosts);
       const feeUsd = sumUsd(s.estimate.feeCosts);
       const toUsd = s.estimate.toAmountUSD ? Number(s.estimate.toAmountUSD) : null;
@@ -107,6 +124,8 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
               }
             : null,
         expiresAt: Date.now() + 60_000,
+        ourFeeUsd,
+        ourFeeVerified: ourFeeUsd > 0,
       });
     },
     async status(req, signal) {
