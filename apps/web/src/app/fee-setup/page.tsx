@@ -65,16 +65,40 @@ export default function FeeSetup() {
         );
       }
       if (!ixs.length) return setMsg("All fee accounts already exist. Nothing to do.");
-      const { blockhash } = await sol.connection.getLatestBlockhash();
-      const tx = new VersionedTransaction(
-        new TransactionMessage({
-          payerKey: payer,
-          recentBlockhash: blockhash,
-          instructions: ixs,
-        }).compileToV0Message(),
-      );
-      const sig = await sol.provider.signAndSendTransaction(tx);
-      setMsg(`Sent: ${sig} (created ${todo.length} account(s))`);
+      // Pre-check: rent for each new token account (165 bytes) + network fee per tx.
+      const conn = sol.connection;
+      const rent = await conn.getMinimumBalanceForRentExemption(165);
+      const batches: TransactionInstruction[][] = [];
+      for (let i = 0; i < ixs.length; i += 4) batches.push(ixs.slice(i, i + 4));
+      const need = rent * ixs.length + 10_000 * batches.length;
+      const have = await conn.getBalance(payer);
+      const fmt = (l: number) => (l / 1e9).toFixed(4);
+      if (have < need)
+        return setMsg(
+          `Not enough SOL: creating ${ixs.length} account(s) needs ${fmt(need)} SOL (rent ${fmt(rent)} each + fees), wallet ${sol.address} has ${fmt(have)} SOL. Top up at least ${fmt(need - have)} SOL and retry.`,
+        );
+      const sigs: string[] = [];
+      for (const [n, batch] of batches.entries()) {
+        const { blockhash } = await conn.getLatestBlockhash();
+        const tx = new VersionedTransaction(
+          new TransactionMessage({
+            payerKey: payer,
+            recentBlockhash: blockhash,
+            instructions: batch,
+          }).compileToV0Message(),
+        );
+        const sim = await conn.simulateTransaction(tx, {
+          sigVerify: false,
+          replaceRecentBlockhash: true,
+        });
+        if (sim.value.err)
+          return setMsg(
+            `Simulation failed (batch ${n + 1}/${batches.length}): ${JSON.stringify(sim.value.err)}\n${(sim.value.logs ?? []).slice(-8).join("\n")}`,
+          );
+        sigs.push(await sol.provider.signAndSendTransaction(tx));
+        setMsg(`Sent ${sigs.length}/${batches.length}: ${sigs.join(", ")}`);
+      }
+      setMsg(`Done: created ${todo.length} fee account(s). Tx: ${sigs.join(", ")}`);
     } catch (e) {
       setMsg((e as Error).message);
     }
@@ -100,7 +124,7 @@ export default function FeeSetup() {
       >
         {sol.address ? "Create fee accounts" : "Connect Solana wallet"}
       </button>
-      {msg && <p className="mt-3 break-all text-sm">{msg}</p>}
+      {msg && <p className="mt-3 whitespace-pre-wrap break-all text-sm">{msg}</p>}
     </div>
   );
 }
