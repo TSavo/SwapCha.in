@@ -27,12 +27,19 @@ import { onchainReader, type TokenReader, tokenResolver } from "./tokens.js";
 export { fanOut, rank } from "./aggregate.js";
 export type { ProviderAdapter } from "./providers/types.js";
 
-export function defaultProviders(
-  env: NodeJS.ProcessEnv = process.env,
-  pricer: Pricer = llamaPricer(fetch, 60_000, async (chainId, address) => {
+let sharedPricer: Pricer | undefined;
+/** One DefiLlama pricer per process, shared by providers and ranking (same price for every route). */
+export function defaultPricer(env: NodeJS.ProcessEnv = process.env): Pricer {
+  sharedPricer ??= llamaPricer(fetch, 60_000, async (chainId, address) => {
     const t = await tokenResolver(onchainReader(env))(chainId, address);
     return t?.decimals ?? null;
-  }),
+  });
+  return sharedPricer;
+}
+
+export function defaultProviders(
+  env: NodeJS.ProcessEnv = process.env,
+  pricer: Pricer = defaultPricer(env),
 ): ProviderAdapter[] {
   return [
     lifi(env),
@@ -49,6 +56,8 @@ export interface AppOptions {
   simulator?: Simulator | null;
   /** On-chain ERC-20 metadata reader for pasted (unlisted) addresses. */
   tokenReader?: TokenReader;
+  /** Prices every route's output for ranking; never trust provider-reported USD. */
+  pricer?: Pricer | null;
 }
 
 export function createApp(
@@ -58,6 +67,7 @@ export function createApp(
   const env = opts.env ?? process.env;
   const simulator = opts.simulator !== undefined ? opts.simulator : createSimulator(env);
   const cache = new Map<string, Quote>();
+  const pricer = opts.pricer === undefined ? defaultPricer(env) : opts.pricer;
   const resolveToken = tokenResolver(opts.tokenReader ?? onchainReader(env));
   const app = new Hono();
   app.use("*", cors());
@@ -91,7 +101,7 @@ export function createApp(
     return t ? c.json(t) : c.json({ error: "not an ERC-20 on this chain" }, 404);
   });
   const quotes = async (query: Record<string, string>) => {
-    const res = await fanOut(providers, QuoteRequest.parse(query));
+    const res = await fanOut(providers, QuoteRequest.parse(query), 8000, undefined, pricer);
     for (const q of res.quotes) cache.set(q.id, q);
     return res;
   };

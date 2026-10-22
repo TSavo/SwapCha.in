@@ -54,7 +54,7 @@ describe("api", () => {
     expect(Object.keys(await res.json()).sort()).toEqual(["ok", "providers", "version"]);
   });
   it("fans out, isolates provider errors", async () => {
-    const app = createApp([fake(mk("x", "10", 1)), fake(new Error("boom"))]);
+    const app = createApp([fake(mk("x", "10", 1)), fake(new Error("boom"))], { pricer: null });
     const res = await app.request(
       `/quotes?${new URLSearchParams({ fromChainId: "1", toChainId: "1", fromToken: USDC, toToken: LINK, amount: "1000000" })}`,
     );

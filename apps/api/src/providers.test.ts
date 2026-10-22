@@ -281,6 +281,7 @@ describe("simulation", () => {
       quote: async (r: QuoteRequest) => ({ ...base, tx: r.taker ? tx : null }),
     };
     const app = createApp([p], {
+      pricer: null,
       env: {},
       simulator: async () => ({ ok: true, method: "eth_call", gasUsed: "50000" }),
     });

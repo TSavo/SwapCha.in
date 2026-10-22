@@ -173,3 +173,41 @@ describe("our fee is requested and verified per provider", () => {
     expect(rank([free, paid], 0)[0]?.id).toBe("f");
   });
 });
+
+describe("ranking ignores provider-reported USD", () => {
+  it("a provider inflating its USD does not beat routes that give more tokens", async () => {
+    const { fanOut } = await import("./aggregate.js");
+    const mk = (name: string, toAmount: string, netUsd: number) => ({
+      name,
+      enabled: () => true,
+      supports: () => true,
+      quote: async (r: QuoteRequest) => ({
+        id: `${name}:1`,
+        provider: name,
+        request: r,
+        toAmount,
+        toAmountMin: toAmount,
+        gasUsd: 0,
+        feeUsd: 0,
+        netUsd,
+        etaSeconds: 1,
+        steps: [],
+        approvalAddress: null,
+        tx: null,
+        expiresAt: 0,
+        ourFeeUsd: 0.1,
+        ourFeeVerified: true,
+      }),
+    });
+    const res = await fanOut(
+      [mk("liar", "99636000", 100.87), mk("honest", "99884000", 99.85)],
+      xreq,
+      1000,
+      10,
+      pricer,
+    );
+    expect(res.quotes[0]?.provider).toBe("honest");
+    expect(res.quotes[0]?.netUsd).toBeCloseTo(99.884);
+    expect(res.quotes[1]?.netUsd).toBeCloseTo(99.636);
+  });
+});
