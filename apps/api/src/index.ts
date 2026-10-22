@@ -1,6 +1,7 @@
 import {
   Address,
   API_VERSION,
+  BuildResponse,
   type Quote,
   QuoteRequest,
   StatusRequest,
@@ -11,21 +12,49 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 import { fanOut } from "./aggregate.js";
+import { apiKeyAuth, parseKeys } from "./auth.js";
+import { llamaPricer, type Pricer } from "./pricing.js";
+import { across } from "./providers/across.js";
+import { cow } from "./providers/cow.js";
 import { lifi } from "./providers/lifi.js";
+import { relay } from "./providers/relay.js";
 import type { ProviderAdapter } from "./providers/types.js";
+import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
+import { createSimulator, type Simulator } from "./simulate.js";
 
 export { fanOut, rank } from "./aggregate.js";
 export type { ProviderAdapter } from "./providers/types.js";
 
-export function defaultProviders(env: NodeJS.ProcessEnv = process.env): ProviderAdapter[] {
-  return [lifi(env), zerox(env)];
+export function defaultProviders(
+  env: NodeJS.ProcessEnv = process.env,
+  pricer: Pricer = llamaPricer(),
+): ProviderAdapter[] {
+  return [
+    lifi(env),
+    zerox(env, pricer),
+    cow(pricer),
+    velora(pricer, env),
+    across(pricer),
+    relay(env),
+  ];
 }
 
-export function createApp(providers: ProviderAdapter[] = defaultProviders()) {
+export interface AppOptions {
+  env?: NodeJS.ProcessEnv;
+  simulator?: Simulator | null;
+}
+
+export function createApp(
+  providers: ProviderAdapter[] = defaultProviders(),
+  opts: AppOptions = {},
+) {
+  const env = opts.env ?? process.env;
+  const simulator = opts.simulator !== undefined ? opts.simulator : createSimulator(env);
   const cache = new Map<string, Quote>();
   const app = new Hono();
   app.use("*", cors());
+  app.use("*", apiKeyAuth(parseKeys(env.SWAPCHAN_API_KEYS)));
   app.onError((err, c) =>
     err instanceof z.ZodError
       ? c.json({ error: "invalid request", issues: err.issues }, 400)
@@ -36,6 +65,7 @@ export function createApp(providers: ProviderAdapter[] = defaultProviders()) {
     c.json({
       ok: true,
       version: API_VERSION,
+      BuildResponse,
       providers: providers.filter((p) => p.enabled()).map((p) => p.name),
     }),
   );
@@ -64,8 +94,28 @@ export function createApp(providers: ProviderAdapter[] = defaultProviders()) {
     const q = cache.get(quoteId);
     const p = q && providers.find((x) => x.name === q.provider);
     if (!q || !p) return c.json({ error: "unknown or expired quote" }, 404);
-    const fresh = await p.quote({ ...q.request, taker }, AbortSignal.timeout(8000));
-    return fresh.tx ? c.json(fresh.tx) : c.json({ error: "provider returned no tx" }, 502);
+    const req = { ...q.request, taker };
+    const signal = AbortSignal.timeout(10_000);
+    let out: BuildResponse;
+    if (p.build) out = await p.build(req, signal);
+    else {
+      const fresh = await p.quote(req, signal);
+      if (fresh.execution === "order" && fresh.order) {
+        // CoW: nothing to send; return order typed data (tx fields point at settlement for reference).
+        out = {
+          chainId: req.fromChainId,
+          to: fresh.order.domain.verifyingContract as `0x${string}`,
+          data: "0x",
+          value: "0",
+          execution: "order",
+          order: fresh.order,
+        };
+      } else if (fresh.tx) out = { ...fresh.tx, execution: "tx" };
+      else return c.json({ error: "provider returned no tx" }, 502);
+    }
+    if (simulator && out.execution !== "order")
+      out = { ...out, simulation: await simulator(out, taker) };
+    return c.json(BuildResponse.parse(out));
   });
   app.get("/status", async (c) => {
     const req = StatusRequest.parse(c.req.query());

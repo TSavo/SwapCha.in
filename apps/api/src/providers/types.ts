@@ -1,4 +1,10 @@
-import type { Quote, QuoteRequest, StatusRequest, StatusResponse } from "@swapchan/shared";
+import type {
+  BuildResponse,
+  Quote,
+  QuoteRequest,
+  StatusRequest,
+  StatusResponse,
+} from "@swapchan/shared";
 
 /** Every aggregator/bridge implements this. Add one file per provider + register in index.ts. */
 export interface ProviderAdapter {
@@ -7,6 +13,8 @@ export interface ProviderAdapter {
   enabled(): boolean;
   supports(req: QuoteRequest): boolean;
   quote(req: QuoteRequest, signal: AbortSignal): Promise<Quote>;
+  /** Optional custom build (e.g. Permit2). Default: re-quote with taker and use quote.tx. */
+  build?(req: QuoteRequest, signal: AbortSignal): Promise<BuildResponse>;
   status?(req: StatusRequest, signal: AbortSignal): Promise<StatusResponse>;
 }
 
@@ -17,3 +25,6 @@ export async function getJson<T>(f: Fetch, url: string, init: RequestInit): Prom
   if (!res.ok) throw new Error(`${res.status} ${(await res.text()).slice(0, 200)}`);
   return (await res.json()) as T;
 }
+
+/** Used for indicative quotes when no taker is given. */
+export const PLACEHOLDER_TAKER = "0x000000000000000000000000000000000000dEaD";

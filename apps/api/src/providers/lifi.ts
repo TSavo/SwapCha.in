@@ -78,7 +78,14 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
         netUsd: toUsd === null ? null : toUsd - gasUsd - feeUsd,
         etaSeconds: Math.round(s.estimate.executionDuration),
         steps: (s.includedSteps ?? [s]).map((st) => ({
-          type: st.type === "cross" ? "bridge" : st.type === "protocol" ? "wrap" : "swap",
+          type:
+            st.type === "cross"
+              ? "bridge"
+              : st.tool === "feeCollection"
+                ? "fee"
+                : st.type === "protocol"
+                  ? "wrap"
+                  : "swap",
           tool: st.tool,
           fromChainId: st.action.fromChainId,
           toChainId: st.action.toChainId,
