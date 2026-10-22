@@ -1,0 +1,87 @@
+# @swapchan/mcp — SwapChan MCP server
+
+Swap-chan for AI agents: best-price **same-chain and cross-chain** EVM swap quotes, route comparison and
+**unsigned** swap transactions over the [Model Context Protocol](https://modelcontextprotocol.io).
+- Official MCP TypeScript SDK **v2** (`@modelcontextprotocol/server` 2.3.1, spec 2026-07-28; stateless, also serves 2025-era clients).
+- Transports: **Streamable HTTP** at `/mcp` (remote, API-key auth + per-key rate limits) and **stdio** (`--stdio`, local).
+- Talks to `apps/api` over HTTP using the frozen contract in `packages/shared/README.md`. No chain keys, no signing, no broadcasting, ever.
+
+## Tools
+
+| Tool                   | What it does                                                                                                                           |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_supported_chains` | Chains + their chain-chan mascots                                                                                                      |
+| `get_supported_tokens` | Token list, optional `chainId` / `search`                                                                                              |
+| `get_quote`            | Single best route (net USD after gas + fees)                                                                                           |
+| `compare_routes`       | All routes ranked; `alsoToChainIds` compares same-chain vs cross-chain destinations                                                    |
+| `build_swap_tx`        | Unsigned tx for best/chosen route + exact-amount ERC-20 approve tx if needed + `eth_call` simulation (when `RPC_URL_<chainId>` is set) |
+| `get_route_status`     | `pending` / `done` / `failed` / `not_found` + destination tx hash                                                                      |
+
+Amounts: pass `amount` as a decimal **string** (`"1.5"`, converted with token decimals) or `amountBaseUnits` (wei). Slippage is in bps,
+default 50, hard-capped by `MCP_MAX_SLIPPAGE_BPS` (default 300). All failures come back as `isError` tool results with a readable reason.
+
+`permit2` is currently always `null`: the API contract v1 has no Permit2 typed data yet. When `apps/api` adds it, it will be passed through.
+
+## Run
+
+```bash
+pnpm --filter @swapchan/mcp build
+SWAPCHAN_API_URL=http://localhost:8787 MCP_API_KEYS=key1,key2 pnpm --filter @swapchan/mcp start   # http://127.0.0.1:8788/mcp
+SWAPCHAN_API_URL=http://localhost:8787 node apps/mcp/dist/index.js --stdio                         # stdio
+node apps/mcp/dist/mockApi.js                                                                      # fake API on :8787 for local play
+```
+
+| Env                                                 | Default                 |                                                                                        |
+| --------------------------------------------------- | ----------------------- | -------------------------------------------------------------------------------------- |
+| `SWAPCHAN_API_URL`                                  | `http://localhost:8787` | apps/api base URL (falls back to `NEXT_PUBLIC_API_URL`)                                |
+| `SWAPCHAN_API_KEY`                                  | –                       | sent upstream as `x-api-key` if set                                                    |
+| `MCP_HOST` / `MCP_PORT`                             | `127.0.0.1` / `8788`    | set `MCP_HOST=0.0.0.0` behind a TLS proxy in prod                                      |
+| `MCP_API_KEYS`                                      | –                       | comma-separated keys; clients send `x-api-key: <key>` or `Authorization: Bearer <key>` |
+| `MCP_ALLOW_ANONYMOUS`                               | off                     | allow keyless HTTP (rate-limited per IP)                                               |
+| `MCP_RATE_LIMIT_PER_MIN`                            | `60`                    | per key token bucket; 429 + `Retry-After`                                              |
+| `MCP_MAX_SLIPPAGE_BPS` / `MCP_DEFAULT_SLIPPAGE_BPS` | `300` / `50`            |                                                                                        |
+| `RPC_URL_<chainId>`                                 | –                       | enables allowance check + simulation in `build_swap_tx`                                |
+
+## Client config
+
+**Claude Code**
+```bash
+claude mcp add --transport http swapchan https://mcp.swapchan.com/mcp --header "x-api-key: YOUR_KEY"
+```
+
+**Claude Desktop** (`claude_desktop_config.json`, local stdio)
+```json
+{
+  "mcpServers": {
+    "swapchan": {
+      "command": "node",
+      "args": ["/path/to/SwapChan/apps/mcp/dist/index.js", "--stdio"],
+      "env": { "SWAPCHAN_API_URL": "https://api.swapchan.com" }
+    }
+  }
+}
+```
+
+**Cursor** (`~/.cursor/mcp.json` or `.cursor/mcp.json`)
+```json
+{
+  "mcpServers": {
+    "swapchan": { "url": "https://mcp.swapchan.com/mcp", "headers": { "x-api-key": "YOUR_KEY" } }
+  }
+}
+```
+
+**MCP Inspector**
+```bash
+npx @modelcontextprotocol/inspector --cli http://127.0.0.1:8788/mcp --transport http --header "x-api-key: key1" --method tools/list
+```
+
+## Registry
+
+`server.json` (schema 2025-12-11, validated) publishes the remote as `io.github.TSavo/swapchan` via `mcp-publisher publish`.
+Hosted at `https://mcp.swapchan.com/mcp`.
+
+## Tests
+
+`pnpm --filter @swapchan/mcp test` boots a mock of the API contract (`src/mockApi.ts`) and drives the real HTTP server with the SDK
+`Client` over Streamable HTTP: tool listing, every tool, auth 401s, 429 rate limiting, slippage cap, input validation and upstream errors.

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.TSavo/swapchan",
+  "title": "SwapChan",
+  "description": "Best-price same-chain and cross-chain EVM swap quotes and unsigned swap transactions.",
+  "version": "0.1.0",
+  "websiteUrl": "https://swapchan.com",
+  "repository": {
+    "url": "https://github.com/TSavo/SwapCha.in",
+    "source": "github",
+    "subfolder": "apps/mcp"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.swapchan.com/mcp",
+      "headers": [
+        {
+          "name": "x-api-key",
+          "description": "SwapChan MCP API key",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

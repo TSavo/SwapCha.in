@@ -1,0 +1,56 @@
+# SwapChan on Battleaxe. Deployed from the Mac with deploy/deploy.sh (docker context: battleaxe).
+# Public only through the Cloudflare tunnel "swapchan" (remotely managed; ingress lives in Cloudflare):
+#   swapchan.com, www -> web:3000   api.swapchan.com -> api:8787   mcp.swapchan.com -> mcp:8788
+# Nothing is published on Battleaxe except the 127.0.0.1 ports below.
+name: swapchan
+
+services:
+  api:
+    build: { context: .., dockerfile: apps/api/Dockerfile }
+    image: swapchan-api:latest
+    restart: unless-stopped
+    environment: # unset keys = that provider/feature self-disables
+      TZ: America/Los_Angeles
+      ZEROX_API_KEY: ${ZEROX_API_KEY:-}
+      LIFI_API_KEY: ${LIFI_API_KEY:-}
+      LIFI_INTEGRATOR: ${LIFI_INTEGRATOR:-myswapchan}
+      RELAY_API_KEY: ${RELAY_API_KEY:-}
+      VELORA_API_KEY: ${VELORA_API_KEY:-}
+      SWAPCHAN_FEE_RECIPIENT: ${SWAPCHAN_FEE_RECIPIENT:-}
+      SWAPCHAN_FEE_BPS: ${SWAPCHAN_FEE_BPS:-0}
+      SWAPCHAN_LIFI_FEE: ${SWAPCHAN_LIFI_FEE:-} # 1 once portal.li.fi has the fee wallet
+      SWAPCHAN_API_KEYS: ${SWAPCHAN_API_KEYS:-} # empty = API open (for now)
+    ports: ["127.0.0.1:8787:8787"]
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api.swapchan.com
+        NEXT_PUBLIC_REOWN_PROJECT_ID: ${NEXT_PUBLIC_REOWN_PROJECT_ID:-}
+        NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID:-}
+    image: swapchan-web:latest
+    restart: unless-stopped
+    environment:
+      TZ: America/Los_Angeles
+      SWAPCHAN_API_URL: http://api:8787 # server-side rendering talks to the api inside the compose network
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [api]
+  mcp:
+    build: { context: .., dockerfile: apps/mcp/Dockerfile }
+    image: swapchan-mcp:latest
+    restart: unless-stopped
+    environment:
+      TZ: America/Los_Angeles
+      SWAPCHAN_API_URL: http://api:8787
+      MCP_API_KEYS: ${MCP_API_KEYS:-}
+      MCP_ALLOW_ANONYMOUS: ${MCP_ALLOW_ANONYMOUS:-0} # deploy.sh sets 1 when no MCP keys are configured
+    ports: ["127.0.0.1:8788:8788"]
+    depends_on: [api]
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    depends_on: [web, api, mcp]

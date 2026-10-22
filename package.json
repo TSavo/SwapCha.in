@@ -1,0 +1,21 @@
+{
+  "name": "swapchan",
+  "private": true,
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --filter=@swapchan/api --filter=@swapchan/web --filter=@swapchan/mcp",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "biome check .",
+    "format": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.2",
+    "turbo": "2.11.10",
+    "typescript": "7.0.2"
+  }
+}
