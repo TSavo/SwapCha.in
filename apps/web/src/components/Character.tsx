@@ -42,7 +42,7 @@ export function Character({
     />
   );
   return (
-    <figure className={`flex flex-col items-center ${className}`}>
+    <figure data-chan className={`flex flex-col items-center ${className}`}>
       {link ? (
         <CastLink href={castHref(who)} label={`Meet ${c.name}`} nested={link === "nested"}>
           {img}

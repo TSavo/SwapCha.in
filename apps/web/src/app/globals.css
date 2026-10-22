@@ -95,7 +95,10 @@ body {
 }
 
 /* Widget (/embed): hide Swap-chan and the chain characters when chan=0. */
-.embed-nochan img[src*="/characters/"] {
+/* next/image rewrites src to /_next/image?url=%2Fcharacters%2F..., so match the encoded form and the data-chan marker too. */
+.embed-nochan [data-chan],
+.embed-nochan img[src*="/characters/"],
+.embed-nochan img[src*="%2Fcharacters%2F"] {
   display: none;
 }
 /* Widget (/embed): transparent page so the host's background shows around the card. */
