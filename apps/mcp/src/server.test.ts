@@ -1,0 +1,226 @@
+import type { AddressInfo } from "node:net";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
+import { NATIVE_TOKEN } from "@swapchan/shared";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { SwapChanApi } from "./api.js";
+import { RateLimiter } from "./auth.js";
+import { loadConfig } from "./config.js";
+import { createHttpServer } from "./http.js";
+import { startMockApi, USDC } from "./mockApi.js";
+
+const KEY = "test-key-123";
+let mock: Awaited<ReturnType<typeof startMockApi>>;
+let mcp: ReturnType<typeof createHttpServer>;
+let mcpUrl: string;
+
+beforeAll(async () => {
+  mock = await startMockApi();
+  const cfg = loadConfig({
+    SWAPCHAN_API_URL: mock.url,
+    MCP_API_KEYS: `${KEY},other`,
+    MCP_RATE_LIMIT_PER_MIN: "1000",
+  });
+  mcp = createHttpServer(new SwapChanApi(cfg.apiUrl), cfg);
+  await new Promise<void>((r) => mcp.server.listen(0, "127.0.0.1", r));
+  mcpUrl = `http://127.0.0.1:${(mcp.server.address() as AddressInfo).port}/mcp`;
+});
+afterAll(async () => {
+  await mcp.close();
+  mock.server.close();
+});
+
+async function connect(key = KEY) {
+  const client = new Client({ name: "test", version: "0" });
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL(mcpUrl), {
+      requestInit: { headers: { "x-api-key": key } },
+    }),
+  );
+  return client;
+}
+const text = (r: unknown) => (r as { content: { text: string }[] }).content[0]?.text ?? "";
+const data = (r: unknown) => JSON.parse(text(r));
+
+const ethToUsdc = {
+  fromChainId: 1,
+  toChainId: 1,
+  fromToken: NATIVE_TOKEN,
+  toToken: USDC,
+  amount: "1",
+};
+
+describe("swapchan mcp over streamable http", () => {
+  it("lists all six tools", async () => {
+    const c = await connect();
+    const { tools } = await c.listTools();
+    expect(tools.map((t) => t.name).sort()).toEqual(
+      [
+        "build_swap_tx",
+        "compare_routes",
+        "get_quote",
+        "get_route_status",
+        "get_supported_chains",
+        "get_supported_tokens",
+      ].sort(),
+    );
+    await c.close();
+  });
+
+  it("rejects missing / bad keys with 401", async () => {
+    expect((await fetch(mcpUrl, { method: "POST" })).status).toBe(401);
+    expect(
+      (await fetch(mcpUrl, { method: "POST", headers: { authorization: "Bearer nope" } })).status,
+    ).toBe(401);
+  });
+
+  it("rate limits per key with 429 + Retry-After", () => {
+    let t = 0;
+    const rl = new RateLimiter(2, () => t);
+    expect([rl.take("a"), rl.take("a")]).toEqual([0, 0]);
+    expect(rl.take("a")).toBeGreaterThan(0);
+    expect(rl.take("b")).toBe(0);
+    t += 30_000;
+    expect(rl.take("a")).toBe(0);
+  });
+
+  it("http 429 once the bucket is empty", async () => {
+    const cfg = loadConfig({
+      SWAPCHAN_API_URL: mock.url,
+      MCP_API_KEYS: KEY,
+      MCP_RATE_LIMIT_PER_MIN: "1",
+    });
+    const s = createHttpServer(new SwapChanApi(cfg.apiUrl), cfg);
+    await new Promise<void>((r) => s.server.listen(0, "127.0.0.1", r));
+    const u = `http://127.0.0.1:${(s.server.address() as AddressInfo).port}/mcp`;
+    await fetch(u, { method: "POST", headers: { "x-api-key": KEY } });
+    const r = await fetch(u, { method: "POST", headers: { "x-api-key": KEY } });
+    expect(r.status).toBe(429);
+    expect(r.headers.get("retry-after")).toBeTruthy();
+    await s.close();
+  });
+
+  it("get_supported_chains / tokens", async () => {
+    const c = await connect();
+    expect(
+      data(await c.callTool({ name: "get_supported_chains", arguments: {} })).map(
+        (x: { id: number }) => x.id,
+      ),
+    ).toContain(8453);
+    const toks = data(
+      await c.callTool({ name: "get_supported_tokens", arguments: { chainId: 1, search: "usdc" } }),
+    );
+    expect(toks[0].symbol).toBe("USDC");
+    await c.close();
+  });
+
+  it("get_quote converts decimal amount to base units and returns best", async () => {
+    const c = await connect();
+    const r = data(await c.callTool({ name: "get_quote", arguments: ethToUsdc }));
+    expect(r.best.provider).toBe("0x");
+    expect(r.best.toAmountFormatted).toBe("2000");
+    expect(mock.calls.some((x) => x.includes("amount=1000000000000000000"))).toBe(true);
+    expect(r.providerErrors[0].provider).toBe("relay");
+    await c.close();
+  });
+
+  it("caps slippage and validates inputs with clear errors", async () => {
+    const c = await connect();
+    const r = await c.callTool({
+      name: "get_quote",
+      arguments: { ...ethToUsdc, slippageBps: 4000 },
+    });
+    expect(r.isError).toBe(true);
+    expect(text(r)).toMatch(/300/);
+    const r2 = await c.callTool({
+      name: "get_quote",
+      arguments: { ...ethToUsdc, amount: undefined },
+    });
+    expect(r2.isError).toBe(true);
+    expect(text(r2)).toMatch(/exactly one/);
+    const r3 = await c.callTool({
+      name: "get_quote",
+      arguments: { ...ethToUsdc, fromToken: "0xnope" },
+    });
+    expect(r3.isError).toBe(true);
+    await c.close();
+  });
+
+  it("surfaces api failures as tool errors", async () => {
+    const c = await connect();
+    const r = await c.callTool({
+      name: "get_quote",
+      arguments: { ...ethToUsdc, amount: undefined, amountBaseUnits: "999" },
+    });
+    expect(r.isError).toBe(true);
+    expect(text(r)).toMatch(/500: all providers down/);
+    await c.close();
+  });
+
+  it("compare_routes ranks same-chain and cross-chain together", async () => {
+    const c = await connect();
+    const r = data(
+      await c.callTool({
+        name: "compare_routes",
+        arguments: { ...ethToUsdc, alsoToChainIds: [8453] },
+      }),
+    );
+    expect(r.totalFound).toBe(4);
+    expect(r.routes.map((x: { provider: string }) => x.provider)).toEqual([
+      "0x",
+      "cow",
+      "across",
+      "lifi",
+    ]);
+    expect(r.routes[2].crossChain).toBe(true);
+    await c.close();
+  });
+
+  it("build_swap_tx returns unsigned tx + approval, never signs", async () => {
+    const c = await connect();
+    const taker = "0x000000000000000000000000000000000000dEaD";
+    const r = data(await c.callTool({ name: "build_swap_tx", arguments: { ...ethToUsdc, taker } }));
+    expect(r.unsignedTx).toEqual({
+      chainId: 1,
+      to: "0x1111111254eeb25477b68fb85ed929f73a960582",
+      data: "0xdeadbeef",
+      value: "0",
+    });
+    expect(r.approval.required).toBe(false); // native in
+    expect(r.simulation.status).toBe("skipped");
+    const r2 = data(
+      await c.callTool({
+        name: "build_swap_tx",
+        arguments: {
+          fromChainId: 1,
+          toChainId: 8453,
+          fromToken: USDC,
+          toToken: NATIVE_TOKEN,
+          amount: "10",
+          taker,
+          provider: "lifi",
+        },
+      }),
+    );
+    expect(r2.unsignedTx.data).toBe("0xc0ffee"); // fell back to POST /build
+    expect(r2.approval.unsignedApproveTx.data.startsWith("0x095ea7b3")).toBe(true);
+    expect(JSON.stringify(r2)).not.toMatch(/privateKey|signature/i);
+    await c.close();
+  });
+
+  it("get_route_status", async () => {
+    const c = await connect();
+    const r = data(
+      await c.callTool({
+        name: "get_route_status",
+        arguments: {
+          provider: "across",
+          txHash: `0x${"ab".repeat(31)}00`,
+          fromChainId: 1,
+          toChainId: 8453,
+        },
+      }),
+    );
+    expect(r.status).toBe("pending");
+    await c.close();
+  });
+});
