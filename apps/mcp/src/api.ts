@@ -116,6 +116,13 @@ export class SwapChanApi {
   limitCancelData(chainId: number, uid: string): Promise<TypedData> {
     return this.req(TypedData, `/limit/cancel?${qs({ chainId, uid })}`);
   }
+  /** Memecoin scanner list: new | trending | movers. */
+  scan(kind: "new" | "trending" | "movers", q: Record<string, unknown>): Promise<ScanResponse> {
+    return this.req(ScanResponse, `/scanner/${kind}?${qs(q)}`);
+  }
+  tokenRisk(chain: string, address: string): Promise<Record<string, unknown>> {
+    return this.req(z.record(z.string(), z.unknown()), `/scanner/risk?${qs({ chain, address })}`);
+  }
   status(r: StatusRequest): Promise<StatusResponse> {
     return this.req(StatusResponse, `/status?${qs(r)}`);
   }
@@ -139,3 +146,18 @@ export const LimitBuildResult = z.object({
   market: z.object({ buyAmount: z.string() }).nullable(),
 });
 export type LimitBuildResult = z.infer<typeof LimitBuildResult>;
+export const ScanToken = z.looseObject({
+  chain: z.string(),
+  chainId: z.number(),
+  address: z.string(),
+  symbol: z.string(),
+  name: z.string(),
+  swapUrl: z.string(),
+  risk: z.object({ level: z.string(), flags: z.array(z.string()) }),
+});
+export const ScanResponse = z.looseObject({
+  tokens: z.array(ScanToken),
+  updatedAt: z.string(),
+  disclaimer: z.string(),
+});
+export type ScanResponse = z.infer<typeof ScanResponse>;

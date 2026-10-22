@@ -28,14 +28,24 @@ Any MCP client, via stdio bridge:
 
 ### Tools
 
-| Tool                   | What it does                                                        |
-| ---------------------- | ------------------------------------------------------------------- |
-| `get_supported_chains` | Networks SwapChan routes across (each with its own chan)            |
-| `get_supported_tokens` | Tokens available per chain                                          |
-| `get_quote`            | Best single route for a swap                                        |
-| `compare_routes`       | Every provider ranked by net USD after gas + fees                   |
-| `build_swap_tx`        | The **unsigned** transaction for a chosen route — your wallet signs |
-| `get_route_status`     | Track a cross-chain swap to completion                              |
+| Tool                                                | What it does                                                                                                         |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `get_supported_chains`                              | Networks SwapChan routes across (each with its own chan)                                                             |
+| `get_supported_tokens`                              | Tokens available per chain                                                                                           |
+| `get_quote`                                         | Best single route for a swap                                                                                         |
+| `compare_routes`                                    | Every provider ranked by net USD after gas + fees                                                                    |
+| `build_swap_tx`                                     | The **unsigned** transaction for a chosen route — your wallet signs                                                  |
+| `get_route_status`                                  | Track a cross-chain swap to completion                                                                               |
+| Tool                                                | What it does                                                                                                         |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `get_supported_chains`                              | Networks SwapChan routes across (each with its own chan)                                                             |
+| `get_supported_tokens`                              | Tokens available per chain                                                                                           |
+| `get_quote`                                         | Best single route for a swap                                                                                         |
+| `compare_routes`                                    | Every provider ranked by net USD after gas + fees                                                                    |
+| `build_swap_tx`                                     | The **unsigned** transaction for a chosen route — your wallet signs                                                  |
+| `get_route_status`                                  | Track a cross-chain swap to completion                                                                               |
+| `scan_new_tokens` / `scan_trending` / `scan_movers` | Memecoin scanner: new pairs, trending and big movers on Solana, Base, BNB, Ethereum, with risk badges and swap links |
+| `token_risk`                                        | Mint/freeze authority, holder concentration, LP, honeypot and tax checks for one token                               |
 
 ### Networks
 

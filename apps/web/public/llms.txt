@@ -1,14 +1,16 @@
 # SwapChan
 
-> Best-price token swap aggregator for same-chain and cross-chain swaps (0x, CoW, Velora, LI.FI, Across, Relay) on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea and Scroll.
+> Best-price token swap aggregator for same-chain and cross-chain swaps (0x, CoW, Velora, LI.FI, Across, Relay, Jupiter) on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea and Scroll, plus Solana, Bitcoin and Tron. Includes a memecoin scanner with risk checks.
 
 ## MCP server
 - URL: https://mcp.swapchan.com/mcp (Streamable HTTP; stdio via `swapchan-mcp --stdio`)
-- Tools: get_supported_chains, get_supported_tokens, get_quote, compare_routes, build_swap_tx, get_route_status
+- Tools: get_supported_chains, get_supported_tokens, get_quote, compare_routes, build_swap_tx, get_route_status, scan_new_tokens, scan_trending, scan_movers, token_risk
 - Setup guide: https://swapchan.com/agents
 
 ## REST API
 - Base: https://api.swapchan.com
-- GET /chains, GET /tokens?chainId=, GET /quotes, GET /quote, POST /build, GET /status
+- GET /chains, GET /tokens?chainId=, GET /token?chainId=&address= (any ERC-20 or SPL mint), GET /quotes, GET /quote, POST /build, GET /status
+- Scanner: GET /scanner/new, /scanner/trending, /scanner/movers (?chain=solana|base|bnb|eth|arbitrum|polygon|optimism|avalanche|all&minLiquidityUsd=&maxAgeHours=&minVolumeUsd=&window=m5|h1|h6|h24&limit=), GET /scanner/risk?chain=&address=
+- Scanner page: https://swapchan.com/scanner
 - Example: GET https://api.swapchan.com/quotes?fromChainId=1&toChainId=8453&fromToken=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&toToken=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&amount=100000000&slippageBps=50
 - Auth: optional `x-api-key` header for higher limits.

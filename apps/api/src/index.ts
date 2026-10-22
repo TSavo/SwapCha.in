@@ -19,13 +19,21 @@ import { limitRoutes } from "./limit.js";
 import { llamaPricer, type Pricer } from "./pricing.js";
 import { across } from "./providers/across.js";
 import { cow } from "./providers/cow.js";
+import { jupiter } from "./providers/jupiter.js";
 import { lifi } from "./providers/lifi.js";
 import { relay } from "./providers/relay.js";
 import type { Fetch, ProviderAdapter } from "./providers/types.js";
 import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
+import { scannerRoutes } from "./scanner.js";
 import { createSimulator, type Simulator } from "./simulate.js";
-import { onchainReader, type TokenReader, tokenResolver } from "./tokens.js";
+import {
+  jupiterTokenReader,
+  onchainReader,
+  type SolanaReader,
+  type TokenReader,
+  tokenResolver,
+} from "./tokens.js";
 
 export { fanOut, rank } from "./aggregate.js";
 export type { ProviderAdapter } from "./providers/types.js";
@@ -34,7 +42,7 @@ let sharedPricer: Pricer | undefined;
 /** One DefiLlama pricer per process, shared by providers and ranking (same price for every route). */
 export function defaultPricer(env: NodeJS.ProcessEnv = process.env): Pricer {
   sharedPricer ??= llamaPricer(fetch, 60_000, async (chainId, address) => {
-    const t = await tokenResolver(onchainReader(env))(chainId, address);
+    const t = await tokenResolver(onchainReader(env), jupiterTokenReader(env))(chainId, address);
     return t?.decimals ?? null;
   });
   return sharedPricer;
@@ -51,6 +59,7 @@ export function defaultProviders(
     velora(pricer, env),
     across(pricer, fetch, env),
     relay(env),
+    jupiter(pricer, env),
   ];
 }
 
@@ -59,6 +68,10 @@ export interface AppOptions {
   simulator?: Simulator | null;
   /** On-chain ERC-20 metadata reader for pasted (unlisted) addresses. */
   tokenReader?: TokenReader;
+  /** SPL mint metadata reader (Jupiter token API) for pasted Solana mints. */
+  solanaReader?: SolanaReader;
+  /** Scanner upstream fetch (tests inject); null disables /scanner routes. */
+  scannerFetch?: typeof fetch | null;
   /** Prices every route's output for ranking; never trust provider-reported USD. */
   pricer?: Pricer | null;
   /** fetch used for CoW limit-order calls (tests inject a mock). */
@@ -73,7 +86,10 @@ export function createApp(
   const simulator = opts.simulator !== undefined ? opts.simulator : createSimulator(env);
   const cache = new Map<string, Quote>();
   const pricer = opts.pricer === undefined ? defaultPricer(env) : opts.pricer;
-  const resolveToken = tokenResolver(opts.tokenReader ?? onchainReader(env));
+  const resolveToken = tokenResolver(
+    opts.tokenReader ?? onchainReader(env),
+    opts.solanaReader ?? jupiterTokenReader(env),
+  );
   const app = new Hono();
   app.use("*", cors());
   app.use("*", apiKeyAuth(parseKeys(env.SWAPCHAN_API_KEYS)));
@@ -109,8 +125,10 @@ export function createApp(
       .object({ chainId: z.coerce.number().int().positive(), address: Address })
       .parse(c.req.query());
     const t = await resolveToken(q.chainId, q.address);
-    return t ? c.json(t) : c.json({ error: "not an ERC-20 on this chain" }, 404);
+    return t ? c.json(t) : c.json({ error: "not a token on this chain" }, 404);
   });
+  if (opts.scannerFetch !== null)
+    app.route("/scanner", scannerRoutes(opts.scannerFetch ?? fetch, env));
   const quotes = async (query: Record<string, string>) => {
     const res = await fanOut(providers, QuoteRequest.parse(query), 8000, undefined, pricer);
     for (const q of res.quotes) cache.set(q.id, q);

@@ -1,4 +1,4 @@
-import { isEvmChain, NON_EVM, tokenList } from "@swapchan/shared";
+import { isEvmChain, NON_EVM, SOLANA, tokenList } from "@swapchan/shared";
 import { formatUnits } from "viem";
 import type { Fetch } from "./providers/types.js";
 
@@ -69,6 +69,19 @@ export function llamaPricer(
           (await r.json()) as { coins: Record<string, { price?: number; decimals?: number }> }
         ).coins[id];
         if (!c) {
+          if (chainId === SOLANA) {
+            // Fresh memecoins: DefiLlama lags; Jupiter's price API has them from the first pool.
+            const j = await f(`https://api.jup.ag/price/v3?ids=${address}`, {
+              signal: AbortSignal.timeout(4000),
+            })
+              .then((x) => (x.ok ? x.json() : null))
+              .catch(() => null);
+            const e = (j as Record<string, { usdPrice?: number; decimals?: number }> | null)?.[
+              address
+            ];
+            if (e?.decimals !== undefined)
+              return { priceUsd: e.usdPrice ?? null, decimals: e.decimals };
+          }
           const d = decimalsOf ? await decimalsOf(chainId, address) : null;
           return d === null ? null : { priceUsd: null, decimals: d };
         }

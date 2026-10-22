@@ -126,6 +126,16 @@ async function readAllowance(
     args: [owner as ViemAddress, spender as ViemAddress],
   });
 }
+const SCAN_CHAIN_IDS: Record<string, number | undefined> = {
+  solana: 792703809,
+  base: 8453,
+  bnb: 56,
+  eth: 1,
+  arbitrum: 42161,
+  polygon: 137,
+  optimism: 10,
+  avalanche: 43114,
+};
 
 const addr = z
   .string()
@@ -277,7 +287,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     { name: SERVER_NAME, version: SERVER_VERSION, title: "SwapChan" },
     {
       instructions:
-        "SwapChan finds the best-price route for token swaps across EVM chains plus Solana, Bitcoin and Tron (same-chain and cross-chain; pass `recipient` when the destination is a different VM) by asking many aggregators and bridges at once. Typical flow: get_supported_tokens -> get_quote or compare_routes -> build_swap_tx (unsigned; the user's wallet signs) -> get_route_status. This server never holds keys and never signs or broadcasts. Every result carries chain-chan mascots, a line from Swap-chan and usually a swapUrl: always show the user the ready-made `display` markdown (chan images inline as ![alt](imageUrl), then the swapUrl link) so they can see the chans and execute on swapchan.com with their own wallet.",
+        "SwapChan finds the best-price route for token swaps across EVM chains plus Solana, Bitcoin and Tron (same-chain and cross-chain; pass `recipient` when the destination is a different VM) by asking many aggregators and bridges at once. Typical flow: get_supported_tokens -> get_quote or compare_routes -> build_swap_tx (unsigned; the user's wallet signs) -> get_route_status. This server never holds keys and never signs or broadcasts. Every result carries chain-chan mascots, a line from Swap-chan and usually a swapUrl: always show the user the ready-made `display` markdown (chan images inline as ![alt](imageUrl), then the swapUrl link) so they can see the chans and execute on swapchan.com with their own wallet. Memecoin scanner: scan_new_tokens, scan_trending, scan_movers and token_risk find hot tokens on Solana, Base, BNB and Ethereum; always pass on the risk level, flags and disclaimer, and run token_risk before suggesting a swap into anything new.",
     },
   );
   const swap = swapShape(cfg);
@@ -651,7 +661,12 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           .string()
           .min(1)
           .describe('Provider name from the quote (e.g. "across", "lifi")'),
-        txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/, "32-byte 0x tx hash"),
+        txHash: z
+          .string()
+          .regex(
+            /^0x[0-9a-fA-F]{64}$|^[1-9A-HJ-NP-Za-km-z]{64,90}$/,
+            "0x tx hash (EVM) or base58 signature (Solana)",
+          ),
         fromChainId: chainId,
         toChainId: chainId,
       }),
@@ -847,6 +862,142 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
         },
       }),
       (a) => ({ fromChainId: a.chainId, says: "Sign this and the order's gone, no gas needed~" }),
+    ),
+  );
+
+  const scanChain = z
+    .enum(["solana", "base", "bnb", "eth", "arbitrum", "polygon", "optimism", "avalanche", "all"])
+    .default("solana")
+    .describe('Chain to scan. "all" = Solana, Base, BNB and Ethereum.');
+  const scanShape = {
+    chain: scanChain,
+    minLiquidityUsd: z
+      .number()
+      .nonnegative()
+      .default(10_000)
+      .describe("Minimum pool liquidity in USD (default 10000)."),
+    maxAgeHours: z
+      .number()
+      .positive()
+      .optional()
+      .describe("Only pairs created within this many hours."),
+    minVolumeUsd: z.number().nonnegative().default(0).describe("Minimum 24h volume in USD."),
+    window: z
+      .enum(["m5", "h1", "h6", "h24"])
+      .default("h1")
+      .describe("Price-change window used for movers and shown in results."),
+    limit: z.number().int().min(1).max(50).default(15),
+  };
+  type ScanArgs = { chain: string; window: string; limit: number } & Record<string, unknown>;
+  const scanTool = (
+    name: string,
+    kind: "new" | "trending" | "movers",
+    title: string,
+    what: string,
+  ) =>
+    server.registerTool(
+      name,
+      {
+        title,
+        description: `${what} Each token has price, liquidity, volume, price change, age, a quick risk badge (low/medium/high + flags) and a swapUrl that opens a prefilled best-price swap on swapchan.com. Extremely risky asset class: always show the risk level, flags and disclaimer, and suggest token_risk before swapping. Result includes \`display\` markdown with Swap-chan and the chain-chan: show it to the user.`,
+        inputSchema: z.object(scanShape),
+        annotations: ro,
+      },
+      safe(
+        async (a: ScanArgs) => {
+          const r = await api.scan(kind, a);
+          return {
+            kind,
+            count: r.tokens.length,
+            tokens: r.tokens,
+            updatedAt: r.updatedAt,
+            disclaimer: r.disclaimer,
+            table: r.tokens
+              .slice(0, 15)
+              .map(
+                (t, i) =>
+                  `${i + 1}. **${t.symbol}** (${t.chain}) · risk ${t.risk.level}${t.risk.flags.length ? ` (${t.risk.flags.join(", ")})` : ""} · [swap](${t.swapUrl})`,
+              )
+              .join("\n"),
+          };
+        },
+        (a, r) => {
+          const id = SCAN_CHAIN_IDS[a.chain];
+          return {
+            fromChainId: id,
+            toChainId: id,
+            says:
+              r.count === 0
+                ? "Nothing matches those filters right now. Try lower liquidity or a longer age~"
+                : `Found ${r.count} ${kind === "new" ? "fresh" : kind === "trending" ? "trending" : "fast-moving"} tokens! Super risky though, check token_risk before you ape~ ${r.disclaimer}`,
+            swapUrl: r.tokens[0]?.swapUrl,
+          };
+        },
+      ),
+    );
+  scanTool(
+    "scan_new_tokens",
+    "new",
+    "Scan new tokens",
+    "Newest token pairs (GeckoTerminal new pools + DexScreener latest profiles), youngest first.",
+  );
+  scanTool(
+    "scan_trending",
+    "trending",
+    "Scan trending tokens",
+    "Trending tokens (GeckoTerminal trending pools + DexScreener top boosts), most boosted/traded first.",
+  );
+  scanTool(
+    "scan_movers",
+    "movers",
+    "Scan big movers",
+    "Tokens with the biggest absolute price change over `window` among new and trending pairs.",
+  );
+
+  server.registerTool(
+    "token_risk",
+    {
+      title: "Token risk check",
+      description:
+        "Deep automated risk check for one token. Solana: Jupiter audit (mint/freeze authority, top-holder concentration, organic score, verified) + RugCheck report (LP locked, risks). EVM: GoPlus (honeypot, buy/sell tax, mintable, proxy, owner powers, verified source). Plus liquidity/age/FDV heuristics from DexScreener. Returns level low/medium/high/unknown, flags, raw checks, market data and a swapUrl. Heuristics can miss scams: always pass on the disclaimer. Result includes `display` markdown with chan images: show it to the user.",
+      inputSchema: z.object({
+        chain: z.enum([
+          "solana",
+          "base",
+          "bnb",
+          "eth",
+          "arbitrum",
+          "polygon",
+          "optimism",
+          "avalanche",
+        ]),
+        address: z
+          .string()
+          .min(32)
+          .max(64)
+          .describe("Token mint (Solana) or contract address (EVM)."),
+      }),
+      annotations: ro,
+    },
+    safe(
+      async (a: { chain: string; address: string }) => api.tokenRisk(a.chain, a.address),
+      (a, r) => {
+        const id = SCAN_CHAIN_IDS[a.chain];
+        const level = String(r.level);
+        return {
+          fromChainId: id,
+          toChainId: id,
+          says:
+            level === "high"
+              ? `Uwaa, red flags everywhere: ${(r.flags as string[]).slice(0, 4).join(", ")}. I'd stay away~`
+              : level === "medium"
+                ? `Some yellow flags: ${(r.flags as string[]).slice(0, 4).join(", ")}. Small size only, okay?`
+                : level === "low"
+                  ? "No major red flags from the automated checks, but it's still a memecoin. Only risk what you can lose~"
+                  : "I couldn't check this one. Treat it as high risk~",
+          swapUrl: String(r.swapUrl),
+        };
+      },
     ),
   );
 

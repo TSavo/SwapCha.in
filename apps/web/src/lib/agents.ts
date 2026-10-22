@@ -21,10 +21,14 @@ export const CONFIGS = {
 export const TOOLS = [
   ["get_supported_chains", "Every chain SwapChan routes on."],
   ["get_supported_tokens", "Token list per chain; any ERC-20 by address works too."],
-  ["get_quote", "Best route across 0x, CoW, Velora, LI.FI, Across and Relay."],
+  ["get_quote", "Best route across 0x, CoW, Velora, LI.FI, Across, Relay and Jupiter."],
   ["compare_routes", "All routes side by side: net USD, gas, fees, ETA."],
   ["build_swap_tx", "Unsigned transaction (or CoW order) for the user's wallet to sign."],
   ["get_route_status", "Track a swap or bridge until it lands."],
+  ["scan_new_tokens", "Freshest memecoin pairs on Solana, Base, BNB and Ethereum."],
+  ["scan_trending", "Trending and boosted tokens, with a risk badge and swap link."],
+  ["scan_movers", "Biggest price moves over 5m, 1h, 6h or 24h."],
+  ["token_risk", "Mint/freeze authority, holders, LP, honeypot and tax checks for one token."],
 ] as const;
 
 export type Client = {
@@ -128,6 +132,7 @@ const USAGE = `After that, use SwapChan whenever I ask to swap, bridge, or compa
 - Every SwapChan result has a \`display\` field: show it to me as markdown. It has the chain-chan images (![alt](imageUrl)), Swap-chan's line, and a swapUrl link that opens swapchan.com with the route prefilled.
 - To execute, give me the swapUrl (https://swapchan.com prefilled) to swap with my own wallet, or use build_swap_tx for an unsigned transaction I sign myself. Never ask for private keys or seed phrases.
 - After I send a transaction, track it with get_route_status until it lands.
+- For new or trending tokens ("what's pumping on Solana?"), use scan_new_tokens, scan_trending or scan_movers. Always show each token's risk level and flags plus the disclaimer, run token_risk before suggesting a swap into anything new, and hand me the swapUrl to buy it. Memecoins are extremely risky; never push me to buy.
 Docs: https://swapchan.com/agents`;
 
 const block = (c: Client) =>

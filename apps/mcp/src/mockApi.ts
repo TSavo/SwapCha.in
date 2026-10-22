@@ -149,6 +149,38 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
           status: q.get("txHash")?.endsWith("00") ? "pending" : "done",
           receivingTxHash: null,
         });
+      case "/scanner/new":
+      case "/scanner/trending":
+      case "/scanner/movers":
+        return send(200, {
+          kind: u.pathname.split("/")[2],
+          tokens: [
+            {
+              chain: q.get("chain") ?? "solana",
+              chainId: 792703809,
+              address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+              symbol: "BONK",
+              name: "Bonk",
+              priceUsd: 0.00003,
+              liquidityUsd: 300000,
+              risk: { level: "low", flags: [] },
+              swapUrl:
+                "https://swapchan.com/?fromChain=792703809&toChain=792703809&fromToken=11111111111111111111111111111111&toToken=DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            },
+          ],
+          updatedAt: new Date(0).toISOString(),
+          disclaimer: "Not financial advice.",
+        });
+      case "/scanner/risk":
+        return send(200, {
+          chain: q.get("chain"),
+          address: q.get("address"),
+          level: "high",
+          flags: ["freeze authority enabled"],
+          checks: {},
+          swapUrl: "https://swapchan.com/",
+          disclaimer: "Not financial advice.",
+        });
       default:
         return send(404, { error: "not found" });
     }

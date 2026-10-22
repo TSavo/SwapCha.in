@@ -49,7 +49,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 🤖<span className="hidden sm:inline"> For AI agents</span>
                 <span className="sm:hidden"> AI</span>
               </Link>
-              <Link href="/cast" className="hover:text-amber-300">
+              <Link href="/scanner" className="hover:text-amber-300">
+                Scanner
+              </Link>
+              <Link href="/cast" className="hidden hover:text-amber-300 sm:inline">
                 Cast
               </Link>
               <Link href="/how-it-works" className="hidden hover:text-amber-300 sm:inline">
@@ -76,6 +79,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </Link>
             <Link href="/bridge" className="hover:text-amber-300">
               Bridge routes
+            </Link>
+            <Link href="/cast" className="hover:text-amber-300">
+              Cast
+            </Link>
+            <Link href="/scanner" className="hover:text-amber-300">
+              Memecoin scanner
             </Link>
             <a href="/llms.txt" className="hover:text-amber-300">
               llms.txt

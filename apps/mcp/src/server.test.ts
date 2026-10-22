@@ -97,6 +97,10 @@ describe("swapchan mcp over streamable http", () => {
         "get_route_status",
         "get_supported_chains",
         "get_supported_tokens",
+        "scan_movers",
+        "scan_new_tokens",
+        "scan_trending",
+        "token_risk",
       ].sort(),
     );
     await c.close();
@@ -294,6 +298,24 @@ describe("swapchan mcp over streamable http", () => {
       }),
     );
     expect(r.status).toBe("pending");
+    await c.close();
+  });
+  it("scanner tools return tokens, swap links, risk + disclaimer and chan art", async () => {
+    const c = await connect();
+    const r = data(await c.callTool({ name: "scan_trending", arguments: { chain: "solana" } }));
+    expect(r.count).toBe(1);
+    expect(r.tokens[0].swapUrl).toContain("toToken=DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263");
+    expect(r.disclaimer).toMatch(/financial advice/);
+    expect(r.display).toContain("characters/solana.png");
+    expect(mock.calls.some((x) => x.startsWith("GET /scanner/trending?chain=solana"))).toBe(true);
+    const k = data(
+      await c.callTool({
+        name: "token_risk",
+        arguments: { chain: "solana", address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" },
+      }),
+    );
+    expect(k.level).toBe("high");
+    expect(k.swapchanSays).toMatch(/red flags/);
     await c.close();
   });
 });

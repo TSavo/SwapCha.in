@@ -1,6 +1,13 @@
 "use client";
 
-import { type Chain, isEvmChain, nativeOf, SUPPORTED_CHAINS, type Token } from "@swapchan/shared";
+import {
+  type Chain,
+  isEvmChain,
+  nativeOf,
+  SOLANA,
+  SUPPORTED_CHAINS,
+  type Token,
+} from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { erc20Abi, formatUnits, isAddress } from "viem";
@@ -160,7 +167,7 @@ export function TokenPicker({
   const pasted = q.trim();
   const isPaste = isAddress(pasted, { strict: false }) || pasted.length > 30;
   const lookup = useQuery({
-    queryKey: ["token", chainId, pasted.toLowerCase()],
+    queryKey: ["token", chainId, chainId === SOLANA ? pasted : pasted.toLowerCase()],
     queryFn: () => api.token(chainId, pasted),
     enabled: open && isPaste && filtered.length === 0,
     staleTime: Infinity,
