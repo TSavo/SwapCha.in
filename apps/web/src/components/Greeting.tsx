@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useSays } from "@/lib/says";
 import { Character } from "./Character";
 
 const KEY = "swapchan:greeted";
 
-/** Small, dismissible Swap-chan hello beside the swap box. Never blocks the page. */
+/** Swap-chan beside the swap box: reacts to whatever the swap box is doing. Dismissible, never modal. */
 export function Greeting() {
   const [open, setOpen] = useState(true);
+  const says = useSays();
   useEffect(() => {
     if (localStorage.getItem(KEY)) setOpen(false);
   }, []);
@@ -17,9 +19,10 @@ export function Greeting() {
     <aside
       data-testid="greeting"
       className="flex items-end gap-2 lg:w-60 lg:flex-col lg:items-center"
-      aria-label="Swap-chan says hi"
+      aria-label="Swap-chan says"
+      aria-live="polite"
     >
-      <Character who="swapchan" size={88} mood="idle" />
+      <Character who="swapchan" size={88} mood={says?.mood ?? "idle"} />
       <div className="relative rounded-2xl border-2 border-amber-400/50 bg-violet-950/90 px-4 py-3 pr-8 text-sm text-violet-100">
         <button
           type="button"
@@ -32,9 +35,20 @@ export function Greeting() {
         >
           ×
         </button>
-        <b className="text-amber-300">Konnichiwa!</b> I already asked every aggregator and bridge
-        for 100 USDC Ethereum → Base. Connect your wallet and swap~{" "}
-        <Link href="/how-it-works" className="underline hover:text-amber-300">
+        <span data-testid="greeting-text">
+          {says?.text ?? (
+            <>
+              <b className="text-amber-300">Konnichiwa!</b> Pick a pair and I&apos;ll ask every
+              aggregator and bridge at once~
+            </>
+          )}
+        </span>
+        {says?.warn && (
+          <span className="mt-2 block rounded bg-amber-400/15 px-2 py-1 text-xs text-amber-200">
+            ⚠ {says.warn}
+          </span>
+        )}{" "}
+        <Link href="/how-it-works" className="mt-1 block text-xs underline hover:text-amber-300">
           How it works
         </Link>
       </div>

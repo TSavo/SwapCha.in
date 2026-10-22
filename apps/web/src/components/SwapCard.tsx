@@ -25,6 +25,7 @@ import { waitForTransactionReceipt } from "wagmi/actions";
 import { formatAmount, parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import { api, cowExplorer, submitCowOrder } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
+import { publishSays, say, unverifiedWarning } from "@/lib/says";
 import { Character, SpeechBubble } from "./Character";
 import { ConnectButton } from "./ConnectButton";
 import { ChainPicker, TokenPicker } from "./Pickers";
@@ -167,6 +168,29 @@ export function SwapCard() {
     amount !== null &&
     (allowance.data ?? 0n) < amount;
   const insufficient = balance !== undefined && amount !== null && balance < amount;
+
+  // Swap-chan's greeting follows the swap box.
+  const chainName = (id: number) =>
+    SUPPORTED_CHAINS[id as keyof typeof SUPPORTED_CHAINS]?.name ?? `chain ${id}`;
+  const says = say({
+    amount: amountStr,
+    amountInvalid,
+    fromToken,
+    toToken,
+    fromChainName: chainName(fromChain),
+    toChainName: chainName(toChain),
+    connected: !!address,
+    wrongNetwork: !!address && walletChain !== fromChain,
+    insufficient,
+    quoting: request === null ? amount !== null : quotes.isFetching,
+    error: quotes.isError ? (quotes.error as Error).message : undefined,
+    quotes: request === null ? undefined : qres?.quotes,
+    best: qres?.best,
+    phase: phase.k,
+    phaseError: phase.k === "error" ? phase.msg : undefined,
+  });
+  useEffect(() => publishSays(says), [says]);
+  const tokenWarning = unverifiedWarning({ fromToken, toToken });
 
   const ensureChain = async () => {
     if (walletChain !== fromChain) await switchChainAsync({ chainId: fromChain });
@@ -343,6 +367,15 @@ export function SwapCard() {
           data-testid="mock-banner"
         >
           Demo mode: API unreachable, showing mock routes. Nothing will be sent on-chain.
+        </div>
+      )}
+      {tokenWarning && (
+        <div
+          className="mb-3 rounded-xl border border-amber-400/50 bg-amber-400/15 px-3 py-2 text-sm text-amber-200"
+          data-testid="unverified-warning"
+          role="alert"
+        >
+          ⚠ Unverified token: {tokenWarning}
         </div>
       )}
       <section className="rounded-2xl bg-violet-900/50 p-3">
