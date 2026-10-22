@@ -58,7 +58,7 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
         fromAmount: req.amount,
         fromAddress: req.taker ?? PLACEHOLDER_TAKER,
         slippage: String(req.slippageBps / 10_000),
-        integrator: "swapchan",
+        integrator: env.LIFI_INTEGRATOR || "myswapchan",
       });
       // LI.FI rejects fee= (code 1011) until the "swapchan" integrator has a fee wallet in
       // portal.li.fi. Always ask for it; fall back to fee-less (ranked down, unverified) on rejection.

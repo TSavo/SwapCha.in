@@ -13,6 +13,7 @@ services:
       TZ: America/Los_Angeles
       ZEROX_API_KEY: ${ZEROX_API_KEY:-}
       LIFI_API_KEY: ${LIFI_API_KEY:-}
+      LIFI_INTEGRATOR: ${LIFI_INTEGRATOR:-myswapchan}
       RELAY_API_KEY: ${RELAY_API_KEY:-}
       VELORA_API_KEY: ${VELORA_API_KEY:-}
       SWAPCHAN_FEE_RECIPIENT: ${SWAPCHAN_FEE_RECIPIENT:-}

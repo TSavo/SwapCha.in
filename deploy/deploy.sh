@@ -30,6 +30,7 @@ export SWAPCHAN_FEE_BPS=$(opt fees bps)
 export SWAPCHAN_LIFI_FEE=$(opt fees lifi_enabled)   # 1 after portal.li.fi has the fee wallet
 export ZEROX_API_KEY=$(opt providers zerox)
 export LIFI_API_KEY=$(opt providers lifi)
+export LIFI_INTEGRATOR=$(opt providers lifi_integrator)   # portal.li.fi integrator name (default myswapchan)
 export RELAY_API_KEY=$(opt providers relay)
 export VELORA_API_KEY=$(opt providers velora)
 export NEXT_PUBLIC_REOWN_PROJECT_ID=$(opt reown project_id)
