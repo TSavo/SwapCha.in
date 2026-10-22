@@ -40,7 +40,11 @@ const isNative = (a: string) =>
   a.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 /** Keyless USD prices via DefiLlama coins API (independent of quote providers' rate limits), cached 60s. */
-export function llamaPricer(f: Fetch = fetch, ttlMs = 60_000): Pricer {
+export function llamaPricer(
+  f: Fetch = fetch,
+  ttlMs = 60_000,
+  decimalsOf?: (chainId: number, address: string) => Promise<number | null>,
+): Pricer {
   const cache = new Map<string, { at: number; v: Promise<TokenInfo | null> }>();
   const token = (chainId: number, address: string) => {
     const id = isNative(address)
@@ -56,7 +60,10 @@ export function llamaPricer(f: Fetch = fetch, ttlMs = 60_000): Pricer {
         const c = (
           (await r.json()) as { coins: Record<string, { price?: number; decimals?: number }> }
         ).coins[id];
-        if (!c) return null;
+        if (!c) {
+          const d = decimalsOf ? await decimalsOf(chainId, address) : null;
+          return d === null ? null : { priceUsd: null, decimals: d };
+        }
         return { priceUsd: c.price ?? null, decimals: c.decimals ?? 18 };
       })
       .catch(() => null);

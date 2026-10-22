@@ -1,7 +1,10 @@
 "use client";
 
 import type { Chain, Token } from "@swapchan/shared";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { isAddress } from "viem";
+import { api } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
 import { Character } from "./Character";
 
@@ -47,16 +50,27 @@ export function TokenPicker({
   tokens,
   value,
   onChange,
+  chainId,
 }: {
   tokens: Token[];
   value: Token | undefined;
   onChange: (t: Token) => void;
+  chainId: number;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const filtered = tokens.filter((t) =>
     `${t.symbol} ${t.name} ${t.address}`.toLowerCase().includes(q.toLowerCase()),
   );
+  const pasted = q.trim();
+  const lookup = useQuery({
+    queryKey: ["token", chainId, pasted.toLowerCase()],
+    queryFn: () => api.token(chainId, pasted),
+    enabled: isAddress(pasted, { strict: false }) && filtered.length === 0,
+    staleTime: Infinity,
+  });
+  const custom = lookup.data;
+  const unverified = custom && !custom.verified;
   return (
     <div className="relative">
       <button
@@ -77,7 +91,33 @@ export function TokenPicker({
             className="mb-2 w-full rounded-lg bg-violet-900 px-2 py-1 text-sm outline-none"
           />
           <ul role="listbox" className="max-h-64 overflow-auto">
-            {filtered.length === 0 && (
+            {filtered.length === 0 && lookup.isFetching && (
+              <li className="p-2 text-sm text-violet-300">Reading token on-chain…</li>
+            )}
+            {filtered.length === 0 && custom && (
+              <li data-testid="custom-token">
+                <button
+                  type="button"
+                  className="w-full rounded-lg px-2 py-1.5 text-left text-sm hover:bg-violet-800"
+                  onClick={() => {
+                    onChange(custom);
+                    setOpen(false);
+                    setQ("");
+                  }}
+                >
+                  <span className="font-bold">{custom.symbol}</span>{" "}
+                  <span className="text-violet-300">
+                    {custom.name} · {custom.decimals} decimals
+                  </span>
+                  {unverified && (
+                    <span className="mt-1 block rounded bg-amber-400/15 px-1.5 py-0.5 text-xs text-amber-200">
+                      ⚠ Unverified token: not on our list. Check the address before you swap.
+                    </span>
+                  )}
+                </button>
+              </li>
+            )}
+            {filtered.length === 0 && !custom && !lookup.isFetching && (
               <li className="flex items-center gap-2 p-2 text-sm text-violet-300">
                 <Character who="swapchan" size={36} mood="sad" /> No tokens here, senpai…
               </li>

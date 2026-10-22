@@ -78,6 +78,18 @@ export class SwapChanApi {
   tokens(chainId?: number): Promise<Token[]> {
     return this.req(z.array(TokenSchema), chainId ? `/tokens?chainId=${chainId}` : "/tokens");
   }
+  /** Any ERC-20 by address (on-chain metadata); null when it isn't a token on that chain. */
+  async token(chainId: number, address: string): Promise<(Token & { verified: boolean }) | null> {
+    try {
+      return await this.req(
+        TokenSchema.extend({ verified: z.boolean() }),
+        `/token?chainId=${chainId}&address=${address}`,
+      );
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 404) return null;
+      throw e;
+    }
+  }
   quotes(r: QuoteRequest): Promise<QuotesResponse> {
     return this.req(QuotesResponse, `/quotes?${qs(r)}`);
   }

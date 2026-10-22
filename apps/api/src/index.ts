@@ -22,13 +22,17 @@ import type { ProviderAdapter } from "./providers/types.js";
 import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
 import { createSimulator, type Simulator } from "./simulate.js";
+import { onchainReader, type TokenReader, tokenResolver } from "./tokens.js";
 
 export { fanOut, rank } from "./aggregate.js";
 export type { ProviderAdapter } from "./providers/types.js";
 
 export function defaultProviders(
   env: NodeJS.ProcessEnv = process.env,
-  pricer: Pricer = llamaPricer(),
+  pricer: Pricer = llamaPricer(fetch, 60_000, async (chainId, address) => {
+    const t = await tokenResolver(onchainReader(env))(chainId, address);
+    return t?.decimals ?? null;
+  }),
 ): ProviderAdapter[] {
   return [
     lifi(env),
@@ -43,6 +47,8 @@ export function defaultProviders(
 export interface AppOptions {
   env?: NodeJS.ProcessEnv;
   simulator?: Simulator | null;
+  /** On-chain ERC-20 metadata reader for pasted (unlisted) addresses. */
+  tokenReader?: TokenReader;
 }
 
 export function createApp(
@@ -52,6 +58,7 @@ export function createApp(
   const env = opts.env ?? process.env;
   const simulator = opts.simulator !== undefined ? opts.simulator : createSimulator(env);
   const cache = new Map<string, Quote>();
+  const resolveToken = tokenResolver(opts.tokenReader ?? onchainReader(env));
   const app = new Hono();
   app.use("*", cors());
   app.use("*", apiKeyAuth(parseKeys(env.SWAPCHAN_API_KEYS)));
@@ -74,6 +81,14 @@ export function createApp(
   app.get("/tokens", (c) => {
     const id = c.req.query("chainId");
     return c.json(id ? tokenList.filter((t) => t.chainId === Number(id)) : tokenList);
+  });
+  // Any ERC-20 by address: listed tokens come back verified, others are read on-chain (unverified).
+  app.get("/token", async (c) => {
+    const q = z
+      .object({ chainId: z.coerce.number().int().positive(), address: Address })
+      .parse(c.req.query());
+    const t = await resolveToken(q.chainId, q.address);
+    return t ? c.json(t) : c.json({ error: "not an ERC-20 on this chain" }, 404);
   });
   const quotes = async (query: Record<string, string>) => {
     const res = await fanOut(providers, QuoteRequest.parse(query));

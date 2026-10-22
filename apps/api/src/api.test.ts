@@ -103,3 +103,30 @@ describe("api", () => {
     expect(q.tx).toMatchObject({ value: "0", gasLimit: "21000" });
   });
 });
+
+describe("GET /token (any address)", () => {
+  const reader = async (chainId: number, address: `0x${string}`) =>
+    address.toLowerCase() === "0x1111111111111111111111111111111111111111"
+      ? { chainId, address, symbol: "MEME", name: "Meme", decimals: 9 }
+      : null;
+  const app = createApp([], { simulator: null, tokenReader: reader });
+  it("returns listed BTCB on BNB Chain as verified", async () => {
+    const res = await app.request(
+      "/token?chainId=56&address=0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+    );
+    expect(await res.json()).toMatchObject({ symbol: "BTCB", decimals: 18, verified: true });
+  });
+  it("reads an unlisted token on-chain and flags it unverified", async () => {
+    const res = await app.request(
+      "/token?chainId=56&address=0x1111111111111111111111111111111111111111",
+    );
+    expect(await res.json()).toMatchObject({ symbol: "MEME", decimals: 9, verified: false });
+  });
+  it("404s for a non-token and 400s for a bad address", async () => {
+    expect(
+      (await app.request("/token?chainId=56&address=0x2222222222222222222222222222222222222222"))
+        .status,
+    ).toBe(404);
+    expect((await app.request("/token?chainId=56&address=nope")).status).toBe(400);
+  });
+});

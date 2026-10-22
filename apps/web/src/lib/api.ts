@@ -54,6 +54,20 @@ export const api = {
       () => call(`/tokens?${toQuery({ chainId })}`, z.array(TokenSchema)),
       () => mockTokens(chainId),
     ),
+  /** Any ERC-20 by address, read on-chain by the API. null = not a token on that chain. */
+  token: async (
+    chainId: number,
+    address: string,
+  ): Promise<(Token & { verified: boolean }) | null> => {
+    try {
+      return await call(
+        `/token?${toQuery({ chainId, address })}`,
+        TokenSchema.extend({ verified: z.boolean() }),
+      );
+    } catch {
+      return null;
+    }
+  },
   quotes: (req: QuoteRequest): Promise<ApiResult<QuotesResponse>> =>
     withMock(
       () => call(`/quotes?${toQuery({ ...req })}`, QuotesResponseSchema),

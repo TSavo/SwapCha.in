@@ -119,7 +119,10 @@ async function findToken(
   address: string,
 ): Promise<Token | undefined> {
   const list = await api.tokens(chain);
-  return list.find((t) => sameAddr(t.address, address));
+  // Not listed: any ERC-20 by address works; the API reads its decimals on-chain.
+  return (
+    list.find((t) => sameAddr(t.address, address)) ?? (await api.token(chain, address)) ?? undefined
+  );
 }
 
 async function toRequest(api: SwapChanApi, a: SwapArgs, taker?: string): Promise<QuoteRequest> {
@@ -133,7 +136,7 @@ async function toRequest(api: SwapChanApi, a: SwapArgs, taker?: string): Promise
       : (await findToken(api, a.fromChainId, a.fromToken))?.decimals;
     if (decimals === undefined)
       throw new UserError(
-        `unknown token ${a.fromToken} on chain ${a.fromChainId}; pass amountBaseUnits or pick one from get_supported_tokens`,
+        `unknown token ${a.fromToken} on chain ${a.fromChainId}; it is not an ERC-20 on that chain (any token address works; pass amountBaseUnits to skip the lookup)`,
       );
     amount = toBaseUnits(a.amount as string, decimals).toString();
   }

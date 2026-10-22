@@ -1,5 +1,5 @@
 import type { Simulation, TxRequest } from "@swapchan/shared";
-import { createPublicClient, http } from "viem";
+import { type Chain, createPublicClient, http } from "viem";
 import {
   arbitrum,
   avalanche,
@@ -13,7 +13,7 @@ import {
 } from "viem/chains";
 import type { Fetch } from "./providers/types.js";
 
-const CHAINS = {
+export const CHAINS: Record<number, Chain> = {
   1: mainnet,
   8453: base,
   42161: arbitrum,
@@ -23,7 +23,7 @@ const CHAINS = {
   43114: avalanche,
   59144: linea,
   534352: scroll,
-} as const;
+};
 
 export type Simulator = (tx: TxRequest, from: `0x${string}`) => Promise<Simulation>;
 

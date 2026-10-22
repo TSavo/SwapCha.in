@@ -360,6 +360,7 @@ export function SwapCard() {
             tokens={fromTokens.data?.data ?? []}
             value={fromToken}
             onChange={setFromToken}
+            chainId={fromChain}
           />
         </div>
         {balance !== undefined && fromToken && (
@@ -394,7 +395,12 @@ export function SwapCard() {
           <div className="w-full text-3xl font-black text-violet-200">
             {quote && toToken ? formatAmount(quote.toAmount, toToken.decimals) : "0.0"}
           </div>
-          <TokenPicker tokens={toTokens.data?.data ?? []} value={toToken} onChange={setToToken} />
+          <TokenPicker
+            tokens={toTokens.data?.data ?? []}
+            value={toToken}
+            onChange={setToToken}
+            chainId={toChain}
+          />
         </div>
       </section>
 
