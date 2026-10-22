@@ -61,9 +61,10 @@ export function EmbedWidget() {
     return () => ro.disconnect();
   }, [cfg]);
 
-  if (!cfg) return <div className="fixed inset-0 z-[100]" />;
+  if (!cfg) return <div data-embed-root className="fixed inset-0 z-[100]" />;
   return (
     <div
+      data-embed-root
       className={`fixed inset-0 z-[100] overflow-auto ${cfg.chan ? "" : "embed-nochan"}`}
       style={themeVars(cfg)}
     >

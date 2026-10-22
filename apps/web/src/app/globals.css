@@ -100,8 +100,14 @@ body {
 }
 /* Widget (/embed): transparent page so the host's background shows around the card. */
 html[data-embed],
-html[data-embed] body {
+html[data-embed] body,
+html:has([data-embed-root]),
+body:has([data-embed-root]) {
   background: transparent;
+}
+/* The overlay is transparent now, so hide the site header/footer underneath it. */
+body:has([data-embed-root]) .site-chrome {
+  display: none;
 }
 /* Widget (/embed): no site sparkles behind the iframe. */
 html[data-embed] .sparkles::before {

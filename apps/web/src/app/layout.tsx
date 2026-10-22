@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="sparkles antialiased">
         <Providers>
           <RefCapture />
-          <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-4 sm:p-4">
+          <header className="site-chrome mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-4 sm:p-4">
             <Link
               href="/"
               className="flex shrink-0 items-center gap-1.5 text-lg font-black tracking-tight sm:gap-2 sm:text-2xl"
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <main className="mx-auto flex max-w-5xl flex-col items-center px-4 pb-16">
             {children}
           </main>
-          <footer className="mx-auto flex max-w-5xl flex-wrap justify-center gap-4 p-6 text-xs text-violet-300">
+          <footer className="site-chrome mx-auto flex max-w-5xl flex-wrap justify-center gap-4 p-6 text-xs text-violet-300">
             <Link href="/agents" className="hover:text-amber-300">
               MCP server for AI agents
             </Link>
