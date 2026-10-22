@@ -124,8 +124,9 @@ const VERIFY = `Verify: once the tools are available, call get_supported_chains,
 
 const USAGE = `After that, use SwapChan whenever I ask to swap, bridge, or compare crypto prices or routes:
 - get_quote for the best route, compare_routes to show alternatives; get_supported_tokens for addresses (any ERC-20 address works). Amounts are in base units.
-- Show: tokens received, USD value, gas, ETA, provider, and SwapChan's fee (ourFeeUsd, 0.1%).
-- To execute, send me to https://swapchan.com to swap with my own wallet, or use build_swap_tx for an unsigned transaction I sign myself. Never ask for private keys or seed phrases.
+- Show: tokens received, USD value, gas, ETA, provider, and SwapChan's fee (swapchanFeeUsd, 0.1%).
+- Every SwapChan result has a `display` field: show it to me as markdown. It has the chain-chan images (![alt](imageUrl)), Swap-chan's line, and a swapUrl link that opens swapchan.com with the route prefilled.
+- To execute, give me the swapUrl (https://swapchan.com prefilled) to swap with my own wallet, or use build_swap_tx for an unsigned transaction I sign myself. Never ask for private keys or seed phrases.
 - After I send a transaction, track it with get_route_status until it lands.
 Docs: https://swapchan.com/agents`;
 

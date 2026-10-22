@@ -99,14 +99,50 @@ export function SwapCard() {
   const toTokens = useQuery({ queryKey: ["tokens", toChain], queryFn: () => api.tokens(toChain) });
   const mocked = Boolean(chains.data?.mocked || fromTokens.data?.mocked);
 
+  // Deep link prefill: ?fromChain=1&toChain=8453&fromToken=0x..&toToken=0x..&amount=100 (MCP swapUrl).
+  const prefill = useRef<{ fromToken?: string | undefined; toToken?: string | undefined } | null>(
+    null,
+  );
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const fc = Number(sp.get("fromChain"));
+    const tc = Number(sp.get("toChain"));
+    if (fc > 0) setFromChain(fc);
+    if (tc > 0) setToChain(tc);
+    const amt = sp.get("amount");
+    if (amt && /^\d+(\.\d+)?$/.test(amt)) setAmountStr(amt);
+    const ft = sp.get("fromToken") ?? undefined;
+    const tt = sp.get("toToken") ?? undefined;
+    if (ft || tt) {
+      prefill.current = { ...(ft ? { fromToken: ft } : {}), ...(tt ? { toToken: tt } : {}) };
+      const pick = async (chain: number, a: string, set: (t: Token) => void) => {
+        const t = await api.token(chain, a);
+        if (t) set(t);
+      };
+      if (ft && fc > 0) void pick(fc, ft, setFromToken);
+      if (tt && tc > 0) void pick(tc, tt, setToToken);
+    }
+  }, []);
+
   // Default token selection per chain: native in, USDC (or first) out.
   useEffect(() => {
     const list = fromTokens.data?.data ?? [];
-    if (!fromToken || fromToken.chainId !== fromChain) setFromToken(list.find(isNative) ?? list[0]);
+    const want = prefill.current?.fromToken?.toLowerCase();
+    const hit = want ? list.find((t) => t.address.toLowerCase() === want) : undefined;
+    if (hit) {
+      setFromToken(hit);
+      if (prefill.current) prefill.current.fromToken = undefined;
+    } else if (!fromToken || fromToken.chainId !== fromChain)
+      setFromToken(list.find(isNative) ?? list[0]);
   }, [fromTokens.data, fromChain, fromToken]);
   useEffect(() => {
     const list = toTokens.data?.data ?? [];
-    if (!toToken || toToken.chainId !== toChain)
+    const want = prefill.current?.toToken?.toLowerCase();
+    const hit = want ? list.find((t) => t.address.toLowerCase() === want) : undefined;
+    if (hit) {
+      setToToken(hit);
+      if (prefill.current) prefill.current.toToken = undefined;
+    } else if (!toToken || toToken.chainId !== toChain)
       setToToken(list.find((t) => t.symbol === "USDC") ?? list[0]);
   }, [toTokens.data, toChain, toToken]);
 

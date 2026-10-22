@@ -102,13 +102,13 @@ describe("swapchan mcp over streamable http", () => {
   it("get_supported_chains / tokens", async () => {
     const c = await connect();
     expect(
-      data(await c.callTool({ name: "get_supported_chains", arguments: {} })).map(
+      data(await c.callTool({ name: "get_supported_chains", arguments: {} })).result.map(
         (x: { id: number }) => x.id,
       ),
     ).toContain(8453);
     const toks = data(
       await c.callTool({ name: "get_supported_tokens", arguments: { chainId: 1, search: "usdc" } }),
-    );
+    ).result;
     expect(toks[0].symbol).toBe("USDC");
     await c.close();
   });
@@ -120,6 +120,18 @@ describe("swapchan mcp over streamable http", () => {
     expect(r.best.toAmountFormatted).toBe("2000");
     expect(mock.calls.some((x) => x.includes("amount=1000000000000000000"))).toBe(true);
     expect(r.providerErrors[0].provider).toBe("relay");
+    expect(r.mascots.map((m: { name: string }) => m.name)).toEqual(["Swap-chan", "Ethereum-chan"]);
+    expect(r.mascots[1].imageUrl).toBe("https://swapchan.com/characters/ethereum.png");
+    expect(r.swapUrl).toContain("https://swapchan.com/?fromChain=1&toChain=1");
+    expect(r.swapUrl).toContain("amount=1");
+    expect(r.display).toContain("![Ethereum-chan");
+    expect(r.swapchanSays).toContain("0x wins");
+    const raw = (await c.callTool({ name: "get_quote", arguments: ethToUsdc })) as {
+      content: { type: string; uri?: string }[];
+    };
+    expect(
+      raw.content.some((x) => x.type === "resource_link" && x.uri?.endsWith("/swapchan.png")),
+    ).toBe(true);
     await c.close();
   });
 
