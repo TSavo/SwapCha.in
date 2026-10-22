@@ -16,8 +16,8 @@ if (wagmiAdapter) {
     metadata: {
       name: "SwapChan",
       description: "Best-price same-chain and cross-chain swaps, with anime.",
-      url: "https://swapcha.in",
-      icons: ["https://swapcha.in/characters/swapchan.png"],
+      url: "https://swapchan.com",
+      icons: ["https://swapchan.com/characters/swapchan.png"],
     },
     features: { analytics: false },
   });

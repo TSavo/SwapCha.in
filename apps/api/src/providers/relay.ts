@@ -46,6 +46,13 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
           tradeType: "EXACT_INPUT",
           slippageTolerance: String(req.slippageBps),
           ...(env.RELAY_API_KEY ? { referrer: "swapchan" } : {}), // referrer requires a key
+          ...(env.SWAPCHAN_FEE_RECIPIENT && Number(env.SWAPCHAN_FEE_BPS) > 0
+            ? {
+                appFees: [
+                  { recipient: env.SWAPCHAN_FEE_RECIPIENT, fee: String(env.SWAPCHAN_FEE_BPS) },
+                ],
+              }
+            : {}),
         }),
       });
       const out = r.details.currencyOut;

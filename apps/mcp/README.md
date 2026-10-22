@@ -46,7 +46,7 @@ node apps/mcp/dist/mockApi.js                                                   
 
 **Claude Code**
 ```bash
-claude mcp add --transport http swapchan https://mcp.swapcha.in/mcp --header "x-api-key: YOUR_KEY"
+claude mcp add --transport http swapchan https://mcp.swapchan.com/mcp --header "x-api-key: YOUR_KEY"
 ```
 
 **Claude Desktop** (`claude_desktop_config.json`, local stdio)
@@ -55,8 +55,8 @@ claude mcp add --transport http swapchan https://mcp.swapcha.in/mcp --header "x-
   "mcpServers": {
     "swapchan": {
       "command": "node",
-      "args": ["/path/to/SwapCha.in/apps/mcp/dist/index.js", "--stdio"],
-      "env": { "SWAPCHAN_API_URL": "https://api.swapcha.in" }
+      "args": ["/path/to/SwapChan/apps/mcp/dist/index.js", "--stdio"],
+      "env": { "SWAPCHAN_API_URL": "https://api.swapchan.com" }
     }
   }
 }
@@ -66,7 +66,7 @@ claude mcp add --transport http swapchan https://mcp.swapcha.in/mcp --header "x-
 ```json
 {
   "mcpServers": {
-    "swapchan": { "url": "https://mcp.swapcha.in/mcp", "headers": { "x-api-key": "YOUR_KEY" } }
+    "swapchan": { "url": "https://mcp.swapchan.com/mcp", "headers": { "x-api-key": "YOUR_KEY" } }
   }
 }
 ```
@@ -79,7 +79,7 @@ npx @modelcontextprotocol/inspector --cli http://127.0.0.1:8788/mcp --transport 
 ## Registry
 
 `server.json` (schema 2025-12-11, validated) publishes the remote as `io.github.TSavo/swapchan` via `mcp-publisher publish`.
-`https://mcp.swapcha.in/mcp` is a placeholder until it's deployed.
+Hosted at `https://mcp.swapchan.com/mcp`.
 
 ## Tests
 

@@ -4,7 +4,7 @@
   "title": "SwapChan",
   "description": "Best-price same-chain and cross-chain EVM swap quotes and unsigned swap transactions.",
   "version": "0.1.0",
-  "websiteUrl": "https://swapcha.in",
+  "websiteUrl": "https://swapchan.com",
   "repository": {
     "url": "https://github.com/TSavo/SwapCha.in",
     "source": "github",
@@ -13,7 +13,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://mcp.swapcha.in/mcp",
+      "url": "https://mcp.swapchan.com/mcp",
       "headers": [
         {
           "name": "x-api-key",

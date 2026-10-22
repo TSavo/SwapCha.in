@@ -16,6 +16,11 @@ export function velora(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch)
   const headers: Record<string, string> = env.VELORA_API_KEY
     ? { "X-API-KEY": env.VELORA_API_KEY }
     : {};
+  const feeBps = Number(env.SWAPCHAN_FEE_BPS ?? 0);
+  const fee: Record<string, string> =
+    env.SWAPCHAN_FEE_RECIPIENT && feeBps > 0
+      ? { partnerAddress: env.SWAPCHAN_FEE_RECIPIENT, partnerFeeBps: String(feeBps) }
+      : {};
   return {
     name: "velora",
     enabled: () => true,
@@ -36,6 +41,7 @@ export function velora(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch)
         network: String(req.fromChainId),
         version: "6.2",
         partner: "swapchan",
+        ...fee,
       });
       const { priceRoute } = await getJson<{ priceRoute: PriceRoute }>(f, `${BASE}/prices?${q}`, {
         headers,
@@ -58,6 +64,7 @@ export function velora(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch)
             srcToken: req.fromToken,
             destToken: req.toToken,
             srcAmount: req.amount,
+            ...fee,
             slippage: req.slippageBps,
             priceRoute,
             userAddress: req.taker,
