@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { AgentBanner } from "@/components/AgentBanner";
 import { Greeting } from "@/components/Greeting";
 import { LiveRoutes } from "@/components/LiveRoutes";
 import { SwapCard } from "@/components/SwapCard";
@@ -8,6 +9,7 @@ import { SwapCard } from "@/components/SwapCard";
 export default function Home() {
   return (
     <>
+      <AgentBanner />
       <div className="mt-1 mb-4 text-center">
         <h1 className="text-2xl font-black md:text-3xl">Best route, every chain~</h1>
         <p className="text-sm text-violet-300">
@@ -24,6 +26,12 @@ export default function Home() {
           <LiveRoutes />
         </div>
       </div>
+      <Link
+        href="/agents"
+        className="mt-6 rounded-full border border-fuchsia-400/50 px-5 py-2 text-sm font-bold hover:text-amber-300"
+      >
+        🤖 Your AI agent can swap too → MCP
+      </Link>
     </>
   );
 }

@@ -1,0 +1,7 @@
+{
+  "name": "swapchan",
+  "description": "Best-price same-chain and cross-chain swap quotes",
+  "url": "https://mcp.swapchan.com/mcp",
+  "transport": "streamable-http",
+  "documentation": "https://swapchan.com/agents"
+}

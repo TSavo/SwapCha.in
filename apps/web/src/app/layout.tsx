@@ -33,6 +33,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Link href="/" className="hidden hover:text-amber-300 sm:inline">
                 Swap
               </Link>
+              <Link href="/agents" className="hover:text-amber-300">
+                Developers / MCP
+              </Link>
               <Link href="/cast" className="hover:text-amber-300">
                 Cast
               </Link>
@@ -45,6 +48,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <main className="mx-auto flex max-w-5xl flex-col items-center px-4 pb-16">
             {children}
           </main>
+          <footer className="mx-auto flex max-w-5xl flex-wrap justify-center gap-4 p-6 text-xs text-violet-300">
+            <Link href="/agents" className="hover:text-amber-300">
+              MCP server for AI agents
+            </Link>
+            <Link href="/agents#rest-api" className="hover:text-amber-300">
+              REST API
+            </Link>
+            <Link href="/how-it-works" className="hover:text-amber-300">
+              How it works
+            </Link>
+            <a href="/llms.txt" className="hover:text-amber-300">
+              llms.txt
+            </a>
+          </footer>
         </Providers>
         {GA_ID && (
           <>
