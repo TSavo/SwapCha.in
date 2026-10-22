@@ -1,0 +1,6853 @@
+[
+  {
+    "slug": "avax-avalanche-to-bnb-bnb",
+    "fromChainId": 43114,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "5",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "avax-avalanche-to-btc-bitcoin",
+    "fromChainId": 43114,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "5",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "avax-avalanche-to-eth-arbitrum",
+    "fromChainId": 43114,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "5",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "avax-avalanche-to-eth-base",
+    "fromChainId": 43114,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "5",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "avax-avalanche-to-eth-ethereum",
+    "fromChainId": 43114,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "5",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "avax-avalanche-to-eth-linea",
+    "fromChainId": 43114,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "5",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "avax-avalanche-to-eth-optimism",
+    "fromChainId": 43114,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "5",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "avax-avalanche-to-eth-scroll",
+    "fromChainId": 43114,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "5",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "avax-avalanche-to-pol-polygon",
+    "fromChainId": 43114,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "5",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "avax-avalanche-to-sol-solana",
+    "fromChainId": 43114,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "5",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "avax-avalanche-to-trx-tron",
+    "fromChainId": 43114,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "5",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "avax-avalanche-to-usdc-avalanche",
+    "fromChainId": 43114,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "5",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "avax-avalanche-to-usdc-solana",
+    "fromChainId": 43114,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "5",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "avax-avalanche-to-usdt-avalanche",
+    "fromChainId": 43114,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "5",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "bnb-bnb-to-avax-avalanche",
+    "fromChainId": 56,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-eth-arbitrum",
+    "fromChainId": 56,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-eth-base",
+    "fromChainId": 56,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-eth-ethereum",
+    "fromChainId": 56,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-eth-linea",
+    "fromChainId": 56,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-eth-optimism",
+    "fromChainId": 56,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-eth-scroll",
+    "fromChainId": 56,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-pol-polygon",
+    "fromChainId": 56,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-sol-solana",
+    "fromChainId": 56,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-usdc-bnb",
+    "fromChainId": 56,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "bnb-bnb-to-usdc-solana",
+    "fromChainId": 56,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "0.2",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "bnb-bnb-to-usdt-bnb",
+    "fromChainId": 56,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "0.2",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-arbitrum-to-avax-avalanche",
+    "fromChainId": 42161,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-bnb-bnb",
+    "fromChainId": 42161,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-btc-bitcoin",
+    "fromChainId": 42161,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-arbitrum-to-eth-base",
+    "fromChainId": 42161,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-eth-ethereum",
+    "fromChainId": 42161,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-eth-linea",
+    "fromChainId": 42161,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-eth-optimism",
+    "fromChainId": 42161,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-eth-scroll",
+    "fromChainId": 42161,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-pol-polygon",
+    "fromChainId": 42161,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-sol-solana",
+    "fromChainId": 42161,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-trx-tron",
+    "fromChainId": 42161,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-usdc-arbitrum",
+    "fromChainId": 42161,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-arbitrum-to-usdc-solana",
+    "fromChainId": 42161,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-arbitrum-to-usdt-arbitrum",
+    "fromChainId": 42161,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-base-to-avax-avalanche",
+    "fromChainId": 8453,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-bnb-bnb",
+    "fromChainId": 8453,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-btc-bitcoin",
+    "fromChainId": 8453,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-eth-arbitrum",
+    "fromChainId": 8453,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-eth-ethereum",
+    "fromChainId": 8453,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-eth-linea",
+    "fromChainId": 8453,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-eth-optimism",
+    "fromChainId": 8453,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-eth-scroll",
+    "fromChainId": 8453,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-pol-polygon",
+    "fromChainId": 8453,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-sol-solana",
+    "fromChainId": 8453,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-trx-tron",
+    "fromChainId": 8453,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-base-to-usdc-base",
+    "fromChainId": 8453,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-base-to-usdc-solana",
+    "fromChainId": 8453,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-base-to-usdt-base",
+    "fromChainId": 8453,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-ethereum-to-avax-avalanche",
+    "fromChainId": 1,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-ethereum-to-bnb-bnb",
+    "fromChainId": 1,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-ethereum-to-btc-bitcoin",
+    "fromChainId": 1,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-ethereum-to-eth-arbitrum",
+    "fromChainId": 1,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-ethereum-to-eth-base",
+    "fromChainId": 1,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-ethereum-to-eth-linea",
+    "fromChainId": 1,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-ethereum-to-eth-optimism",
+    "fromChainId": 1,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-ethereum-to-eth-scroll",
+    "fromChainId": 1,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-ethereum-to-pol-polygon",
+    "fromChainId": 1,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-ethereum-to-sol-solana",
+    "fromChainId": 1,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-ethereum-to-trx-tron",
+    "fromChainId": 1,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-ethereum-to-usdc-ethereum",
+    "fromChainId": 1,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-ethereum-to-usdc-solana",
+    "fromChainId": 1,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-ethereum-to-usdt-ethereum",
+    "fromChainId": 1,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-linea-to-avax-avalanche",
+    "fromChainId": 59144,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-bnb-bnb",
+    "fromChainId": 59144,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-eth-arbitrum",
+    "fromChainId": 59144,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-eth-base",
+    "fromChainId": 59144,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-eth-ethereum",
+    "fromChainId": 59144,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-eth-optimism",
+    "fromChainId": 59144,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-eth-scroll",
+    "fromChainId": 59144,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-pol-polygon",
+    "fromChainId": 59144,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-sol-solana",
+    "fromChainId": 59144,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-usdc-linea",
+    "fromChainId": 59144,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay"]
+  },
+  {
+    "slug": "eth-linea-to-usdc-solana",
+    "fromChainId": 59144,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-linea-to-usdt-linea",
+    "fromChainId": 59144,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-avax-avalanche",
+    "fromChainId": 10,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-bnb-bnb",
+    "fromChainId": 10,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-btc-bitcoin",
+    "fromChainId": 10,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-optimism-to-eth-arbitrum",
+    "fromChainId": 10,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-eth-base",
+    "fromChainId": 10,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-eth-ethereum",
+    "fromChainId": 10,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-eth-linea",
+    "fromChainId": 10,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-eth-scroll",
+    "fromChainId": 10,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-pol-polygon",
+    "fromChainId": 10,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-sol-solana",
+    "fromChainId": 10,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-trx-tron",
+    "fromChainId": 10,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["relay"]
+  },
+  {
+    "slug": "eth-optimism-to-usdc-optimism",
+    "fromChainId": 10,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-optimism-to-usdc-solana",
+    "fromChainId": 10,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "eth-optimism-to-usdt-optimism",
+    "fromChainId": 10,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "eth-scroll-to-avax-avalanche",
+    "fromChainId": 534352,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-bnb-bnb",
+    "fromChainId": 534352,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-eth-arbitrum",
+    "fromChainId": 534352,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-eth-base",
+    "fromChainId": 534352,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-eth-ethereum",
+    "fromChainId": 534352,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-eth-linea",
+    "fromChainId": 534352,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-eth-optimism",
+    "fromChainId": 534352,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-pol-polygon",
+    "fromChainId": 534352,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-sol-solana",
+    "fromChainId": 534352,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-usdc-scroll",
+    "fromChainId": 534352,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay"]
+  },
+  {
+    "slug": "eth-scroll-to-usdc-solana",
+    "fromChainId": 534352,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "eth-scroll-to-usdt-scroll",
+    "fromChainId": 534352,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "0.05",
+    "providers": ["0x", "lifi", "relay"]
+  },
+  {
+    "slug": "pol-polygon-to-avax-avalanche",
+    "fromChainId": 137,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-bnb-bnb",
+    "fromChainId": 137,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-btc-bitcoin",
+    "fromChainId": 137,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-eth-arbitrum",
+    "fromChainId": 137,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-eth-base",
+    "fromChainId": 137,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-eth-ethereum",
+    "fromChainId": 137,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-eth-linea",
+    "fromChainId": 137,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-eth-optimism",
+    "fromChainId": 137,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-eth-scroll",
+    "fromChainId": 137,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-sol-solana",
+    "fromChainId": 137,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-trx-tron",
+    "fromChainId": 137,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-usdc-polygon",
+    "fromChainId": 137,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "pol-polygon-to-usdc-solana",
+    "fromChainId": 137,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "pol-polygon-to-usdt-polygon",
+    "fromChainId": 137,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "sol-solana-to-avax-avalanche",
+    "fromChainId": 792703809,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-bnb-bnb",
+    "fromChainId": 792703809,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-btc-bitcoin",
+    "fromChainId": 792703809,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "0.7",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "sol-solana-to-eth-arbitrum",
+    "fromChainId": 792703809,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-eth-base",
+    "fromChainId": 792703809,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-eth-ethereum",
+    "fromChainId": 792703809,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-eth-linea",
+    "fromChainId": 792703809,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-eth-optimism",
+    "fromChainId": 792703809,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-eth-scroll",
+    "fromChainId": 792703809,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-pol-polygon",
+    "fromChainId": 792703809,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-trx-tron",
+    "fromChainId": 792703809,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-arbitrum",
+    "fromChainId": 792703809,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-avalanche",
+    "fromChainId": 792703809,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-base",
+    "fromChainId": 792703809,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-bnb",
+    "fromChainId": 792703809,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-ethereum",
+    "fromChainId": 792703809,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-linea",
+    "fromChainId": 792703809,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-optimism",
+    "fromChainId": 792703809,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-polygon",
+    "fromChainId": 792703809,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-scroll",
+    "fromChainId": 792703809,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdc-solana",
+    "fromChainId": 792703809,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "sol-solana-to-usdt-solana",
+    "fromChainId": 792703809,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "0.7",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "trx-tron-to-btc-bitcoin",
+    "fromChainId": 728126428,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-eth-arbitrum",
+    "fromChainId": 728126428,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-eth-base",
+    "fromChainId": 728126428,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-eth-ethereum",
+    "fromChainId": 728126428,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-sol-solana",
+    "fromChainId": 728126428,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-usdc-arbitrum",
+    "fromChainId": 728126428,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-usdc-base",
+    "fromChainId": 728126428,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-usdc-ethereum",
+    "fromChainId": 728126428,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-usdc-solana",
+    "fromChainId": 728126428,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "trx-tron-to-usdt-tron",
+    "fromChainId": 728126428,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "500",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-btc-bitcoin",
+    "fromChainId": 42161,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-eth-arbitrum",
+    "fromChainId": 42161,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-sol-solana",
+    "fromChainId": 42161,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-trx-tron",
+    "fromChainId": 42161,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-avalanche",
+    "fromChainId": 42161,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-base",
+    "fromChainId": 42161,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-bnb",
+    "fromChainId": 42161,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-ethereum",
+    "fromChainId": 42161,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-linea",
+    "fromChainId": 42161,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-optimism",
+    "fromChainId": 42161,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-polygon",
+    "fromChainId": 42161,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-scroll",
+    "fromChainId": 42161,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-arbitrum-to-usdc-solana",
+    "fromChainId": 42161,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-avalanche-to-avax-avalanche",
+    "fromChainId": 43114,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdc-avalanche-to-btc-bitcoin",
+    "fromChainId": 43114,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-avalanche-to-sol-solana",
+    "fromChainId": 43114,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-avalanche-to-trx-tron",
+    "fromChainId": 43114,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-arbitrum",
+    "fromChainId": 43114,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-base",
+    "fromChainId": 43114,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-bnb",
+    "fromChainId": 43114,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-ethereum",
+    "fromChainId": 43114,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-linea",
+    "fromChainId": 43114,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-optimism",
+    "fromChainId": 43114,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-polygon",
+    "fromChainId": 43114,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-scroll",
+    "fromChainId": 43114,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-avalanche-to-usdc-solana",
+    "fromChainId": 43114,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-base-to-btc-bitcoin",
+    "fromChainId": 8453,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-base-to-eth-base",
+    "fromChainId": 8453,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdc-base-to-sol-solana",
+    "fromChainId": 8453,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-base-to-trx-tron",
+    "fromChainId": 8453,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-arbitrum",
+    "fromChainId": 8453,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-avalanche",
+    "fromChainId": 8453,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-bnb",
+    "fromChainId": 8453,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-ethereum",
+    "fromChainId": 8453,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-linea",
+    "fromChainId": 8453,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-optimism",
+    "fromChainId": 8453,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-polygon",
+    "fromChainId": 8453,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-scroll",
+    "fromChainId": 8453,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-base-to-usdc-solana",
+    "fromChainId": 8453,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-bnb-bnb",
+    "fromChainId": 56,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdc-bnb-to-sol-solana",
+    "fromChainId": 56,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-arbitrum",
+    "fromChainId": 56,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-avalanche",
+    "fromChainId": 56,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-base",
+    "fromChainId": 56,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-ethereum",
+    "fromChainId": 56,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-linea",
+    "fromChainId": 56,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-optimism",
+    "fromChainId": 56,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-polygon",
+    "fromChainId": 56,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-scroll",
+    "fromChainId": 56,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-bnb-to-usdc-solana",
+    "fromChainId": 56,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-ethereum-to-btc-bitcoin",
+    "fromChainId": 1,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-ethereum-to-eth-ethereum",
+    "fromChainId": 1,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdc-ethereum-to-sol-solana",
+    "fromChainId": 1,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-ethereum-to-trx-tron",
+    "fromChainId": 1,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-arbitrum",
+    "fromChainId": 1,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-avalanche",
+    "fromChainId": 1,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-base",
+    "fromChainId": 1,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-bnb",
+    "fromChainId": 1,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-linea",
+    "fromChainId": 1,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-optimism",
+    "fromChainId": 1,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-polygon",
+    "fromChainId": 1,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-scroll",
+    "fromChainId": 1,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-ethereum-to-usdc-solana",
+    "fromChainId": 1,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-linea-to-eth-linea",
+    "fromChainId": 59144,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-linea-to-sol-solana",
+    "fromChainId": 59144,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-arbitrum",
+    "fromChainId": 59144,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-avalanche",
+    "fromChainId": 59144,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-base",
+    "fromChainId": 59144,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-bnb",
+    "fromChainId": 59144,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-ethereum",
+    "fromChainId": 59144,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-optimism",
+    "fromChainId": 59144,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-polygon",
+    "fromChainId": 59144,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-scroll",
+    "fromChainId": 59144,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-linea-to-usdc-solana",
+    "fromChainId": 59144,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-optimism-to-btc-bitcoin",
+    "fromChainId": 10,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-optimism-to-eth-optimism",
+    "fromChainId": 10,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdc-optimism-to-sol-solana",
+    "fromChainId": 10,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-trx-tron",
+    "fromChainId": 10,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-arbitrum",
+    "fromChainId": 10,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-avalanche",
+    "fromChainId": 10,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-base",
+    "fromChainId": 10,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-bnb",
+    "fromChainId": 10,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-ethereum",
+    "fromChainId": 10,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-linea",
+    "fromChainId": 10,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-polygon",
+    "fromChainId": 10,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-scroll",
+    "fromChainId": 10,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-optimism-to-usdc-solana",
+    "fromChainId": 10,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-polygon-to-btc-bitcoin",
+    "fromChainId": 137,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-pol-polygon",
+    "fromChainId": 137,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdc-polygon-to-sol-solana",
+    "fromChainId": 137,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-trx-tron",
+    "fromChainId": 137,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-arbitrum",
+    "fromChainId": 137,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-avalanche",
+    "fromChainId": 137,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-base",
+    "fromChainId": 137,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-bnb",
+    "fromChainId": 137,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-ethereum",
+    "fromChainId": 137,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-linea",
+    "fromChainId": 137,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-optimism",
+    "fromChainId": 137,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-scroll",
+    "fromChainId": 137,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-polygon-to-usdc-solana",
+    "fromChainId": 137,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-eth-scroll",
+    "fromChainId": 534352,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "lifi", "relay"]
+  },
+  {
+    "slug": "usdc-scroll-to-sol-solana",
+    "fromChainId": 534352,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-arbitrum",
+    "fromChainId": 534352,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-avalanche",
+    "fromChainId": 534352,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-base",
+    "fromChainId": 534352,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-bnb",
+    "fromChainId": 534352,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-ethereum",
+    "fromChainId": 534352,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-linea",
+    "fromChainId": 534352,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-optimism",
+    "fromChainId": 534352,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-polygon",
+    "fromChainId": 534352,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-scroll-to-usdc-solana",
+    "fromChainId": 534352,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-solana-to-avax-avalanche",
+    "fromChainId": 792703809,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-bnb-bnb",
+    "fromChainId": 792703809,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-btc-bitcoin",
+    "fromChainId": 792703809,
+    "toChainId": 8253038,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "BTC",
+      "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+      "decimals": 8
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-solana-to-eth-arbitrum",
+    "fromChainId": 792703809,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-eth-base",
+    "fromChainId": 792703809,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-eth-ethereum",
+    "fromChainId": 792703809,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-eth-linea",
+    "fromChainId": 792703809,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-eth-optimism",
+    "fromChainId": 792703809,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-eth-scroll",
+    "fromChainId": 792703809,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-pol-polygon",
+    "fromChainId": 792703809,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-sol-solana",
+    "fromChainId": 792703809,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-trx-tron",
+    "fromChainId": 792703809,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-arbitrum",
+    "fromChainId": 792703809,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-avalanche",
+    "fromChainId": 792703809,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-base",
+    "fromChainId": 792703809,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-bnb",
+    "fromChainId": 792703809,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-ethereum",
+    "fromChainId": 792703809,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-linea",
+    "fromChainId": 792703809,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-optimism",
+    "fromChainId": 792703809,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-polygon",
+    "fromChainId": 792703809,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdc-solana-to-usdc-scroll",
+    "fromChainId": 792703809,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDC",
+      "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDC",
+      "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-eth-arbitrum",
+    "fromChainId": 42161,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-avalanche",
+    "fromChainId": 42161,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-base",
+    "fromChainId": 42161,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-bnb",
+    "fromChainId": 42161,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-ethereum",
+    "fromChainId": 42161,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-linea",
+    "fromChainId": 42161,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-optimism",
+    "fromChainId": 42161,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-polygon",
+    "fromChainId": 42161,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-scroll",
+    "fromChainId": 42161,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-solana",
+    "fromChainId": 42161,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-arbitrum-to-usdt-tron",
+    "fromChainId": 42161,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-avalanche-to-avax-avalanche",
+    "fromChainId": 43114,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "AVAX",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-arbitrum",
+    "fromChainId": 43114,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-base",
+    "fromChainId": 43114,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-bnb",
+    "fromChainId": 43114,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-ethereum",
+    "fromChainId": 43114,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-linea",
+    "fromChainId": 43114,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-optimism",
+    "fromChainId": 43114,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-polygon",
+    "fromChainId": 43114,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-scroll",
+    "fromChainId": 43114,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-solana",
+    "fromChainId": 43114,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-avalanche-to-usdt-tron",
+    "fromChainId": 43114,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-base-to-eth-base",
+    "fromChainId": 8453,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-arbitrum",
+    "fromChainId": 8453,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-avalanche",
+    "fromChainId": 8453,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-bnb",
+    "fromChainId": 8453,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-ethereum",
+    "fromChainId": 8453,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-linea",
+    "fromChainId": 8453,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-optimism",
+    "fromChainId": 8453,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-polygon",
+    "fromChainId": 8453,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-scroll",
+    "fromChainId": 8453,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-solana",
+    "fromChainId": 8453,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-base-to-usdt-tron",
+    "fromChainId": 8453,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-bnb-bnb",
+    "fromChainId": 56,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "BNB",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-arbitrum",
+    "fromChainId": 56,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-avalanche",
+    "fromChainId": 56,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-base",
+    "fromChainId": 56,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-ethereum",
+    "fromChainId": 56,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-linea",
+    "fromChainId": 56,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-optimism",
+    "fromChainId": 56,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-polygon",
+    "fromChainId": 56,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-scroll",
+    "fromChainId": 56,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-solana",
+    "fromChainId": 56,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-bnb-to-usdt-tron",
+    "fromChainId": 56,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-ethereum-to-eth-ethereum",
+    "fromChainId": 1,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-arbitrum",
+    "fromChainId": 1,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-avalanche",
+    "fromChainId": 1,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-base",
+    "fromChainId": 1,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-bnb",
+    "fromChainId": 1,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-linea",
+    "fromChainId": 1,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-optimism",
+    "fromChainId": 1,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-polygon",
+    "fromChainId": 1,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-scroll",
+    "fromChainId": 1,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-solana",
+    "fromChainId": 1,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-ethereum-to-usdt-tron",
+    "fromChainId": 1,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-linea-to-eth-linea",
+    "fromChainId": 59144,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-arbitrum",
+    "fromChainId": 59144,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-avalanche",
+    "fromChainId": 59144,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-base",
+    "fromChainId": 59144,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-bnb",
+    "fromChainId": 59144,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-ethereum",
+    "fromChainId": 59144,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-optimism",
+    "fromChainId": 59144,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-polygon",
+    "fromChainId": 59144,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-scroll",
+    "fromChainId": 59144,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-solana",
+    "fromChainId": 59144,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-linea-to-usdt-tron",
+    "fromChainId": 59144,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-optimism-to-eth-optimism",
+    "fromChainId": 10,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-arbitrum",
+    "fromChainId": 10,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-avalanche",
+    "fromChainId": 10,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-base",
+    "fromChainId": 10,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-bnb",
+    "fromChainId": 10,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-ethereum",
+    "fromChainId": 10,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-linea",
+    "fromChainId": 10,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-polygon",
+    "fromChainId": 10,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-scroll",
+    "fromChainId": 10,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-solana",
+    "fromChainId": 10,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-optimism-to-usdt-tron",
+    "fromChainId": 10,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-polygon-to-pol-polygon",
+    "fromChainId": 137,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "POL",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "cow", "lifi", "relay", "velora"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-arbitrum",
+    "fromChainId": 137,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-avalanche",
+    "fromChainId": 137,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-base",
+    "fromChainId": 137,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-bnb",
+    "fromChainId": 137,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-ethereum",
+    "fromChainId": 137,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-linea",
+    "fromChainId": 137,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-optimism",
+    "fromChainId": 137,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["across", "lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-scroll",
+    "fromChainId": 137,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-solana",
+    "fromChainId": 137,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-polygon-to-usdt-tron",
+    "fromChainId": 137,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-eth-scroll",
+    "fromChainId": 534352,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "ETH",
+      "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["0x", "lifi", "relay"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-arbitrum",
+    "fromChainId": 534352,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-avalanche",
+    "fromChainId": 534352,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-base",
+    "fromChainId": 534352,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-bnb",
+    "fromChainId": 534352,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-ethereum",
+    "fromChainId": 534352,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-linea",
+    "fromChainId": 534352,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-optimism",
+    "fromChainId": 534352,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-polygon",
+    "fromChainId": 534352,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-solana",
+    "fromChainId": 534352,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-scroll-to-usdt-tron",
+    "fromChainId": 534352,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-solana-to-sol-solana",
+    "fromChainId": 792703809,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "SOL",
+      "address": "11111111111111111111111111111111",
+      "decimals": 9
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-arbitrum",
+    "fromChainId": 792703809,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-avalanche",
+    "fromChainId": 792703809,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-base",
+    "fromChainId": 792703809,
+    "toChainId": 8453,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-bnb",
+    "fromChainId": 792703809,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-ethereum",
+    "fromChainId": 792703809,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-linea",
+    "fromChainId": 792703809,
+    "toChainId": 59144,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-optimism",
+    "fromChainId": 792703809,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-polygon",
+    "fromChainId": 792703809,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-scroll",
+    "fromChainId": 792703809,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-solana-to-usdt-tron",
+    "fromChainId": 792703809,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-tron-to-trx-tron",
+    "fromChainId": 728126428,
+    "toChainId": 728126428,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "TRX",
+      "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi", "relay"]
+  },
+  {
+    "slug": "usdt-tron-to-usdt-arbitrum",
+    "fromChainId": 728126428,
+    "toChainId": 42161,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-tron-to-usdt-avalanche",
+    "fromChainId": 728126428,
+    "toChainId": 43114,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-tron-to-usdt-bnb",
+    "fromChainId": 728126428,
+    "toChainId": 56,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x55d398326f99059fF775485246999027B3197955",
+      "decimals": 18
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-tron-to-usdt-ethereum",
+    "fromChainId": 728126428,
+    "toChainId": 1,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-tron-to-usdt-optimism",
+    "fromChainId": 728126428,
+    "toChainId": 10,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-tron-to-usdt-polygon",
+    "fromChainId": 728126428,
+    "toChainId": 137,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-tron-to-usdt-scroll",
+    "fromChainId": 728126428,
+    "toChainId": 534352,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  },
+  {
+    "slug": "usdt-tron-to-usdt-solana",
+    "fromChainId": 728126428,
+    "toChainId": 792703809,
+    "fromToken": {
+      "symbol": "USDT",
+      "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+      "decimals": 6
+    },
+    "toToken": {
+      "symbol": "USDT",
+      "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+      "decimals": 6
+    },
+    "amount": "100",
+    "providers": ["lifi"]
+  }
+]

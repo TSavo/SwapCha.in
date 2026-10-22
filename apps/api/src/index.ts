@@ -15,12 +15,13 @@ import { cors } from "hono/cors";
 import { z } from "zod";
 import { fanOut } from "./aggregate.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
+import { limitRoutes } from "./limit.js";
 import { llamaPricer, type Pricer } from "./pricing.js";
 import { across } from "./providers/across.js";
 import { cow } from "./providers/cow.js";
 import { lifi } from "./providers/lifi.js";
 import { relay } from "./providers/relay.js";
-import type { ProviderAdapter } from "./providers/types.js";
+import type { Fetch, ProviderAdapter } from "./providers/types.js";
 import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
 import { createSimulator, type Simulator } from "./simulate.js";
@@ -60,6 +61,8 @@ export interface AppOptions {
   tokenReader?: TokenReader;
   /** Prices every route's output for ranking; never trust provider-reported USD. */
   pricer?: Pricer | null;
+  /** fetch used for CoW limit-order calls (tests inject a mock). */
+  cowFetch?: Fetch;
 }
 
 export function createApp(
@@ -164,6 +167,7 @@ export function createApp(
       out = { ...out, simulation: await simulator(out, taker) };
     return c.json(BuildResponse.parse(out));
   });
+  app.route("/limit", limitRoutes(opts.cowFetch ?? fetch, env));
   app.get("/status", async (c) => {
     const req = StatusRequest.parse(c.req.query());
     const p = providers.find((x) => x.name === req.provider);

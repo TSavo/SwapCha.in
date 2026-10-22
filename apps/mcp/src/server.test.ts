@@ -50,12 +50,48 @@ const ethToUsdc = {
 };
 
 describe("swapchan mcp over streamable http", () => {
-  it("lists all six tools", async () => {
+  it("builds a limit order with our partner fee and lists orders", async () => {
+    const c = await connect();
+    const r = data(
+      await c.callTool({
+        name: "build_limit_order",
+        arguments: {
+          chainId: 1,
+          owner: "0x1111111111111111111111111111111111111111",
+          sellToken: USDC,
+          buyToken: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+          sellAmount: "100",
+          limitPrice: "0.0005",
+        },
+      }),
+    );
+    expect(r.typedData.primaryType).toBe("Order");
+    expect(r.typedData.message.sellAmount).toBe("100000000");
+    expect(r.typedData.message.buyAmount).toBe("50000000000000000");
+    expect(r.typedData.message.appData).toBe(r.appDataHash);
+    expect(r.swapchanFee).toEqual({
+      volumeBps: 10,
+      recipient: "0xeb0eC7a28E4B6B175806E21D9D3afE45792C5c7B",
+    });
+    const l = data(
+      await c.callTool({
+        name: "list_limit_orders",
+        arguments: { chainId: 1, owner: "0x1111111111111111111111111111111111111111" },
+      }),
+    );
+    expect(l.orders[0].uid).toBe("0xaa");
+    await c.close();
+  });
+
+  it("lists all tools", async () => {
     const c = await connect();
     const { tools } = await c.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
       [
+        "build_limit_order",
         "build_swap_tx",
+        "cancel_limit_order",
+        "list_limit_orders",
         "compare_routes",
         "get_quote",
         "get_route_status",

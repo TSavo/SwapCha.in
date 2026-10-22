@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AgentSection } from "@/components/AgentSection";
 import { Greeting } from "@/components/Greeting";
 import { LiveRoutes } from "@/components/LiveRoutes";
-import { SwapCard } from "@/components/SwapCard";
+import { SwapTabs } from "@/components/SwapTabs";
 
 export default function Home() {
   return (
@@ -20,7 +20,7 @@ export default function Home() {
       </div>
       <div className="flex w-full flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center">
         <Greeting />
-        <SwapCard />
+        <SwapTabs />
         <div className="w-full max-w-lg lg:w-72">
           <LiveRoutes />
         </div>

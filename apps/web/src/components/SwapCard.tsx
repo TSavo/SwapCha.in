@@ -76,7 +76,15 @@ type Phase =
   | { k: "order"; uid: string }
   | { k: "error"; msg: string };
 
-export function SwapCard() {
+export interface SwapInitial {
+  fromChain: number;
+  toChain: number;
+  fromToken: string;
+  toToken: string;
+  amount: string;
+}
+
+export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
   const config = useConfig();
   const { address: evmAddress, chainId: walletChain } = useAccount();
   const sol = useSolana();
@@ -125,6 +133,8 @@ export function SwapCard() {
   );
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
+    if (initial && !sp.get("fromChain"))
+      for (const [k, v] of Object.entries(initial)) sp.set(k, String(v));
     const fc = Number(sp.get("fromChain"));
     const tc = Number(sp.get("toChain"));
     if (fc > 0) setFromChain(fc);
@@ -514,7 +524,7 @@ export function SwapCard() {
           ⚠ Unverified token: {tokenWarning}
         </div>
       )}
-      <section className="rounded-2xl bg-violet-900/50 p-3">
+      <section className="rounded-2xl border-2 border-violet-700 bg-violet-900 p-3">
         <ChainPicker chains={chainList} value={fromChain} onChange={setFromChain} label="From" />
         <div className="mt-3 flex items-center gap-2">
           <input
@@ -558,7 +568,7 @@ export function SwapCard() {
         </button>
       </div>
 
-      <section className="rounded-2xl bg-violet-900/50 p-3">
+      <section className="rounded-2xl border-2 border-violet-700 bg-violet-900 p-3">
         <ChainPicker chains={chainList} value={toChain} onChange={setToChain} label="To" />
         <div className="mt-3 flex items-center gap-2">
           <div className="w-full text-3xl font-black text-violet-200">
@@ -681,9 +691,9 @@ export function SwapCard() {
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
+export function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-full max-w-lg rounded-3xl border-2 border-violet-500/40 bg-violet-950/80 p-4 shadow-[0_0_80px_rgba(168,85,247,.25)] backdrop-blur">
+    <div className="w-full max-w-lg rounded-3xl border-2 border-violet-500 bg-violet-950 p-4 shadow-[0_0_60px_rgba(168,85,247,.25)]">
       {children}
     </div>
   );

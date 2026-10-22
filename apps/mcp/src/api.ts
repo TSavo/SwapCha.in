@@ -9,6 +9,7 @@ import {
   StatusResponse,
   type Token,
   Token as TokenSchema,
+  TypedData,
 } from "@swapchan/shared";
 import { z } from "zod";
 
@@ -99,6 +100,22 @@ export class SwapChanApi {
       body: JSON.stringify({ quoteId, taker, ...(recipient ? { recipient } : {}) }),
     });
   }
+  /** CoW limit order: typed data to sign (our partnerFee in appData), market reference. */
+  limitBuild(body: Record<string, unknown>): Promise<LimitBuildResult> {
+    return this.req(LimitBuildResult, "/limit/build", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  }
+  limitOrders(chainId: number, owner: string): Promise<Record<string, unknown>[]> {
+    return this.req(
+      z.array(z.record(z.string(), z.unknown())),
+      `/limit/orders?${qs({ chainId, owner })}`,
+    );
+  }
+  limitCancelData(chainId: number, uid: string): Promise<TypedData> {
+    return this.req(TypedData, `/limit/cancel?${qs({ chainId, uid })}`);
+  }
   status(r: StatusRequest): Promise<StatusResponse> {
     return this.req(StatusResponse, `/status?${qs(r)}`);
   }
@@ -112,3 +129,13 @@ const qs = (o: Record<string, unknown>): string =>
   ).toString();
 
 export type { Quote };
+
+export const LimitBuildResult = z.object({
+  order: TypedData,
+  appData: z.string(),
+  appDataHash: z.string(),
+  approvalAddress: z.string(),
+  partnerFee: z.object({ volumeBps: z.number(), recipient: z.string() }).nullable(),
+  market: z.object({ buyAmount: z.string() }).nullable(),
+});
+export type LimitBuildResult = z.infer<typeof LimitBuildResult>;

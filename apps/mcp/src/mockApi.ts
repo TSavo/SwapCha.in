@@ -1,6 +1,16 @@
 // Test-only mock of the SwapChan HTTP API (packages/shared contract). Also runnable: `node src/mockApi.ts`.
 import { createServer, type Server } from "node:http";
-import { NATIVE_TOKEN, type Quote, SUPPORTED_CHAINS, tokenList } from "@swapchan/shared";
+import {
+  appDataHash,
+  COW_VAULT_RELAYER,
+  type LimitOrderParams,
+  limitAppData,
+  limitOrderTypedData,
+  NATIVE_TOKEN,
+  type Quote,
+  SUPPORTED_CHAINS,
+  tokenList,
+} from "@swapchan/shared";
 
 export const USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
 export const ROUTER = "0x1111111254eeb25477b68fb85ed929f73a960582";
@@ -117,6 +127,23 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
             : {}),
         });
       }
+      case "/limit/build": {
+        let body = "";
+        for await (const ch of req) body += ch;
+        const b = JSON.parse(body) as LimitOrderParams;
+        const doc = limitAppData("0xeb0eC7a28E4B6B175806E21D9D3afE45792C5c7B", 10);
+        const hash = appDataHash(doc);
+        return send(200, {
+          order: limitOrderTypedData({ ...b, appDataHash: hash }),
+          appData: doc,
+          appDataHash: hash,
+          approvalAddress: COW_VAULT_RELAYER,
+          partnerFee: { volumeBps: 10, recipient: "0xeb0eC7a28E4B6B175806E21D9D3afE45792C5c7B" },
+          market: { buyAmount: "2000000000" },
+        });
+      }
+      case "/limit/orders":
+        return send(200, [{ uid: "0xaa", status: "open" }]);
       case "/status":
         return send(200, {
           status: q.get("txHash")?.endsWith("00") ? "pending" : "done",

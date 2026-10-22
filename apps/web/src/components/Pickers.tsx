@@ -1,13 +1,17 @@
 "use client";
 
-import type { Chain, Token } from "@swapchan/shared";
+import { type Chain, isEvmChain, nativeOf, SUPPORTED_CHAINS, type Token } from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { isAddress } from "viem";
+import { useEffect, useRef, useState } from "react";
+import { erc20Abi, formatUnits, isAddress } from "viem";
+import { useAccount, useBalance, useReadContracts } from "wagmi";
 import { api } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
 import { Character } from "./Character";
 
+const POPULAR = ["ETH", "USDC", "USDT", "SOL", "BTC", "BNB", "POL", "AVAX", "TRX", "WBTC", "DAI"];
+
+/** Chain chips: solid, bordered, obviously clickable; selected = filled with the chain color. */
 export function ChainPicker({
   chains,
   value,
@@ -21,8 +25,14 @@ export function ChainPicker({
 }) {
   return (
     <div>
-      <div className="mb-1 text-xs uppercase tracking-wider text-violet-300">{label}</div>
-      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={label}>
+      <div className="mb-1.5 text-xs font-bold tracking-wider text-violet-200 uppercase">
+        {label} chain
+      </div>
+      <div
+        className="grid grid-cols-3 gap-1.5 sm:grid-cols-4"
+        role="radiogroup"
+        aria-label={`${label} chain`}
+      >
         {chains.map((c) => {
           const ch = characterForChain(c.id);
           const active = c.id === value;
@@ -33,11 +43,26 @@ export function ChainPicker({
               role="radio"
               aria-checked={active}
               onClick={() => onChange(c.id)}
-              className={`flex items-center gap-1 rounded-full border-2 py-0.5 pr-3 pl-0.5 text-xs font-bold transition ${active ? "scale-105 bg-white/10" : "border-transparent opacity-60 hover:opacity-100"}`}
-              style={{ borderColor: active ? ch.color : undefined }}
+              className={`flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border-2 py-1 pr-2 pl-1 text-left text-xs font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 ${
+                active
+                  ? "text-white shadow-md"
+                  : "border-violet-600 bg-violet-950 text-violet-100 hover:border-violet-300 hover:bg-violet-800"
+              }`}
+              style={active ? { borderColor: ch.color, background: `${ch.color}` } : undefined}
             >
-              <Character who={ch.key} size={28} link={false} />
-              {c.name}
+              <span className="shrink-0 overflow-hidden rounded-md bg-violet-900">
+                <Character who={ch.key} size={26} link={false} />
+              </span>
+              <span
+                className={`truncate ${active ? "drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]" : ""}`}
+              >
+                {c.name}
+              </span>
+              {active && (
+                <span aria-hidden className="ml-auto drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]">
+                  ✓
+                </span>
+              )}
             </button>
           );
         })}
@@ -46,101 +71,280 @@ export function ChainPicker({
   );
 }
 
+function TokenLogo({ t, size = 28 }: { t: Pick<Token, "symbol" | "logoURI">; size?: number }) {
+  const [bad, setBad] = useState(false);
+  if (t.logoURI && !bad)
+    return (
+      <img
+        src={t.logoURI}
+        alt=""
+        width={size}
+        height={size}
+        onError={() => setBad(true)}
+        className="shrink-0 rounded-full bg-white"
+        style={{ width: size, height: size }}
+      />
+    );
+  return (
+    <span
+      aria-hidden
+      className="flex shrink-0 items-center justify-center rounded-full bg-amber-400 text-xs font-black text-violet-950"
+      style={{ width: size, height: size }}
+    >
+      {t.symbol.slice(0, 1)}
+    </span>
+  );
+}
+
+/** Balances for the listed tokens (EVM, connected wallet only). Keyed by lowercase address. */
+function useBalances(tokens: Token[], chainId: number, open: boolean) {
+  const { address } = useAccount();
+  const enabled = open && !!address && isEvmChain(chainId);
+  const native = nativeOf(chainId).toLowerCase();
+  const erc20s = tokens.filter((t) => t.address.toLowerCase() !== native).slice(0, 40);
+  const nat = useBalance({ address, chainId, query: { enabled } });
+  const reads = useReadContracts({
+    contracts: erc20s.map((t) => ({
+      address: t.address as `0x${string}`,
+      abi: erc20Abi,
+      functionName: "balanceOf" as const,
+      args: [address as `0x${string}`],
+      chainId,
+    })),
+    query: { enabled },
+  });
+  const out = new Map<string, bigint>();
+  if (!enabled) return out;
+  if (nat.data) out.set(native, nat.data.value);
+  erc20s.forEach((t, i) => {
+    const r = reads.data?.[i];
+    if (r?.status === "success") out.set(t.address.toLowerCase(), r.result as bigint);
+  });
+  return out;
+}
+
+const fmtBal = (v: bigint, d: number) => {
+  const n = Number(formatUnits(v, d));
+  return n === 0
+    ? "0"
+    : n < 0.0001
+      ? "<0.0001"
+      : n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+};
+
+/** Token button + dialog: big search, popular quick-picks, clean rows, obvious paste-address flow. */
 export function TokenPicker({
   tokens,
   value,
   onChange,
   chainId,
+  exclude,
 }: {
   tokens: Token[];
   value: Token | undefined;
   onChange: (t: Token) => void;
   chainId: number;
+  /** Hide tokens by address (e.g. native for CoW sells). */
+  exclude?: (t: Token) => boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const filtered = tokens.filter((t) =>
-    `${t.symbol} ${t.name} ${t.address}`.toLowerCase().includes(q.toLowerCase()),
+  const input = useRef<HTMLInputElement>(null);
+  const list = exclude ? tokens.filter((t) => !exclude(t)) : tokens;
+  const filtered = list.filter((t) =>
+    `${t.symbol} ${t.name} ${t.address}`.toLowerCase().includes(q.trim().toLowerCase()),
   );
   const pasted = q.trim();
+  const isPaste = isAddress(pasted, { strict: false }) || pasted.length > 30;
   const lookup = useQuery({
     queryKey: ["token", chainId, pasted.toLowerCase()],
     queryFn: () => api.token(chainId, pasted),
-    enabled: isAddress(pasted, { strict: false }) && filtered.length === 0,
+    enabled: open && isPaste && filtered.length === 0,
     staleTime: Infinity,
   });
   const custom = lookup.data;
-  const unverified = custom && !custom.verified;
+  const balances = useBalances(list, chainId, open);
+  const popular = POPULAR.flatMap((s) => list.filter((t) => t.symbol === s)).slice(0, 6);
+  const chainName = SUPPORTED_CHAINS[chainId as keyof typeof SUPPORTED_CHAINS]?.name ?? "";
+  const ch = characterForChain(chainId);
+  const sorted = [...filtered].sort(
+    (a, b) =>
+      Number((balances.get(b.address.toLowerCase()) ?? 0n) > 0n) -
+      Number((balances.get(a.address.toLowerCase()) ?? 0n) > 0n),
+  );
+
+  const pick = (t: Token) => {
+    onChange(t);
+    setOpen(false);
+    setQ("");
+  };
+  useEffect(() => {
+    if (!open) return;
+    input.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
-    <div className="relative">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex min-w-28 items-center justify-between gap-2 rounded-xl bg-violet-800/70 px-3 py-2 font-bold hover:bg-violet-700"
-        aria-haspopup="listbox"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        className="flex min-w-32 shrink-0 cursor-pointer items-center justify-between gap-2 rounded-xl border-2 border-violet-300 bg-violet-700 px-2.5 py-2 font-black text-white shadow hover:border-amber-300 hover:bg-violet-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
       >
-        {value?.symbol ?? "Select"} <span aria-hidden>▾</span>
+        {value ? (
+          <span className="flex items-center gap-2">
+            <TokenLogo t={value} size={24} /> {value.symbol}
+          </span>
+        ) : (
+          "Select token"
+        )}
+        <span aria-hidden>▾</span>
       </button>
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-violet-500/40 bg-violet-950 p-2 shadow-2xl">
-          <input
-            autoFocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name or paste address"
-            className="mb-2 w-full rounded-lg bg-violet-900 px-2 py-1 text-sm outline-none"
-          />
-          <ul role="listbox" className="max-h-64 overflow-auto">
-            {filtered.length === 0 && lookup.isFetching && (
-              <li className="p-2 text-sm text-violet-300">Reading token on-chain…</li>
-            )}
-            {filtered.length === 0 && custom && (
-              <li data-testid="custom-token">
-                <button
-                  type="button"
-                  className="w-full rounded-lg px-2 py-1.5 text-left text-sm hover:bg-violet-800"
-                  onClick={() => {
-                    onChange(custom);
-                    setOpen(false);
-                    setQ("");
-                  }}
-                >
-                  <span className="font-bold">{custom.symbol}</span>{" "}
-                  <span className="text-violet-300">
-                    {custom.name} · {custom.decimals} decimals
-                  </span>
-                  {unverified && (
-                    <span className="mt-1 block rounded bg-amber-400/15 px-1.5 py-0.5 text-xs text-amber-200">
-                      ⚠ Unverified token: not on our list. Check the address before you swap.
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center sm:p-4"
+          onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Select a token on ${chainName}`}
+            className="flex max-h-[88vh] w-full flex-col rounded-t-2xl border-2 border-violet-400 bg-violet-950 shadow-2xl sm:max-w-md sm:rounded-2xl"
+          >
+            <div className="flex items-center justify-between border-b-2 border-violet-800 p-4">
+              <h2 className="text-lg font-black text-white">Select a token</h2>
+              <span
+                className="flex items-center gap-1 rounded-full border-2 px-2 py-0.5 text-xs font-bold text-white"
+                style={{ borderColor: ch.color }}
+              >
+                on {chainName}
+              </span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close"
+                className="cursor-pointer rounded-lg border-2 border-violet-600 px-2.5 py-1 font-black text-white hover:bg-violet-800 focus-visible:outline-2 focus-visible:outline-amber-300"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 pb-2">
+              <input
+                ref={input}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const first = sorted[0] ?? custom ?? undefined;
+                  if (first) pick(first);
+                }}
+                placeholder="Search by name or symbol, or paste a token address"
+                aria-label="Search tokens or paste an address"
+                className="w-full rounded-xl border-2 border-violet-500 bg-white px-3 py-3 text-base font-semibold text-violet-950 placeholder:text-violet-500 focus:border-amber-400 focus:outline-none"
+              />
+              {!q && popular.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2" aria-label="Popular tokens">
+                  {popular.map((t) => (
+                    <button
+                      key={t.address}
+                      type="button"
+                      onClick={() => pick(t)}
+                      className="flex cursor-pointer items-center gap-1.5 rounded-full border-2 border-violet-500 bg-violet-900 py-1 pr-3 pl-1 text-sm font-bold text-white hover:border-amber-300 hover:bg-violet-800 focus-visible:outline-2 focus-visible:outline-amber-300"
+                    >
+                      <TokenLogo t={t} size={22} /> {t.symbol}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <p className="mt-2 text-xs text-violet-300">
+                Not listed? Paste its contract address above and Swap-chan reads it on-chain.
+              </p>
+            </div>
+            <ul role="listbox" aria-label="Tokens" className="flex-1 overflow-auto px-2 pb-3">
+              {filtered.length === 0 && lookup.isFetching && (
+                <li className="p-3 text-sm text-violet-200">Reading token on-chain…</li>
+              )}
+              {filtered.length === 0 && custom && (
+                <li data-testid="custom-token">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={false}
+                    className="w-full cursor-pointer rounded-xl border-2 border-amber-400 bg-violet-900 p-3 text-left hover:bg-violet-800 focus-visible:outline-2 focus-visible:outline-amber-300"
+                    onClick={() => pick(custom)}
+                  >
+                    <span className="flex items-center gap-3">
+                      <TokenLogo t={custom} />
+                      <span>
+                        <span className="block font-black text-white">{custom.symbol}</span>
+                        <span className="text-sm text-violet-200">
+                          {custom.name} · {custom.decimals} decimals
+                        </span>
+                      </span>
                     </span>
-                  )}
-                </button>
-              </li>
-            )}
-            {filtered.length === 0 && !custom && !lookup.isFetching && (
-              <li className="flex items-center gap-2 p-2 text-sm text-violet-300">
-                <Character who="swapchan" size={36} mood="sad" /> No tokens here, senpai…
-              </li>
-            )}
-            {filtered.map((t) => (
-              <li key={`${t.chainId}-${t.address}`}>
-                <button
-                  type="button"
-                  className="flex w-full justify-between rounded-lg px-2 py-1.5 text-left text-sm hover:bg-violet-800"
-                  onClick={() => {
-                    onChange(t);
-                    setOpen(false);
-                    setQ("");
-                  }}
-                >
-                  <span className="font-bold">{t.symbol}</span>
-                  <span className="truncate pl-2 text-violet-300">{t.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+                    {!custom.verified && (
+                      <span className="mt-2 block rounded-lg bg-amber-400 px-2 py-1 text-xs font-bold text-violet-950">
+                        ⚠ Unverified token: not on our list. Check the address before you swap.
+                      </span>
+                    )}
+                  </button>
+                </li>
+              )}
+              {filtered.length === 0 && !custom && !lookup.isFetching && (
+                <li className="flex items-center gap-2 p-3 text-sm text-violet-200">
+                  <Character who="swapchan" size={36} mood="sad" />
+                  {isPaste
+                    ? "That address isn't a token on this chain, senpai…"
+                    : "No tokens match, senpai…"}
+                </li>
+              )}
+              {sorted.map((t) => {
+                const sel = value?.address.toLowerCase() === t.address.toLowerCase();
+                const bal = balances.get(t.address.toLowerCase());
+                return (
+                  <li key={`${t.chainId}-${t.address}`}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={sel}
+                      onClick={() => pick(t)}
+                      className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left hover:border-violet-400 hover:bg-violet-800 focus-visible:outline-2 focus-visible:outline-amber-300 ${sel ? "border-amber-400 bg-violet-800" : "border-transparent"}`}
+                    >
+                      <TokenLogo t={t} size={32} />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="font-black text-white">{t.symbol}</span>
+                          <span
+                            className="rounded px-1.5 text-[10px] font-bold text-white"
+                            style={{ background: ch.color }}
+                          >
+                            {chainName}
+                          </span>
+                        </span>
+                        <span className="block truncate text-sm text-violet-200">{t.name}</span>
+                      </span>
+                      {bal !== undefined && (
+                        <span className="text-right text-sm font-bold text-white tabular-nums">
+                          {fmtBal(bal, t.decimals)}
+                        </span>
+                      )}
+                      {sel && (
+                        <span aria-hidden className="text-amber-300">
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

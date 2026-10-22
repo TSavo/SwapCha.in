@@ -71,6 +71,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Link href="/how-it-works" className="hover:text-amber-300">
               How it works
             </Link>
+            <Link href="/swap" className="hover:text-amber-300">
+              Swap routes
+            </Link>
+            <Link href="/bridge" className="hover:text-amber-300">
+              Bridge routes
+            </Link>
             <a href="/llms.txt" className="hover:text-amber-300">
               llms.txt
             </a>

@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import {
+  COW_NETWORK,
   fromBaseUnits,
   isAnyAddress,
   isVmAddress,
@@ -20,7 +21,7 @@ import {
 } from "viem";
 import { z } from "zod";
 import { ApiError, type SwapChanApi } from "./api.js";
-import { imageData, mascotsFor, SWAP_CHAN, swapUrl } from "./art.js";
+import { imageData, mascotsFor, SITE, SWAP_CHAN, swapUrl } from "./art.js";
 import type { Config } from "./config.js";
 
 export const SERVER_NAME = "swapchan";
@@ -105,6 +106,26 @@ const safe =
   };
 
 export class UserError extends Error {}
+
+const PUBLIC_API = "https://api.swapchan.com";
+
+/** ERC-20 allowance via the configured RPC; null when no RPC for that chain. */
+async function readAllowance(
+  cfg: Config,
+  chain: number,
+  token: string,
+  owner: string,
+  spender: string,
+) {
+  const rpc = cfg.rpcUrls[chain];
+  if (!rpc) return null;
+  return createPublicClient({ transport: http(rpc) }).readContract({
+    address: token as ViemAddress,
+    abi: erc20Abi,
+    functionName: "allowance",
+    args: [owner as ViemAddress, spender as ViemAddress],
+  });
+}
 
 const addr = z
   .string()
@@ -649,6 +670,183 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
               ? "Uwaa, that one failed. Check the source tx."
               : "Still in flight, I'm watching the arrival gate~",
       }),
+    ),
+  );
+
+  const evm = z
+    .string()
+    .refine((a) => isAddress(a), "EVM address")
+    .describe("EVM address");
+  const cowChain = z
+    .number()
+    .int()
+    .refine((c) => c in COW_NETWORK, "CoW limit orders: 1, 8453, 42161, 137, 56, 43114, 59144")
+    .describe(
+      "Chain id where CoW runs: 1 Ethereum, 8453 Base, 42161 Arbitrum, 137 Polygon, 56 BNB, 43114 Avalanche, 59144 Linea",
+    );
+
+  server.registerTool(
+    "build_limit_order",
+    {
+      title: "Build a limit order",
+      description:
+        "Build a gasless CoW Protocol limit order (sell an ERC-20 for at least a target amount, valid until expiry). Returns EIP-712 typed data for the user's wallet to sign, the ERC-20 approve tx for CoW's vault relayer if the allowance is short, the current market amount for reference, and how to submit the signature. Never signs or submits. Result includes `display` markdown with chan images: show it to the user.",
+      inputSchema: z.object({
+        chainId: cowChain,
+        owner: evm.describe("Wallet that signs and owns the order"),
+        sellToken: evm.describe("ERC-20 to sell (not the native token; wrap first)"),
+        buyToken: evm.describe("Token to receive"),
+        sellAmount: z
+          .string()
+          .regex(/^\d+(\.\d+)?$/)
+          .describe('Human amount to sell, e.g. "100"'),
+        buyAmount: z
+          .string()
+          .regex(/^\d+(\.\d+)?$/)
+          .optional()
+          .describe("Minimum human amount to receive (the limit). Provide this OR limitPrice."),
+        limitPrice: z
+          .string()
+          .regex(/^\d+(\.\d+)?$/)
+          .optional()
+          .describe("Price in buyToken per 1 sellToken. Provide this OR buyAmount."),
+        expiresInHours: z.number().min(0.1).max(8760).default(168).describe("Default 168 (7 days)"),
+      }),
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    safe(
+      async (a: {
+        chainId: number;
+        owner: string;
+        sellToken: string;
+        buyToken: string;
+        sellAmount: string;
+        buyAmount?: string | undefined;
+        limitPrice?: string | undefined;
+        expiresInHours: number;
+      }) => {
+        if ((a.buyAmount === undefined) === (a.limitPrice === undefined))
+          throw new UserError("provide exactly one of buyAmount or limitPrice");
+        const [sd, bd] = await Promise.all([
+          decimalsOf(api, a.chainId, a.sellToken),
+          decimalsOf(api, a.chainId, a.buyToken),
+        ]);
+        if (sd === undefined || bd === undefined)
+          throw new UserError("unknown token on that chain");
+        const sell = toBaseUnits(a.sellAmount, sd);
+        const buy =
+          a.buyAmount !== undefined
+            ? toBaseUnits(a.buyAmount, bd)
+            : (sell * toBaseUnits(a.limitPrice as string, 18) * 10n ** BigInt(bd)) /
+              (10n ** 18n * 10n ** BigInt(sd));
+        const built = await api.limitBuild({
+          chainId: a.chainId,
+          owner: a.owner,
+          sellToken: a.sellToken,
+          buyToken: a.buyToken,
+          sellAmount: sell.toString(),
+          buyAmount: buy.toString(),
+          validTo: Math.floor(Date.now() / 1000) + Math.round(a.expiresInHours * 3600),
+        });
+        let approvalTx: unknown = null;
+        try {
+          const allowance = await readAllowance(
+            cfg,
+            a.chainId,
+            a.sellToken,
+            a.owner,
+            built.approvalAddress,
+          );
+          if (allowance !== null && allowance < sell)
+            approvalTx = {
+              chainId: a.chainId,
+              to: a.sellToken,
+              data: encodeFunctionData({
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [built.approvalAddress as ViemAddress, sell],
+              }),
+              value: "0",
+            };
+        } catch {}
+        return {
+          typedData: built.order,
+          appData: built.appData,
+          appDataHash: built.appDataHash,
+          swapchanFee: built.partnerFee,
+          approvalSpender: built.approvalAddress,
+          approvalTx,
+          approvalNote:
+            approvalTx === null
+              ? "If the owner's allowance for sellToken to approvalSpender is below the sell amount, send an ERC-20 approve(approvalSpender, amount) first."
+              : "Send approvalTx first, wait for it to confirm, then sign.",
+          limitBuyAmount: buy.toString(),
+          limitBuyAmountFormatted: fromBaseUnits(buy, bd),
+          marketBuyAmountFormatted: built.market ? fromBaseUnits(built.market.buyAmount, bd) : null,
+          submit: {
+            method: "POST",
+            url: `${PUBLIC_API}/limit/submit`,
+            body: {
+              chainId: a.chainId,
+              owner: a.owner,
+              order: "typedData.message",
+              signature: "0x<eip712 signature>",
+            },
+            note: "Sign typedData with eth_signTypedData_v4 from the owner wallet (after approvalTx if present), then POST. Returns the order uid and a CoW Explorer link.",
+          },
+          safety:
+            "Nothing is signed or sent. The order only fills at or above the limit; cancel anytime (gasless) via cancel_limit_order.",
+        };
+      },
+      (a, r) => ({
+        fromChainId: a.chainId,
+        says: `Limit order ready: at least ${r.limitBuyAmountFormatted} out${r.marketBuyAmountFormatted ? ` (market now ${r.marketBuyAmountFormatted})` : ""}. Sign it and the solvers wait for your price~`,
+        swapUrl: SITE,
+      }),
+    ),
+  );
+
+  server.registerTool(
+    "list_limit_orders",
+    {
+      title: "List limit orders",
+      description:
+        "List a wallet's CoW limit orders on one chain with status (open, fulfilled, cancelled, expired), amounts filled and an explorer link. Result includes `display` markdown with chan images: show it to the user.",
+      inputSchema: z.object({ chainId: cowChain, owner: evm }),
+      annotations: ro,
+    },
+    safe(
+      async (a: { chainId: number; owner: string }) => ({
+        orders: await api.limitOrders(a.chainId, a.owner),
+      }),
+      (a, r) => ({
+        fromChainId: a.chainId,
+        says: r.orders.length
+          ? `You have ${r.orders.length} limit order(s). I'm keeping an eye on them~`
+          : "No limit orders here yet!",
+      }),
+    ),
+  );
+
+  server.registerTool(
+    "cancel_limit_order",
+    {
+      title: "Cancel a limit order",
+      description:
+        "Get the EIP-712 OrderCancellations typed data to cancel a CoW limit order off-chain (gasless). The owner signs it; POST {chainId, orderUids:[uid], signature} to /limit/cancel on the SwapChan API. Never signs.",
+      inputSchema: z.object({ chainId: cowChain, uid: z.string().regex(/^0x[0-9a-fA-F]+$/) }),
+      annotations: ro,
+    },
+    safe(
+      async (a: { chainId: number; uid: string }) => ({
+        typedData: await api.limitCancelData(a.chainId, a.uid),
+        submit: {
+          method: "POST",
+          url: `${PUBLIC_API}/limit/cancel`,
+          body: { chainId: a.chainId, orderUids: [a.uid], signature: "0x<eip712 signature>" },
+        },
+      }),
+      (a) => ({ fromChainId: a.chainId, says: "Sign this and the order's gone, no gas needed~" }),
     ),
   );
 
