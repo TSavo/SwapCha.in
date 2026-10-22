@@ -91,7 +91,7 @@ export class SwapChanApi {
       throw e;
     }
   }
-  quotes(r: QuoteRequest): Promise<QuotesResponse> {
+  quotes(r: QuoteRequest & { partner?: string | undefined }): Promise<QuotesResponse> {
     return this.req(QuotesResponse, `/quotes?${qs(r)}`);
   }
   build(quoteId: string, taker: string, recipient?: string): Promise<BuildResponse> {

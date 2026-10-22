@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { API_URL } from "@/lib/api";
-import { scriptSnippet } from "@/lib/embed";
+import { affiliateLink, scriptSnippet } from "@/lib/embed";
 
 const field =
   "mt-1 w-full rounded-lg border-2 border-violet-700 bg-violet-900 px-3 py-2 text-sm outline-none focus:border-amber-400";
@@ -64,7 +64,11 @@ export function PartnerSignup() {
         >
           https://swapchan.com{dash}
         </Link>
-        <p className="text-sm text-violet-200">Your snippet:</p>
+        <p className="text-sm text-violet-200">Your affiliate link (works on any page):</p>
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/50 p-2 text-xs">
+          {affiliateLink(done.id)}
+        </pre>
+        <p className="text-sm text-violet-200">Your widget snippet:</p>
         <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/50 p-2 text-xs">
           {scriptSnippet({ partner: done.id })}
         </pre>

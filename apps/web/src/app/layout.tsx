@@ -4,6 +4,7 @@ import Script from "next/script";
 import type { ReactNode } from "react";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Providers } from "@/components/Providers";
+import { RefCapture } from "@/components/RefCapture";
 import { GA_ID } from "@/lib/ga";
 import "./globals.css";
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="sparkles antialiased">
         <Providers>
+          <RefCapture />
           <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-4 sm:p-4">
             <Link
               href="/"

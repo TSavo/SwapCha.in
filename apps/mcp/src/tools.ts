@@ -151,6 +151,14 @@ const chainId = z
     "Chain id: 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon, 56 BNB Chain, 43114 Avalanche, 59144 Linea, 534352 Scroll, 792703809 Solana, 8253038 Bitcoin, 728126428 Tron. Non-EVM chains route via Relay and LI.FI.",
   );
 
+const partnerId = z
+  .string()
+  .regex(/^[a-z0-9-]{3,40}$/, "partner id like moon-ab12cd")
+  .optional()
+  .describe(
+    "Optional SwapChan partner/affiliate id (from swapchan.com/partners). Quotes are attributed to it and the swapUrl carries ?ref= so the partner earns a share of SwapChan's fee.",
+  );
+
 function swapShape(cfg: Config) {
   return {
     fromChainId: chainId,
@@ -178,6 +186,8 @@ function swapShape(cfg: Config) {
       .regex(/^\d+$/, "integer string")
       .optional()
       .describe("Exact amount in the token's smallest unit (wei). Provide this OR amount."),
+    partner: partnerId,
+    ref: partnerId.describe("Alias of `partner`."),
     slippageBps: z
       .number()
       .int()
@@ -199,6 +209,8 @@ type SwapArgs = {
   amountBaseUnits?: string | undefined;
   recipient?: string | undefined;
   slippageBps: number;
+  partner?: string | undefined;
+  ref?: string | undefined;
 };
 
 const sameAddr = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
@@ -215,7 +227,11 @@ async function findToken(
   );
 }
 
-async function toRequest(api: SwapChanApi, a: SwapArgs, taker?: string): Promise<QuoteRequest> {
+async function toRequest(
+  api: SwapChanApi,
+  a: SwapArgs,
+  taker?: string,
+): Promise<QuoteRequest & { partner?: string }> {
   if ((a.amount === undefined) === (a.amountBaseUnits === undefined))
     throw new UserError("provide exactly one of amount (decimal) or amountBaseUnits (integer)");
   let amount: string;
@@ -240,6 +256,7 @@ async function toRequest(api: SwapChanApi, a: SwapArgs, taker?: string): Promise
     slippageBps: a.slippageBps,
     ...(taker ? { taker: taker as `0x${string}` } : {}),
     ...(a.recipient ? { recipient: a.recipient as `0x${string}` } : {}),
+    ...((a.partner ?? a.ref) ? { partner: (a.partner ?? a.ref) as string } : {}),
   };
 }
 

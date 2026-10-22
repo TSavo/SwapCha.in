@@ -76,6 +76,17 @@ export default function WidgetPage() {
         An <code>@swapchan/widget</code> React package is coming. Until then, render the iframe
         snippet from above as JSX. It's the same widget.
       </p>
+      <h2 className="mt-10 mb-2 text-2xl font-black">Affiliate links</h2>
+      <p className="text-violet-200">
+        No widget needed: add <code>?ref=your-id</code> (or <code>?partner=</code>) to any
+        swapchan.com link, e.g. <code>https://swapchan.com/?ref=your-id</code>, a{" "}
+        <code>/swap/…</code> route, a pre-filled deep link or <code>/scanner</code>. The id is kept
+        in a first-party cookie for 30 days (last click wins; visits without a ref don&apos;t clear
+        it), and quotes and swaps on the main site earn the same share under the same rules. AI
+        agents can pass <code>partner</code> to the MCP quote tools; their swap links then carry
+        your ref.
+      </p>
+
       <h2 className="mt-10 mb-2 text-2xl font-black">Revenue share</h2>
       <ul className="list-disc space-y-1 pl-5 text-violet-200">
         <li>

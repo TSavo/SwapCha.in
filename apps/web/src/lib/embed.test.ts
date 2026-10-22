@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { embedParams, iframeSnippet, parseEmbedConfig, scriptSnippet } from "./embed";
+import {
+  embedParams,
+  iframeSnippet,
+  nextRef,
+  parseEmbedConfig,
+  REF_TTL_MS,
+  refFromUrl,
+  scriptSnippet,
+} from "./embed";
 
 describe("embed", () => {
   it("parses config safely", () => {
@@ -30,5 +38,19 @@ describe("embed", () => {
       '<script src="https://swapchan.com/widget.js" data-partner="moon-ab12cd" data-to-chain="8453" data-to-token="0xabc" data-lock-to="1" async></script>',
     );
     expect(iframeSnippet(o)).toContain("/embed?partner=moon-ab12cd&amp;toChain=8453");
+  });
+});
+
+describe("affiliate refs", () => {
+  it("parses ?ref= and ?partner=", () => {
+    expect(refFromUrl(new URLSearchParams("ref=Moon-ab12cd"))).toBe("moon-ab12cd");
+    expect(refFromUrl(new URLSearchParams("partner=moon-ab12cd"))).toBe("moon-ab12cd");
+    expect(refFromUrl(new URLSearchParams("ref=<bad>"))).toBeUndefined();
+  });
+  it("last click wins, no-ref keeps, expires after 30 days", () => {
+    const old = { id: "a-111111", exp: 1000 + REF_TTL_MS };
+    expect(nextRef("b-222222", old, 2000)).toEqual({ id: "b-222222", exp: 2000 + REF_TTL_MS });
+    expect(nextRef(undefined, old, 2000)).toBe(old);
+    expect(nextRef(undefined, old, 1001 + REF_TTL_MS)).toBeNull();
   });
 });

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { API_URL } from "@/lib/api";
-import { scriptSnippet } from "@/lib/embed";
+import { affiliateLink, scriptSnippet } from "@/lib/embed";
 
 interface Swap {
   txHash: string;
@@ -135,7 +135,14 @@ export function PartnerDashboard({ id }: { id: string }) {
           </table>
         </div>
       )}
-      <pre className="mt-4 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/50 p-3 text-xs">
+      <p className="mt-4 text-sm text-violet-200">
+        Affiliate link (add <code>?ref={d.partner.id}</code> to any swapchan.com page):
+      </p>
+      <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/50 p-3 text-xs">
+        {affiliateLink(d.partner.id)}
+      </pre>
+      <p className="mt-4 text-sm text-violet-200">Widget snippet:</p>
+      <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all rounded-lg bg-black/50 p-3 text-xs">
         {scriptSnippet({ partner: d.partner.id })}
       </pre>
       <Link

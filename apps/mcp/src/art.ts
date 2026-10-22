@@ -46,6 +46,8 @@ export function swapUrl(p: {
   fromToken: string;
   toToken: string;
   amount?: string | undefined;
+  partner?: string | undefined;
+  ref?: string | undefined;
 }): string {
   const q = new URLSearchParams({
     fromChain: String(p.fromChainId),
@@ -53,6 +55,7 @@ export function swapUrl(p: {
     fromToken: p.fromToken,
     toToken: p.toToken,
     ...(p.amount ? { amount: p.amount } : {}),
+    ...((p.partner ?? p.ref) ? { ref: (p.partner ?? p.ref) as string } : {}),
   });
   return `${SITE}/?${q}`;
 }
