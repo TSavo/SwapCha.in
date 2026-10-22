@@ -26,6 +26,9 @@ services:
       SWAPCHAN_FEE_BPS: ${SWAPCHAN_FEE_BPS:-0}
       SWAPCHAN_LIFI_FEE: ${SWAPCHAN_LIFI_FEE:-} # 1 once portal.li.fi has the fee wallet
       SWAPCHAN_API_KEYS: ${SWAPCHAN_API_KEYS:-} # empty = API open (for now)
+      SWAPCHAN_DATA_DIR: /data # widget partners SQLite (partners.db)
+      SWAPCHAN_PARTNER_SHARE_BPS: ${SWAPCHAN_PARTNER_SHARE_BPS:-5000} # partner share of our fee (5000 = 50%)
+    volumes: ["api-data:/data"]
     ports: ["127.0.0.1:8787:8787"]
   web:
     build:
@@ -60,3 +63,6 @@ services:
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN}
     depends_on: [web, api, mcp]
+
+volumes:
+  api-data:

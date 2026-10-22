@@ -47,6 +47,14 @@ export default function Agents() {
         returns an unsigned tx for the user's own wallet.
       </p>
 
+      <p className="mt-4 text-sm text-violet-300">
+        Building a site instead of an agent? Drop in the{" "}
+        <a href="/widget" className="text-amber-300 underline">
+          embeddable swap widget
+        </a>{" "}
+        and earn half our fee.
+      </p>
+
       <h2 id="rest-api" className="mt-10 mb-3 text-2xl font-black">
         REST API
       </h2>

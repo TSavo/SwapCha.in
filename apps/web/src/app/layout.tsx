@@ -86,6 +86,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Link href="/scanner" className="hover:text-amber-300">
               Memecoin scanner
             </Link>
+            <Link href="/widget" className="hover:text-amber-300">
+              Embed widget
+            </Link>
+            <Link href="/partners" className="hover:text-amber-300">
+              Partners
+            </Link>
             <a href="/llms.txt" className="hover:text-amber-300">
               llms.txt
             </a>

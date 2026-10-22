@@ -15,6 +15,9 @@ FROM node:24-slim
 ENV NODE_ENV=production PORT=8787
 WORKDIR /app
 COPY --from=build /out .
+# Widget partner DB (SQLite) lives on the api-data volume.
+RUN mkdir -p /data && chown node:node /data
+ENV SWAPCHAN_DATA_DIR=/data
 USER node
 EXPOSE 8787
 CMD ["node", "dist/server.js"]

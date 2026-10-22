@@ -15,6 +15,7 @@ import {
   type TypedData,
 } from "@swapchan/shared";
 import { z } from "zod";
+import { embedPartner } from "./embed";
 import { mockBuild, mockChains, mockQuotes, mockStatus, mockTokens } from "./mock";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
@@ -70,7 +71,7 @@ export const api = {
   },
   quotes: (req: QuoteRequest): Promise<ApiResult<QuotesResponse>> =>
     withMock(
-      () => call(`/quotes?${toQuery({ ...req })}`, QuotesResponseSchema),
+      () => call(`/quotes?${toQuery({ ...req, partner: embedPartner() })}`, QuotesResponseSchema),
       () => mockQuotes(req),
     ),
   build: (quote: Quote, taker: string, mocked: boolean): Promise<BuildResponse> =>

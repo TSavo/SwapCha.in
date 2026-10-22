@@ -86,7 +86,21 @@ export interface SwapInitial {
   amount: string;
 }
 
-export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
+/** Widget (/embed) options: lock the destination ("buy our token"), compact layout. */
+export interface SwapEmbedOptions {
+  lockTo?: boolean;
+  compact?: boolean;
+}
+
+export function SwapCard({
+  initial,
+  embed,
+}: {
+  initial?: SwapInitial;
+  embed?: SwapEmbedOptions;
+} = {}) {
+  const lockTo = !!embed?.lockTo;
+  const compact = !!embed?.compact;
   const config = useConfig();
   const { address: evmAddress, chainId: walletChain } = useAccount();
   const sol = useSolana();
@@ -424,7 +438,7 @@ export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
         const uid = await submitCowOrder(fromChain, o, signature, evm);
         setPhase({ k: "order", uid });
         submitted.current = quote;
-        track("swap_submitted", { ...quoteParams(quote), execution: "order" });
+        track("swap_submitted", { ...quoteParams(quote), execution: "order", tx_hash: uid });
         return;
       }
       if (built.simulation && !built.simulation.ok)
@@ -600,6 +614,7 @@ export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
 
       <div className="relative z-10 -my-3 flex justify-center">
         <button
+          hidden={lockTo}
           type="button"
           onClick={flip}
           aria-label="Flip"
@@ -610,18 +625,20 @@ export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
       </div>
 
       <section className="rounded-2xl border-2 border-violet-700 bg-violet-900 p-3">
-        <ChainPicker chains={chainList} value={toChain} onChange={setToChain} label="To" />
-        <div className="mt-3 flex items-center gap-2">
-          <div className="w-full text-3xl font-black text-violet-200">
-            {quote && toToken ? formatAmount(quote.toAmount, toToken.decimals) : "0.0"}
+        <fieldset disabled={lockTo} className="contents" data-locked={lockTo || undefined}>
+          <ChainPicker chains={chainList} value={toChain} onChange={setToChain} label="To" />
+          <div className="mt-3 flex items-center gap-2">
+            <div className="w-full text-3xl font-black text-violet-200">
+              {quote && toToken ? formatAmount(quote.toAmount, toToken.decimals) : "0.0"}
+            </div>
+            <TokenPicker
+              tokens={toTokens.data?.data ?? []}
+              value={toToken}
+              onChange={setToToken}
+              chainId={toChain}
+            />
           </div>
-          <TokenPicker
-            tokens={toTokens.data?.data ?? []}
-            value={toToken}
-            onChange={setToToken}
-            chainId={toChain}
-          />
-        </div>
+        </fieldset>
         {needsRecipient && (
           <input
             aria-label="Recipient address"
@@ -666,7 +683,17 @@ export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
       </div>
 
       <div className="mt-4">
-        {request === null ? (
+        {compact ? (
+          <p className="text-center text-xs text-violet-300" data-testid="compact-route">
+            {quote
+              ? `Best of ${qres?.quotes.length ?? 0} routes: ${quote.provider}`
+              : request && quotes.isFetching
+                ? "Finding routes…"
+                : request && qres
+                  ? "No route for this pair"
+                  : "Type an amount to compare routes"}
+          </p>
+        ) : request === null ? (
           <div
             className="flex items-center justify-center gap-3 py-6 text-sm text-violet-300"
             data-testid="empty-state"

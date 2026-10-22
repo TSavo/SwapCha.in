@@ -17,6 +17,13 @@ import { fanOut } from "./aggregate.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
 import { mempoolUtxos } from "./btc.js";
 import { limitRoutes } from "./limit.js";
+import {
+  getPartner,
+  openPartnerStore,
+  type PartnerStore,
+  partnerRoutes,
+  recordQuote,
+} from "./partners.js";
 import { llamaPricer, type Pricer } from "./pricing.js";
 import { across } from "./providers/across.js";
 import { cow } from "./providers/cow.js";
@@ -85,6 +92,8 @@ export interface AppOptions {
   pricer?: Pricer | null;
   /** fetch used for CoW limit-order calls (tests inject a mock). */
   cowFetch?: Fetch;
+  /** Widget partner store; null disables /partners. Default: SQLite at $SWAPCHAN_DATA_DIR/partners.db (in-memory when unset). */
+  partners?: PartnerStore | null;
 }
 
 export function createApp(
@@ -138,9 +147,26 @@ export function createApp(
   });
   if (opts.scannerFetch !== null)
     app.route("/scanner", scannerRoutes(opts.scannerFetch ?? fetch, env));
+  const partners =
+    opts.partners !== undefined
+      ? opts.partners
+      : openPartnerStore(
+          env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/partners.db` : ":memory:",
+          Number(env.SWAPCHAN_PARTNER_SHARE_BPS ?? 5000),
+        );
+  const quotePartner = new Map<string, string>();
+  if (partners) app.route("/partners", partnerRoutes(partners, cache, quotePartner));
   const quotes = async (query: Record<string, string>) => {
-    const res = await fanOut(providers, QuoteRequest.parse(query), 8000, undefined, pricer);
+    const { partner, ...rest } = query;
+    const res = await fanOut(providers, QuoteRequest.parse(rest), 8000, undefined, pricer);
     for (const q of res.quotes) cache.set(q.id, q);
+    // Widget attribution: ?partner=<id> tags these quotes for that partner's revenue share.
+    const p = partners && partner ? getPartner(partners, partner) : undefined;
+    if (partners && p) {
+      for (const q of res.quotes) quotePartner.set(q.id, p.id);
+      if (res.quotes[0]) recordQuote(partners, p.id, res.quotes[0]);
+      if (quotePartner.size > 50_000) quotePartner.clear();
+    }
     return res;
   };
   app.get("/quotes", async (c) => c.json(await quotes(c.req.query())));

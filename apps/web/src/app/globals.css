@@ -93,3 +93,15 @@ body {
   opacity: 0.5;
   animation: sparkle 4s linear infinite;
 }
+
+/* Widget (/embed): hide Swap-chan and the chain characters when chan=0. */
+.embed-nochan img[src*="/characters/"] {
+  display: none;
+}
+/* Widget (/embed): no site sparkles behind the iframe. */
+html[data-embed] .sparkles::before {
+  display: none;
+}
+fieldset[data-locked] button {
+  cursor: default;
+}

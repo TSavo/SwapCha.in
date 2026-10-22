@@ -17,6 +17,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/bridge", 0.9),
     page("/agents", 0.8),
     page("/how-it-works", 0.6),
+    page("/widget", 0.6),
+    page("/partners", 0.5),
     page("/cast", 0.6),
     ...castOrder.map((k) => page(`/cast/${k}`, 0.5)),
     ...ROUTES.map((r) => page(routeHref(r), 0.7)),

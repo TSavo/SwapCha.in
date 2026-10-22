@@ -1,4 +1,5 @@
 import type { Quote } from "@swapchan/shared";
+import { embedConfig, embedPartner, onTrack } from "./embed";
 
 export const GA_ID = process.env.NEXT_PUBLIC_GA_ID ?? "";
 
@@ -6,9 +7,14 @@ type Gtag = (cmd: "event", name: string, params: Record<string, unknown>) => voi
 
 /** Fire a GA4 event; no-op when GA is not configured or not loaded. */
 export function track(name: string, params: Record<string, unknown> = {}): void {
-  if (!GA_ID || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
+  onTrack(name, params); // widget: host events + partner attribution (no-op on swapchan.com)
+  if (!GA_ID) return;
+  const embed = embedConfig();
+  if (embed) params = { ...params, embedded: true, partner: embedPartner() ?? "none" };
   const g = (window as unknown as { gtag?: Gtag }).gtag;
   g?.("event", name, params);
+  if (embed && name === "swap_completed") g?.("event", "widget_swap_completed", params);
 }
 
 /** Common swap params: provider, chains, USD value, our fee. */
@@ -23,5 +29,6 @@ export function quoteParams(q: Quote): Record<string, unknown> {
     usd_value: q.netUsd ?? 0,
     our_fee_usd: q.ourFeeUsd ?? 0,
     our_fee_verified: q.ourFeeVerified ?? false,
+    quote_id: q.id,
   };
 }
