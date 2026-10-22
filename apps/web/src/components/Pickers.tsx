@@ -43,7 +43,7 @@ export function ChainPicker({
               role="radio"
               aria-checked={active}
               onClick={() => onChange(c.id)}
-              className={`flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border-2 py-1 pr-2 pl-1 text-left text-xs font-bold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 ${
+              className={`flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border-2 py-1 pr-1.5 pl-1 text-left text-[11px] leading-tight font-bold sm:text-xs transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 ${
                 active
                   ? "text-white shadow-md"
                   : "border-violet-600 bg-violet-950 text-violet-100 hover:border-violet-300 hover:bg-violet-800"
@@ -59,7 +59,10 @@ export function ChainPicker({
                 {c.name}
               </span>
               {active && (
-                <span aria-hidden className="ml-auto drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]">
+                <span
+                  aria-hidden
+                  className="ml-auto hidden drop-shadow-[0_1px_1px_rgba(0,0,0,.8)] sm:inline"
+                >
                   ✓
                 </span>
               )}
