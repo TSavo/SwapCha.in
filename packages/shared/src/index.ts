@@ -140,10 +140,12 @@ export type TypedData = z.infer<typeof TypedData>;
 export type TxRequest = z.infer<typeof TxRequest>;
 
 /** Non-EVM transaction payload. svm-base64 = serialized VersionedTransaction (sign + send);
- * svm-instructions = Relay instruction list to compile with the lookup tables. */
+ * svm-instructions = Relay instruction list to compile with the lookup tables.
+ * bvm-psbt = base64 or hex PSBT to sign + broadcast; tvm-json = provider-built Tron tx (or call);
+ * tvm-deposit = {to, amount (sun), memo}: send TRX with the memo as tx data (THORChain). */
 export const NonEvmTx = z.object({
   vm: z.enum(["svm", "bvm", "tvm"]),
-  kind: z.enum(["svm-base64", "svm-instructions", "bvm-psbt", "tvm-json"]),
+  kind: z.enum(["svm-base64", "svm-instructions", "bvm-psbt", "tvm-json", "tvm-deposit"]),
   data: z.unknown(),
 });
 export type NonEvmTx = z.infer<typeof NonEvmTx>;

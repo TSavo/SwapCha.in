@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@reown/appkit": "1.8.24",
+    "@reown/appkit-adapter-bitcoin": "1.8.24",
     "@reown/appkit-adapter-solana": "1.8.24",
     "@reown/appkit-adapter-wagmi": "1.8.24",
     "@solana/web3.js": "^1.98.4",
@@ -22,10 +23,12 @@
     "@x402/evm": "2.28.0",
     "@x402/extensions": "2.28.0",
     "@x402/svm": "2.28.0",
+    "bitcoinjs-lib": "^7.0.4",
     "buffer": "6.0.3",
     "next": "16.4.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "tronweb": "^6.5.1",
     "viem": "2.57.8",
     "wagmi": "3.7.9",
     "zod": "4.6.7"

@@ -15,13 +15,18 @@ import { cors } from "hono/cors";
 import { z } from "zod";
 import { fanOut } from "./aggregate.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
+import { mempoolUtxos } from "./btc.js";
 import { limitRoutes } from "./limit.js";
 import { llamaPricer, type Pricer } from "./pricing.js";
 import { across } from "./providers/across.js";
 import { cow } from "./providers/cow.js";
+import { debridge } from "./providers/debridge.js";
 import { jupiter } from "./providers/jupiter.js";
+import { kyberswap } from "./providers/kyberswap.js";
 import { lifi } from "./providers/lifi.js";
+import { oneinch } from "./providers/oneinch.js";
 import { relay } from "./providers/relay.js";
+import { thorchain } from "./providers/thorchain.js";
 import type { Fetch, ProviderAdapter } from "./providers/types.js";
 import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
@@ -60,6 +65,10 @@ export function defaultProviders(
     across(pricer, fetch, env),
     relay(env),
     jupiter(pricer, env),
+    kyberswap(pricer, env),
+    oneinch(pricer, env),
+    debridge(pricer, env),
+    thorchain(pricer, env, fetch, mempoolUtxos()),
   ];
 }
 

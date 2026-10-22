@@ -56,6 +56,10 @@ const PROVIDER_NAMES: Record<string, string> = {
   across: "Across",
   cow: "CoW Protocol",
   velora: "Velora",
+  kyberswap: "KyberSwap",
+  "1inch": "1inch",
+  debridge: "deBridge",
+  thorchain: "THORChain",
   "0x": "0x",
   zerox: "0x",
 };

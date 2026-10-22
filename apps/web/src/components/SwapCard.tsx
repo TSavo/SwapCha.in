@@ -28,10 +28,12 @@ import {
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { formatAmount, parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import { api, cowExplorer, submitCowOrder } from "@/lib/api";
+import { sendBitcoinPsbt, useBitcoin } from "@/lib/bitcoin";
 import { characterForChain } from "@/lib/characters";
 import { quoteParams, track } from "@/lib/ga";
 import { publishSays, say, unverifiedWarning } from "@/lib/says";
 import { toSolanaTx } from "@/lib/solana";
+import { sendTron, useTron } from "@/lib/tron";
 import { useSolana } from "@/lib/useSolana";
 import { Character, SpeechBubble } from "./Character";
 import { ConnectButton } from "./ConnectButton";
@@ -88,6 +90,8 @@ export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
   const config = useConfig();
   const { address: evmAddress, chainId: walletChain } = useAccount();
   const sol = useSolana();
+  const btc = useBitcoin();
+  const tron = useTron();
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
   const { sendTransactionAsync } = useSendTransaction();
@@ -107,10 +111,17 @@ export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
 
   const fromVm = vmOf(fromChain);
   const toVm = vmOf(toChain);
-  // Who signs: an EVM wallet (wagmi) or a Solana wallet (AppKit). Bitcoin/Tron are receive-only.
-  const address: string | undefined =
-    fromVm === "evm" ? evmAddress : fromVm === "svm" ? sol.address : undefined;
-  const ownOnDest = toVm === "evm" ? evmAddress : toVm === "svm" ? sol.address : undefined;
+  // Who signs: EVM (wagmi), Solana + Bitcoin (AppKit), Tron (TronLink injected).
+  const addrFor = (vm: Vm) =>
+    vm === "evm"
+      ? evmAddress
+      : vm === "svm"
+        ? sol.address
+        : vm === "bvm"
+          ? btc.address
+          : tron.address;
+  const address: string | undefined = addrFor(fromVm);
+  const ownOnDest = addrFor(toVm);
   const needsRecipient = toVm !== fromVm;
   const recipient = needsRecipient ? recipientInput.trim() || ownOnDest || "" : "";
   const recipientInvalid = needsRecipient && recipient !== "" && !isVmAddress(recipient, toVm);
@@ -348,12 +359,37 @@ export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
     });
   };
 
+  const swapNonEvm = async (q: Quote, from: string) => {
+    const built = await api.build(q, from, false);
+    if (!built.nonEvmTx) throw new Error(`Provider returned no ${VM_NAME[fromVm]} transaction`);
+    const txHash =
+      fromVm === "bvm"
+        ? await sendBitcoinPsbt(btc, built.nonEvmTx)
+        : await sendTron(built.nonEvmTx);
+    submitted.current = q;
+    track("swap_submitted", { ...quoteParams(q), execution: fromVm, tx_hash: txHash });
+    setPhase({
+      k: "tracking",
+      p: {
+        provider: q.provider,
+        txHash,
+        fromChainId: fromChain,
+        toChainId: toChain,
+        mocked: false,
+      },
+    });
+  };
+
   const swap = async () => {
     if (!quote || !address) return;
     setPhase({ k: "swapping" });
     try {
       if (fromVm === "svm" && !quotesMocked) {
         await swapSolana(quote, address);
+        return;
+      }
+      if ((fromVm === "bvm" || fromVm === "tvm") && !quotesMocked) {
+        await swapNonEvm(quote, address);
         return;
       }
       if (quotesMocked) {
@@ -479,13 +515,18 @@ export function SwapCard({ initial }: { initial?: SwapInitial } = {}) {
   const chainList = chains.data?.data ?? [];
   const fromCh = characterForChain(fromChain);
   let cta: { label: string; action?: () => void } = { label: "Enter an amount" };
-  if (fromVm === "bvm" || fromVm === "tvm")
-    cta = { label: `Sending from ${VM_NAME[fromVm]} isn't wired yet — pick it as the destination` };
-  else if (!address)
+  if (!address)
     cta =
       fromVm === "svm"
         ? { label: "Connect a Solana wallet", action: sol.open }
-        : { label: "Connect wallet to swap" };
+        : fromVm === "bvm"
+          ? { label: "Connect a Bitcoin wallet", action: btc.open }
+          : fromVm === "tvm"
+            ? {
+                label: tron.available ? "Connect TronLink" : "Install TronLink to send TRX",
+                action: tron.open,
+              }
+            : { label: "Connect wallet to swap" };
   else if (needsRecipient && !recipient)
     cta = { label: `Enter your ${VM_NAME[toVm]} address to receive` };
   else if (recipientInvalid) cta = { label: `That's not a ${VM_NAME[toVm]} address` };

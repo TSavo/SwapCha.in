@@ -93,7 +93,9 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
           },
         };
       else if (vm === "bvm" && main?.psbt) nonEvmTx = { vm, kind: "bvm-psbt", data: main.psbt };
-      else if (vm === "tvm" && main) nonEvmTx = { vm, kind: "tvm-json", data: main };
+      // Tron: TriggerSmartContract calls in order (TRC-20 approve first when Relay asks for it).
+      else if (vm === "tvm" && main)
+        nonEvmTx = { vm, kind: "tvm-json", data: { calls: approve ? [approve, main] : [main] } };
       const app = r.fees.app;
       return Quote.parse({
         id: `relay:${r.requestId ?? r.steps[0]?.requestId ?? crypto.randomUUID()}`,

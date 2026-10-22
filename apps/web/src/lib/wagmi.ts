@@ -3,6 +3,7 @@ import {
   arbitrum,
   avalanche,
   base,
+  bitcoin,
   bsc,
   linea,
   mainnet,
@@ -11,6 +12,7 @@ import {
   scroll,
   solana,
 } from "@reown/appkit/networks";
+import { BitcoinAdapter } from "@reown/appkit-adapter-bitcoin";
 import { SolanaAdapter } from "@reown/appkit-adapter-solana";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { http } from "viem";
@@ -41,10 +43,14 @@ export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   linea,
   scroll,
   solana,
+  bitcoin,
 ];
 
 /** Solana wallets (Phantom, Solflare, Backpack...) through AppKit. */
 export const solanaAdapter = hasAppKit ? new SolanaAdapter() : null;
+
+/** Bitcoin wallets (Xverse, Leather, Unisat, Phantom, OKX) through AppKit: sign PSBTs. */
+export const bitcoinAdapter = hasAppKit ? new BitcoinAdapter({ projectId }) : null;
 
 export const wagmiAdapter = hasAppKit
   ? new WagmiAdapter({

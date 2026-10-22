@@ -138,8 +138,24 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
           : vm === "svm"
             ? { vm, kind: "svm-base64", data: tr.data }
             : vm === "bvm"
-              ? { vm, kind: "bvm-psbt", data: tr }
-              : { vm, kind: "tvm-json", data: tr };
+              ? { vm, kind: "bvm-psbt", data: tr.data } // hex PSBT (vault out + OP_RETURN memo)
+              : {
+                  vm,
+                  kind: "tvm-json",
+                  // Serialized raw_data hex to sign; TRC-20 input needs approve(spender) first.
+                  data: {
+                    raw: tr.data,
+                    to: tr.to,
+                    approve:
+                      req.fromToken === NON_EVM[req.fromChainId]?.native
+                        ? null
+                        : {
+                            token: req.fromToken,
+                            spender: s.estimate.approvalAddress ?? tr.to,
+                            amount: req.amount,
+                          },
+                  },
+                };
       return Quote.parse({
         id: `lifi:${s.id}`,
         provider: "lifi",

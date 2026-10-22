@@ -5,7 +5,8 @@
 # Secrets come from Vault here and live only in this process's environment; compose hands them to the containers.
 #   secret/swapchan/cloudflare  tunnel_token, tunnel_id     (required: written when the tunnel was created)
 #   secret/swapchan/fees        recipient, bps, lifi_enabled              (integrator fee; unset = no fee)
-#   secret/swapchan/providers   zerox, lifi, relay, velora  (API keys; unset = provider off / free tier)
+#   secret/swapchan/providers   zerox, lifi, relay, velora, jupiter, oneinch, debridge_referral  (API keys; unset = provider off / free tier)
+#   secret/swapchan/fees        ... solana, bitcoin, tron, thorname (THORChain affiliate)
 #   secret/swapchan/reown       project_id                  (wallet connect; unset = connect disabled)
 #   secret/swapchan/analytics   measurement_id              (GA4; unset = no analytics)
 #   secret/swapchan/api         keys                        (SWAPCHAN_API_KEYS; unset = API open)
@@ -36,6 +37,9 @@ export RELAY_API_KEY=$(opt providers relay)
 export JUPITER_API_KEY=$(opt providers jupiter)   # optional: developers.jup.ag/portal (keyless = 0.5 RPS)
 export SWAPCHAN_FEE_RECIPIENT_SOLANA=$(opt fees solana)   # Jupiter platform fee owner
 export VELORA_API_KEY=$(opt providers velora)
+export ONEINCH_API_KEY=$(opt providers oneinch)   # portal.1inch.dev (unset = 1inch off)
+export THORCHAIN_AFFILIATE=$(opt fees thorname)   # registered THORName for affiliate fees
+export DEBRIDGE_REFERRAL_CODE=$(opt providers debridge_referral)
 export NEXT_PUBLIC_REOWN_PROJECT_ID=$(opt reown project_id)
 export NEXT_PUBLIC_GA_ID=$(opt analytics measurement_id)   # GA4 (property 389907174)
 export SWAPCHAN_API_KEYS=$(opt api keys)
