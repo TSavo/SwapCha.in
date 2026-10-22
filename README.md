@@ -16,6 +16,7 @@ nvm use            # Node 24 LTS
 corepack enable    # pnpm 10
 pnpm install
 cp .env.example .env   # fill keys
-pnpm dev
+pnpm dev           # api :8787, web :3000, mcp :8788/mcp (anonymous in dev)
+pnpm -F @swapchan/mcp e2e   # live MCP smoke against the running stack
 pnpm typecheck && pnpm lint && pnpm test && pnpm build
 ```

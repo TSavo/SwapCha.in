@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=@swapchan/api --filter=@swapchan/web --filter=@swapchan/mcp",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "lint": "biome check .",

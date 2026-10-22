@@ -51,7 +51,7 @@ describe("api", () => {
   });
   it("health", async () => {
     const res = await createApp([]).request("/health");
-    expect(await res.json()).toMatchObject({ ok: true, version: "1" });
+    expect(Object.keys(await res.json()).sort()).toEqual(["ok", "providers", "version"]);
   });
   it("fans out, isolates provider errors", async () => {
     const app = createApp([fake(mk("x", "10", 1)), fake(new Error("boom"))]);

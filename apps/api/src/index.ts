@@ -65,7 +65,6 @@ export function createApp(
     c.json({
       ok: true,
       version: API_VERSION,
-      BuildResponse,
       providers: providers.filter((p) => p.enabled()).map((p) => p.name),
     }),
   );

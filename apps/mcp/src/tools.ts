@@ -348,7 +348,8 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           quoteId?: string | undefined;
         },
       ) => {
-        const res = await api.quotes(await toRequest(api, a, a.taker));
+        // Indicative quotes (no taker) are cheaper on provider rate limits; /build re-quotes with the taker.
+        const res = await api.quotes(await toRequest(api, a));
         const pick =
           (a.quoteId && res.quotes.find((q) => q.id === a.quoteId)) ||
           (a.provider
@@ -361,11 +362,19 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
               ? `provider "${a.provider}" returned no route; available: ${res.quotes.map((q) => q.provider).join(", ") || "none"}`
               : "no route found",
           );
-        const tx = pick.tx ?? (await api.build(pick.id, a.taker));
-        if (tx.chainId !== pick.request.fromChainId)
+        const built = await api.build(pick.id, a.taker);
+        if (built.chainId !== pick.request.fromChainId)
           throw new UserError(
-            `API built a tx for chain ${tx.chainId}, expected ${pick.request.fromChainId}; refusing`,
+            `API built a tx for chain ${built.chainId}, expected ${pick.request.fromChainId}; refusing`,
           );
+        const {
+          permit2,
+          approval: apiApproval,
+          simulation: apiSim,
+          execution,
+          order,
+          ...tx
+        } = built;
 
         const isNative = sameAddr(pick.request.fromToken, NATIVE_TOKEN);
         const rpc = cfg.rpcUrls[tx.chainId];
@@ -373,7 +382,14 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
 
         let approval: unknown = { required: false };
         let allowanceOk = true;
-        if (!isNative && pick.approvalAddress) {
+        if (apiApproval) {
+          allowanceOk = false;
+          approval = {
+            required: true,
+            unsignedApproveTx: apiApproval,
+            note: "Send and confirm this first.",
+          };
+        } else if (!isNative && pick.approvalAddress) {
           let allowance: bigint | null = null;
           if (client) {
             try {
@@ -412,11 +428,28 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
               };
         }
 
-        let simulation: unknown = {
-          status: "skipped",
-          reason: `no RPC_URL_${tx.chainId} configured on this server`,
-        };
-        if (client) {
+        if (execution === "order" && order) {
+          return {
+            quote: await summarize(api, pick),
+            execution: "order",
+            approval,
+            order,
+            howToExecute:
+              "No transaction. Have the user's wallet sign `order` with eth_signTypedData_v4, then POST the message fields plus { signature, signingScheme: 'eip712', from: taker } to https://api.cow.fi/<network>/api/v1/orders. Solvers pay gas.",
+            unsignedTx: null,
+            simulation: { status: "skipped", reason: "signed order; nothing to simulate" },
+            permit2: null,
+            safety: "Unsigned. SwapChan never holds keys or signs.",
+          };
+        }
+
+        let simulation: unknown = apiSim
+          ? { status: apiSim.ok ? "success" : "reverted", via: `api:${apiSim.method}`, ...apiSim }
+          : {
+              status: "skipped",
+              reason: `no simulation configured (API SWAPCHAN_SIMULATE or RPC_URL_${tx.chainId})`,
+            };
+        if (!apiSim && client) {
           if (!allowanceOk)
             simulation = {
               status: "skipped",
@@ -430,7 +463,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
                 data: tx.data,
                 value: BigInt(tx.value),
               });
-              simulation = { status: "success", returnData: r.data ?? "0x" };
+              simulation = { status: "success", via: "mcp:eth_call", returnData: r.data ?? "0x" };
             } catch (e) {
               simulation = {
                 status: "reverted",
@@ -442,10 +475,17 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
 
         return {
           quote: await summarize(api, pick),
+          execution: "tx",
           approval,
           unsignedTx: tx,
           simulation,
-          permit2: null,
+          permit2: permit2 ?? null,
+          ...(permit2
+            ? {
+                permit2Note:
+                  "Sign permit2 (EIP-712) with the wallet and append the signature to the tx per provider (0x) docs before sending.",
+              }
+            : {}),
           safety:
             "Unsigned. SwapChan never holds keys or signs. Review chainId, to, value and toAmountMin in the wallet before signing. Quote expires at quote.expiresAt.",
         };

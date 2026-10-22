@@ -1,4 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import { Character } from "@/components/Character";
+import { LiveRoutes } from "@/components/LiveRoutes";
 import { Onboarding } from "@/components/Onboarding";
 import { SwapCard } from "@/components/SwapCard";
 
@@ -16,6 +19,7 @@ export default function Home() {
         </div>
       </div>
       <SwapCard />
+      <LiveRoutes />
     </>
   );
 }

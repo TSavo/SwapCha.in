@@ -1,4 +1,5 @@
 import {
+  BuildResponse,
   type Chain,
   Chain as ChainSchema,
   type Quote,
@@ -8,7 +9,6 @@ import {
   StatusResponse,
   type Token,
   Token as TokenSchema,
-  TxRequest,
 } from "@swapchan/shared";
 import { z } from "zod";
 
@@ -81,8 +81,8 @@ export class SwapChanApi {
   quotes(r: QuoteRequest): Promise<QuotesResponse> {
     return this.req(QuotesResponse, `/quotes?${qs(r)}`);
   }
-  build(quoteId: string, taker: string): Promise<TxRequest> {
-    return this.req(TxRequest, "/build", {
+  build(quoteId: string, taker: string): Promise<BuildResponse> {
+    return this.req(BuildResponse, "/build", {
       method: "POST",
       body: JSON.stringify({ quoteId, taker }),
     });

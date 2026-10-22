@@ -182,11 +182,17 @@ describe("swapchan mcp over streamable http", () => {
     expect(r.unsignedTx).toEqual({
       chainId: 1,
       to: "0x1111111254eeb25477b68fb85ed929f73a960582",
-      data: "0xdeadbeef",
+      data: "0xc0ffee",
       value: "0",
     });
+    expect(r.execution).toBe("tx");
+    expect(r.permit2?.primaryType).toBe("PermitTransferFrom"); // best = 0x mock
     expect(r.approval.required).toBe(false); // native in
-    expect(r.simulation.status).toBe("skipped");
+    expect(r.simulation).toMatchObject({
+      status: "success",
+      via: "api:eth_call",
+      gasUsed: "123456",
+    });
     const r2 = data(
       await c.callTool({
         name: "build_swap_tx",

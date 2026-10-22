@@ -1,4 +1,6 @@
 import {
+  type BuildResponse,
+  BuildResponse as BuildResponseSchema,
   type Chain,
   Chain as ChainSchema,
   type Quote,
@@ -10,8 +12,7 @@ import {
   StatusResponse as StatusResponseSchema,
   type Token,
   Token as TokenSchema,
-  type TxRequest,
-  TxRequest as TxRequestSchema,
+  type TypedData,
 } from "@swapchan/shared";
 import { z } from "zod";
 import { mockBuild, mockChains, mockQuotes, mockStatus, mockTokens } from "./mock";
@@ -36,16 +37,9 @@ const call = async <T>(path: string, schema: z.ZodType<T>, init?: RequestInit): 
   return schema.parse(body);
 };
 
-/** Try the real API; on network failure (not API-level errors) fall back to mocks. */
-const withMock = async <T>(real: () => Promise<T>, mock: () => T): Promise<ApiResult<T>> => {
-  if (FORCE_MOCK) return { data: mock(), mocked: true };
-  try {
-    return { data: await real(), mocked: false };
-  } catch (e) {
-    if (e instanceof ApiError) throw e;
-    return { data: mock(), mocked: true };
-  }
-};
+/** Real API always; mocks only when NEXT_PUBLIC_MOCK_API=1 (demos/tests). */
+const withMock = async <T>(real: () => Promise<T>, mock: () => T): Promise<ApiResult<T>> =>
+  FORCE_MOCK ? { data: mock(), mocked: true } : { data: await real(), mocked: false };
 
 export const toQuery = (o: Record<string, string | number | undefined>): string =>
   new URLSearchParams(
@@ -65,10 +59,10 @@ export const api = {
       () => call(`/quotes?${toQuery({ ...req })}`, QuotesResponseSchema),
       () => mockQuotes(req),
     ),
-  build: (quote: Quote, taker: `0x${string}`, mocked: boolean): Promise<TxRequest> =>
+  build: (quote: Quote, taker: `0x${string}`, mocked: boolean): Promise<BuildResponse> =>
     mocked
       ? Promise.resolve(mockBuild(quote.id, quote.request.fromChainId))
-      : call("/build", TxRequestSchema, {
+      : call("/build", BuildResponseSchema, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ quoteId: quote.id, taker }),
@@ -78,3 +72,33 @@ export const api = {
       ? Promise.resolve(mockStatus(req.txHash))
       : call(`/status?${toQuery({ ...req })}`, StatusResponseSchema),
 };
+
+const COW_NETWORK: Record<number, string> = {
+  1: "mainnet",
+  8453: "base",
+  42161: "arbitrum_one",
+  137: "polygon",
+};
+
+/** Submit a signed CoW order (EIP-712). Returns the order UID. */
+export async function submitCowOrder(
+  chainId: number,
+  order: TypedData,
+  signature: `0x${string}`,
+  from: `0x${string}`,
+): Promise<string> {
+  const net = COW_NETWORK[chainId];
+  if (!net) throw new Error(`CoW not supported on chain ${chainId}`);
+  const res = await fetch(`https://api.cow.fi/${net}/api/v1/orders`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ...order.message, signature, signingScheme: "eip712", from }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const body: unknown = await res.json().catch(() => null);
+  if (!res.ok)
+    throw new Error(`CoW: ${(body as { description?: string } | null)?.description ?? res.status}`);
+  return body as string;
+}
+
+export const cowExplorer = (uid: string) => `https://explorer.cow.fi/orders/${uid}`;

@@ -112,8 +112,15 @@ export function cow(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
           },
           // Fee-less order (fee folded into sellAmount), per current CoW API.
           message: {
-            ...q,
+            sellToken: q.sellToken,
+            buyToken: q.buyToken,
             receiver: from,
+            validTo: q.validTo,
+            appData: q.appData,
+            kind: q.kind,
+            partiallyFillable: q.partiallyFillable,
+            sellTokenBalance: q.sellTokenBalance,
+            buyTokenBalance: q.buyTokenBalance,
             sellAmount: (BigInt(q.sellAmount) + BigInt(q.feeAmount)).toString(),
             buyAmount: minBuy.toString(),
             feeAmount: "0",

@@ -10,12 +10,13 @@ import {
   useConfig,
   useReadContract,
   useSendTransaction,
+  useSignTypedData,
   useSwitchChain,
   useWriteContract,
 } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { formatAmount, parseAmount, sanitizeAmountInput } from "@/lib/amount";
-import { api } from "@/lib/api";
+import { api, cowExplorer, submitCowOrder } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
 import { Character, SpeechBubble } from "./Character";
 import { ChainPicker, TokenPicker } from "./Pickers";
@@ -41,6 +42,7 @@ type Phase =
   | { k: "approving" }
   | { k: "swapping" }
   | { k: "tracking"; p: TrackParams }
+  | { k: "order"; uid: string }
   | { k: "error"; msg: string };
 
 export function SwapCard() {
@@ -49,6 +51,7 @@ export function SwapCard() {
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
   const { sendTransactionAsync } = useSendTransaction();
+  const { signTypedDataAsync } = useSignTypedData();
 
   const [fromChain, setFromChain] = useState(1);
   const [toChain, setToChain] = useState(8453);
@@ -192,7 +195,32 @@ export function SwapCard() {
         return;
       }
       await ensureChain();
-      const tx = quote.tx ?? (await api.build(quote, address, false));
+      const built = await api.build(quote, address, false);
+      if (built.execution === "order" && built.order) {
+        // CoW: sign the EIP-712 order (no gas), submit to CoW's orderbook.
+        const o = built.order;
+        const signature = await signTypedDataAsync({
+          domain: o.domain,
+          types: o.types,
+          primaryType: o.primaryType,
+          message: o.message,
+        } as Parameters<typeof signTypedDataAsync>[0]);
+        const uid = await submitCowOrder(fromChain, o, signature, address);
+        setPhase({ k: "order", uid });
+        return;
+      }
+      if (built.simulation && !built.simulation.ok)
+        throw new Error(`Simulation failed: ${built.simulation.error ?? "reverted"}`);
+      if (built.approval) {
+        const ah = await sendTransactionAsync({
+          to: built.approval.to,
+          data: built.approval.data,
+          value: BigInt(built.approval.value),
+          chainId: built.approval.chainId,
+        });
+        await waitForTransactionReceipt(config, { hash: ah, chainId: fromChain });
+      }
+      const tx = built;
       const hash = await sendTransactionAsync({
         to: tx.to,
         data: tx.data,
@@ -222,6 +250,31 @@ export function SwapCard() {
     setToToken(fromToken);
     setAmountStr("");
   };
+
+  if (phase.k === "order") {
+    return (
+      <Card>
+        <div className="space-y-3 text-center">
+          <p className="text-lg font-bold">
+            CoW order submitted~ solvers will fill it, no gas for you!
+          </p>
+          <a className="underline" href={cowExplorer(phase.uid)} target="_blank" rel="noreferrer">
+            Track order on CoW Explorer
+          </a>
+          <button
+            type="button"
+            className="block w-full rounded-xl bg-violet-800 py-2"
+            onClick={() => {
+              setPhase({ k: "idle" });
+              setAmountStr("");
+            }}
+          >
+            New swap
+          </button>
+        </div>
+      </Card>
+    );
+  }
 
   if (phase.k === "tracking") {
     return (

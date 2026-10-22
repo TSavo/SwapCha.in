@@ -103,6 +103,18 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
           to: ROUTER,
           data: "0xc0ffee",
           value: "0",
+          execution: "tx",
+          simulation: { ok: true, method: "eth_call", gasUsed: "123456" },
+          ...(quoteId.startsWith("q-0x")
+            ? {
+                permit2: {
+                  domain: { name: "Permit2", chainId: 1 },
+                  types: { PermitTransferFrom: [{ name: "nonce", type: "uint256" }] },
+                  primaryType: "PermitTransferFrom",
+                  message: { nonce: "1" },
+                },
+              }
+            : {}),
         });
       }
       case "/status":
