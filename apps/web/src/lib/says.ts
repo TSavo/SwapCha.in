@@ -19,6 +19,8 @@ export interface SwapState {
   best?: string | null;
   phase: "idle" | "approving" | "swapping" | "tracking" | "order" | "error";
   phaseError?: string;
+  /** Set by the status tracker once the swap settles. */
+  settled?: "done" | "failed";
 }
 
 export interface Says {
@@ -52,6 +54,16 @@ export function say(s: SwapState): Says {
     return r({ mood: "think", text: `Approving ${from}… check your wallet!` });
   if (s.phase === "swapping")
     return r({ mood: "think", text: "Sign it in your wallet and I'll take it from here~" });
+  if (s.phase === "tracking" && s.settled === "done")
+    return r({
+      mood: "cheer",
+      text: `Yatta~! Your ${to} landed on ${s.toChainName}! ✨ High five, senpai!`,
+    });
+  if (s.phase === "tracking" && s.settled === "failed")
+    return r({
+      mood: "sad",
+      text: "Gomen… that one failed. Check the explorer link; bridges refund.",
+    });
   if (s.phase === "tracking")
     return r({ mood: "bounce", text: `Your ${to} is on its way ${where}! Hang tight~` });
   if (s.phase === "order")

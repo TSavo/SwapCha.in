@@ -2,9 +2,11 @@
 
 import type { StatusResponse } from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useWaitForTransactionReceipt } from "wagmi";
 import { api } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
+import { wagmiConfig } from "@/lib/wagmi";
 import { Character } from "./Character";
 import { HopAnimation } from "./HopAnimation";
 
@@ -16,6 +18,23 @@ export interface TrackParams {
   mocked: boolean;
 }
 
+const txUrl = (chainId: number, hash: string) => {
+  const base = wagmiConfig.chains.find((c) => c.id === chainId)?.blockExplorers?.default.url;
+  return base ? `${base}/tx/${hash}` : undefined;
+};
+
+function TxLink({ chainId, hash }: { chainId: number; hash: string }) {
+  const url = txUrl(chainId, hash);
+  const short = `${hash.slice(0, 10)}…${hash.slice(-6)}`;
+  return url ? (
+    <a href={url} target="_blank" rel="noreferrer" className="underline hover:text-amber-300">
+      {short} ↗
+    </a>
+  ) : (
+    <code>{short}</code>
+  );
+}
+
 const LABEL: Record<StatusResponse["status"], string> = {
   pending: "In flight",
   done: "Arrived!",
@@ -23,7 +42,15 @@ const LABEL: Record<StatusResponse["status"], string> = {
   not_found: "Looking for your transaction…",
 };
 
-export function StatusTracker({ p, onReset }: { p: TrackParams; onReset?: () => void }) {
+export function StatusTracker({
+  p,
+  onReset,
+  onSettled,
+}: {
+  p: TrackParams;
+  onReset?: () => void;
+  onSettled?: (s: "done" | "failed") => void;
+}) {
   const cross = p.fromChainId !== p.toChainId;
   const receipt = useWaitForTransactionReceipt({
     hash: p.txHash,
@@ -57,6 +84,10 @@ export function StatusTracker({ p, onReset }: { p: TrackParams; onReset?: () => 
         : receipt.isError
           ? "failed"
           : "pending";
+
+  useEffect(() => {
+    if (state === "done" || state === "failed") onSettled?.(state);
+  }, [state, onSettled]);
 
   const dest = characterForChain(p.toChainId);
   return (
@@ -98,16 +129,18 @@ export function StatusTracker({ p, onReset }: { p: TrackParams; onReset?: () => 
       )}
       <ol className="w-full max-w-sm space-y-1 text-left text-xs text-violet-300">
         <li>
-          ✔ Signed &amp; sent: <code className="break-all">{p.txHash}</code>
+          ✔ Signed &amp; sent: <TxLink chainId={p.fromChainId} hash={p.txHash} />
         </li>
         {cross && (
           <li>
             {state === "done" ? "✔" : "…"} Bridged via {p.provider}
+            {state !== "done" && " (Swap-chan checks every 3s)"}
           </li>
         )}
         {status.data?.receivingTxHash && (
           <li>
-            ✔ Received: <code className="break-all">{status.data.receivingTxHash}</code>
+            ✔ Filled on {dest.name.replace("-chan", "")}:{" "}
+            <TxLink chainId={p.toChainId} hash={status.data.receivingTxHash} />
           </li>
         )}
         {p.mocked && (

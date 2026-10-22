@@ -59,3 +59,11 @@ describe("say", () => {
     expect(say({ ...base, toToken: meme }).warn).toContain("MEME isn't on my list");
   });
 });
+
+describe("say after a bridge", () => {
+  it("celebrates when the fill lands", () => {
+    const s = say({ ...base, toChainName: "Base", phase: "tracking", settled: "done" });
+    expect(s.mood).toBe("cheer");
+    expect(s.text).toContain("Yatta");
+  });
+});

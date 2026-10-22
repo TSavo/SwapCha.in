@@ -1,4 +1,4 @@
-import { Quote, type QuoteRequest } from "@swapchan/shared";
+import { Quote, type QuoteRequest, StatusResponse } from "@swapchan/shared";
 import type { Pricer } from "../pricing.js";
 import { type Fetch, getJson, PLACEHOLDER_TAKER, type ProviderAdapter } from "./types.js";
 
@@ -71,6 +71,29 @@ export function across(pricer: Pricer, f: Fetch = fetch): ProviderAdapter {
             }
           : null,
         expiresAt: r.quoteExpiryTimestamp * 1000,
+      });
+    },
+    async status(req, signal) {
+      const q = new URLSearchParams({
+        originChainId: String(req.fromChainId),
+        depositTxnRef: req.txHash,
+      });
+      let r: { status?: string; fillTx?: string; fillTxnRef?: string };
+      try {
+        r = await getJson(f, `https://app.across.to/api/deposit/status?${q}`, { signal });
+      } catch (e) {
+        if (/DepositNotFound|404/.test(String(e)))
+          return { status: "not_found", receivingTxHash: null };
+        throw e;
+      }
+      const map: Record<string, StatusResponse["status"]> = {
+        filled: "done",
+        expired: "failed",
+        refunded: "failed",
+      };
+      return StatusResponse.parse({
+        status: map[r.status ?? ""] ?? "pending",
+        receivingTxHash: r.fillTxnRef ?? r.fillTx ?? null,
       });
     },
   };

@@ -84,6 +84,7 @@ export function SwapCard() {
   const [approveMode, setApproveMode] = useState<"exact" | "permit2">("exact");
   const [selected, setSelected] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ k: "idle" });
+  const [settled, setSettled] = useState<"done" | "failed">();
 
   const chains = useQuery({
     queryKey: ["chains"],
@@ -188,6 +189,7 @@ export function SwapCard() {
     best: qres?.best,
     phase: phase.k,
     phaseError: phase.k === "error" ? phase.msg : undefined,
+    settled: phase.k === "tracking" ? settled : undefined,
   });
   useEffect(() => publishSays(says), [says]);
   const tokenWarning = unverifiedWarning({ fromToken, toToken });
@@ -330,7 +332,9 @@ export function SwapCard() {
       <Card>
         <StatusTracker
           p={phase.p}
+          onSettled={setSettled}
           onReset={() => {
+            setSettled(undefined);
             setPhase({ k: "idle" });
             setAmountStr("");
           }}

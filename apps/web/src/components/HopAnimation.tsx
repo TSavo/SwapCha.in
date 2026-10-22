@@ -21,8 +21,11 @@ export function HopAnimation({ steps, active = true }: { steps: RouteStep[]; act
               <div className="relative h-6 w-16 overflow-hidden">
                 <div className="absolute top-1/2 h-0.5 w-full bg-gradient-to-r from-amber-300/20 via-amber-300 to-amber-300/20" />
                 {active && (
-                  <div className="animate-hop absolute top-0.5 h-5 w-5 rounded-full bg-amber-300 text-center text-[10px] leading-5 font-black text-violet-950 shadow-[0_0_10px_#f5b700]">
-                    ¥
+                  <div
+                    className="animate-hop absolute top-0.5 h-5 w-5 rounded-full bg-amber-300 shadow-[0_0_10px_#f5b700]"
+                    aria-hidden
+                  >
+                    <div className="m-1 h-3 w-3 rounded-full border-2 border-amber-600/70" />
                   </div>
                 )}
               </div>

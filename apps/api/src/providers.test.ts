@@ -319,3 +319,19 @@ describe("pricing", () => {
     ]);
   });
 });
+
+describe("across status", () => {
+  it("maps a filled deposit to done with the fill tx", async () => {
+    const { across } = await import("./providers/across.js");
+    const f = (async () =>
+      new Response(JSON.stringify({ status: "filled", fillTxnRef: `0x${"ab".repeat(32)}` }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+    const a = across({ token: async () => null, usd: async () => null }, f);
+    const r = await a.status?.(
+      { provider: "across", txHash: `0x${"cd".repeat(32)}`, fromChainId: 56, toChainId: 8453 },
+      AbortSignal.timeout(1000),
+    );
+    expect(r).toEqual({ status: "done", receivingTxHash: `0x${"ab".repeat(32)}` });
+  });
+});
