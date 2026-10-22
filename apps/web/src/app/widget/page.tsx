@@ -21,7 +21,11 @@ export default function WidgetPage() {
           Register as a partner
         </Link>{" "}
         and you earn <b>50% of SwapChan's 0.1% fee</b> on swaps through your widget. The user pays
-        the same either way.
+        the same either way.{" "}
+        <Link href="/earn" className="font-bold text-amber-300 underline">
+          Estimate your earnings
+        </Link>
+        .
       </p>
       <WidgetConfigurator />
       <h2 className="mt-10 mb-2 text-2xl font-black">Options</h2>

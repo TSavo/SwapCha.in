@@ -91,6 +91,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Link href="/widget" className="hover:text-amber-300">
               Embed widget
             </Link>
+            <Link href="/earn" className="hover:text-amber-300">
+              Make money
+            </Link>
             <Link href="/partners" className="hover:text-amber-300">
               Partners
             </Link>

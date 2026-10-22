@@ -21,6 +21,11 @@ export default function PartnersPage() {
         and earn <b>50% of our 0.1% fee</b> on every swap made through it. Users pay the same as on
         swapchan.com. Earnings accrue on a private dashboard and are paid out periodically in USDC.
       </p>
+      <p className="mt-2 text-violet-200">
+        <Link href="/earn" className="font-bold text-amber-300 underline">
+          See all the ways to earn and estimate your earnings
+        </Link>
+      </p>
       <PartnerSignup />
     </div>
   );
