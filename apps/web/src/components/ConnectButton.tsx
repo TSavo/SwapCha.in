@@ -4,18 +4,27 @@ import { useAppKit } from "@reown/appkit/react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { hasAppKit } from "@/lib/wagmi";
 
+function ConnectLabel({ full }: { full: boolean }) {
+  if (full) return <>Connect wallet</>;
+  return (
+    <>
+      Connect<span className="hidden sm:inline"> wallet</span>
+    </>
+  );
+}
+
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const big =
   "block w-full rounded-2xl bg-gradient-to-r from-amber-400 to-fuchsia-500 py-4 text-lg font-black text-violet-950 shadow-[0_0_30px_rgba(245,183,0,.35)] hover:scale-[1.01] transition";
 const small =
-  "rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-violet-950 shadow-[0_0_20px_rgba(245,183,0,.5)] hover:bg-amber-300";
+  "rounded-full bg-amber-400 px-3 py-2 text-sm sm:px-4 font-bold text-violet-950 shadow-[0_0_20px_rgba(245,183,0,.5)] hover:bg-amber-300";
 
 function AppKitButton({ cls }: { cls: string }) {
   const { open } = useAppKit();
   const { address } = useAccount();
   return (
     <button type="button" className={cls} onClick={() => open()}>
-      {address ? short(address) : "Connect wallet"}
+      {address ? short(address) : <ConnectLabel full={cls === big} />}
     </button>
   );
 }
@@ -36,7 +45,7 @@ function InjectedButton({ cls }: { cls: string }) {
       disabled={!c}
       onClick={() => c && connect({ connector: c })}
     >
-      Connect wallet
+      <ConnectLabel full={cls === big} />
     </button>
   );
 }

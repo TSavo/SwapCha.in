@@ -19,25 +19,34 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="sparkles antialiased">
         <Providers>
-          <header className="mx-auto flex max-w-5xl items-center justify-between p-4">
+          <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-4 sm:p-4">
             <Link
               href="/"
-              className="flex shrink-0 items-center gap-2 text-xl font-black tracking-tight sm:text-2xl"
+              className="flex shrink-0 items-center gap-1.5 text-lg font-black tracking-tight sm:gap-2 sm:text-2xl"
             >
-              <img src="/characters/swapchan.png" alt="" width={40} height={40} />
+              <img
+                src="/characters/swapchan.png"
+                alt=""
+                width={40}
+                height={40}
+                className="h-8 w-8 sm:h-10 sm:w-10"
+              />
               <span className="bg-gradient-to-r from-amber-300 to-fuchsia-400 bg-clip-text text-transparent">
                 SwapChan
               </span>
             </Link>
-            <nav className="flex items-center gap-3 whitespace-nowrap sm:gap-4 text-sm font-bold">
+            <nav className="flex min-w-0 items-center gap-2 whitespace-nowrap text-sm font-bold sm:gap-4">
               <Link href="/" className="hidden hover:text-amber-300 sm:inline">
                 Swap
               </Link>
               <Link
                 href="/agents"
-                className="rounded-full bg-fuchsia-500 px-3 py-2 text-white shadow hover:bg-fuchsia-400"
+                aria-label="For AI agents"
+                title="For AI agents"
+                className="rounded-full bg-fuchsia-500 px-2.5 py-2 text-white shadow hover:bg-fuchsia-400 sm:px-3"
               >
-                🤖 For AI agents
+                🤖<span className="hidden sm:inline"> For AI agents</span>
+                <span className="sm:hidden"> AI</span>
               </Link>
               <Link href="/cast" className="hover:text-amber-300">
                 Cast
