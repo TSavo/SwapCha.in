@@ -73,7 +73,8 @@ const scale = (x: bigint, from: number, to: number) =>
 
 /**
  * THORChain native swaps (BTC, ETH, BASE, BSC, AVAX, TRON L1 assets). Keyless. Our fee is
- * the affiliate fee, which needs a registered THORName (THORCHAIN_AFFILIATE); without one,
+ * the affiliate fee, which needs the THORName (THORCHAIN_AFFILIATE, default "swapchan", checked on
+ * thornode every 10 min); until it exists,
  * routes run fee-free and rank with our fee as a handicap. Measured from fees.affiliate.
  */
 export function thorchain(
@@ -83,7 +84,19 @@ export function thorchain(
   utxos?: UtxoSource,
 ): ProviderAdapter {
   const base = env.THORNODE_URL || DEFAULT_BASE;
-  const affiliate = env.THORCHAIN_AFFILIATE;
+  const affiliate = env.THORCHAIN_AFFILIATE || "swapchan";
+  // Only send the affiliate once the THORName exists (THORChain rejects unknown names).
+  let named: { at: number; v: Promise<boolean> } | undefined;
+  const nameLive = () => {
+    if (!named || Date.now() - named.at > 600_000)
+      named = {
+        at: Date.now(),
+        v: getJson<{ aliases?: { chain: string }[] }>(f, `${base}/thorname/${affiliate}`, {})
+          .then((t) => !!t?.aliases?.some((a) => a.chain === "THOR"))
+          .catch(() => false),
+      };
+    return named.v;
+  };
   const feeBps = Number(env.SWAPCHAN_FEE_BPS ?? 0);
   let pools: { at: number; v: Promise<Set<string>> } | undefined;
   const poolSet = () => {
@@ -129,7 +142,7 @@ export function thorchain(
       tolerance_bps: String(Math.max(req.slippageBps, TOLERANCE_FLOOR_BPS)),
     });
     if (req.taker) q.set("refund_address", req.taker);
-    if (affiliate && feeBps > 0) {
+    if (affiliate && feeBps > 0 && (await nameLive())) {
       q.set("affiliate", affiliate);
       q.set("affiliate_bps", String(feeBps));
     }

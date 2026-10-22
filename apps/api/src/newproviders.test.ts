@@ -119,12 +119,18 @@ describe("new providers", () => {
     expect(a.urls[0]).not.toContain("affiliate=");
     expect(q1).toMatchObject({ ourFeeVerified: false, toAmount: "200000" });
     expect(q1.tx?.value).toBe(req.amount);
-    const b = mock((u) => (u.endsWith("/pools") ? [] : quote("200")));
+    const b = mock((u) =>
+      u.endsWith("/pools")
+        ? []
+        : u.includes("/thorname/")
+          ? { name: "sc", aliases: [{ chain: "THOR", address: "thor1x" }] }
+          : quote("200"),
+    );
     const q2 = await thorchain(pricer, { ...env, THORCHAIN_AFFILIATE: "sc" }, b.f).quote(
       req,
       sig(),
     );
-    expect(b.urls[0]).toContain("affiliate=sc&affiliate_bps=10");
+    expect(b.urls.find((u) => u.includes("/quote/"))).toContain("affiliate=sc&affiliate_bps=10");
     expect(q2.ourFeeVerified).toBe(true);
   });
 
