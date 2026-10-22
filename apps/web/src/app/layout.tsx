@@ -18,14 +18,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="sparkles antialiased">
         <Providers>
           <header className="mx-auto flex max-w-5xl items-center justify-between p-4">
-            <Link href="/" className="flex items-center gap-2 text-2xl font-black tracking-tight">
+            <Link
+              href="/"
+              className="flex shrink-0 items-center gap-2 text-xl font-black tracking-tight sm:text-2xl"
+            >
               <img src="/characters/swapchan.png" alt="" width={40} height={40} />
               <span className="bg-gradient-to-r from-amber-300 to-fuchsia-400 bg-clip-text text-transparent">
                 SwapChan
               </span>
             </Link>
-            <nav className="flex items-center gap-4 text-sm font-bold">
-              <Link href="/" className="hover:text-amber-300">
+            <nav className="flex items-center gap-3 whitespace-nowrap sm:gap-4 text-sm font-bold">
+              <Link href="/" className="hidden hover:text-amber-300 sm:inline">
                 Swap
               </Link>
               <Link href="/cast" className="hover:text-amber-300">
