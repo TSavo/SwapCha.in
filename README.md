@@ -6,7 +6,11 @@ SwapChan fans out a single swap request to 0x, CoW, LI.FI, Across and Relay at o
 
 **[swapchan.com](https://swapchan.com)** · MCP endpoint `https://mcp.swapchan.com/mcp` · Official MCP Registry `io.github.TSavo/swapchan`
 
-![Swap-chan](https://swapchan.com/characters/swapchan.png)
+## See it work
+
+Your agent asks in plain English → SwapChan fans out to every router, ranks by net USD after gas, and hands back an **unsigned** transaction. Your wallet signs.
+
+![SwapChan agent call: swap 100 USDC Ethereum→Base, routes ranked, unsigned tx built, user confirms](https://raw.githubusercontent.com/TSavo/SwapCha.in/main/docs/agent-call.gif)
 
 ## Use it as an MCP server
 
@@ -28,14 +32,6 @@ Any MCP client, via stdio bridge:
 
 ### Tools
 
-| Tool                                                | What it does                                                                                                         |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `get_supported_chains`                              | Networks SwapChan routes across (each with its own chan)                                                             |
-| `get_supported_tokens`                              | Tokens available per chain                                                                                           |
-| `get_quote`                                         | Best single route for a swap                                                                                         |
-| `compare_routes`                                    | Every provider ranked by net USD after gas + fees                                                                    |
-| `build_swap_tx`                                     | The **unsigned** transaction for a chosen route — your wallet signs                                                  |
-| `get_route_status`                                  | Track a cross-chain swap to completion                                                                               |
 | Tool                                                | What it does                                                                                                         |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `get_supported_chains`                              | Networks SwapChan routes across (each with its own chan)                                                             |
