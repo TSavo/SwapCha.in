@@ -19,7 +19,7 @@ services:
       SWAPCHAN_FEE_RECIPIENT_SOLANA: ${SWAPCHAN_FEE_RECIPIENT_SOLANA:-}
       SOLANA_RPC_URL: ${SOLANA_RPC_URL:-}
       VELORA_API_KEY: ${VELORA_API_KEY:-}
-      ONEINCH_API_KEY: ${ONEINCH_API_KEY:-} # portal.1inch.dev; unset = 1inch off
+      ONEINCH_API_KEY: ${ONEINCH_API_KEY:-} # business.1inch.com; unset = 1inch off
       THORCHAIN_AFFILIATE: ${THORCHAIN_AFFILIATE:-} # registered THORName; unset = THORChain routes fee-free
       DEBRIDGE_REFERRAL_CODE: ${DEBRIDGE_REFERRAL_CODE:-}
       SWAPCHAN_FEE_RECIPIENT: ${SWAPCHAN_FEE_RECIPIENT:-}

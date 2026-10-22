@@ -37,7 +37,7 @@ export RELAY_API_KEY=$(opt providers relay)
 export JUPITER_API_KEY=$(opt providers jupiter)   # optional: developers.jup.ag/portal (keyless = 0.5 RPS)
 export SWAPCHAN_FEE_RECIPIENT_SOLANA=$(opt fees solana)   # Jupiter platform fee owner
 export VELORA_API_KEY=$(opt providers velora)
-export ONEINCH_API_KEY=$(opt providers oneinch)   # portal.1inch.dev (unset = 1inch off)
+export ONEINCH_API_KEY=$(opt providers oneinch)   # business.1inch.com (unset = 1inch off)
 export THORCHAIN_AFFILIATE=$(opt fees thorname)   # registered THORName for affiliate fees
 export DEBRIDGE_REFERRAL_CODE=$(opt providers debridge_referral)
 export NEXT_PUBLIC_REOWN_PROJECT_ID=$(opt reown project_id)

@@ -2,7 +2,7 @@ import { isEvmChain, Quote, type QuoteRequest } from "@swapchan/shared";
 import { type Pricer, ZERO_ADDRESS } from "../pricing.js";
 import { type Fetch, getJson, type ProviderAdapter } from "./types.js";
 
-const BASE = "https://api.1inch.dev/swap/v6.1";
+const BASE = "https://api.1inch.com/swap/v6.1";
 /** 1inch AggregationRouterV6: same address on every supported chain. */
 const ROUTER = "0x111111125421cA6dc452d289314280a0f8842A65";
 const CHAINS = new Set([1, 8453, 42161, 10, 137, 56, 43114, 59144]);
@@ -10,7 +10,7 @@ const ONEINCH_NATIVE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const to1inch = (a: string) => (a.toLowerCase() === ZERO_ADDRESS ? ONEINCH_NATIVE : a);
 
 /**
- * 1inch Swap API (classic). Needs ONEINCH_API_KEY (portal.1inch.dev). Our fee: `fee` (percent
+ * 1inch Swap API (classic). Needs ONEINCH_API_KEY (business.1inch.com). Our fee: `fee` (percent
  * of the input) paid to `referrer`. Measured by quoting once with and once without the fee.
  */
 export function oneinch(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter {
