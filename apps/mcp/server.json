@@ -3,7 +3,7 @@
   "name": "io.github.TSavo/swapchan",
   "title": "SwapChan",
   "description": "Best-price cross-chain swap quotes and unsigned txs. Builders earn 5 bp per routed swap.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "websiteUrl": "https://swapchan.com",
   "repository": {
     "url": "https://github.com/TSavo/SwapCha.in",
@@ -13,15 +13,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://mcp.swapchan.com/mcp",
-      "headers": [
-        {
-          "name": "x-api-key",
-          "description": "SwapChan MCP API key",
-          "isRequired": true,
-          "isSecret": true
-        }
-      ]
+      "url": "https://mcp.swapchan.com/mcp"
     }
   ]
 }
