@@ -59,7 +59,7 @@ export const QuoteRequest = z.object({
 export type QuoteRequest = z.infer<typeof QuoteRequest>;
 
 export const RouteStep = z.object({
-  type: z.enum(["swap", "bridge", "wrap", "approve"]),
+  type: z.enum(["swap", "bridge", "wrap", "approve", "fee"]),
   tool: z.string(),
   fromChainId: ChainId,
   toChainId: ChainId,
@@ -70,13 +70,32 @@ export const RouteStep = z.object({
 });
 export type RouteStep = z.infer<typeof RouteStep>;
 
+export const Simulation = z.object({
+  ok: z.boolean(),
+  method: z.enum(["eth_call", "tenderly"]),
+  gasUsed: BaseUnits.optional(),
+  error: z.string().optional(),
+});
+export type Simulation = z.infer<typeof Simulation>;
+
 export const TxRequest = z.object({
   chainId: ChainId,
   to: Address,
   data: Hex,
   value: BaseUnits,
   gasLimit: BaseUnits.optional(),
+  /** Present when the API simulated the tx (SWAPCHAN_SIMULATE). Additive in v1. */
+  simulation: Simulation.optional(),
 });
+
+/** Generic EIP-712 payload (Permit2 PermitSingle/PermitTransferFrom, CoW orders). */
+export const TypedData = z.object({
+  domain: z.record(z.string(), z.unknown()),
+  types: z.record(z.string(), z.array(z.object({ name: z.string(), type: z.string() }))),
+  primaryType: z.string(),
+  message: z.record(z.string(), z.unknown()),
+});
+export type TypedData = z.infer<typeof TypedData>;
 export type TxRequest = z.infer<typeof TxRequest>;
 
 export const Quote = z.object({
@@ -95,6 +114,10 @@ export const Quote = z.object({
   approvalAddress: Address.nullable(),
   tx: TxRequest.nullable(),
   expiresAt: z.number().int(),
+  /** Additive v1: "tx" = send `tx`; "order" = sign `order` typed data (CoW), no tx. Default "tx". */
+  execution: z.enum(["tx", "order"]).optional(),
+  /** EIP-712 order to sign when execution === "order". */
+  order: TypedData.optional(),
 });
 export type Quote = z.infer<typeof Quote>;
 
@@ -104,6 +127,17 @@ export const QuotesResponse = z.object({
   errors: z.array(z.object({ provider: z.string(), message: z.string() })),
 });
 export type QuotesResponse = z.infer<typeof QuotesResponse>;
+
+/** POST /build response: unsigned tx plus optional extras. Superset of TxRequest (additive). */
+export const BuildResponse = TxRequest.extend({
+  /** If set: sign this Permit2 typed data and pass the signature per provider docs instead of an approve tx. */
+  permit2: TypedData.optional(),
+  /** If set: send this approve tx first (ERC20 allowance missing/unknown). */
+  approval: TxRequest.optional(),
+  execution: z.enum(["tx", "order"]).optional(),
+  order: TypedData.optional(),
+});
+export type BuildResponse = z.infer<typeof BuildResponse>;
 
 export const StatusRequest = z.object({
   provider: z.string(),
