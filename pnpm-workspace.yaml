@@ -1,3 +1,9 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# AppKit's Solana utils import @solana/web3.js as an optional peer; make it resolvable.
+packageExtensions:
+  "@reown/appkit-utils":
+    dependencies:
+      "@solana/web3.js": "1.98.4"

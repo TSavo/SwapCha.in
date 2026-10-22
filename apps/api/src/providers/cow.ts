@@ -1,4 +1,4 @@
-import { NATIVE_TOKEN, Quote, type QuoteRequest } from "@swapchan/shared";
+import { isEvmChain, NATIVE_TOKEN, Quote, type QuoteRequest } from "@swapchan/shared";
 import type { Pricer } from "../pricing.js";
 import { type Fetch, getJson, PLACEHOLDER_TAKER, type ProviderAdapter } from "./types.js";
 
@@ -54,6 +54,7 @@ export function cow(
     supports: (r) =>
       r.fromChainId === r.toChainId &&
       r.fromChainId in NETWORK &&
+      isEvmChain(r.fromChainId) &&
       r.fromToken.toLowerCase() !== NATIVE_TOKEN.toLowerCase(),
     async quote(req: QuoteRequest, signal) {
       const net = NETWORK[req.fromChainId];

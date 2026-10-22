@@ -1,12 +1,16 @@
 "use client";
 
 import {
+  isVmAddress,
   NATIVE_TOKEN,
+  nativeOf,
   type Quote,
   type QuoteRequest,
   SUPPORTED_CHAINS,
   type Token,
   tokenList,
+  type Vm,
+  vmOf,
 } from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -27,6 +31,8 @@ import { api, cowExplorer, submitCowOrder } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
 import { quoteParams, track } from "@/lib/ga";
 import { publishSays, say, unverifiedWarning } from "@/lib/says";
+import { toSolanaTx } from "@/lib/solana";
+import { useSolana } from "@/lib/useSolana";
 import { Character, SpeechBubble } from "./Character";
 import { ConnectButton } from "./ConnectButton";
 import { ChainPicker, TokenPicker } from "./Pickers";
@@ -49,7 +55,9 @@ const usdc = (chainId: number) =>
   (chainId === 8453 ? BASE_USDC : undefined);
 const STATIC_CHAINS = Object.entries(SUPPORTED_CHAINS).map(([id, c]) => ({ id: Number(id), ...c }));
 
-const isNative = (t: Token | undefined) => t?.address.toLowerCase() === NATIVE_TOKEN.toLowerCase();
+const isNative = (t: Token | undefined) =>
+  !!t && t.address.toLowerCase() === nativeOf(t.chainId).toLowerCase();
+const VM_NAME: Record<Vm, string> = { evm: "EVM", svm: "Solana", bvm: "Bitcoin", tvm: "Tron" };
 
 function useDebounced<T>(v: T, ms: number): T {
   const [d, setD] = useState(v);
@@ -70,7 +78,8 @@ type Phase =
 
 export function SwapCard() {
   const config = useConfig();
-  const { address, chainId: walletChain } = useAccount();
+  const { address: evmAddress, chainId: walletChain } = useAccount();
+  const sol = useSolana();
   const { switchChainAsync } = useSwitchChain();
   const { writeContractAsync } = useWriteContract();
   const { sendTransactionAsync } = useSendTransaction();
@@ -86,6 +95,17 @@ export function SwapCard() {
   const [selected, setSelected] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ k: "idle" });
   const [settled, setSettled] = useState<"done" | "failed">();
+  const [recipientInput, setRecipientInput] = useState("");
+
+  const fromVm = vmOf(fromChain);
+  const toVm = vmOf(toChain);
+  // Who signs: an EVM wallet (wagmi) or a Solana wallet (AppKit). Bitcoin/Tron are receive-only.
+  const address: string | undefined =
+    fromVm === "evm" ? evmAddress : fromVm === "svm" ? sol.address : undefined;
+  const ownOnDest = toVm === "evm" ? evmAddress : toVm === "svm" ? sol.address : undefined;
+  const needsRecipient = toVm !== fromVm;
+  const recipient = needsRecipient ? recipientInput.trim() || ownOnDest || "" : "";
+  const recipientInvalid = needsRecipient && recipient !== "" && !isVmAddress(recipient, toVm);
 
   const chains = useQuery({
     queryKey: ["chains"],
@@ -160,10 +180,21 @@ export function SwapCard() {
             toToken: toToken.address,
             amount: debouncedAmount.toString(),
             slippageBps,
-            ...(address ? { taker: address } : {}),
+            ...(address ? { taker: address as `0x${string}` } : {}),
+            ...(recipient && !recipientInvalid ? { recipient: recipient as `0x${string}` } : {}),
           }
         : null,
-    [fromChain, toChain, fromToken, toToken, debouncedAmount, slippageBps, address],
+    [
+      fromChain,
+      toChain,
+      fromToken,
+      toToken,
+      debouncedAmount,
+      slippageBps,
+      address,
+      recipient,
+      recipientInvalid,
+    ],
   );
 
   const quotes = useQuery({
@@ -195,24 +226,35 @@ export function SwapCard() {
   }, [settled]);
 
   // Balances & allowance
-  const nativeBal = useBalance({ address, chainId: fromChain, query: { enabled: !!address } });
+  const evmFrom = fromVm === "evm";
+  const nativeBal = useBalance({
+    address: evmAddress,
+    chainId: fromChain,
+    query: { enabled: !!evmAddress && evmFrom },
+  });
   const erc20Bal = useReadContract({
     address: fromToken?.address,
     abi: erc20Abi,
     functionName: "balanceOf",
-    args: address ? [address] : undefined,
+    args: evmAddress ? [evmAddress] : undefined,
     chainId: fromChain,
-    query: { enabled: !!address && !!fromToken && !isNative(fromToken) },
+    query: { enabled: !!evmAddress && evmFrom && !!fromToken && !isNative(fromToken) },
   });
-  const balance = isNative(fromToken) ? nativeBal.data?.value : erc20Bal.data;
+  const balance = !evmFrom
+    ? undefined
+    : isNative(fromToken)
+      ? nativeBal.data?.value
+      : erc20Bal.data;
   const spender = quote?.approvalAddress ?? null;
   const allowance = useReadContract({
     address: fromToken?.address,
     abi: erc20Abi,
     functionName: "allowance",
-    args: address && spender ? [address, spender] : undefined,
+    args: evmAddress && spender ? [evmAddress, spender] : undefined,
     chainId: fromChain,
-    query: { enabled: !!address && !!spender && !isNative(fromToken) && !quotesMocked },
+    query: {
+      enabled: !!evmAddress && evmFrom && !!spender && !isNative(fromToken) && !quotesMocked,
+    },
   });
   const needsApproval =
     !!spender &&
@@ -233,7 +275,7 @@ export function SwapCard() {
     fromChainName: chainName(fromChain),
     toChainName: chainName(toChain),
     connected: !!address,
-    wrongNetwork: !!address && walletChain !== fromChain,
+    wrongNetwork: evmFrom && !!address && walletChain !== fromChain,
     insufficient,
     quoting: request === null ? amount !== null : quotes.isFetching,
     error: quotes.isError ? (quotes.error as Error).message : undefined,
@@ -276,10 +318,34 @@ export function SwapCard() {
     }
   };
 
+  const swapSolana = async (q: Quote, from: string) => {
+    if (!sol.provider || !sol.connection) throw new Error("Connect a Solana wallet first");
+    const built = await api.build(q, from, false);
+    if (!built.nonEvmTx) throw new Error("Provider returned no Solana transaction");
+    const tx = await toSolanaTx(built.nonEvmTx, from, sol.connection);
+    const sig = await sol.provider.signAndSendTransaction(tx);
+    submitted.current = q;
+    track("swap_submitted", { ...quoteParams(q), execution: "svm", tx_hash: sig });
+    setPhase({
+      k: "tracking",
+      p: {
+        provider: q.provider,
+        txHash: sig,
+        fromChainId: fromChain,
+        toChainId: toChain,
+        mocked: false,
+      },
+    });
+  };
+
   const swap = async () => {
     if (!quote || !address) return;
     setPhase({ k: "swapping" });
     try {
+      if (fromVm === "svm" && !quotesMocked) {
+        await swapSolana(quote, address);
+        return;
+      }
       if (quotesMocked) {
         // Demo mode: never send a real transaction against mock data.
         await new Promise((r) => setTimeout(r, 1200));
@@ -299,6 +365,7 @@ export function SwapCard() {
       }
       await ensureChain();
       const built = await api.build(quote, address, false);
+      const evm = evmAddress as `0x${string}`;
       if (built.execution === "order" && built.order) {
         // CoW: sign the EIP-712 order (no gas), submit to CoW's orderbook.
         const o = built.order;
@@ -308,7 +375,7 @@ export function SwapCard() {
           primaryType: o.primaryType,
           message: o.message,
         } as Parameters<typeof signTypedDataAsync>[0]);
-        const uid = await submitCowOrder(fromChain, o, signature, address);
+        const uid = await submitCowOrder(fromChain, o, signature, evm);
         setPhase({ k: "order", uid });
         submitted.current = quote;
         track("swap_submitted", { ...quoteParams(quote), execution: "order" });
@@ -402,7 +469,16 @@ export function SwapCard() {
   const chainList = chains.data?.data ?? [];
   const fromCh = characterForChain(fromChain);
   let cta: { label: string; action?: () => void } = { label: "Enter an amount" };
-  if (!address) cta = { label: "Connect wallet to swap" };
+  if (fromVm === "bvm" || fromVm === "tvm")
+    cta = { label: `Sending from ${VM_NAME[fromVm]} isn't wired yet — pick it as the destination` };
+  else if (!address)
+    cta =
+      fromVm === "svm"
+        ? { label: "Connect a Solana wallet", action: sol.open }
+        : { label: "Connect wallet to swap" };
+  else if (needsRecipient && !recipient)
+    cta = { label: `Enter your ${VM_NAME[toVm]} address to receive` };
+  else if (recipientInvalid) cta = { label: `That's not a ${VM_NAME[toVm]} address` };
   else if (amountInvalid) cta = { label: `Max ${fromToken?.decimals} decimals` };
   else if (amount === null) cta = { label: "Enter an amount" };
   else if (insufficient) cta = { label: `Not enough ${fromToken?.symbol}` };
@@ -495,6 +571,16 @@ export function SwapCard() {
             chainId={toChain}
           />
         </div>
+        {needsRecipient && (
+          <input
+            aria-label="Recipient address"
+            data-testid="recipient"
+            placeholder={ownOnDest ?? `Your ${VM_NAME[toVm]} address`}
+            value={recipientInput}
+            onChange={(e) => setRecipientInput(e.target.value)}
+            className={`mt-2 w-full rounded-xl bg-violet-950/70 px-3 py-2 font-mono text-xs outline-none ${recipientInvalid ? "text-rose-400" : "text-violet-100"}`}
+          />
+        )}
       </section>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-violet-300">
@@ -577,7 +663,7 @@ export function SwapCard() {
         </div>
       )}
 
-      {!address ? (
+      {!address && fromVm === "evm" ? (
         <div className="mt-4" data-testid="connect-cta">
           <ConnectButton primary />
         </div>

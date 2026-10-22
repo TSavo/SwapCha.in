@@ -1,6 +1,13 @@
-import { NATIVE_TOKEN, Quote, type QuoteRequest, StatusResponse } from "@swapchan/shared";
+import {
+  NATIVE_TOKEN,
+  type NonEvmTx,
+  Quote,
+  type QuoteRequest,
+  StatusResponse,
+  vmOf,
+} from "@swapchan/shared";
 import { ZERO_ADDRESS } from "../pricing.js";
-import { type Fetch, getJson, PLACEHOLDER_TAKER, type ProviderAdapter } from "./types.js";
+import { type Fetch, getJson, type ProviderAdapter, placeholderFor } from "./types.js";
 
 const BASE = "https://api.relay.link";
 const toRelay = (a: string) => (a.toLowerCase() === NATIVE_TOKEN.toLowerCase() ? ZERO_ADDRESS : a);
@@ -15,9 +22,20 @@ interface RelayQuote {
     id: string;
     requestId?: string;
     kind: string;
-    items: { data?: { to: string; data: string; value: string; chainId: number; gas?: string } }[];
+    items: {
+      data?: {
+        to?: string;
+        data?: string;
+        value?: string;
+        chainId?: number;
+        gas?: string;
+        instructions?: unknown[];
+        addressLookupTableAddresses?: string[];
+        psbt?: string;
+      };
+    }[];
   }[];
-  fees: Record<string, Amt | undefined>;
+  fees: Record<string, (Amt & { currency?: { chainId: number } }) | undefined>;
   details: { currencyOut: Amt; timeEstimate?: number };
 }
 
@@ -37,7 +55,10 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
         signal,
         headers,
         body: JSON.stringify({
-          user: req.taker ?? PLACEHOLDER_TAKER,
+          user: req.taker ?? placeholderFor(req.fromChainId),
+          ...(req.recipient || vmOf(req.toChainId) !== vmOf(req.fromChainId)
+            ? { recipient: req.recipient ?? placeholderFor(req.toChainId) }
+            : {}),
           originChainId: req.fromChainId,
           destinationChainId: req.toChainId,
           originCurrency: toRelay(req.fromToken),
@@ -60,6 +81,20 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
       const feeUsd = Number(r.fees.relayer?.amountUsd ?? 0) + Number(r.fees.app?.amountUsd ?? 0);
       const main = r.steps.find((s) => s.id !== "approve")?.items[0]?.data;
       const approve = r.steps.find((s) => s.id === "approve")?.items[0]?.data;
+      const vm = vmOf(req.fromChainId);
+      let nonEvmTx: NonEvmTx | undefined;
+      if (vm === "svm" && main?.instructions)
+        nonEvmTx = {
+          vm,
+          kind: "svm-instructions",
+          data: {
+            instructions: main.instructions,
+            addressLookupTableAddresses: main.addressLookupTableAddresses ?? [],
+          },
+        };
+      else if (vm === "bvm" && main?.psbt) nonEvmTx = { vm, kind: "bvm-psbt", data: main.psbt };
+      else if (vm === "tvm" && main) nonEvmTx = { vm, kind: "tvm-json", data: main };
+      const app = r.fees.app;
       return Quote.parse({
         id: `relay:${r.requestId ?? r.steps[0]?.requestId ?? crypto.randomUUID()}`,
         provider: "relay",
@@ -83,11 +118,12 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
           },
         ],
         // Relay's approve step targets the token; spender is encoded in its calldata (bytes 4..36).
-        approvalAddress: approve ? (`0x${approve.data.slice(34, 74)}` as const) : null,
+        approvalAddress:
+          vm === "evm" && approve?.data ? (`0x${approve.data.slice(34, 74)}` as const) : null,
         tx:
-          req.taker && main
+          vm === "evm" && req.taker && main?.to && main.data
             ? {
-                chainId: main.chainId,
+                chainId: main.chainId ?? req.fromChainId,
                 to: main.to,
                 data: main.data,
                 value: main.value ?? "0",
@@ -95,8 +131,19 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
               }
             : null,
         expiresAt: Date.now() + 30_000,
-        ourFeeUsd: Number(r.fees.app?.amountUsd ?? 0),
-        ourFeeVerified: BigInt(r.fees.app?.amount ?? "0") > 0n,
+        ourFeeUsd: Number(app?.amountUsd ?? 0),
+        ourFeeVerified: BigInt(app?.amount ?? "0") > 0n,
+        ...(req.taker && nonEvmTx ? { execution: "nonevm" as const, nonEvmTx } : {}),
+        // Relay only accepts an EVM app-fee recipient; fees on every chain accrue to it as a
+        // claimable balance (api.relay.link/app-fees/<addr>/balances).
+        ...(env.SWAPCHAN_FEE_RECIPIENT && app
+          ? {
+              feeRecipient: {
+                address: env.SWAPCHAN_FEE_RECIPIENT,
+                chainId: app.currency?.chainId ?? req.fromChainId,
+              },
+            }
+          : {}),
       });
     },
     async status(req, signal) {

@@ -73,7 +73,7 @@ export const api = {
       () => call(`/quotes?${toQuery({ ...req })}`, QuotesResponseSchema),
       () => mockQuotes(req),
     ),
-  build: (quote: Quote, taker: `0x${string}`, mocked: boolean): Promise<BuildResponse> =>
+  build: (quote: Quote, taker: string, mocked: boolean): Promise<BuildResponse> =>
     mocked
       ? Promise.resolve(mockBuild(quote.id, quote.request.fromChainId))
       : call("/build", BuildResponseSchema, {

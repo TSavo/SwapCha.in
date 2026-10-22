@@ -2,11 +2,13 @@ import {
   Address,
   API_VERSION,
   BuildResponse,
+  isEvmChain,
   type Quote,
   QuoteRequest,
   StatusRequest,
   SUPPORTED_CHAINS,
   tokenList,
+  vmOf,
 } from "@swapchan/shared";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -86,7 +88,13 @@ export function createApp(
     }),
   );
   app.get("/chains", (c) =>
-    c.json(Object.entries(SUPPORTED_CHAINS).map(([id, v]) => ({ id: Number(id), ...v }))),
+    c.json(
+      Object.entries(SUPPORTED_CHAINS).map(([id, v]) => ({
+        id: Number(id),
+        ...v,
+        vm: vmOf(Number(id)),
+      })),
+    ),
   );
   app.get("/tokens", (c) => {
     const id = c.req.query("chainId");
@@ -113,12 +121,17 @@ export function createApp(
   });
   app.post("/build", async (c) => {
     const { quoteId, taker } = z
-      .object({ quoteId: z.string(), taker: Address })
+      .object({ quoteId: z.string(), taker: Address, recipient: Address.optional() })
       .parse(await c.req.json());
     const q = cache.get(quoteId);
     const p = q && providers.find((x) => x.name === q.provider);
     if (!q || !p) return c.json({ error: "unknown or expired quote" }, 404);
-    const req = { ...q.request, taker };
+    const { recipient } = (await c.req.json().catch(() => ({}))) as { recipient?: string };
+    const req = {
+      ...q.request,
+      taker,
+      ...(recipient ? { recipient: recipient as `0x${string}` } : {}),
+    };
     const signal = AbortSignal.timeout(10_000);
     let out: BuildResponse;
     if (p.build) out = await p.build(req, signal);
@@ -134,10 +147,20 @@ export function createApp(
           execution: "order",
           order: fresh.order,
         };
+      } else if (fresh.nonEvmTx) {
+        // Non-EVM origin: hand back the provider's payload for the Solana/Bitcoin/Tron wallet.
+        out = {
+          chainId: req.fromChainId,
+          to: "0x0000000000000000000000000000000000000000",
+          data: "0x",
+          value: "0",
+          execution: "nonevm",
+          nonEvmTx: fresh.nonEvmTx,
+        };
       } else if (fresh.tx) out = { ...fresh.tx, execution: "tx" };
       else return c.json({ error: "provider returned no tx" }, 502);
     }
-    if (simulator && out.execution !== "order")
+    if (simulator && out.execution === "tx" && isEvmChain(out.chainId))
       out = { ...out, simulation: await simulator(out, taker) };
     return c.json(BuildResponse.parse(out));
   });

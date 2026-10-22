@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { fromBaseUnits, NATIVE_TOKEN, QuoteRequest, toBaseUnits, tokenList } from "./index.js";
+import {
+  fromBaseUnits,
+  isVmAddress,
+  NATIVE_TOKEN,
+  nativeOf,
+  QuoteRequest,
+  toBaseUnits,
+  tokenList,
+  vmOf,
+} from "./index.js";
 
 describe("shared", () => {
   it("does exact decimal math (old bug: '1.5' padded wrong)", () => {
@@ -31,8 +40,29 @@ describe("chain registry", () => {
     const { SUPPORTED_CHAINS } = await import("./index.js");
     for (const id of Object.keys(SUPPORTED_CHAINS).map(Number)) {
       const syms = tokenList.filter((t) => t.chainId === id);
-      expect(syms.some((t) => t.address === NATIVE_TOKEN)).toBe(true);
-      expect(syms.some((t) => t.symbol === "USDC")).toBe(true);
+      expect(syms.some((t) => t.address === nativeOf(id))).toBe(true);
+      if (vmOf(id) === "evm" || vmOf(id) === "svm")
+        expect(syms.some((t) => t.symbol === "USDC")).toBe(true);
     }
+  });
+  it("knows non-EVM chains and validates their addresses", () => {
+    expect(vmOf(792703809)).toBe("svm");
+    expect(vmOf(8253038)).toBe("bvm");
+    expect(vmOf(728126428)).toBe("tvm");
+    expect(vmOf(1)).toBe("evm");
+    expect(isVmAddress("BUqwuxGmshL5aT9eW79D4c8kVdwCjcZLXjiotAntwFJE", "svm")).toBe(true);
+    expect(isVmAddress("bc1qy65xajxwrtp62uk3styn9py7m2k06cdj2wla6n", "bvm")).toBe(true);
+    expect(isVmAddress("TULPYGfQ8U44XkhiX3oa3BaXdNPu6M5U3Z", "tvm")).toBe(true);
+    expect(isVmAddress("TULPYGfQ8U44XkhiX3oa3BaXdNPu6M5U3Z", "bvm")).toBe(false);
+    expect(nativeOf(8253038)).toMatch(/^bc1q/);
+    const r = QuoteRequest.parse({
+      fromChainId: 8453,
+      toChainId: 792703809,
+      amount: "1",
+      fromToken: NATIVE_TOKEN,
+      toToken: nativeOf(792703809),
+      recipient: "BUqwuxGmshL5aT9eW79D4c8kVdwCjcZLXjiotAntwFJE",
+    });
+    expect(r.recipient).toBe("BUqwuxGmshL5aT9eW79D4c8kVdwCjcZLXjiotAntwFJE");
   });
 });

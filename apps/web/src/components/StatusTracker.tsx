@@ -1,6 +1,6 @@
 "use client";
 
-import type { StatusResponse } from "@swapchan/shared";
+import { isEvmChain, type StatusResponse } from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useWaitForTransactionReceipt } from "wagmi";
@@ -12,13 +12,21 @@ import { HopAnimation } from "./HopAnimation";
 
 export interface TrackParams {
   provider: string;
-  txHash: `0x${string}`;
+  /** EVM hash, or a Solana signature for Solana-origin swaps. */
+  txHash: string;
   fromChainId: number;
   toChainId: number;
   mocked: boolean;
 }
 
+const NON_EVM_EXPLORER: Record<number, string> = {
+  792703809: "https://solscan.io/tx/",
+  8253038: "https://mempool.space/tx/",
+  728126428: "https://tronscan.org/#/transaction/",
+};
 const txUrl = (chainId: number, hash: string) => {
+  const ne = NON_EVM_EXPLORER[chainId];
+  if (ne) return `${ne}${hash.replace(/^0x/, "")}`;
   const base = wagmiConfig.chains.find((c) => c.id === chainId)?.blockExplorers?.default.url;
   return base ? `${base}/tx/${hash}` : undefined;
 };
@@ -51,11 +59,13 @@ export function StatusTracker({
   onReset?: () => void;
   onSettled?: (s: "done" | "failed") => void;
 }) {
-  const cross = p.fromChainId !== p.toChainId;
+  const nonEvm = !isEvmChain(p.fromChainId);
+  // Non-EVM origin: the provider's status API is the only tracker we have.
+  const cross = p.fromChainId !== p.toChainId || nonEvm;
   const receipt = useWaitForTransactionReceipt({
-    hash: p.txHash,
+    hash: p.txHash as `0x${string}`,
     chainId: p.fromChainId,
-    query: { enabled: !p.mocked },
+    query: { enabled: !p.mocked && !nonEvm },
   });
   const status = useQuery({
     queryKey: ["status", p],

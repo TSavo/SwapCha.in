@@ -1,4 +1,10 @@
-import { type BuildResponse, Quote, type QuoteRequest, TypedData } from "@swapchan/shared";
+import {
+  type BuildResponse,
+  isEvmChain,
+  Quote,
+  type QuoteRequest,
+  TypedData,
+} from "@swapchan/shared";
 import { type Pricer, ZERO_ADDRESS } from "../pricing.js";
 import { type Fetch, getJson, type ProviderAdapter } from "./types.js";
 
@@ -40,7 +46,8 @@ export function zerox(env: NodeJS.ProcessEnv, pricer: Pricer, f: Fetch = fetch):
   return {
     name: "0x",
     enabled: () => Boolean(key),
-    supports: (r) => r.fromChainId === r.toChainId,
+    supports: (r) =>
+      isEvmChain(r.fromChainId) && isEvmChain(r.toChainId) && r.fromChainId === r.toChainId,
     async quote(req, signal) {
       const r = await call(
         req.taker ? "allowance-holder/quote" : "allowance-holder/price",

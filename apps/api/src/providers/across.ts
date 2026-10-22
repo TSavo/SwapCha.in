@@ -1,4 +1,4 @@
-import { Quote, type QuoteRequest, StatusResponse } from "@swapchan/shared";
+import { isEvmChain, Quote, type QuoteRequest, StatusResponse } from "@swapchan/shared";
 import type { Pricer } from "../pricing.js";
 import { type Fetch, getJson, PLACEHOLDER_TAKER, type ProviderAdapter } from "./types.js";
 
@@ -28,7 +28,8 @@ export function across(
   return {
     name: "across",
     enabled: () => true,
-    supports: (r) => r.fromChainId !== r.toChainId,
+    supports: (r) =>
+      isEvmChain(r.fromChainId) && isEvmChain(r.toChainId) && r.fromChainId !== r.toChainId,
     async quote(req: QuoteRequest, signal) {
       const q = new URLSearchParams({
         tradeType: "exactInput",

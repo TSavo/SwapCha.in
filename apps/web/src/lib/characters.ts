@@ -9,14 +9,16 @@ export type CharacterKey =
   | "bnb"
   | "avalanche"
   | "linea"
-  | "scroll";
+  | "scroll"
+  | "bitcoin"
+  | "tron";
 
 export interface Character {
   key: CharacterKey;
   name: string;
   color: string;
   tagline: string;
-  /** EVM chain id, or null when the chain isn't live yet. */
+  /** Chain id (non-EVM ids follow Relay), or null for Swap-chan herself. */
   chainId: number | null;
 }
 
@@ -95,8 +97,22 @@ export const CHARACTERS: Record<CharacterKey, Character> = {
     key: "solana",
     name: "Sol-chan",
     color: "#14f195",
-    tagline: "Speed demon. Arriving soon.",
-    chainId: null,
+    tagline: "Speed demon. Already done.",
+    chainId: 792703809,
+  },
+  bitcoin: {
+    key: "bitcoin",
+    name: "Bitcoin-chan",
+    color: "#f7931a",
+    tagline: "The original. Don't trust, verify.",
+    chainId: 8253038,
+  },
+  tron: {
+    key: "tron",
+    name: "Tron-chan",
+    color: "#ff060a",
+    tagline: "Queen of stablecoin transfers.",
+    chainId: 728126428,
   },
 };
 

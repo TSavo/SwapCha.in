@@ -480,5 +480,61 @@
     "name": "Wrapped BTC",
     "address": "0x3C1BCa5a656e69edCD0D4E36BEbb3FcDAcA60Cf1",
     "decimals": 8
+  },
+  {
+    "chainId": 792703809,
+    "symbol": "SOL",
+    "name": "Solana",
+    "address": "11111111111111111111111111111111",
+    "decimals": 9
+  },
+  {
+    "chainId": 792703809,
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "decimals": 6
+  },
+  {
+    "chainId": 792703809,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    "decimals": 6
+  },
+  {
+    "chainId": 792703809,
+    "symbol": "JUP",
+    "name": "Jupiter",
+    "address": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    "decimals": 6
+  },
+  {
+    "chainId": 792703809,
+    "symbol": "cbBTC",
+    "name": "Coinbase Wrapped BTC",
+    "address": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
+    "decimals": 8
+  },
+  {
+    "chainId": 8253038,
+    "symbol": "BTC",
+    "name": "Bitcoin",
+    "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
+    "decimals": 8
+  },
+  {
+    "chainId": 728126428,
+    "symbol": "TRX",
+    "name": "TRON",
+    "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+    "decimals": 6
+  },
+  {
+    "chainId": 728126428,
+    "symbol": "USDT",
+    "name": "Tether USD",
+    "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+    "decimals": 6
   }
 ]

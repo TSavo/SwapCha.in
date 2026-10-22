@@ -18,14 +18,49 @@ export const SUPPORTED_CHAINS = {
   43114: { name: "Avalanche", mascot: "avax-chan" },
   59144: { name: "Linea", mascot: "linea-chan" },
   534352: { name: "Scroll", mascot: "scroll-chan" },
+  792703809: { name: "Solana", mascot: "sol-chan" },
+  8253038: { name: "Bitcoin", mascot: "btc-chan" },
+  728126428: { name: "Tron", mascot: "tron-chan" },
 } as const satisfies Record<number, { name: string; mascot: string }>;
+
+/** Virtual machine family per chain. Non-EVM chain ids follow Relay's numbering. */
+export type Vm = "evm" | "svm" | "bvm" | "tvm";
+export const SOLANA = 792703809;
+export const BITCOIN = 8253038;
+export const TRON = 728126428;
+export const NON_EVM: Record<number, { vm: Vm; native: string }> = {
+  [SOLANA]: { vm: "svm", native: "11111111111111111111111111111111" },
+  [BITCOIN]: { vm: "bvm", native: "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8" },
+  [TRON]: { vm: "tvm", native: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb" },
+};
+export const vmOf = (chainId: number): Vm => NON_EVM[chainId]?.vm ?? "evm";
+export const isEvmChain = (chainId: number) => vmOf(chainId) === "evm";
+
+const B58 = "[1-9A-HJ-NP-Za-km-z]";
+const PATTERNS: Record<Exclude<Vm, "evm">, RegExp> = {
+  svm: new RegExp(`^${B58}{32,44}$`),
+  bvm: /^(bc1[02-9ac-hj-np-z]{11,87}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$/,
+  tvm: new RegExp(`^T${B58}{33}$`),
+};
+/** True if `a` is a well-formed address (wallet or token) on a chain of VM `vm`. */
+export const isVmAddress = (a: string, vm: Vm): boolean =>
+  vm === "evm" ? isAddress(a, { strict: false }) : PATTERNS[vm].test(a);
+export const isAnyAddress = (a: string) =>
+  (["evm", "svm", "bvm", "tvm"] as const).some((vm) => isVmAddress(a, vm));
+/** Native token sentinel for any supported chain. */
+export const nativeOf = (chainId: number): string => NON_EVM[chainId]?.native ?? NATIVE_TOKEN;
 
 export const Chain = z.object({ id: ChainId, name: z.string(), mascot: z.string() });
 export type Chain = z.infer<typeof Chain>;
 
 export const Address = z
   .string()
-  .refine((a) => isAddress(a, { strict: false }), "invalid address")
+  .refine((a) => isAnyAddress(a), "invalid address")
+  .transform((a) => a as `0x${string}`);
+/** Strict EVM address (tx targets, spenders). */
+export const EvmAddress = z
+  .string()
+  .refine((a) => isAddress(a, { strict: false }), "invalid EVM address")
   .transform((a) => a as `0x${string}`);
 export const Hex = z
   .string()
@@ -57,6 +92,8 @@ export const QuoteRequest = z.object({
   amount: BaseUnits,
   /** Optional: required by some providers to return a tx. */
   taker: Address.optional(),
+  /** Receiving address on the destination chain; required when it's a different VM than taker's. */
+  recipient: Address.optional(),
   /** Slippage in basis points (50 = 0.5%). */
   slippageBps: z.coerce.number().int().min(1).max(5000).default(50),
 });
@@ -84,7 +121,7 @@ export type Simulation = z.infer<typeof Simulation>;
 
 export const TxRequest = z.object({
   chainId: ChainId,
-  to: Address,
+  to: EvmAddress,
   data: Hex,
   value: BaseUnits,
   gasLimit: BaseUnits.optional(),
@@ -102,6 +139,15 @@ export const TypedData = z.object({
 export type TypedData = z.infer<typeof TypedData>;
 export type TxRequest = z.infer<typeof TxRequest>;
 
+/** Non-EVM transaction payload. svm-base64 = serialized VersionedTransaction (sign + send);
+ * svm-instructions = Relay instruction list to compile with the lookup tables. */
+export const NonEvmTx = z.object({
+  vm: z.enum(["svm", "bvm", "tvm"]),
+  kind: z.enum(["svm-base64", "svm-instructions", "bvm-psbt", "tvm-json"]),
+  data: z.unknown(),
+});
+export type NonEvmTx = z.infer<typeof NonEvmTx>;
+
 export const Quote = z.object({
   id: z.string(),
   provider: z.string(),
@@ -115,7 +161,7 @@ export const Quote = z.object({
   etaSeconds: z.number().int().nonnegative(),
   steps: z.array(RouteStep),
   /** Spender to approve for ERC20 input; null for native. */
-  approvalAddress: Address.nullable(),
+  approvalAddress: EvmAddress.nullable(),
   tx: TxRequest.nullable(),
   expiresAt: z.number().int(),
   /** SwapChan's own fee on this route, in USD. 0 = this route pays us nothing. */
@@ -123,9 +169,13 @@ export const Quote = z.object({
   /** True when the provider confirmed our fee in its quote/tx (not just requested). */
   ourFeeVerified: z.boolean().optional(),
   /** Additive v1: "tx" = send `tx`; "order" = sign `order` typed data (CoW), no tx. Default "tx". */
-  execution: z.enum(["tx", "order"]).optional(),
+  execution: z.enum(["tx", "order", "nonevm"]).optional(),
   /** EIP-712 order to sign when execution === "order". */
   order: TypedData.optional(),
+  /** Additive v1: set when the origin chain is non-EVM (execution === "nonevm"). */
+  nonEvmTx: NonEvmTx.optional(),
+  /** Who receives SwapChan's fee on this route (address + chain), when known. */
+  feeRecipient: z.object({ address: z.string(), chainId: ChainId }).optional(),
 });
 export type Quote = z.infer<typeof Quote>;
 
@@ -142,14 +192,16 @@ export const BuildResponse = TxRequest.extend({
   permit2: TypedData.optional(),
   /** If set: send this approve tx first (ERC20 allowance missing/unknown). */
   approval: TxRequest.optional(),
-  execution: z.enum(["tx", "order"]).optional(),
+  execution: z.enum(["tx", "order", "nonevm"]).optional(),
   order: TypedData.optional(),
+  nonEvmTx: NonEvmTx.optional(),
 });
 export type BuildResponse = z.infer<typeof BuildResponse>;
 
 export const StatusRequest = z.object({
   provider: z.string(),
-  txHash: Hex,
+  /** EVM tx hash, Solana signature, Bitcoin txid or Tron txid. */
+  txHash: z.string().regex(/^(0x)?[0-9a-fA-F]{64}$|^[1-9A-HJ-NP-Za-km-z]{64,90}$/),
   fromChainId: z.coerce.number().pipe(ChainId),
   toChainId: z.coerce.number().pipe(ChainId),
 });
@@ -157,7 +209,7 @@ export type StatusRequest = z.infer<typeof StatusRequest>;
 
 export const StatusResponse = z.object({
   status: z.enum(["pending", "done", "failed", "not_found"]),
-  receivingTxHash: Hex.nullable(),
+  receivingTxHash: z.string().nullable(),
 });
 export type StatusResponse = z.infer<typeof StatusResponse>;
 

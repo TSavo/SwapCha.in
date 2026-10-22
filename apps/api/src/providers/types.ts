@@ -5,6 +5,7 @@ import type {
   StatusRequest,
   StatusResponse,
 } from "@swapchan/shared";
+import { vmOf } from "@swapchan/shared";
 
 /** Every aggregator/bridge implements this. Add one file per provider + register in index.ts. */
 export interface ProviderAdapter {
@@ -28,3 +29,13 @@ export async function getJson<T>(f: Fetch, url: string, init: RequestInit): Prom
 
 /** Used for indicative quotes when no taker is given. */
 export const PLACEHOLDER_TAKER = "0x000000000000000000000000000000000000dEaD";
+
+/** Indicative-quote stand-ins per VM (Bitcoin needs a funded address: Relay checks UTXOs). */
+const PLACEHOLDERS: Record<string, string> = {
+  evm: PLACEHOLDER_TAKER,
+  svm: "BUqwuxGmshL5aT9eW79D4c8kVdwCjcZLXjiotAntwFJE",
+  bvm: "34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo",
+  tvm: "TULPYGfQ8U44XkhiX3oa3BaXdNPu6M5U3Z",
+};
+export const placeholderFor = (chainId: number): string =>
+  PLACEHOLDERS[vmOf(chainId)] ?? PLACEHOLDER_TAKER;

@@ -28,6 +28,64 @@ export interface Bio {
 }
 
 export const BIOS: Record<CharacterKey, Bio> = {
+  bitcoin: {
+    key: "bitcoin",
+    role: "The original, keeper of the hardest money",
+    intro:
+      "Bitcoin-chan was here first and she will remind you. She doesn't do smart contracts, but Swap-chan bridges her BTC straight to your wallet from any chain through Relay and LI.FI.",
+    personality:
+      "Calm, proud and stubborn as a block header. Speaks slowly, verifies everything twice, and has never once panicked during a dip.",
+    look: "Long wavy orange twin-tails with gold ₿ coin hair ornaments, a black-and-orange bomber jacket with a ₿ emblem, a black pleated skirt and black-and-gold platform boots.",
+    catchphrase: "Don't trust. Verify.",
+    likes: ["Cold storage", "Ten-minute blocks", "Low time preference", "Running her own node"],
+    dislikes: ["Altcoin pitches", "Custodians", "People who say 'blockchain not Bitcoin'"],
+    withSwapchan:
+      "Swap-chan treats her like a respected elder and always finds her the cheapest way home. Bitcoin-chan pretends not to care but checks every route.",
+    friends: [
+      {
+        who: "ethereum",
+        note: "Her oldest rival. They argue about everything and still show up to each other's birthdays.",
+      },
+      {
+        who: "tron",
+        note: "Thinks Tron-chan moves too many stablecoins, but borrows her for fast transfers.",
+      },
+    ],
+    facts: {
+      chain: "Bitcoin (live on SwapChan via Relay and LI.FI)",
+      launched: "2009",
+      consensus: "Proof of Work",
+      token: "BTC",
+      knownFor: "The first cryptocurrency, a fixed 21 million supply, and being digital gold",
+    },
+    art: "final",
+  },
+  tron: {
+    key: "tron",
+    role: "Queen of stablecoin transfers",
+    intro:
+      "Tron-chan carries more USDT than almost anyone. Swap-chan routes her through Relay and LI.FI, so USDT on Tron is one click from any EVM chain.",
+    personality:
+      "Energetic, flashy and very good with money. Always busy, always moving, and always cheaper than you expected.",
+    look: "Long straight red side ponytail with a triangle hair clip, a black-and-red techwear jacket, red shorts, black thigh-highs and chunky red platform boots.",
+    catchphrase: "Stablecoins? Leave it to me!",
+    likes: ["USDT", "Fast settlement", "Red triangles", "Remittances"],
+    dislikes: ["Energy bills", "Slow banks", "People who forget to buy energy"],
+    withSwapchan:
+      "Swap-chan's go-to for moving stablecoins cheaply. They trade USDT back and forth like friendship bracelets.",
+    friends: [
+      { who: "bnb", note: "Shopping buddy. Both love a low fee." },
+      { who: "bitcoin", note: "Respects her elder, still sends her stablecoins anyway." },
+    ],
+    facts: {
+      chain: "Tron (live on SwapChan via Relay and LI.FI)",
+      launched: "2018 (mainnet)",
+      consensus: "Delegated Proof of Stake",
+      token: "TRX",
+      knownFor: "Carrying a huge share of the world's USDT transfers",
+    },
+    art: "final",
+  },
   swapchan: {
     key: "swapchan",
     role: "Route-finder, team captain, professional bargain hunter",
@@ -113,9 +171,9 @@ export const BIOS: Record<CharacterKey, Bio> = {
   },
   solana: {
     key: "solana",
-    role: "Speed demon, arriving soon",
+    role: "Speed demon of the 400 ms slot",
     intro:
-      "Sol-chan runs everywhere. She doesn't speak EVM, so she's still learning Swap-chan's routes, but she's already doing warm-up laps.",
+      "Sol-chan runs everywhere. She doesn't speak EVM, but Swap-chan found her bridges through Relay and LI.FI, so now she sprints SOL and USDC to and from every other chain.",
     personality:
       "Loud, fast, chaotic and endlessly upbeat. Gets bored if a block takes more than half a second.",
     look: "Purple twin-tail hair with neon green streaks, a black crop jacket with purple straps, lightning-green energy trails and chunky purple-and-gold platform boots.",
@@ -123,13 +181,13 @@ export const BIOS: Record<CharacterKey, Bio> = {
     likes: ["400-millisecond slots", "Memecoins", "Tiny fees", "Running laps around everyone"],
     dislikes: ["Waiting", "Being asked about uptime", "Seven-day withdrawal windows"],
     withSwapchan:
-      "Swap-chan's chaotic new friend. Swap-chan is building her a bridge so they can finally hang out properly.",
+      "Swap-chan's chaotic new friend. Now that the bridge is built they hang out constantly, mostly racing USDC from Base to Solana.",
     friends: [
       { who: "ethereum", note: "Friendly rival who keeps telling her to slow down." },
       { who: "avalanche", note: "Her racing buddy. They time each other's finality for fun." },
     ],
     facts: {
-      chain: "Solana (not live on SwapChan yet)",
+      chain: "Solana (live on SwapChan via Relay and LI.FI)",
       launched: "2020 (mainnet beta)",
       consensus: "Proof of Stake with Proof of History",
       token: "SOL",
@@ -372,6 +430,8 @@ export const castOrder: CharacterKey[] = [
   "linea",
   "scroll",
   "solana",
+  "bitcoin",
+  "tron",
 ];
 
 export const castHref = (key: CharacterKey): string => `/cast/${key}`;

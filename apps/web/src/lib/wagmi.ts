@@ -9,7 +9,9 @@ import {
   optimism,
   polygon,
   scroll,
+  solana,
 } from "@reown/appkit/networks";
+import { SolanaAdapter } from "@reown/appkit-adapter-solana";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 import { http } from "viem";
 import { cookieStorage, createConfig, createStorage, injected } from "wagmi";
@@ -38,7 +40,11 @@ export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
   avalanche,
   linea,
   scroll,
+  solana,
 ];
+
+/** Solana wallets (Phantom, Solflare, Backpack...) through AppKit. */
+export const solanaAdapter = hasAppKit ? new SolanaAdapter() : null;
 
 export const wagmiAdapter = hasAppKit
   ? new WagmiAdapter({

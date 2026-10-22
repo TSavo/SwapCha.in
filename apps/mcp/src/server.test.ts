@@ -113,6 +113,25 @@ describe("swapchan mcp over streamable http", () => {
     await c.close();
   });
 
+  it("get_quote routes EVM -> Solana with a recipient and shows Solana-chan", async () => {
+    const c = await connect();
+    const r = data(
+      await c.callTool({
+        name: "get_quote",
+        arguments: {
+          fromChainId: 1,
+          toChainId: 792703809,
+          fromToken: NATIVE_TOKEN,
+          toToken: "11111111111111111111111111111111",
+          recipient: "BUqwuxGmshL5aT9eW79D4c8kVdwCjcZLXjiotAntwFJE",
+          amount: "1",
+        },
+      }),
+    );
+    expect(mock.calls.some((x) => x.includes("recipient=BUqwux"))).toBe(true);
+    expect(r.mascots.map((m: { name: string }) => m.name)).toContain("Solana-chan");
+  });
+
   it("get_quote converts decimal amount to base units and returns best", async () => {
     const c = await connect();
     const r = data(await c.callTool({ name: "get_quote", arguments: ethToUsdc }));

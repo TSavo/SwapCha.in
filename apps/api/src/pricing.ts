@@ -1,3 +1,4 @@
+import { isEvmChain, NON_EVM, tokenList } from "@swapchan/shared";
 import { formatUnits } from "viem";
 import type { Fetch } from "./providers/types.js";
 
@@ -23,6 +24,9 @@ const LLAMA_CHAIN: Record<number, string> = {
   43114: "avax",
   59144: "linea",
   534352: "scroll",
+  792703809: "solana",
+  728126428: "tron",
+  8253038: "bitcoin",
 };
 const NATIVE_GECKO: Record<number, string> = {
   1: "ethereum",
@@ -34,8 +38,12 @@ const NATIVE_GECKO: Record<number, string> = {
   43114: "avalanche-2",
   59144: "ethereum",
   534352: "ethereum",
+  792703809: "solana",
+  8253038: "bitcoin",
+  728126428: "tron",
 };
-const isNative = (a: string) =>
+const isNative = (a: string, chainId = 1) =>
+  NON_EVM[chainId]?.native === a ||
   a.toLowerCase() === ZERO_ADDRESS ||
   a.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
@@ -47,9 +55,9 @@ export function llamaPricer(
 ): Pricer {
   const cache = new Map<string, { at: number; v: Promise<TokenInfo | null> }>();
   const token = (chainId: number, address: string) => {
-    const id = isNative(address)
+    const id = isNative(address, chainId)
       ? `coingecko:${NATIVE_GECKO[chainId] ?? "ethereum"}`
-      : `${LLAMA_CHAIN[chainId] ?? chainId}:${address.toLowerCase()}`;
+      : `${LLAMA_CHAIN[chainId] ?? chainId}:${isEvmChain(chainId) ? address.toLowerCase() : address}`;
     const hit = cache.get(id);
     if (hit && Date.now() - hit.at < ttlMs) return hit.v;
     const v = f(`https://coins.llama.fi/prices/current/${id}`, {
@@ -64,7 +72,11 @@ export function llamaPricer(
           const d = decimalsOf ? await decimalsOf(chainId, address) : null;
           return d === null ? null : { priceUsd: null, decimals: d };
         }
-        return { priceUsd: c.price ?? null, decimals: c.decimals ?? 18 };
+        // coingecko: ids carry no decimals; use our list (SOL 9, BTC 8, TRX 6) before assuming 18.
+        const listed = tokenList.find(
+          (t) => t.chainId === chainId && t.address.toLowerCase() === address.toLowerCase(),
+        );
+        return { priceUsd: c.price ?? null, decimals: c.decimals ?? listed?.decimals ?? 18 };
       })
       .catch(() => null);
     cache.set(id, { at: Date.now(), v });

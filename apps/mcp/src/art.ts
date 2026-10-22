@@ -11,6 +11,9 @@ const CHANS: Record<number, { key: string; name: string }> = {
   43114: { key: "avalanche", name: "Avalanche-chan" },
   59144: { key: "linea", name: "Linea-chan" },
   534352: { key: "scroll", name: "Scroll-chan" },
+  792703809: { key: "solana", name: "Solana-chan" },
+  8253038: { key: "bitcoin", name: "Bitcoin-chan" },
+  728126428: { key: "tron", name: "Tron-chan" },
 };
 
 export interface Mascot {

@@ -1,9 +1,28 @@
-import { Quote, type QuoteRequest, StatusResponse } from "@swapchan/shared";
-import { type Fetch, getJson, type ProviderAdapter } from "./types.js";
+import {
+  BITCOIN,
+  NON_EVM,
+  type NonEvmTx,
+  Quote,
+  type QuoteRequest,
+  SOLANA,
+  StatusResponse,
+  vmOf,
+} from "@swapchan/shared";
+import { type Fetch, getJson, type ProviderAdapter, placeholderFor } from "./types.js";
+
+/** Our chain ids (Relay numbering) <-> LI.FI's. Tron matches. */
+const TO_LIFI: Record<number, number> = { [SOLANA]: 1151111081099710, [BITCOIN]: 20000000000001 };
+const FROM_LIFI: Record<number, number> = Object.fromEntries(
+  Object.entries(TO_LIFI).map(([a, b]) => [b, Number(a)]),
+);
+export const lifiChain = (id: number) => TO_LIFI[id] ?? id;
+const ourChain = (id: number) => FROM_LIFI[id] ?? id;
+const lifiToken = (chainId: number, a: string) =>
+  chainId === BITCOIN && a === NON_EVM[BITCOIN]?.native ? "bitcoin" : a;
+const ourToken = (chainId: number, a: string) =>
+  chainId === BITCOIN && a === "bitcoin" ? (NON_EVM[BITCOIN]?.native ?? a) : a;
 
 const BASE = "https://li.quest/v1";
-/** LI.FI requires fromAddress even for indicative quotes. */
-const PLACEHOLDER_TAKER = "0x0000000000000000000000000000000000000001";
 
 interface LifiStep {
   id: string;
@@ -27,11 +46,11 @@ interface LifiStep {
   };
   includedSteps?: LifiStep[];
   transactionRequest?: {
-    to: string;
+    to?: string;
     data: string;
-    value: string;
+    value?: string;
     gasLimit?: string;
-    chainId: number;
+    chainId?: number;
   };
 }
 
@@ -45,20 +64,24 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
     ? { "x-lifi-api-key": env.LIFI_API_KEY }
     : {};
   const feeBps = Number(env.SWAPCHAN_FEE_BPS ?? 0);
+  const integrator = env.LIFI_INTEGRATOR || "myswapchan";
   return {
     name: "lifi",
     enabled: () => true,
     supports: () => true,
     async quote(req: QuoteRequest, signal) {
       const q = new URLSearchParams({
-        fromChain: String(req.fromChainId),
-        toChain: String(req.toChainId),
-        fromToken: req.fromToken,
-        toToken: req.toToken,
+        fromChain: String(lifiChain(req.fromChainId)),
+        toChain: String(lifiChain(req.toChainId)),
+        fromToken: lifiToken(req.fromChainId, req.fromToken),
+        toToken: lifiToken(req.toChainId, req.toToken),
         fromAmount: req.amount,
-        fromAddress: req.taker ?? PLACEHOLDER_TAKER,
+        fromAddress: req.taker ?? placeholderFor(req.fromChainId),
+        ...(req.recipient || vmOf(req.toChainId) !== vmOf(req.fromChainId)
+          ? { toAddress: req.recipient ?? placeholderFor(req.toChainId) }
+          : {}),
         slippage: String(req.slippageBps / 10_000),
-        integrator: env.LIFI_INTEGRATOR || "myswapchan",
+        integrator,
       });
       // LI.FI rejects fee= (code 1011) until the "swapchan" integrator has a fee wallet in
       // portal.li.fi. Always ask for it; fall back to fee-less (ranked down, unverified) on rejection.
@@ -90,7 +113,16 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
       const feeUsd = sumUsd(s.estimate.feeCosts);
       const toUsd = s.estimate.toAmountUSD ? Number(s.estimate.toAmountUSD) : null;
       const tr = s.transactionRequest;
-      const gasLimit = hexToDec(tr?.gasLimit);
+      const vm = vmOf(req.fromChainId);
+      const gasLimit = vm === "evm" ? hexToDec(tr?.gasLimit) : undefined;
+      const nonEvmTx: NonEvmTx | undefined =
+        vm === "evm" || !tr
+          ? undefined
+          : vm === "svm"
+            ? { vm, kind: "svm-base64", data: tr.data }
+            : vm === "bvm"
+              ? { vm, kind: "bvm-psbt", data: tr }
+              : { vm, kind: "tvm-json", data: tr };
       return Quote.parse({
         id: `lifi:${s.id}`,
         provider: "lifi",
@@ -111,18 +143,18 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
                   ? "wrap"
                   : "swap",
           tool: st.tool,
-          fromChainId: st.action.fromChainId,
-          toChainId: st.action.toChainId,
-          fromToken: st.action.fromToken.address,
-          toToken: st.action.toToken.address,
+          fromChainId: ourChain(st.action.fromChainId),
+          toChainId: ourChain(st.action.toChainId),
+          fromToken: ourToken(ourChain(st.action.fromChainId), st.action.fromToken.address),
+          toToken: ourToken(ourChain(st.action.toChainId), st.action.toToken.address),
           fromAmount: st.action.fromAmount,
           toAmount: st.estimate.toAmount,
         })),
-        approvalAddress: s.estimate.approvalAddress ?? null,
+        approvalAddress: vm === "evm" ? (s.estimate.approvalAddress ?? null) : null,
         tx:
-          req.taker && tr
+          vm === "evm" && req.taker && tr?.to
             ? {
-                chainId: tr.chainId,
+                chainId: tr.chainId ?? req.fromChainId,
                 to: tr.to,
                 data: tr.data,
                 value: hexToDec(tr.value) ?? "0",
@@ -132,13 +164,18 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
         expiresAt: Date.now() + 60_000,
         ourFeeUsd,
         ourFeeVerified: ourFeeUsd > 0,
+        ...(req.taker && nonEvmTx ? { execution: "nonevm" as const, nonEvmTx } : {}),
+        // LI.FI pays integrator fees to the wallets set for "myswapchan" in portal.li.fi.
+        ...(ourFeeUsd > 0
+          ? { feeRecipient: { address: `lifi-integrator:${integrator}`, chainId: req.fromChainId } }
+          : {}),
       });
     },
     async status(req, signal) {
       const q = new URLSearchParams({
         txHash: req.txHash,
-        fromChain: String(req.fromChainId),
-        toChain: String(req.toChainId),
+        fromChain: String(lifiChain(req.fromChainId)),
+        toChain: String(lifiChain(req.toChainId)),
       });
       const r = await getJson<{ status: string; receiving?: { txHash?: string } }>(
         f,

@@ -1,11 +1,14 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import {
   fromBaseUnits,
+  isAnyAddress,
+  isVmAddress,
   NATIVE_TOKEN,
   type Quote,
   type QuoteRequest,
   type Token,
   toBaseUnits,
+  vmOf,
 } from "@swapchan/shared";
 import {
   createPublicClient,
@@ -105,14 +108,16 @@ export class UserError extends Error {}
 
 const addr = z
   .string()
-  .refine((a) => isAddress(a, { strict: false }), "must be a 0x-prefixed 20-byte EVM address")
-  .describe(`Token contract address. Use ${NATIVE_TOKEN} for the native gas token (ETH, POL...).`);
+  .refine((a) => isAnyAddress(a), "must be an EVM, Solana, Bitcoin or Tron address")
+  .describe(
+    `Token address. Native gas token: ${NATIVE_TOKEN} on EVM chains (ETH, POL...), 11111111111111111111111111111111 for SOL, bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8 for BTC, T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb for TRX. SPL mints and TRC-20 addresses work as-is (e.g. Solana USDC EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v, Tron USDT TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t).`,
+  );
 const chainId = z
   .number()
   .int()
   .positive()
   .describe(
-    "EVM chain id, e.g. 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon, 56 BNB Chain, 43114 Avalanche, 59144 Linea, 534352 Scroll",
+    "Chain id: 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon, 56 BNB Chain, 43114 Avalanche, 59144 Linea, 534352 Scroll, 792703809 Solana, 8253038 Bitcoin, 728126428 Tron. Non-EVM chains route via Relay and LI.FI.",
   );
 
 function swapShape(cfg: Config) {
@@ -123,6 +128,13 @@ function swapShape(cfg: Config) {
     ),
     fromToken: addr,
     toToken: addr,
+    recipient: z
+      .string()
+      .refine((a) => isAnyAddress(a), "invalid address")
+      .optional()
+      .describe(
+        "Address that receives the output on toChainId. Required for real execution when the destination is a different VM (e.g. EVM -> Solana/Bitcoin/Tron); omitted = indicative quote only.",
+      ),
     amount: z
       .string()
       .regex(/^\d+(\.\d+)?$/, 'decimal string like "1.5"')
@@ -154,6 +166,7 @@ type SwapArgs = {
   toToken: string;
   amount?: string | undefined;
   amountBaseUnits?: string | undefined;
+  recipient?: string | undefined;
   slippageBps: number;
 };
 
@@ -195,6 +208,7 @@ async function toRequest(api: SwapChanApi, a: SwapArgs, taker?: string): Promise
     amount,
     slippageBps: a.slippageBps,
     ...(taker ? { taker: taker as `0x${string}` } : {}),
+    ...(a.recipient ? { recipient: a.recipient as `0x${string}` } : {}),
   };
 }
 
@@ -229,6 +243,7 @@ async function summarize(api: SwapChanApi, q: Quote) {
     gasUsd: q.gasUsd,
     feeUsd: q.feeUsd,
     swapchanFeeUsd: q.ourFeeUsd ?? 0,
+    ...(q.feeRecipient ? { swapchanFeeRecipient: q.feeRecipient } : {}),
     etaSeconds: q.etaSeconds,
     route: q.steps.map((s) => `${s.type}:${s.tool} ${s.fromChainId}->${s.toChainId}`),
     expiresAt: new Date(q.expiresAt * (q.expiresAt < 1e12 ? 1000 : 1)).toISOString(),
@@ -241,7 +256,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     { name: SERVER_NAME, version: SERVER_VERSION, title: "SwapChan" },
     {
       instructions:
-        "SwapChan finds the best-price route for token swaps across EVM chains (same-chain and cross-chain) by asking many aggregators and bridges at once. Typical flow: get_supported_tokens -> get_quote or compare_routes -> build_swap_tx (unsigned; the user's wallet signs) -> get_route_status. This server never holds keys and never signs or broadcasts. Every result carries chain-chan mascots, a line from Swap-chan and usually a swapUrl: always show the user the ready-made `display` markdown (chan images inline as ![alt](imageUrl), then the swapUrl link) so they can see the chans and execute on swapchan.com with their own wallet.",
+        "SwapChan finds the best-price route for token swaps across EVM chains plus Solana, Bitcoin and Tron (same-chain and cross-chain; pass `recipient` when the destination is a different VM) by asking many aggregators and bridges at once. Typical flow: get_supported_tokens -> get_quote or compare_routes -> build_swap_tx (unsigned; the user's wallet signs) -> get_route_status. This server never holds keys and never signs or broadcasts. Every result carries chain-chan mascots, a line from Swap-chan and usually a swapUrl: always show the user the ready-made `display` markdown (chan images inline as ![alt](imageUrl), then the swapUrl link) so they can see the chans and execute on swapchan.com with their own wallet.",
     },
   );
   const swap = swapShape(cfg);
@@ -440,7 +455,34 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
               ? `provider "${a.provider}" returned no route; available: ${res.quotes.map((q) => q.provider).join(", ") || "none"}`
               : "no route found",
           );
-        const built = await api.build(pick.id, a.taker);
+        if (!isVmAddress(a.taker, vmOf(pick.request.fromChainId)))
+          throw new UserError(
+            `taker ${a.taker} is not a ${vmOf(pick.request.fromChainId)} address for chain ${pick.request.fromChainId}`,
+          );
+        if (vmOf(pick.request.toChainId) !== vmOf(pick.request.fromChainId) && !a.recipient)
+          throw new UserError(
+            "cross-VM route: pass recipient (the receiving address on the destination chain)",
+          );
+        const built = await api.build(pick.id, a.taker, a.recipient);
+        if (built.execution === "nonevm" && built.nonEvmTx) {
+          const how: Record<string, string> = {
+            "svm-base64":
+              "`data` is a base64 serialized Solana VersionedTransaction: deserialize, have the user's Solana wallet sign, send to a Solana RPC.",
+            "svm-instructions":
+              "`data.instructions` are Solana instructions (Relay format): compile a v0 message with `addressLookupTableAddresses` and a fresh blockhash, have the user's Solana wallet sign and send.",
+            "bvm-psbt":
+              "`data` is a Bitcoin PSBT (or deposit request): have the user's Bitcoin wallet sign and broadcast it.",
+            "tvm-json":
+              "`data` is a Tron transaction request: have the user's Tron wallet (TronLink) sign and broadcast it.",
+          };
+          return {
+            quote: await summarize(api, pick),
+            execution: "nonevm",
+            unsignedTx: built.nonEvmTx,
+            howToExecute: how[built.nonEvmTx.kind],
+            safety: "Unsigned. SwapChan never holds keys or signs.",
+          };
+        }
         if (built.chainId !== pick.request.fromChainId)
           throw new UserError(
             `API built a tx for chain ${built.chainId}, expected ${pick.request.fromChainId}; refusing`,

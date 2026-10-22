@@ -1,4 +1,4 @@
-import { Quote, type QuoteRequest } from "@swapchan/shared";
+import { isEvmChain, Quote, type QuoteRequest } from "@swapchan/shared";
 import type { Pricer } from "../pricing.js";
 import { type Fetch, getJson, type ProviderAdapter } from "./types.js";
 
@@ -24,7 +24,8 @@ export function velora(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch)
   return {
     name: "velora",
     enabled: () => true,
-    supports: (r) => r.fromChainId === r.toChainId,
+    supports: (r) =>
+      isEvmChain(r.fromChainId) && isEvmChain(r.toChainId) && r.fromChainId === r.toChainId,
     async quote(req: QuoteRequest, signal) {
       const [src, dst] = await Promise.all([
         pricer.token(req.fromChainId, req.fromToken),

@@ -4,11 +4,11 @@ import { createAppKit } from "@reown/appkit/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { WagmiProvider } from "wagmi";
-import { networks, projectId, wagmiAdapter, wagmiConfig } from "@/lib/wagmi";
+import { networks, projectId, solanaAdapter, wagmiAdapter, wagmiConfig } from "@/lib/wagmi";
 
 if (wagmiAdapter) {
   createAppKit({
-    adapters: [wagmiAdapter],
+    adapters: solanaAdapter ? [wagmiAdapter, solanaAdapter] : [wagmiAdapter],
     networks,
     projectId,
     themeMode: "dark",

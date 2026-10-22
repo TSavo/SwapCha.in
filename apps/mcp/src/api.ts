@@ -93,10 +93,10 @@ export class SwapChanApi {
   quotes(r: QuoteRequest): Promise<QuotesResponse> {
     return this.req(QuotesResponse, `/quotes?${qs(r)}`);
   }
-  build(quoteId: string, taker: string): Promise<BuildResponse> {
+  build(quoteId: string, taker: string, recipient?: string): Promise<BuildResponse> {
     return this.req(BuildResponse, "/build", {
       method: "POST",
-      body: JSON.stringify({ quoteId, taker }),
+      body: JSON.stringify({ quoteId, taker, ...(recipient ? { recipient } : {}) }),
     });
   }
   status(r: StatusRequest): Promise<StatusResponse> {

@@ -36,9 +36,9 @@ export function onchainReader(env: NodeJS.ProcessEnv = process.env): TokenReader
 export function tokenResolver(read: TokenReader) {
   const cache = new Map<string, Promise<ResolvedToken | null>>();
   return (chainId: number, address: string): Promise<ResolvedToken | null> => {
-    if (!isAddress(address, { strict: false })) return Promise.resolve(null);
     const listed = tokenList.find((t) => t.chainId === chainId && same(t.address, address));
     if (listed) return Promise.resolve({ ...listed, verified: true });
+    if (!isAddress(address, { strict: false })) return Promise.resolve(null);
     if (same(address, NATIVE_TOKEN)) return Promise.resolve(null);
     const key = `${chainId}:${address.toLowerCase()}`;
     let hit = cache.get(key);
