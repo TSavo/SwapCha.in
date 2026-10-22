@@ -33,8 +33,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Link href="/" className="hidden hover:text-amber-300 sm:inline">
                 Swap
               </Link>
-              <Link href="/agents" className="hover:text-amber-300">
-                Developers / MCP
+              <Link
+                href="/agents"
+                className="rounded-full bg-fuchsia-500 px-3 py-2 text-white shadow hover:bg-fuchsia-400"
+              >
+                🤖 For AI agents
               </Link>
               <Link href="/cast" className="hover:text-amber-300">
                 Cast
