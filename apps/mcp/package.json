@@ -1,0 +1,31 @@
+{
+  "name": "@swapchan/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SwapChan MCP server: best-price same-chain and cross-chain swap quotes for AI agents",
+  "bin": {
+    "swapchan-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
+    "test": "vitest run",
+    "dev": "node --watch src/index.ts",
+    "start": "node dist/index.js",
+    "start:stdio": "node dist/index.js --stdio"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "2.1.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "@swapchan/shared": "workspace:*",
+    "viem": "2.57.8",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}
