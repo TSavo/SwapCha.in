@@ -17,7 +17,7 @@ services:
       VELORA_API_KEY: ${VELORA_API_KEY:-}
       SWAPCHAN_FEE_RECIPIENT: ${SWAPCHAN_FEE_RECIPIENT:-}
       SWAPCHAN_FEE_BPS: ${SWAPCHAN_FEE_BPS:-0}
-      SWAPCHAN_LIFI_FEE: ${SWAPCHAN_LIFI_FEE:-}   # 1 once portal.li.fi has the fee wallet
+      SWAPCHAN_LIFI_FEE: ${SWAPCHAN_LIFI_FEE:-} # 1 once portal.li.fi has the fee wallet
       SWAPCHAN_API_KEYS: ${SWAPCHAN_API_KEYS:-} # empty = API open (for now)
     ports: ["127.0.0.1:8787:8787"]
   web:
