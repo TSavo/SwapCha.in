@@ -60,7 +60,8 @@ export function lifi(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter 
         slippage: String(req.slippageBps / 10_000),
         integrator: "swapchan",
       });
-      if (feeBps > 0) q.set("fee", String(feeBps / 10_000));
+      // LI.FI rejects fee= until the "swapchan" integrator has a fee wallet set in portal.li.fi.
+      if (feeBps > 0 && env.SWAPCHAN_LIFI_FEE === "1") q.set("fee", String(feeBps / 10_000));
       const s = await getJson<LifiStep>(f, `${BASE}/quote?${q}`, { headers, signal });
       const gasUsd = sumUsd(s.estimate.gasCosts);
       const feeUsd = sumUsd(s.estimate.feeCosts);

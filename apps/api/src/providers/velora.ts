@@ -47,7 +47,11 @@ export function velora(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch)
         headers,
         signal,
       });
-      const minOut = (BigInt(priceRoute.destAmount) * BigInt(10_000 - req.slippageBps)) / 10_000n;
+      // Velora takes the partner fee from the output at execution; /prices' destAmount is before it.
+      const cutBps = fee.partnerFeeBps ? BigInt(feeBps) : 0n;
+      const out = (BigInt(priceRoute.destAmount) * (10_000n - cutBps)) / 10_000n;
+      const partnerFeeUsd = (Number(priceRoute.destUSD) * Number(cutBps)) / 10_000;
+      const minOut = (out * BigInt(10_000 - req.slippageBps)) / 10_000n;
       let tx: Quote["tx"] = null;
       if (req.taker) {
         const t = await getJson<{
@@ -91,11 +95,11 @@ export function velora(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch)
         id: `velora:${crypto.randomUUID()}`,
         provider: "velora",
         request: req,
-        toAmount: priceRoute.destAmount,
+        toAmount: out.toString(),
         toAmountMin: minOut.toString(),
         gasUsd,
-        feeUsd: 0,
-        netUsd: Number(priceRoute.destUSD) - gasUsd,
+        feeUsd: partnerFeeUsd,
+        netUsd: Number(priceRoute.destUSD) - partnerFeeUsd - gasUsd,
         etaSeconds: 15,
         steps: [
           {
@@ -106,7 +110,7 @@ export function velora(pricer: Pricer, env: NodeJS.ProcessEnv, f: Fetch = fetch)
             fromToken: req.fromToken,
             toToken: req.toToken,
             fromAmount: req.amount,
-            toAmount: priceRoute.destAmount,
+            toAmount: out.toString(),
           },
         ],
         approvalAddress: priceRoute.tokenTransferProxy,

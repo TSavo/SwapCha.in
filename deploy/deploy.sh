@@ -4,7 +4,7 @@
 #   SERVICES="api web" deploy/deploy.sh   a subset
 # Secrets come from Vault here and live only in this process's environment; compose hands them to the containers.
 #   secret/swapchan/cloudflare  tunnel_token, tunnel_id     (required: written when the tunnel was created)
-#   secret/swapchan/fees        recipient, bps              (integrator fee; unset = no fee)
+#   secret/swapchan/fees        recipient, bps, lifi_enabled              (integrator fee; unset = no fee)
 #   secret/swapchan/providers   zerox, lifi, relay, velora  (API keys; unset = provider off / free tier)
 #   secret/swapchan/reown       project_id                  (wallet connect; unset = connect disabled)
 #   secret/swapchan/api         keys                        (SWAPCHAN_API_KEYS; unset = API open)
@@ -27,6 +27,7 @@ TUNNEL_TOKEN=$(need cloudflare tunnel_token) || exit 1
 export TUNNEL_TOKEN
 export SWAPCHAN_FEE_RECIPIENT=$(opt fees recipient)
 export SWAPCHAN_FEE_BPS=$(opt fees bps)
+export SWAPCHAN_LIFI_FEE=$(opt fees lifi_enabled)   # 1 after portal.li.fi has the fee wallet
 export ZEROX_API_KEY=$(opt providers zerox)
 export LIFI_API_KEY=$(opt providers lifi)
 export RELAY_API_KEY=$(opt providers relay)
