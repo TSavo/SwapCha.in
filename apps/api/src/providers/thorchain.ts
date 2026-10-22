@@ -66,6 +66,8 @@ interface ThorQuote {
   message?: string;
 }
 
+const TOLERANCE_FLOOR_BPS = 300;
+
 const scale = (x: bigint, from: number, to: number) =>
   to >= from ? x * 10n ** BigInt(to - from) : x / 10n ** BigInt(from - to);
 
@@ -123,7 +125,8 @@ export function thorchain(
       destination,
       streaming_interval: "1",
       streaming_quantity: "0",
-      tolerance_bps: String(req.slippageBps),
+      // THORChain counts its own liquidity + outbound fees against tolerance; 0.5% rejects most swaps.
+      tolerance_bps: String(Math.max(req.slippageBps, TOLERANCE_FLOOR_BPS)),
     });
     if (req.taker) q.set("refund_address", req.taker);
     if (affiliate && feeBps > 0) {
@@ -211,7 +214,10 @@ export function thorchain(
         provider: "thorchain",
         request: req,
         toAmount: out.toString(),
-        toAmountMin: ((out * BigInt(10_000 - req.slippageBps)) / 10_000n).toString(),
+        toAmountMin: (
+          (out * BigInt(10_000 - Math.max(req.slippageBps, TOLERANCE_FLOOR_BPS))) /
+          10_000n
+        ).toString(),
         gasUsd: 0,
         feeUsd: ourFeeUsd ?? 0,
         netUsd: outUsd,
