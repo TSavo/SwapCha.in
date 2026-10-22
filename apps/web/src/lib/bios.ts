@@ -288,7 +288,7 @@ export const BIOS: Record<CharacterKey, Bio> = {
       "Avax-chan arrives like a snowstorm: sudden, cold and over in under a second. She commands a whole dojo of her own L1s.",
     personality:
       "Serious, honorable and very fast. A disciplined samurai who warms up only around close friends.",
-    look: "Her own art is coming soon. For now she borrows Swap-chan's silhouette in Avalanche red.",
+    look: "Long white hair with red streaks in a high ponytail and a snowflake clip, a white jacket with red AVAX-triangle chevrons, a red pleated skirt trimmed with snowy mountain peaks, a katana at her hip, and red-and-white boots.",
     catchphrase: "Finalized. Next.",
     likes: ["Sub-second finality", "Snow", "Building custom L1s", "Clean sword strikes"],
     dislikes: ["Waiting for confirmations", "Hot weather", "Being called a copycat"],
@@ -305,7 +305,7 @@ export const BIOS: Record<CharacterKey, Bio> = {
       token: "AVAX",
       knownFor: "Sub-second finality and custom Avalanche L1s (formerly subnets)",
     },
-    art: "coming-soon",
+    art: "final",
   },
   linea: {
     key: "linea",
@@ -314,7 +314,7 @@ export const BIOS: Record<CharacterKey, Bio> = {
       "Linea-chan proves everything. She won't tell you something is true until she has a zero-knowledge proof to back it up, and then she'll show you the proof anyway.",
     personality:
       "Precise, earnest and a little perfectionist. Draws straight lines with a ruler for fun.",
-    look: "Her own art is coming soon. For now she wears Swap-chan's silhouette in Linea cyan.",
+    look: "A sleek black bob with one teal streak, a crisp white jacket with straight black line trim over a black turtleneck, black shorts, and a glowing teal ruler in hand.",
     catchphrase: "Proven, not promised.",
     likes: ["Validity proofs", "Straight lines", "MetaMask", "Burning ETH"],
     dislikes: ["Hand-waving", "Crooked rulers", "Seven-day waits"],
@@ -331,7 +331,7 @@ export const BIOS: Record<CharacterKey, Bio> = {
       token: "LINEA (launched 2025); gas is paid in ETH",
       knownFor: "zk proofs, the MetaMask family, and burning ETH and LINEA",
     },
-    art: "coming-soon",
+    art: "final",
   },
   scroll: {
     key: "scroll",
@@ -339,7 +339,7 @@ export const BIOS: Record<CharacterKey, Bio> = {
     intro:
       "Scroll-chan is the cast's librarian. She keeps every transaction written down, rolled up and sealed with a proof, and she can read Ethereum bytecode as easily as a bedtime story.",
     personality: "Gentle, studious and quietly stubborn about doing things the right way.",
-    look: "Her own art is coming soon. For now she borrows Swap-chan's silhouette in parchment beige.",
+    look: "Long orange hair in a ponytail, round glasses, a parchment-cream long coat with orange scroll motifs, a satchel full of notes, and an unrolled scroll she's always reading from.",
     catchphrase: "It's all written down.",
     likes: ["Libraries", "Open-source research", "EVM equivalence", "Parchment"],
     dislikes: ["Shortcuts", "Lost receipts", "Loud parties (except Sol-chan's)"],
@@ -356,7 +356,7 @@ export const BIOS: Record<CharacterKey, Bio> = {
       token: "SCR (governance); gas is paid in ETH",
       knownFor: "A bytecode-compatible zkEVM built in the open",
     },
-    art: "coming-soon",
+    art: "final",
   },
 };
 

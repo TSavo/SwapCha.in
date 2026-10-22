@@ -17,10 +17,8 @@ describe("cast bios", () => {
       for (const f of b.friends) expect(CHARACTERS[f.who]).toBeDefined();
     }
   });
-  it("flags placeholder art", () => {
-    expect(
-      ["avalanche", "linea", "scroll"].every((k) => BIOS[k as "linea"].art === "coming-soon"),
-    ).toBe(true);
+  it("has final art for everyone", () => {
+    expect(Object.values(BIOS).every((b) => b.art === "final")).toBe(true);
     expect(castHref("bnb")).toBe("/cast/bnb");
   });
 });
