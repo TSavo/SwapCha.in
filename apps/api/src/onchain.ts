@@ -184,7 +184,12 @@ export const STABLES = new Set([
   "USDD",
 ]);
 
-export async function json<T>(f: F, url: string, init?: RequestInit, timeoutMs = 10_000): Promise<T> {
+export async function json<T>(
+  f: F,
+  url: string,
+  init?: RequestInit,
+  timeoutMs = 10_000,
+): Promise<T> {
   const r = await f(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   if (!r.ok) throw new Error(`${new URL(url).host} ${r.status}`);
   return (await r.json()) as T;

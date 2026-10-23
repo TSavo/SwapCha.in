@@ -33,6 +33,7 @@ import {
   STABLES,
   solRpc,
   swapUrl,
+  tronAddr,
   usdcOf,
   walletBalances,
   yields,
@@ -295,6 +296,117 @@ export interface SwapEvent {
   bought: Leg[];
   explorer: string;
 }
+
+const HIST_CAP = 10_000;
+/** Free Etherscan-compatible explorers with full account history. ETHERSCAN_API_KEY (free tier) unlocks every chain. */
+function explorerApi(chainId: number, env: NodeJS.ProcessEnv) {
+  if (env.ETHERSCAN_API_KEY)
+    return [
+      {
+        name: "Etherscan v2",
+        url: (q: string) =>
+          `https://api.etherscan.io/v2/api?chainid=${chainId}&${q}&apikey=${env.ETHERSCAN_API_KEY}`,
+      },
+    ];
+  const bs: Record<number, string> = {
+    1: "https://eth.blockscout.com/api",
+    10: "https://optimism.blockscout.com/api",
+    534352: "https://scroll.blockscout.com/api",
+  };
+  const rs: Record<number, string> = {
+    1: "https://api.routescan.io/v2/network/mainnet/evm/1/etherscan/api",
+    43114: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api",
+  };
+  const out: { name: string; url: (q: string) => string }[] = [];
+  if (bs[chainId]) out.push({ name: "Blockscout", url: (q) => `${bs[chainId]}?${q}` });
+  if (rs[chainId]) out.push({ name: "Routescan", url: (q) => `${rs[chainId]}?${q}` });
+  return out;
+}
+type ExRow = {
+  blockNumber: string;
+  hash: string;
+  timeStamp: string;
+  from: string;
+  to: string;
+  value: string;
+  contractAddress?: string;
+  tokenSymbol?: string;
+  tokenDecimal?: string;
+  isError?: string;
+};
+async function explorerAll(f: F, ex: { url: (q: string) => string }, owner: string) {
+  let truncated = false;
+  const page = async (action: string) => {
+    const rows: ExRow[] = [];
+    let endblock = "";
+    // walk newest→oldest in pages of 1000 via endblock (avoids the 10k page×offset limit)
+    for (let i = 0; i < HIST_CAP / 1000; i++) {
+      const q = `module=account&action=${action}&address=${owner}&sort=desc&page=1&offset=1000${endblock ? `&endblock=${endblock}` : ""}`;
+      let r: { message?: string; result: ExRow[] | string | null } = { result: null };
+      for (let attempt = 0; ; attempt++) {
+        try {
+          r = await json(f, ex.url(q), undefined, 20_000);
+          if (typeof r.result === "string" && /rate limit/i.test(r.result)) throw new Error("429");
+          break;
+        } catch (e) {
+          if (attempt >= 3 || !/429/.test((e as Error).message)) throw e;
+          await new Promise((ok) => setTimeout(ok, 1200 * (attempt + 1)));
+        }
+      }
+      if (!Array.isArray(r.result)) {
+        if (/No (transactions|token transfers|internal)/i.test(`${r.message} ${r.result}`))
+          return rows;
+        throw new Error(String(r.result ?? r.message));
+      }
+      const res: ExRow[] = r.result;
+      if (res.length < 1000) {
+        rows.push(...res);
+        return rows;
+      }
+      const last: string = res[res.length - 1]!.blockNumber;
+      const keep = res.filter((x) => x.blockNumber !== last);
+      if (!keep.length) {
+        rows.push(...res);
+        return rows;
+      }
+      rows.push(...keep); // the boundary block is fetched whole on the next page
+      endblock = last;
+    }
+    truncated = true;
+    return rows;
+  };
+  // sequential: free explorers rate-limit parallel bursts
+  const tok = await page("tokentx");
+  const txs = await page("txlist");
+  const internal = await page("txlistinternal").catch(() => [] as ExRow[]);
+  const me = owner.toLowerCase();
+  const rows = [
+    ...tok.map((t) => ({
+      hash: t.hash,
+      ts: Number(t.timeStamp),
+      token: getAddress(t.contractAddress ?? NATIVE_TOKEN),
+      symbol: t.tokenSymbol || "?",
+      dec: Number(t.tokenDecimal || 18),
+      from: t.from.toLowerCase(),
+      to: (t.to ?? "").toLowerCase(),
+      value: BigInt(t.value || "0"),
+    })),
+    ...[...txs, ...internal]
+      .filter((t) => t.isError !== "1" && t.value && t.value !== "0")
+      .filter((t) => t.from.toLowerCase() === me || (t.to ?? "").toLowerCase() === me)
+      .map((t) => ({
+        hash: t.hash ?? (t as { transactionHash?: string }).transactionHash ?? "",
+        ts: Number(t.timeStamp),
+        token: NATIVE_TOKEN,
+        symbol: "__native__",
+        dec: 18,
+        from: t.from.toLowerCase(),
+        to: (t.to ?? "").toLowerCase(),
+        value: BigInt(t.value),
+      })),
+  ];
+  return { rows, truncated };
+}
 async function evmTransfers(f: F, env: NodeJS.ProcessEnv, chainId: number, owner: string) {
   const me = owner.toLowerCase();
   type T = {
@@ -308,35 +420,19 @@ async function evmTransfers(f: F, env: NodeJS.ProcessEnv, chainId: number, owner
     value: bigint;
   };
   const out: T[] = [];
-  const bs = BLOCKSCOUT[chainId];
-  if (bs) {
-    const r = await json<{
-      items: {
-        transaction_hash: string;
-        timestamp: string;
-        from: { hash: string };
-        to: { hash: string };
-        token: {
-          address_hash?: string;
-          address?: string;
-          symbol: string | null;
-          decimals: string | null;
-        };
-        total: { value?: string; decimals?: string };
-      }[];
-    }>(f, `${bs}/api/v2/addresses/${owner}/token-transfers?type=ERC-20`, undefined, 15_000);
-    for (const i of r.items ?? [])
-      out.push({
-        hash: i.transaction_hash,
-        ts: Date.parse(i.timestamp) / 1000,
-        token: getAddress(i.token.address_hash ?? i.token.address ?? NATIVE_TOKEN),
-        symbol: i.token.symbol ?? "?",
-        dec: Number(i.total.decimals ?? i.token.decimals ?? 18),
-        from: i.from.hash.toLowerCase(),
-        to: i.to.hash.toLowerCase(),
-        value: BigInt(i.total.value ?? "0"),
-      });
-    return { rows: out, source: "Blockscout" };
+  // Full history via Etherscan-compatible account APIs (tokentx + txlist + txlistinternal).
+  for (const ex of explorerApi(chainId, env)) {
+    try {
+      const all = await explorerAll(f, ex, owner);
+      out.push(...all.rows);
+      return {
+        rows: out,
+        source: `${ex.name} (full history${all.truncated ? `, newest ${HIST_CAP} rows per kind` : ""})`,
+        full: !all.truncated,
+      };
+    } catch (e) {
+      if (process.env.DEBUG_HIST) console.error("explorer", ex.name, e);
+    }
   }
   const c = evmClient(chainId, env);
   const head = await c.getBlockNumber();
@@ -410,12 +506,14 @@ async function evmTransfers(f: F, env: NodeJS.ProcessEnv, chainId: number, owner
   void me;
   return {
     rows: out.filter((r) => r.ts > 0),
-    source: "public RPC eth_getLogs (~45k recent blocks)",
+    source:
+      "public RPC eth_getLogs (~45k recent blocks; no free full-history explorer for this chain)",
+    full: false,
   };
 }
 
 async function evmSwaps(f: F, env: NodeJS.ProcessEnv, chainId: number, owner: string) {
-  const { rows, source } = await evmTransfers(f, env, chainId, owner);
+  const { rows, source, full } = await evmTransfers(f, env, chainId, owner);
   const me = owner.toLowerCase();
   const byTx = new Map<string, typeof rows>();
   for (const r of rows) byTx.set(r.hash, [...(byTx.get(r.hash) ?? []), r]);
@@ -425,7 +523,10 @@ async function evmSwaps(f: F, env: NodeJS.ProcessEnv, chainId: number, owner: st
     for (const r of rs) {
       const amt = Number(formatUnits(r.value, r.dec));
       const k = r.token;
-      const cur = net.get(k) ?? { s: r.symbol, v: 0 };
+      const cur = net.get(k) ?? {
+        s: r.symbol === "__native__" ? (NATIVE_SYMBOL[chainId] ?? "ETH") : r.symbol,
+        v: 0,
+      };
       if (r.from === me) cur.v -= amt;
       if (r.to === me) cur.v += amt;
       net.set(k, cur);
@@ -440,6 +541,7 @@ async function evmSwaps(f: F, env: NodeJS.ProcessEnv, chainId: number, owner: st
     const bought = legs.filter((l) => l.amount > 0);
     // one-sided token legs are swaps against native ETH (native leg not visible in token transfers)
     if (!sold.length && !bought.length) continue;
+    if (legs.every((l) => l.address === NATIVE_TOKEN)) continue; // plain native send/receive
     swaps.push({
       chainId,
       chain: chainName(chainId),
@@ -450,7 +552,7 @@ async function evmSwaps(f: F, env: NodeJS.ProcessEnv, chainId: number, owner: st
       explorer: `${EXPLORER[chainId]}/tx/${hash}`,
     });
   }
-  return { swaps, source };
+  return { swaps, source, full };
 }
 
 async function solSwaps(f: F, env: NodeJS.ProcessEnv, owner: string, limit = 20) {
@@ -527,25 +629,48 @@ async function solSwaps(f: F, env: NodeJS.ProcessEnv, owner: string, limit = 20)
   return { swaps, source: `Solana RPC (last ${limit} signatures)` };
 }
 
-export async function walletHistory(f: F, env: NodeJS.ProcessEnv, input: string, chain?: string) {
+const LLAMA_NATIVE: Record<number, string> = {
+  [SOLANA]: "coingecko:solana",
+  43114: "coingecko:avalanche-2",
+  137: "coingecko:polygon-ecosystem-token",
+  56: "coingecko:binancecoin",
+};
+export async function walletHistory(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  input: string,
+  chain?: string,
+  priceN = 40,
+) {
   const { address, name } = await resolveAddr(f, env, input);
-  return cached(`hist:${address}:${chain ?? ""}`, 120_000, async () => {
+  return cached(`hist:${address}:${chain ?? ""}:${priceN}`, 300_000, async () => {
     const vm = vmOfAddr(address);
     let swaps: SwapEvent[] = [];
     const sources: string[] = [];
     const errors: { chain: string; error: string }[] = [];
+    const perChain: { chain: string; source: string; fullHistory: boolean; swaps: number }[] = [];
     if (vm === "svm") {
       const r = await solSwaps(f, env, address);
       swaps = r.swaps;
       sources.push(r.source);
     } else if (vm === "evm") {
-      const ids = chain ? [chainOf(chain)] : [1, 8453, 42161, 10];
+      const ids = chain ? [chainOf(chain)] : [1, 8453, 42161, 10, 43114, 534352];
       const rs = await Promise.all(
         ids.map((id) =>
-          evmSwaps(f, env, id, address).catch((e) => {
-            errors.push({ chain: chainName(id), error: (e as Error).message.slice(0, 100) });
-            return { swaps: [], source: "" };
-          }),
+          evmSwaps(f, env, id, address)
+            .then((r) => {
+              perChain.push({
+                chain: chainName(id),
+                source: r.source,
+                fullHistory: r.full,
+                swaps: r.swaps.length,
+              });
+              return r;
+            })
+            .catch((e) => {
+              errors.push({ chain: chainName(id), error: (e as Error).message.slice(0, 100) });
+              return { swaps: [], source: "", full: false };
+            }),
         ),
       );
       swaps = rs.flatMap((r) => r.swaps);
@@ -556,29 +681,40 @@ export async function walletHistory(f: F, env: NodeJS.ProcessEnv, input: string,
     const want = new Map<string, number[]>();
     const lid = (l: Leg) =>
       isNative(l.chainId, l.address)
-        ? `coingecko:${l.chainId === SOLANA ? "solana" : "ethereum"}`
+        ? (LLAMA_NATIVE[l.chainId] ?? "coingecko:ethereum")
         : `${DS_LLAMA[l.chainId]}:${l.chainId === SOLANA ? l.address : l.address.toLowerCase()}`;
-    const top = swaps.slice(0, 40);
+    const top = swaps.slice(0, priceN);
     for (const s of top)
       for (const l of [...s.sold, ...s.bought])
         want.set(lid(l), [...(want.get(lid(l)) ?? []), Math.floor(Date.parse(s.time) / 1000)]);
     const hist = new Map<string, { timestamp: number; price: number }[]>();
-    if (want.size)
-      try {
-        const coins = Object.fromEntries([...want.entries()].slice(0, 60));
-        const r = await json<{
-          coins: Record<string, { prices: { timestamp: number; price: number }[] }>;
-        }>(
-          f,
-          `https://coins.llama.fi/batchHistorical?coins=${encodeURIComponent(JSON.stringify(coins))}&searchWidth=6h`,
-          undefined,
-          15_000,
-        );
-        for (const [k, v] of Object.entries(r.coins ?? {})) hist.set(k, v.prices);
-        sources.push("DefiLlama historical prices");
-      } catch (e) {
-        errors.push({ chain: "prices", error: (e as Error).message });
-      }
+    if (want.size) {
+      // batch in small groups (URL length); cap timestamps per coin
+      const entries = [...want.entries()].map(
+        ([k, ts]) => [k, [...new Set(ts)].slice(0, 60)] as const,
+      );
+      const groups: (typeof entries)[] = [];
+      for (let i = 0; i < Math.min(entries.length, 150); i += 15)
+        groups.push(entries.slice(i, i + 15));
+      await Promise.all(
+        groups.map(async (g) => {
+          try {
+            const r = await json<{
+              coins: Record<string, { prices: { timestamp: number; price: number }[] }>;
+            }>(
+              f,
+              `https://coins.llama.fi/batchHistorical?coins=${encodeURIComponent(JSON.stringify(Object.fromEntries(g)))}&searchWidth=6h`,
+              undefined,
+              20_000,
+            );
+            for (const [k, v] of Object.entries(r.coins ?? {})) hist.set(k, v.prices);
+          } catch (e) {
+            errors.push({ chain: "prices", error: (e as Error).message });
+          }
+        }),
+      );
+      sources.push("DefiLlama historical prices");
+    }
     const pxAt = (l: Leg, t: number) => {
       const p = hist.get(lid(l));
       if (!p?.length) return null;
@@ -606,14 +742,17 @@ export async function walletHistory(f: F, env: NodeJS.ProcessEnv, input: string,
     return {
       address,
       ...(name ? { name } : {}),
-      count: priced.length,
-      swaps: priced,
+      count: swaps.length,
+      priced: priced.length,
+      swaps: priced.slice(0, 40),
+      allPriced: priced,
+      perChain,
       sources,
       errors,
       coverage:
         vm === "svm"
           ? "Solana: last 20 signatures, token + SOL deltas of this owner."
-          : "EVM: ERC-20 transfers grouped by tx on Ethereum, Base, Arbitrum and Optimism (Blockscout on Ethereum/Optimism; public-RPC logs for ~45k recent blocks elsewhere). Native-ETH legs are not visible, so ETH-for-token trades show one-sided.",
+          : "EVM: full account history (ERC-20 + native + internal transfers, grouped by tx) from free Etherscan-compatible explorers on Ethereum, Optimism, Scroll (Blockscout) and Avalanche (Routescan); Base and Arbitrum explorers block keyless access, so those fall back to the last ~45k blocks via public RPC unless ETHERSCAN_API_KEY is set. See perChain.",
       next: lb
         ? cta(`Sell or add to your ${lb.symbol} on SwapChan`, toUsdc(lb.chainId, lb.address))
         : cta("Make your first SwapChan swap", SITE),
@@ -635,7 +774,8 @@ const DS_LLAMA: Record<number, string> = {
 };
 
 export async function walletPnl(f: F, env: NodeJS.ProcessEnv, input: string, chain?: string) {
-  const h = await walletHistory(f, env, input, chain);
+  const h0 = await walletHistory(f, env, input, chain, 300);
+  const h = { ...h0, swaps: h0.allPriced };
   const bal = (await walletBalances(f, env, h.address).catch(() => null)) as {
     holdings?: {
       chainId: number;
@@ -728,9 +868,10 @@ export async function walletPnl(f: F, env: NodeJS.ProcessEnv, input: string, cha
     tokens: rows.slice(0, 30),
     swapsAnalyzed: h.swaps.filter((s) => s.kind === "swap").length,
     method:
-      "Average-cost basis from swaps in the visible history window, legs priced at swap time (DefiLlama); unrealized = current balance × (price − avg cost).",
+      "Average-cost basis from the newest 300 swaps across the wallet's full explorer history (see perChain), legs incl. native ETH priced at swap time (DefiLlama); unrealized = current balance × (price − avg cost).",
     caveat:
-      "Estimate only: limited to the recent history window and priced legs; transfers in/out, airdrops and native-ETH legs are not counted as cost basis.",
+      "Estimate only: plain transfers in/out and airdrops are not cost basis; unpriced (spam/illiquid) legs are skipped; Base/Arbitrum use a ~45k-block window without an Etherscan key.",
+    perChain: h0.perChain,
     coverage: h.coverage,
     sources: [...h.sources, "wallet balances"],
     next: best
@@ -1884,6 +2025,528 @@ async function solanaRent(f: F, env: NodeJS.ProcessEnv, owner: string): Promise<
   ];
 }
 
+// ---------- 6b. contract archaeology: every contract the wallet ever touched, probed generically ----------
+const IDEX_V1 = "0x2a0c0DBEcC7E4D658f48E01e3fA353F44050c208";
+const UNI_V3_NPM = "0xC36442b4a4522E871399CD717aBDD847Ab11FE88";
+const MAX_U128 = 2n ** 128n - 1n;
+const REWARD_VIEWS = [
+  "earned(address)",
+  "dividendsOf(address)",
+  "claimable(address)",
+  "withdrawableDividendOf(address)",
+  "pendingRewards(address)",
+  "claimableReward(address)",
+] as const;
+/** Discover every contract a wallet interacted with (full explorer history) and probe it with balance-like views. */
+export async function evmArchaeology(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  chainId: number,
+  owner: `0x${string}`,
+): Promise<{ items: Found[]; stats: Record<string, number | string> }> {
+  const me = owner.toLowerCase();
+  const c = evmClient(chainId, env);
+  const items: Found[] = [];
+  const stats: Record<string, number | string> = {};
+  // 1. discovery
+  let called: string[] = [];
+  let tokens: string[] = [];
+  let nfts: { contract: string; id: string; name: string }[] = [];
+  for (const ex of explorerApi(chainId, env)) {
+    try {
+      const get = async (action: string, n = 1000) => {
+        for (let a = 0; ; a++) {
+          const r: { result: ExRow[] | string | null; message?: string } = await json<{
+            result: ExRow[] | string | null;
+          }>(
+            f,
+            ex.url(`module=account&action=${action}&address=${owner}&sort=desc&page=1&offset=${n}`),
+            undefined,
+            20_000,
+          ).catch((e: Error) => {
+            if (a < 3 && /429/.test(e.message)) return { result: "rate limit" };
+            throw e;
+          });
+          if (Array.isArray(r.result))
+            return r.result as (ExRow & { tokenID?: string; tokenName?: string })[];
+          if (/rate limit/i.test(String(r.result)) && a < 3) {
+            await new Promise((ok) => setTimeout(ok, 1500 * (a + 1)));
+            continue;
+          }
+          return [];
+        }
+      };
+      const txs = await get("txlist", 2000);
+      const tt = await get("tokentx", 2000);
+      const nt = await get("tokennfttx", 1000);
+      called = [
+        ...new Set(
+          txs
+            .filter((t) => t.from.toLowerCase() === me && t.to && t.isError !== "1")
+            .map((t) => t.to.toLowerCase()),
+        ),
+      ];
+      tokens = [...new Set(tt.map((t) => (t.contractAddress ?? "").toLowerCase()).filter(Boolean))];
+      const held = new Map<string, { contract: string; id: string; name: string }>();
+      for (const t of [...nt].reverse()) {
+        const k = `${t.contractAddress}:${t.tokenID}`.toLowerCase();
+        if (t.to.toLowerCase() === me)
+          held.set(k, { contract: t.contractAddress!, id: t.tokenID!, name: t.tokenName || "?" });
+        else held.delete(k);
+      }
+      nfts = [...held.values()];
+      stats.explorer = ex.name;
+      break;
+    } catch {}
+  }
+  stats.contractsCalled = called.length;
+  stats.tokensSeen = tokens.length;
+  if (!stats.explorer)
+    return { items, stats: { ...stats, note: "no keyless explorer for this chain" } };
+  const cands = [...new Set([...called, ...tokens])].slice(0, 400) as `0x${string}`[];
+  stats.probed = cands.length;
+  const mc = async <T>(
+    calls: { address: `0x${string}`; abi: unknown; functionName: string; args?: unknown[] }[],
+  ) => {
+    const out: (T | null)[] = [];
+    for (let i = 0; i < calls.length; i += 300) {
+      const r = await c
+        .multicall({ allowFailure: true, contracts: calls.slice(i, i + 300) as never })
+        .catch(() => calls.slice(i, i + 300).map(() => ({ status: "failure" as const })));
+      for (const x of r as { status: string; result?: unknown }[])
+        out.push(x.status === "success" ? (x.result as T) : null);
+    }
+    return out;
+  };
+  const one = (s: string) => fn(`${s} view returns (uint256)`);
+  // 2. balance-like probes on every discovered contract
+  const bals = await mc<bigint>(
+    cands.map((a) => ({
+      address: a,
+      abi: one("balanceOf(address)"),
+      functionName: "balanceOf",
+      args: [owner],
+    })),
+  );
+  const curated = new Set(
+    [P3D, FOMO3D, ETHERDELTA, IDEX_V1, LIQUITY_TROVES, LIQUITY_SURPLUS].map((a) => a.toLowerCase()),
+  );
+  called = called.filter((a) => !curated.has(a));
+  const probe = (who: `0x${string}`) =>
+    Promise.all(
+      REWARD_VIEWS.map((v) =>
+        mc<bigint>(
+          called.slice(0, 300).map((a) => ({
+            address: a as `0x${string}`,
+            abi: one(v),
+            functionName: v.split("(")[0]!,
+            args: [who],
+          })),
+        ),
+      ),
+    );
+  // a view that returns the same nonzero value for a random address is a fallback/garbage, not your balance
+  const [rewards, control] = await Promise.all([
+    probe(owner),
+    probe("0x000000000000000000000000000000000000dEaD"),
+  ]);
+  const withBal = cands
+    .map((a, i) => ({ a, bal: bals[i] ?? 0n }))
+    .filter((x) => typeof x.bal === "bigint" && x.bal > 0n);
+  stats.nonzeroBalances = withBal.length;
+  // 3. classify contracts with a balance: ERC-4626 / Yearn vault, Uniswap-v2-style LP, staking/receipt token
+  const meta = async (
+    fnSig: string,
+    name: string,
+    args?: (x: { a: `0x${string}`; bal: bigint }) => unknown[],
+  ) =>
+    mc<unknown>(
+      withBal.map((x) => ({
+        address: x.a,
+        abi: fn(fnSig),
+        functionName: name,
+        ...(args ? { args: args(x) } : {}),
+      })),
+    );
+  const [dec, sym, asset, conv, token, pps, r0, t0, t1, ts] = await Promise.all([
+    meta("decimals() view returns (uint8)", "decimals"),
+    meta("symbol() view returns (string)", "symbol"),
+    meta("asset() view returns (address)", "asset"),
+    meta("convertToAssets(uint256) view returns (uint256)", "convertToAssets", (x) => [x.bal]),
+    meta("token() view returns (address)", "token"),
+    meta("pricePerShare() view returns (uint256)", "pricePerShare"),
+    meta("getReserves() view returns (uint112,uint112,uint32)", "getReserves"),
+    meta("token0() view returns (address)", "token0"),
+    meta("token1() view returns (address)", "token1"),
+    meta("totalSupply() view returns (uint256)", "totalSupply"),
+  ]);
+  type Pend = { amt: [string, bigint][]; build: (usd: number | null, amts: string) => Found };
+  const pend: Pend[] = [];
+  const decOf = new Map<string, number>();
+  const symOf = new Map<string, string>();
+  const underlyings = new Set<string>();
+  withBal.forEach((x, i) => {
+    const d = Number(dec[i] ?? 18);
+    const s = String(sym[i] ?? "?");
+    const sh = Number(formatUnits(x.bal, d));
+    if (r0[i] && t0[i] && t1[i] && ts[i]) {
+      const [a, b] = r0[i] as [bigint, bigint];
+      const tot = ts[i] as bigint;
+      if (!tot) return;
+      const u0 = (a * x.bal) / tot;
+      const u1 = (b * x.bal) / tot;
+      underlyings.add(String(t0[i])).add(String(t1[i]));
+      pend.push({
+        amt: [
+          [String(t0[i]), u0],
+          [String(t1[i]), u1],
+        ],
+        build: (usd) => ({
+          kind: "legacy",
+          protocol: `LP ${s} ${short(x.a)}`,
+          chainId,
+          what: `${sh.toPrecision(5)} LP tokens of ${x.a} (Uniswap-v2-style pool)`,
+          valueUsd: usd,
+          action: "Remove liquidity on the pool's app, then swap the two tokens on SwapChan",
+          link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${x.a}`,
+        }),
+      });
+      return;
+    }
+    const und = (asset[i] ?? token[i]) as string | null;
+    let amt: bigint | null = null;
+    if (asset[i] && typeof conv[i] === "bigint") amt = conv[i] as bigint;
+    else if (token[i] && typeof pps[i] === "bigint")
+      amt = ((pps[i] as bigint) * x.bal) / 10n ** BigInt(d);
+    if (und && amt !== null && amt > 0n) {
+      underlyings.add(und);
+      pend.push({
+        amt: [[und, amt]],
+        build: (usd) => ({
+          kind: "legacy",
+          protocol: `Vault ${s}`,
+          chainId,
+          what: `${sh.toPrecision(5)} ${s} vault shares (${asset[i] ? "ERC-4626" : "Yearn-v2 pricePerShare"}) at ${x.a}`,
+          valueUsd: usd,
+          action: `Withdraw from the ${s} vault on its app, then swap the underlying on SwapChan`,
+          link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${x.a}`,
+        }),
+      });
+    }
+  });
+  // reward views with a balance
+  called.slice(0, 300).forEach((a, i) => {
+    for (let k = 0; k < REWARD_VIEWS.length; k++) {
+      const v = rewards[k]![i];
+      if (typeof v === "bigint" && v > 0n && v < 10n ** 33n && control[k]![i] !== v) {
+        items.push({
+          kind: "claimable",
+          protocol: `Contract ${short(a)}`,
+          chainId,
+          what: `${REWARD_VIEWS[k]!.split("(")[0]}(you) = ${v} (raw units; reward token unknown)`,
+          valueUsd: null,
+          action:
+            "Open the contract's dApp and claim/withdraw (no verified ABI, so SwapChan doesn't build this tx)",
+          link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${a}`,
+        });
+        break;
+      }
+    }
+  });
+  // 4. legacy exchanges: ERC-20 + ETH balances left in EtherDelta / IDEX v1
+  if (chainId === 1) {
+    const toks = ["0x0000000000000000000000000000000000000000", ...tokens.slice(0, 300)];
+    const exch = [
+      { name: "EtherDelta", addr: ETHERDELTA },
+      { name: "IDEX v1", addr: IDEX_V1 },
+    ] as const;
+    for (const e of exch) {
+      const r = await mc<bigint>(
+        toks.map((t) => ({
+          address: e.addr as `0x${string}`,
+          abi: fn("balanceOf(address,address) view returns (uint256)"),
+          functionName: "balanceOf",
+          args: [t, owner],
+        })),
+      );
+      toks.forEach((t, i) => {
+        const v = r[i];
+        if (typeof v !== "bigint" || v === 0n || (e.name === "EtherDelta" && i === 0)) return; // ED ETH handled in legacyEth
+        const tok = i === 0 ? NATIVE_TOKEN : getAddress(t);
+        underlyings.add(tok);
+        pend.push({
+          amt: [[tok, v]],
+          build: (usd, amts) => ({
+            kind: "legacy",
+            protocol: e.name,
+            chainId: 1,
+            what: `${amts} deposited in ${e.name}`,
+            valueUsd: usd,
+            action: `Withdraw from ${e.name} (${e.addr}) with withdrawToken/withdraw, then swap on SwapChan`,
+            link: `https://etherscan.io/address/${e.addr}#readContract`,
+            risk: "Legacy exchange contract; withdraw directly via Etherscan write-contract.",
+          }),
+        });
+      });
+    }
+  }
+  // 5. Uniswap v3 positions + uncollected fees (collect() simulated as the owner)
+  const npm = UNI_V3_NPM;
+  const nPos = await c
+    .readContract({
+      address: npm as `0x${string}`,
+      abi: one("balanceOf(address)"),
+      functionName: "balanceOf",
+      args: [owner],
+    })
+    .catch(() => 0n);
+  stats.uniV3Positions = Number(nPos);
+  if (nPos > 0n && (chainId === 1 || chainId === 10 || chainId === 42161 || chainId === 137)) {
+    const n = Number(nPos > 300n ? 300n : nPos);
+    const ids = (
+      await mc<bigint>(
+        Array.from({ length: n }, (_, k) => ({
+          address: npm as `0x${string}`,
+          abi: fn("tokenOfOwnerByIndex(address,uint256) view returns (uint256)"),
+          functionName: "tokenOfOwnerByIndex",
+          args: [owner, BigInt(k)],
+        })),
+      )
+    ).filter((x): x is bigint => typeof x === "bigint");
+    const ps = await mc<readonly unknown[]>(
+      ids.map((id) => ({
+        address: npm as `0x${string}`,
+        abi: fn(
+          "positions(uint256) view returns (uint96,address,address,address,uint24,int24,int24,uint128,uint256,uint256,uint128,uint128)",
+        ),
+        functionName: "positions",
+        args: [id],
+      })),
+    );
+    const live = ids
+      .map((id, i) => ({ id, pos: ps[i] }))
+      .filter(
+        (x) =>
+          x.pos &&
+          ((x.pos[7] as bigint) > 0n || (x.pos[10] as bigint) > 0n || (x.pos[11] as bigint) > 0n),
+      )
+      .slice(0, 30);
+    stats.uniV3Active = live.length;
+    await Promise.all(
+      live.map(async ({ id, pos }) => {
+        const p = pos!;
+        const [a0, a1] = await c
+          .simulateContract({
+            account: owner,
+            address: npm as `0x${string}`,
+            abi: fn(
+              "collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max)) returns (uint256,uint256)",
+            ),
+            functionName: "collect",
+            args: [{ tokenId: id, recipient: owner, amount0Max: MAX_U128, amount1Max: MAX_U128 }],
+          } as never)
+          .then((r) => (r as { result: [bigint, bigint] }).result)
+          .catch(() => [p[10] as bigint, p[11] as bigint] as [bigint, bigint]);
+        if (a0 === 0n && a1 === 0n) return;
+        const liq = p[7] as bigint;
+        underlyings.add(String(p[2])).add(String(p[3]));
+        pend.push({
+          amt: [
+            [String(p[2]), a0],
+            [String(p[3]), a1],
+          ],
+          build: (usd, amts) => ({
+            kind: "claimable",
+            protocol: "Uniswap v3 fees",
+            chainId,
+            what: `Position #${id} (${liq > 0n ? "active liquidity" : "liquidity withdrawn"}): uncollected fees ${amts}`,
+            valueUsd: usd,
+            action: "Collect fees on app.uniswap.org (Positions → Collect), then swap on SwapChan",
+            link: `https://app.uniswap.org/positions/v3/${chainName(chainId).toLowerCase()}/${id}`,
+          }),
+        });
+      }),
+    );
+  }
+  // 6. price everything pending
+  if (pend.length) {
+    const list = [...underlyings].map((a) => ({ chainId, address: a }));
+    const nonNative = [...underlyings].filter((a) => a !== NATIVE_TOKEN);
+    const syms = await mc<string>(
+      nonNative.map((a) => ({
+        address: a as `0x${string}`,
+        abi: fn("symbol() view returns (string)"),
+        functionName: "symbol",
+      })),
+    );
+    nonNative.forEach((a, i) => syms[i] && symOf.set(a.toLowerCase(), String(syms[i])));
+    const [px, decs] = await Promise.all([
+      prices(f, list).catch(() => new Map()),
+      mc<number>(
+        [...underlyings]
+          .filter((a) => a !== NATIVE_TOKEN)
+          .map((a) => ({
+            address: a as `0x${string}`,
+            abi: fn("decimals() view returns (uint8)"),
+            functionName: "decimals",
+          })),
+      ),
+    ]);
+    [...underlyings]
+      .filter((a) => a !== NATIVE_TOKEN)
+      .forEach((a, i) => decOf.set(a.toLowerCase(), Number(decs[i] ?? 18)));
+    for (const p of pend) {
+      let usd: number | null = 0;
+      for (const [a, v] of p.amt) {
+        const pr = pxOf(px, chainId, a)?.price;
+        if (v === 0n) continue;
+        if (!pr) {
+          usd = null;
+          break;
+        }
+        usd += Number(formatUnits(v, decOf.get(a.toLowerCase()) ?? 18)) * pr;
+      }
+      const amts = p.amt
+        .map(([a, v]) => {
+          const n = Number(formatUnits(v, decOf.get(a.toLowerCase()) ?? 18));
+          return `${n.toPrecision(5)} ${a === NATIVE_TOKEN ? (NATIVE_SYMBOL[chainId] ?? "ETH") : (symOf.get(a.toLowerCase()) ?? short(a))}`;
+        })
+        .join(" + ");
+      if (usd !== null && usd < 1) continue; // sub-$1 dust shares/fees
+      items.push(p.build(usd === null ? null : r2(usd), amts));
+    }
+  }
+  // 7. NFTs still held (unpriced: no free floor-price source)
+  if (nfts.length) {
+    const own = await mc<string>(
+      nfts.slice(0, 200).map((n) => ({
+        address: n.contract as `0x${string}`,
+        abi: fn("ownerOf(uint256) view returns (address)"),
+        functionName: "ownerOf",
+        args: [BigInt(n.id)],
+      })),
+    );
+    const byCol = new Map<string, { name: string; ids: string[] }>();
+    nfts.slice(0, 200).forEach((n, i) => {
+      if (
+        String(own[i] ?? "").toLowerCase() !== me ||
+        n.contract.toLowerCase() === UNI_V3_NPM.toLowerCase()
+      )
+        return;
+      const e = byCol.get(n.contract) ?? { name: n.name, ids: [] };
+      e.ids.push(n.id);
+      byCol.set(n.contract, e);
+    });
+    stats.nftsHeld = [...byCol.values()].reduce((s, e) => s + e.ids.length, 0);
+    for (const [col, e] of [...byCol.entries()].slice(0, 15))
+      items.push({
+        kind: "legacy",
+        protocol: `NFT ${e.name}`,
+        chainId,
+        what: `${e.ids.length} NFT(s) still held (ids ${e.ids.slice(0, 5).join(", ")}${e.ids.length > 5 ? "…" : ""})`,
+        valueUsd: null,
+        action:
+          "Check the collection's floor on a marketplace; sell what you don't want, then swap the proceeds on SwapChan",
+        link: `https://opensea.io/assets/${chainName(chainId).toLowerCase()}/${col}`,
+      });
+  }
+  return { items, stats };
+}
+
+/** JustLend (Tron Compound fork): supplied jTokens valued via exchangeRateStored. */
+const JUSTLEND_COMPTROLLER = "TGjYzgCyPobsNS9n6WcbdLVR9dH7mWqFx7";
+export async function justLend(f: F, owner: string): Promise<Found[]> {
+  const call = async (contract: string, sel: string, param = ""): Promise<string> => {
+    for (let i = 0; ; i++) {
+      try {
+        const v = await call1(contract, sel, param);
+        if (v || i >= 2) return v;
+      } catch (e) {
+        if (i >= 2) throw e;
+      }
+      await new Promise((ok) => setTimeout(ok, 1200 * (i + 1)));
+    }
+  };
+  const call1 = async (contract: string, sel: string, param = "") => {
+    const r = await json<{ constant_result?: string[] }>(
+      f,
+      `${TG}/wallet/triggerconstantcontract`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          owner_address: owner,
+          contract_address: contract,
+          function_selector: sel,
+          parameter: param,
+          visible: true,
+        }),
+      },
+    );
+    return r.constant_result?.[0] ?? "";
+  };
+  const hex = (await import("./onchain.js")).b58decode(owner);
+  const me = Buffer.from(hex.slice(1, 21)).toString("hex").padStart(64, "0");
+  const all = await call(JUSTLEND_COMPTROLLER, "getAllMarkets()");
+  const n = Number(BigInt(`0x${all.slice(64, 128) || "0"}`));
+  const markets = Array.from({ length: n }, (_, i) =>
+    tronAddr(`41${all.slice(128 + i * 64 + 24, 128 + (i + 1) * 64)}`),
+  );
+  const out: Found[] = [];
+  // keyless TronGrid rate-limits bursts: go sequentially, retry once
+  const rows: ({ m: string; u: string; d: number; amt: bigint; s: string } | null)[] = [];
+  for (const m of markets.slice(0, 40)) {
+    await new Promise((ok) => setTimeout(ok, 250));
+    rows.push(
+      await (async () => {
+        const raw = await call(m, "balanceOf(address)", me).catch(async () => {
+          await new Promise((ok) => setTimeout(ok, 1500));
+          return call(m, "balanceOf(address)", me).catch(() => "");
+        });
+        const bal = BigInt(`0x${raw.slice(0, 64) || "0"}`);
+        if (!bal) return null;
+        // sequential on purpose (keyless TronGrid throttles parallel calls)
+        const rate = await call(m, "exchangeRateStored()").catch(() => "");
+        const und = await call(m, "underlying()").catch(() => "");
+        const sym = await call(m, "symbol()").catch(() => "");
+        const u = und && BigInt(`0x${und}`) ? tronAddr(`41${und.slice(24, 64)}`) : nativeOf(TRON);
+        const d =
+          u === nativeOf(TRON)
+            ? 6
+            : Number(
+                BigInt(`0x${(await call(u, "decimals()").catch(() => "")).slice(0, 64) || "12"}`),
+              );
+        if (!rate) return null;
+        const amt = (bal * BigInt(`0x${rate.slice(0, 64)}`)) / 10n ** 18n;
+        const s = Buffer.from(sym.slice(128), "hex").toString().replace(/\0/g, "") || short(m);
+        return { m, u, d, amt, s };
+      })(),
+    );
+  }
+  const ok = rows.filter(Boolean) as { m: string; u: string; d: number; amt: bigint; s: string }[];
+  if (!ok.length) return out;
+  const px = await prices(
+    f,
+    ok.map((r) => ({ chainId: TRON, address: r.u })),
+  ).catch(() => new Map());
+  for (const r of ok) {
+    const a = Number(formatUnits(r.amt, r.d));
+    const pp = pxOf(px, TRON, r.u);
+    const p = pp?.price;
+    if (r.s.includes("…")) r.s = r.u === nativeOf(TRON) ? "jTRX" : `j${pp?.symbol ?? "?"}`;
+    out.push({
+      kind: "lending",
+      protocol: `JustLend ${r.s}`,
+      chainId: TRON,
+      what: `${a.toPrecision(6)} ${r.s.replace(/^j/, "")} supplied (via ${r.s} at ${r.m})`,
+      valueUsd: p ? r2(a * p) : null,
+      action: "Withdraw on app.justlend.org, then swap on SwapChan",
+      link: toUsdc(TRON, r.u, String(a)),
+    });
+  }
+  return out;
+}
+
 // ---------- 6. airdrop_check ----------
 export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) {
   const { address, name } = await resolveAddr(f, env, input);
@@ -1891,6 +2554,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     const vm = vmOfAddr(address);
     const items: Found[] = [];
     const sources: string[] = [];
+    let archaeology: Record<string, unknown> | undefined;
     if (vm === "evm") {
       const ids = [1, 8453, 42161, 10, 137, 56, 43114, 59144, 534352];
       const rs = await Promise.all(
@@ -1938,12 +2602,32 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         ).catch(() => [])),
       );
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
+      const archChains = env.ETHERSCAN_API_KEY
+        ? [1, 8453, 42161, 10, 137, 56, 43114, 534352]
+        : [1, 10, 534352, 43114];
+      const arch = await Promise.all(
+        archChains.map((id) =>
+          evmArchaeology(f, env, id, getAddress(address)).catch((e) => ({
+            items: [] as Found[],
+            stats: { error: (e as Error).message.slice(0, 80) } as Record<string, number | string>,
+          })),
+        ),
+      );
+      for (const a of arch) items.push(...a.items);
+      archaeology = Object.fromEntries(arch.map((a, i) => [chainName(archChains[i]!), a.stats]));
+      sources.push(
+        "contract archaeology: full explorer history → every contract called/token received, probed with balanceOf/earned/dividendsOf/claimable/pendingRewards, ERC-4626 & Yearn vault shares, Uniswap-v2 LP shares, Uniswap v3 positions + simulated collect() fees, EtherDelta/IDEX ERC-20 balances, NFTs still held",
+      );
     } else if (vm === "svm") {
       items.push(...(await solanaRent(f, env, address)));
       sources.push("Solana RPC token accounts (rent reclaim)");
     } else if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address)) {
-      items.push(...(await tronMoney(f, address)));
-      sources.push("TronGrid (rewards, unfreezes, contract probes)");
+      const [tm, jl] = await Promise.all([
+        tronMoney(f, address),
+        justLend(f, address).catch(() => []),
+      ]);
+      items.push(...tm, ...jl);
+      sources.push("TronGrid (rewards, unfreezes, contract probes, JustLend supplied jTokens)");
     } else throw new BadRequest("airdrop_check supports EVM, Solana and Tron addresses");
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
     const top = items[0];
@@ -1954,8 +2638,9 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       totalUsd: r2(items.reduce((s, i) => s + (i.valueUsd ?? 0), 0)),
       items,
       sources,
+      ...(archaeology ? { archaeology } : {}),
       coverage:
-        "Covered: Merkl incentive rewards (EVM), legacy Ethereum contracts (PoWH3D, Fomo3D, EtherDelta ETH, Liquity surplus), Tron voting rewards/unfreezes/dividend contracts, Solana rent in empty token accounts. NOT covered: one-off project airdrops (Jupiter, ENS, UNI, LayerZero, etc.) because no free unified source exists.",
+        "Covered: Merkl incentive rewards (EVM); legacy Ethereum contracts (PoWH3D, Fomo3D, EtherDelta ETH+ERC-20, IDEX v1, Liquity surplus); contract archaeology over the wallet's full history on Ethereum/Optimism/Scroll/Avalanche (all 8 EVM chains with ETHERSCAN_API_KEY): generic reward views, ERC-4626/Yearn vaults, v2 LPs, Uniswap v3 fees, NFTs held; Tron voting rewards/unfreezes/dividend contracts/JustLend; Solana rent in empty token accounts. NOT covered: one-off project airdrops (Jupiter, ENS, UNI, LayerZero, etc.) because no free unified source exists.",
       next: top?.link
         ? cta(`Claim ${top.protocol} and swap it on SwapChan`, top.link)
         : cta("Nothing unclaimed found. Swap at the best price on SwapChan", SITE),
@@ -2324,10 +3009,37 @@ export async function rebalancePlan(
 
 // ---------- 9. bridge_doctor ----------
 type Norm = "done" | "pending" | "failed" | "refunded" | "not_found";
+const THOR_NODES = [
+  "https://gateway.liquify.com/chain/thorchain_api",
+  "https://thornode.ninerealms.com",
+  "https://thornode.thorchain.network",
+];
+type ThorStatus = {
+  tx?: { memo?: string };
+  stages?: {
+    inbound_observed?: { completed: boolean };
+    swap_status?: { pending: boolean };
+    outbound_signed?: { completed: boolean };
+    swap_finalised?: { completed: boolean };
+  };
+  out_txs?: { id: string }[];
+};
+async function thorStatus(f: F, h: string): Promise<ThorStatus | null> {
+  const id = h.replace(/^0x/, "").toUpperCase();
+  if (!/^[0-9A-F]{64}$/.test(id)) return null;
+  for (const n of THOR_NODES) {
+    try {
+      return await json<ThorStatus>(f, `${n}/thorchain/tx/status/${id}`);
+    } catch {}
+  }
+  return null;
+}
 export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, fromChain?: string) {
   const h = hash.trim();
   return cached(`bridge:${h}`, 20_000, async () => {
     const probes: { provider: string; status: Norm; detail: Record<string, unknown> }[] = [];
+    let origin: { chainId: number; status: string } | null = null;
+    let originChecked = 0;
     const add = (provider: string, status: Norm, detail: Record<string, unknown>) =>
       probes.push({ provider, status, detail });
     const evmHash = /^0x[0-9a-fA-F]{64}$/.test(h);
@@ -2336,7 +3048,7 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
         status?: string;
         substatus?: string;
         substatusMessage?: string;
-        sending?: { chainId: number; amount: string; token?: { symbol: string } };
+        sending?: { chainId: number; amount: string; txHash?: string; token?: { symbol: string } };
         receiving?: {
           chainId: number;
           txHash?: string;
@@ -2348,6 +3060,11 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
       }>(f, `https://li.quest/v1/status?txHash=${h}`)
         .then((r) => {
           if (!r.status || r.status === "NOT_FOUND") return;
+          // LI.FI also matches on its own transactionId; only accept a record whose origin/dest tx IS this hash.
+          const hit = [r.sending?.txHash, r.receiving?.txHash].some(
+            (x) => x && x.toLowerCase() === h.toLowerCase(),
+          );
+          if (!hit) return;
           add(
             `LI.FI${r.tool ? ` (${r.tool})` : ""}`,
             r.status === "DONE"
@@ -2377,7 +3094,11 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
             `https://app.across.to/api/deposit/status?originChainId=${chainOf(fromChain)}&depositTxHash=${h}`,
           )
             .then((r) => {
-              if (!r.status) return;
+              if (
+                !r.status ||
+                !/^(filled|pending|refunded|expired|slowFillRequested)$/.test(r.status)
+              )
+                return;
               add(
                 "Across",
                 r.status === "filled"
@@ -2395,11 +3116,32 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
       json<{
         requests?: {
           status: string;
-          data?: { outTxs?: { hash: string; chainId: number }[]; failReason?: string };
+          data?: {
+            inTxs?: { hash?: string; txHash?: string; chainId: number }[];
+            outTxs?: { hash?: string; txHash?: string; chainId: number }[];
+            failReason?: string;
+          };
         }[];
-      }>(f, `https://api.relay.link/requests/v2?hash=${h}`)
+      }>(
+        f,
+        `https://api.relay.link/requests/v3?term=${h}`,
+        env.RELAY_API_KEY ? { headers: { "x-api-key": env.RELAY_API_KEY } } : undefined,
+      )
+        .catch(() => ({ requests: [] }) as { requests?: never[] })
+        .then(async (r) =>
+          // v3 only shows our integrator's + keyless requests; v2 (sunset 2026-11-24) still sees all.
+          r.requests?.length
+            ? r
+            : await json<typeof r>(f, `https://api.relay.link/requests/v2?hash=${h}`).catch(
+                () => r,
+              ),
+        )
         .then((r) => {
-          const q = r.requests?.[0];
+          const q = r.requests?.find((x) =>
+            [...(x.data?.inTxs ?? []), ...(x.data?.outTxs ?? [])].some(
+              (t) => (t.txHash ?? t.hash)?.toLowerCase() === h.toLowerCase(),
+            ),
+          );
           if (!q) return;
           add(
             "Relay",
@@ -2410,7 +3152,11 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
                 : q.status === "failure"
                   ? "failed"
                   : "pending",
-            { status: q.status, destTx: q.data?.outTxs?.[0]?.hash, failReason: q.data?.failReason },
+            {
+              status: q.status,
+              destTx: q.data?.outTxs?.[0]?.txHash ?? q.data?.outTxs?.[0]?.hash,
+              failReason: q.data?.failReason,
+            },
           );
         })
         .catch(() => {}),
@@ -2441,21 +3187,9 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
           );
         })
         .catch(() => {}),
-      json<{
-        tx?: { memo?: string };
-        stages?: {
-          inbound_observed?: { completed: boolean };
-          swap_status?: { pending: boolean };
-          outbound_signed?: { completed: boolean };
-          swap_finalised?: { completed: boolean };
-        };
-        out_txs?: { id: string }[];
-      }>(
-        f,
-        `https://thornode.ninerealms.com/thorchain/tx/status/${h.replace(/^0x/, "").toUpperCase()}`,
-      )
+      thorStatus(f, h)
         .then((r) => {
-          if (!r.stages?.inbound_observed?.completed) return;
+          if (!r?.stages?.inbound_observed?.completed) return;
           const refund = /^REFUND/i.test(r.tx?.memo ?? "");
           add(
             "THORChain",
@@ -2464,15 +3198,31 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
           );
         })
         .catch(() => {}),
+      (async () => {
+        if (!evmHash) return;
+        // Verify the tx exists on a source chain before trusting any provider.
+        const ids = fromChain ? [chainOf(fromChain)] : EVM_IDS;
+        const found = await Promise.all(
+          ids.map((id) =>
+            Promise.race([
+              evmClient(id, env)
+                .getTransactionReceipt({ hash: h as `0x${string}` })
+                .then((rc) => ({ chainId: id, status: rc.status as string }))
+                .catch(() => null),
+              new Promise<null>((res) => setTimeout(() => res(null), 6000)),
+            ]),
+          ),
+        );
+        origin =
+          found.find((x) => x) ??
+          (fromChain ? { chainId: ids[0] as number, status: "not found on this chain" } : null);
+        originChecked = ids.length;
+      })(),
     ]);
-    let origin: { chainId: number; status: string } | null = null;
-    if (evmHash && fromChain) {
-      const id = chainOf(fromChain);
-      const rc = await evmClient(id, env)
-        .getTransactionReceipt({ hash: h as `0x${string}` })
-        .catch(() => null);
-      origin = { chainId: id, status: rc ? rc.status : "not found on this chain" };
-    }
+    // EVM hash: if no source chain has this tx, nothing is confirmed — whatever providers say.
+    const o = origin as { chainId: number; status: string } | null;
+    const originMissing = evmHash && (!o || o.status === "not found on this chain");
+    if (originMissing && originChecked > 0) probes.length = 0;
     const best =
       probes.find((p) => p.status === "done") ??
       probes.find((p) => p.status === "refunded") ??
@@ -2487,17 +3237,18 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
       refunded:
         "Refunded to the sender on the origin chain (sometimes as a different token, e.g. WETH). Retry with a fresh SwapChan quote.",
       not_found:
-        "No bridge provider recognizes this hash yet. If the origin tx just confirmed, wait 1–2 minutes; check the hash and origin chain; if the origin tx reverted, nothing left your wallet.",
+        "No confirmed record for this exact tx. If it's an EVM hash we couldn't find it on any supported chain, so nothing is confirmed. If the origin tx just confirmed, wait 1–2 minutes; check the hash and origin chain; if the origin tx reverted, nothing left your wallet. No bridge provider recognizes this hash yet. If the origin tx just confirmed, wait 1–2 minutes; check the hash and origin chain; if the origin tx reverted, nothing left your wallet.",
     };
     const st: Norm = best?.status ?? "not_found";
     return {
       hash: h,
-      origin,
+      origin: o,
+      originVerified: evmHash ? !originMissing : null,
       status: st,
       provider: best?.provider ?? null,
       probes,
       advice:
-        origin?.status === "reverted"
+        o?.status === "reverted"
           ? "Origin tx reverted: nothing was bridged and only gas was spent. Retry with a fresh quote."
           : advice[st],
       checked: [
@@ -2821,11 +3572,13 @@ export async function findMoney(
         category:
           it.kind === "solana-rent"
             ? "Reclaim rent"
-            : it.kind === "legacy"
-              ? "Forgotten money in old contracts"
-              : it.kind === "tron"
-                ? "Tron rewards/unstake"
-                : "Unclaimed rewards",
+            : it.kind === "lending"
+              ? "Lending position"
+              : it.kind === "legacy"
+                ? "Forgotten money in old contracts"
+                : it.kind === "tron"
+                  ? "Tron rewards/unstake"
+                  : "Unclaimed rewards",
         title: `${it.protocol}: ${it.what}`,
         estUsd: it.valueUsd,
         estimateKind: it.valueUsd === null ? "estimate" : "exact",
@@ -3115,7 +3868,9 @@ export function intelRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync | nul
   );
   app.get("/history", (c) =>
     run(c, () =>
-      walletHistory(f, env, need(c.req.query("address"), "address"), c.req.query("chainId")),
+      walletHistory(f, env, need(c.req.query("address"), "address"), c.req.query("chainId")).then(
+        ({ allPriced: _, ...r }) => r,
+      ),
     ),
   );
   app.get("/pnl", (c) =>

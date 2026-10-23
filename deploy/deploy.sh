@@ -34,6 +34,7 @@ export ZEROX_API_KEY=$(opt providers zerox)
 export LIFI_API_KEY=$(opt providers lifi)
 export LIFI_INTEGRATOR=$(opt providers lifi_integrator)   # portal.li.fi integrator name (default myswapchan)
 export RELAY_API_KEY=$(opt providers relay)
+export ETHERSCAN_API_KEY=$(opt providers etherscan)
 export JUPITER_API_KEY=$(opt providers jupiter)   # optional: developers.jup.ag/portal (keyless = 0.5 RPS)
 export SWAPCHAN_FEE_RECIPIENT_SOLANA=$(opt fees solana)   # Jupiter platform fee owner
 export VELORA_API_KEY=$(opt providers velora)
