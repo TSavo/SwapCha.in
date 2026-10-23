@@ -3154,6 +3154,9 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
                   : "pending",
             {
               status: q.status,
+              originChainId: q.data?.inTxs?.find(
+                (t) => (t.txHash ?? t.hash)?.toLowerCase() === h.toLowerCase(),
+              )?.chainId,
               destTx: q.data?.outTxs?.[0]?.txHash ?? q.data?.outTxs?.[0]?.hash,
               failReason: q.data?.failReason,
             },
@@ -3222,7 +3225,19 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
     // EVM hash: if no source chain has this tx, nothing is confirmed — whatever providers say.
     const o = origin as { chainId: number; status: string } | null;
     const originMissing = evmHash && (!o || o.status === "not found on this chain");
-    if (originMissing && originChecked > 0) probes.length = 0;
+    // Exception: an exact-hash provider record whose origin is a chain we have no RPC for (e.g. Relay's
+    // own chains) can't be checked here — keep it, but flag originVerified=false.
+    const unverifiable = (p: (typeof probes)[number]) => {
+      const oc = Number(p.detail.originChainId);
+      return Number.isFinite(oc) && oc > 0 && !EVM_IDS.includes(oc);
+    };
+    let originUncheckable = false;
+    if (originMissing && originChecked > 0) {
+      const keep = fromChain ? [] : probes.filter(unverifiable);
+      probes.length = 0;
+      probes.push(...keep);
+      originUncheckable = keep.length > 0;
+    }
     const best =
       probes.find((p) => p.status === "done") ??
       probes.find((p) => p.status === "refunded") ??
@@ -3237,13 +3252,18 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
       refunded:
         "Refunded to the sender on the origin chain (sometimes as a different token, e.g. WETH). Retry with a fresh SwapChan quote.",
       not_found:
-        "No confirmed record for this exact tx. If it's an EVM hash we couldn't find it on any supported chain, so nothing is confirmed. If the origin tx just confirmed, wait 1–2 minutes; check the hash and origin chain; if the origin tx reverted, nothing left your wallet. No bridge provider recognizes this hash yet. If the origin tx just confirmed, wait 1–2 minutes; check the hash and origin chain; if the origin tx reverted, nothing left your wallet.",
+        "No confirmed record for this exact tx. If it's an EVM hash we couldn't find it on any supported chain, so nothing is confirmed. No bridge provider recognizes this hash yet. If the origin tx just confirmed, wait 1–2 minutes; check the hash and origin chain; if the origin tx reverted, nothing left your wallet.",
     };
     const st: Norm = best?.status ?? "not_found";
     return {
       hash: h,
       origin: o,
       originVerified: evmHash ? !originMissing : null,
+      ...(originUncheckable
+        ? {
+            originNote: `Origin chain ${probes[0]?.detail.originChainId} has no SwapChan RPC, so the tx couldn't be independently verified; status is the provider's record for this exact hash.`,
+          }
+        : {}),
       status: st,
       provider: best?.provider ?? null,
       probes,
