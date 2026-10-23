@@ -1001,14 +1001,6 @@
   },
   {
     "chainId": 10,
-    "symbol": "OHM",
-    "name": "Olympus",
-    "address": "0x060cb087a9730E13aa191f31A6d86bFF8DfcdCC0",
-    "decimals": 9,
-    "logoURI": "https://static.debank.com/image/eth_token/logo_url/0x64aa3364f17a4d01c6f1751fd97c2bd3d7e7f1d5/0ad387f86fba0c16654cfb0f720df5d6.png"
-  },
-  {
-    "chainId": 10,
     "symbol": "FRAX",
     "name": "Legacy Frax Dollar",
     "address": "0x2E3D870790dC77A83DD1d18184Acc7439A53f475",
@@ -1073,14 +1065,6 @@
   },
   {
     "chainId": 10,
-    "symbol": "TRB",
-    "name": "Tellor Tributes",
-    "address": "0xaf8cA653Fa2772d58f4368B0a71980e9E3cEB888",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/op_token/logo_url/0xaf8ca653fa2772d58f4368b0a71980e9e3ceb888/d0a6887fce34243d63aa3986e458aca6.png"
-  },
-  {
-    "chainId": 10,
     "symbol": "XVS",
     "name": "Venus",
     "address": "0x4a971e87ad1F61f7f3081645f52a99277AE917cF",
@@ -1134,14 +1118,6 @@
     "address": "0x03569CC076654F82679C4BA2124D64774781B01D",
     "decimals": 18,
     "logoURI": "https://assets.coingecko.com/coins/images/53755/standard/BOLD_logo.png?1737183873"
-  },
-  {
-    "chainId": 10,
-    "symbol": "OCEAN",
-    "name": "Ocean Protocol",
-    "address": "0x2561aa2bB1d2Eb6629EDd7b0938d7679B8b49f9E",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/op_token/logo_url/0x2561aa2bb1d2eb6629edd7b0938d7679b8b49f9e/0f69f390a7cef56bde5031c1609d39af.png"
   },
   {
     "chainId": 10,
@@ -1377,14 +1353,6 @@
   },
   {
     "chainId": 56,
-    "symbol": "USD0",
-    "name": "Usual USD",
-    "address": "0x758a3e0b1F842C9306B783f8A4078C6C8C03a270",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/bsc_token/logo_url/0x758a3e0b1f842c9306b783f8a4078c6c8c03a270/f3bd60e8d8fe6f48f4a12bcddf5723f0.png"
-  },
-  {
-    "chainId": 56,
     "symbol": "Q",
     "name": "Quack AI",
     "address": "0xc07e1300dc138601FA6B0b59f8D0FA477e690589",
@@ -1430,14 +1398,6 @@
     "address": "0xb3Ed0A426155B79B898849803E3B36552f7ED507",
     "decimals": 18,
     "logoURI": "https://static.debank.com/image/bsc_token/logo_url/0xb3ed0a426155b79b898849803e3b36552f7ed507/b9351f830cd0a6457e489b8c685f29ad.png"
-  },
-  {
-    "chainId": 56,
-    "symbol": "reUSD",
-    "name": "Re Protocol reUSD",
-    "address": "0xbA9425EC55ee0E72216D18e0ad8BBbA2553bFb60",
-    "decimals": 18,
-    "logoURI": "https://coin-images.coingecko.com/coins/images/66291/large/Points_Program_Group_91.png?1749676055"
   },
   {
     "chainId": 56,
@@ -1526,14 +1486,6 @@
     "address": "0x715D400F88C167884bbCc41C5FeA407ed4D2f8A0",
     "decimals": 18,
     "logoURI": "https://static.debank.com/image/bsc_token/logo_url/0x715d400f88c167884bbcc41c5fea407ed4d2f8a0/07f6f7b2aa4efb792b8c4f020988f9c6.png"
-  },
-  {
-    "chainId": 56,
-    "symbol": "AUSD",
-    "name": "AUSD",
-    "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
-    "decimals": 6,
-    "logoURI": "https://static.debank.com/image/bsc_token/logo_url/0x00000000efe302beaa2b3e6e1b18d08d69a9012a/f00e205c36e3bf04c641ac006ba20a4d.png"
   },
   {
     "chainId": 56,
@@ -1737,22 +1689,6 @@
   },
   {
     "chainId": 137,
-    "symbol": "COW",
-    "name": "CoW Protocol",
-    "address": "0x2F4efd3Aa42E15a1eC6114547151B63EE5D39958",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/matic_token/logo_url/0x2f4efd3aa42e15a1ec6114547151b63ee5d39958/dbf8a2ef615d9b9f44785e1101f7c854.png"
-  },
-  {
-    "chainId": 137,
-    "symbol": "XAUM",
-    "name": "Matrixdock Gold",
-    "address": "0xA7E22972a19dd924aFeEDf3Db28033B146801081",
-    "decimals": 18,
-    "logoURI": "https://coin-images.coingecko.com/coins/images/51962/large/xaum_200px_logo_1x.png?1733560735"
-  },
-  {
-    "chainId": 137,
     "symbol": "SUSHI",
     "name": "Sushi",
     "address": "0x0b3F868E0BE5597D5DB7fEB59E1CADBb0fdDa50a",
@@ -1777,14 +1713,6 @@
   },
   {
     "chainId": 137,
-    "symbol": "TRB",
-    "name": "Tellor Tributes",
-    "address": "0xE3322702BEdaaEd36CdDAb233360B939775ae5f1",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/matic_token/logo_url/0xe3322702bedaaed36cddab233360b939775ae5f1/d0a6887fce34243d63aa3986e458aca6.png"
-  },
-  {
-    "chainId": 137,
     "symbol": "FOLKS",
     "name": "FOLKS",
     "address": "0xFF7F8F301F7A706E3CfD3D2275f5dc0b9EE8009B",
@@ -1798,14 +1726,6 @@
     "address": "0x2B9E7ccDF0F4e5B24757c1E1a80e311E34Cb10c7",
     "decimals": 18,
     "logoURI": "https://static.debank.com/image/matic_token/logo_url/0x2b9e7ccdf0f4e5b24757c1e1a80e311e34cb10c7/baddad0cec04d9361bd6b4c594ccf704.png"
-  },
-  {
-    "chainId": 137,
-    "symbol": "ZCHF",
-    "name": "Frankencoin",
-    "address": "0xD4dD9e2F021BB459D5A5f6c24C12fE09c5D45553",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/matic_token/logo_url/0xd4dd9e2f021bb459d5a5f6c24c12fe09c5d45553/791002bd7991df84c2b2f0b2e25107ef.png"
   },
   {
     "chainId": 137,
@@ -1830,14 +1750,6 @@
     "address": "0xf8F9efC0db77d8881500bb06FF5D6ABc3070E695",
     "decimals": 18,
     "logoURI": "https://static.debank.com/image/matic_token/logo_url/0xf8f9efc0db77d8881500bb06ff5d6abc3070e695/4497316d0335d94bcec6c0c397238971.png"
-  },
-  {
-    "chainId": 137,
-    "symbol": "RPL",
-    "name": "Rocket Pool",
-    "address": "0x7205705771547cF79201111B4bd8aaF29467b9eC",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/matic_token/logo_url/0x7205705771547cf79201111b4bd8aaf29467b9ec/9877a967a9d079ce85ee9e68853b8009.png"
   },
   {
     "chainId": 137,
@@ -2014,14 +1926,6 @@
     "address": "0x8Ee73c484A26e0A5df2Ee2a4960B789967dd0415",
     "decimals": 18,
     "logoURI": "https://static.debank.com/image/base_token/logo_url/0x8ee73c484a26e0a5df2ee2a4960b789967dd0415/4a3b2aa9775c79867db769e3bed76e83.png"
-  },
-  {
-    "chainId": 8453,
-    "symbol": "USD0",
-    "name": "Usual USD",
-    "address": "0x758a3e0b1F842C9306B783f8A4078C6C8C03a270",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/base_token/logo_url/0x758a3e0b1f842c9306b783f8a4078c6c8c03a270/f3bd60e8d8fe6f48f4a12bcddf5723f0.png"
   },
   {
     "chainId": 8453,
@@ -2473,14 +2377,6 @@
   },
   {
     "chainId": 42161,
-    "symbol": "AUSD",
-    "name": "AUSD",
-    "address": "0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a",
-    "decimals": 6,
-    "logoURI": "https://static.debank.com/image/arb_token/logo_url/0x00000000efe302beaa2b3e6e1b18d08d69a9012a/242416c5718d2a7a29834bd129fc8478.png"
-  },
-  {
-    "chainId": 42161,
     "symbol": "VSN",
     "name": "Vision",
     "address": "0x6fBBbD8bFB1cd3986B1D05e7861a0f62F87DB74b",
@@ -2582,14 +2478,6 @@
     "address": "0x6A7661795C374c0bFC635934efAddFf3A7Ee23b6",
     "decimals": 18,
     "logoURI": "https://static.debank.com/image/arb_token/logo_url/0x6a7661795c374c0bfc635934efaddff3a7ee23b6/0c348eedfa7f89d3db2919e0a18988ea.png"
-  },
-  {
-    "chainId": 42161,
-    "symbol": "RIF",
-    "name": "Rootstock Infrastructure Framework",
-    "address": "0xe5e851b01DD3Eda24FDe709a407dB44555B6d1E0",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/arb_token/logo_url/0xe5e851b01dd3eda24fde709a407db44555b6d1e0/d009ba4cb54cbcdc6deb24c5fa24782e.png"
   },
   {
     "chainId": 43114,
@@ -2721,14 +2609,6 @@
   },
   {
     "chainId": 43114,
-    "symbol": "SNX.e",
-    "name": "Synthetix",
-    "address": "0xBeC243C995409E6520D7C41E404da5dEba4b209B",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/avax_token/logo_url/0xbec243c995409e6520d7c41e404da5deba4b209b/fb568c26c7902169572abe8fa966e791.png"
-  },
-  {
-    "chainId": 43114,
     "symbol": "frxUSD",
     "name": "Frax USD",
     "address": "0x80Eede496655FB9047dd39d9f418d5483ED600df",
@@ -2777,27 +2657,11 @@
   },
   {
     "chainId": 43114,
-    "symbol": "CX",
-    "name": "Cortex",
-    "address": "0x000000000000012DeF132E61759048bE5b5C6033",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/avax_token/logo_url/0x000000000000012def132e61759048be5b5c6033/901466d66e911a04e70d9f77e4196c76.png"
-  },
-  {
-    "chainId": 43114,
     "symbol": "FOLKS",
     "name": "FOLKS",
     "address": "0xFF7F8F301F7A706E3CfD3D2275f5dc0b9EE8009B",
     "decimals": 6,
     "logoURI": "https://assets.coingecko.com/coins/images/70268/standard/1000331462.png?1761335326"
-  },
-  {
-    "chainId": 43114,
-    "symbol": "ZCHF",
-    "name": "Frankencoin",
-    "address": "0xD4dD9e2F021BB459D5A5f6c24C12fE09c5D45553",
-    "decimals": 18,
-    "logoURI": "https://coin-images.coingecko.com/coins/images/37150/large/Coin_Logo_Frankencoin_1024px.png?1728679791"
   },
   {
     "chainId": 43114,
@@ -2830,14 +2694,6 @@
     "address": "0x3Ab1C9aDb065F3FcA0059652Cd7A52B05C98f9a9",
     "decimals": 18,
     "logoURI": "https://static.debank.com/image/eth_token/logo_url/0xff56cc6b1e6ded347aa0b7676c85ab0b3d08b0fa/fa20bb1cf2854aec5097fbc25f5c3c7b.png"
-  },
-  {
-    "chainId": 43114,
-    "symbol": "CTSI(multichain)",
-    "name": "Cartesi",
-    "address": "0x6b289CCeAA8639e3831095D75A3e43520faBf552",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/avax_token/logo_url/0x6b289cceaa8639e3831095d75a3e43520fabf552/ef8f140a69013c2a0045847f80bbf655.png"
   },
   {
     "chainId": 43114,
@@ -2985,14 +2841,6 @@
   },
   {
     "chainId": 59144,
-    "symbol": "KNC",
-    "name": "Kyber Network Crystal",
-    "address": "0x3b2F62d42DB19B30588648bf1c184865D4C3B1D6",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/arb_token/logo_url/0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb/1d25e188deb06e642ea6f4f4f8eb0a0c.png"
-  },
-  {
-    "chainId": 59144,
     "symbol": "STG",
     "name": "Stargate Finance",
     "address": "0x808d7c71ad2ba3FA531b068a2417C63106BC0949",
@@ -3001,67 +2849,11 @@
   },
   {
     "chainId": 534352,
-    "symbol": "LINK",
-    "name": "Chainlink",
-    "address": "0x548C6944cba02B9D1C0570102c89de64D258d3Ac",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/scrl_token/logo_url/0x548c6944cba02b9d1c0570102c89de64d258d3ac/571d26a2c7e7ed29d34609149e173659.png"
-  },
-  {
-    "chainId": 534352,
     "symbol": "USDe",
     "name": "Ethena USDe",
     "address": "0x5d3a1Ff2b6BAb83b63cd9AD0787074081a52ef34",
     "decimals": 18,
     "logoURI": "https://static.debank.com/image/eth_token/logo_url/0x4c9edd5852cd905f086c759e8383e09bff1e68b3/1228d6e73f70f37ec1f6fe02a3bbe6ff.png"
-  },
-  {
-    "chainId": 534352,
-    "symbol": "ENA",
-    "name": "Ethena",
-    "address": "0x58538e6A46E07434d7E7375Bc268D3cb839C0133",
-    "decimals": 18,
-    "logoURI": "https://ethena.fi/shared/ecosystem/ENA.svg"
-  },
-  {
-    "chainId": 534352,
-    "symbol": "ETHFI",
-    "name": "Ether.fi",
-    "address": "0x056A5FA5da84ceb7f93d36e545C5905607D8bD81",
-    "decimals": 18,
-    "logoURI": "https://coin-images.coingecko.com/coins/images/35958/large/etherfi.jpeg?1710254562"
-  },
-  {
-    "chainId": 534352,
-    "symbol": "frxUSD",
-    "name": "Frax USD",
-    "address": "0x397F939C3b91A74C321ea7129396492bA9Cdce82",
-    "decimals": 18,
-    "logoURI": "https://coin-images.coingecko.com/coins/images/53963/large/frxUSD.png?1737792154"
-  },
-  {
-    "chainId": 728126428,
-    "symbol": "WBT",
-    "name": "WhiteBIT Coin",
-    "address": "TFptbWaARrWTX5Yvy3gNG5Lm8BmhPx82Bt",
-    "decimals": 8,
-    "logoURI": "https://media.thegrid.id/id1755574173-kPG08xPwSoWSQ8sUf94fbg/7/id1755574173-vDLtwp60SXyU9DkdY03PAA/id1761223287-yofTwDGNQzWuWUaALp4d4Q/image-1770705185.svg"
-  },
-  {
-    "chainId": 728126428,
-    "symbol": "USD1",
-    "name": "USD1",
-    "address": "TPFqcBAaaUMCSVRCqPaQ9QnzKhmuoLR6Rc",
-    "decimals": 18,
-    "logoURI": "https://static.debank.com/image/eth_token/logo_url/0x8d0d000ee44948fc98c9b98a4fa4921476f08b0d/20466428407a585c38e7141a7bf5e100.png"
-  },
-  {
-    "chainId": 728126428,
-    "symbol": "USDD",
-    "name": "USDD",
-    "address": "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
-    "decimals": 18,
-    "logoURI": "https://token-media.defined.fi/728126428_0xe91a7411e56ce79e83570570f49b9fc35b7727c5_small.png"
   },
   {
     "chainId": 728126428,
@@ -3374,14 +3166,6 @@
     "address": "HsRpHQn6VbyMs5b5j5SV6xQ2VvpvvCCzu19GjytVSCoz",
     "decimals": 9,
     "logoURI": "https://arweave.net/3VN1M6rIFYFKvOhOcEd8esMOmjwTbThaXzzstpdiOgI"
-  },
-  {
-    "chainId": 792703809,
-    "symbol": "reUSD",
-    "name": "Re Protocol reUSD",
-    "address": "2uxaYT1fVrp6Fg2BrxQcyKSW91hefM6dG9krpbeDiirT",
-    "decimals": 9,
-    "logoURI": "https://gateway.irys.xyz/9y3EEjMgUU9jHAS5cse5AC4GjVBh4Qr1QYDtZ78G3UzV"
   },
   {
     "chainId": 792703809,

@@ -1,7 +1,7 @@
 // Expands tokenList.json with top tokens per chain by CoinGecko market cap, keeping only
 // contracts whose address also appears in LI.FI's token list for that chain (2-source cross-check).
 // Inputs (fetch first): /tmp/cg_list.json (coins/list?include_platform=true), /tmp/cg_m{1..N}.json
-// (coins/markets pages), /tmp/lifi.json (li.quest/v1/tokens), /tmp/jup.json (lite-api.jup.ag/tokens/v2/tag?query=verified). Then run fill-logos.mjs.
+// (coins/markets pages), /tmp/lifi.json (li.quest/v1/tokens), /tmp/jup.json (lite-api.jup.ag/tokens/v2/tag?query=verified). Then run fill-logos.mjs, and drop any token api.swapchan.com/quote can't route (USDC->token, 2 tries).
 import fs from "fs";
 
 const FILE = new URL("../src/tokenList.json", import.meta.url);
