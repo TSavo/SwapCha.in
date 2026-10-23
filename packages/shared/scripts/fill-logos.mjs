@@ -76,6 +76,10 @@ const symAlias = {
   BTCB: "WBTC",
   "USDC.e": "USDC",
 };
+// Optional CoinGecko image fallback written by build-tokenlist.mjs.
+const cgImage = fs.existsSync("/tmp/cg_images.json")
+  ? JSON.parse(fs.readFileSync("/tmp/cg_images.json"))
+  : {};
 let fixed = 0;
 for (const t of list) {
   if (await ok(t.logoURI)) continue;
@@ -87,6 +91,9 @@ for (const t of list) {
     const addr = t.address.startsWith("0x") ? await checksum(t.address) : t.address;
     if (twSlug[t.chainId]) cands.push(`${TW}/${twSlug[t.chainId]}/assets/${addr}/logo.png`);
   }
+  cands.push(
+    cgImage[`${t.chainId}:${t.address.startsWith("0x") ? t.address.toLowerCase() : t.address}`],
+  );
   if (!nat || !NATIVE_SLUG[t.symbol]) cands.push(mainnetBySym[symAlias[t.symbol] ?? t.symbol]);
   if (NATIVE_SLUG[t.symbol]) cands.push(`${TW}/${NATIVE_SLUG[t.symbol]}/info/logo.png`);
   let got = null;

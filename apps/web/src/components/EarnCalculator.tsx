@@ -4,7 +4,11 @@ import { useState } from "react";
 const PARTNER_RATE = 0.0005; // 5 bp = half of SwapChan's 10 bp fee
 const MAX = 10_000_000;
 const usd = (n: number) =>
-  n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: n < 100 ? 2 : 0 });
+  n.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: n < 100 ? 2 : 0,
+  });
 
 export function EarnCalculator() {
   const [vol, setVol] = useState(100_000);
@@ -39,16 +43,20 @@ export function EarnCalculator() {
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <div className="rounded-xl bg-black/30 p-4">
           <div className="text-xs font-bold uppercase text-violet-300">Per month</div>
-          <div data-testid="earn-monthly" className="text-3xl font-black text-amber-300">{usd(monthly)}</div>
+          <div data-testid="earn-monthly" className="text-3xl font-black text-amber-300">
+            {usd(monthly)}
+          </div>
         </div>
         <div className="rounded-xl bg-black/30 p-4">
           <div className="text-xs font-bold uppercase text-violet-300">Per year</div>
-          <div data-testid="earn-yearly" className="text-3xl font-black text-amber-300">{usd(monthly * 12)}</div>
+          <div data-testid="earn-yearly" className="text-3xl font-black text-amber-300">
+            {usd(monthly * 12)}
+          </div>
         </div>
       </div>
       <p className="mt-3 text-xs text-violet-300">
-        Estimate only: volume × 0.05% (5 bp, half of SwapChan&apos;s 0.1% fee). Actual earnings depend
-        on which swaps carry our fee; see the FAQ below.
+        Estimate only: volume × 0.05% (5 bp, half of SwapChan&apos;s 0.1% fee). Actual earnings
+        depend on which swaps carry our fee; see the FAQ below.
       </p>
     </div>
   );

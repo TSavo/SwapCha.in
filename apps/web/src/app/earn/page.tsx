@@ -11,8 +11,18 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESC,
   alternates: { canonical: "/earn" },
-  openGraph: { title: TITLE, description: DESC, url: "/earn", images: ["/characters/og/swapchan.png"] },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESC, images: ["/characters/og/swapchan.png"] },
+  openGraph: {
+    title: TITLE,
+    description: DESC,
+    url: "/earn",
+    images: ["/characters/og/swapchan.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESC,
+    images: ["/characters/og/swapchan.png"],
+  },
 };
 
 const btn =
@@ -87,9 +97,17 @@ export default function EarnPage() {
       <h2 className="mt-10 mb-4 text-2xl font-black">Three ways to earn</h2>
       <div className="grid gap-4 md:grid-cols-3">
         {WAYS.map((w) => (
-          <div key={w.title} className="flex flex-col rounded-2xl border border-violet-700 bg-violet-950/60 p-5">
+          <div
+            key={w.title}
+            className="flex flex-col rounded-2xl border border-violet-700 bg-violet-950/60 p-5"
+          >
             <Link href={castHref(w.chan)} title={`Meet ${w.chan}-chan`}>
-              <img src={`/characters/${w.chan}.png`} alt={`${w.chan} chan`} width={72} height={72} />
+              <img
+                src={`/characters/${w.chan}.png`}
+                alt={`${w.chan} chan`}
+                width={72}
+                height={72}
+              />
             </Link>
             <h3 className="mt-2 text-lg font-black">{w.title}</h3>
             <p className="mt-1 flex-1 text-sm text-violet-200">{w.body}</p>

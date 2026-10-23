@@ -9,11 +9,12 @@ import {
   type Token,
 } from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { erc20Abi, formatUnits, isAddress } from "viem";
 import { useAccount, useBalance, useReadContracts } from "wagmi";
 import { api } from "@/lib/api";
 import { characterForChain } from "@/lib/characters";
+import { searchTokens } from "@/lib/tokenSearch";
 import { Character } from "./Character";
 
 const POPULAR = ["ETH", "USDC", "USDT", "SOL", "BTC", "BNB", "POL", "AVAX", "TRX", "WBTC", "DAI"];
@@ -162,10 +163,11 @@ export function TokenPicker({
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const input = useRef<HTMLInputElement>(null);
-  const list = exclude ? tokens.filter((t) => !exclude(t)) : tokens;
-  const filtered = list.filter((t) =>
-    `${t.symbol} ${t.name} ${t.address}`.toLowerCase().includes(q.trim().toLowerCase()),
+  const list = useMemo(
+    () => (exclude ? tokens.filter((t) => !exclude(t)) : tokens),
+    [tokens, exclude],
   );
+  const filtered = useMemo(() => searchTokens(list, q), [list, q]);
   const pasted = q.trim();
   const isPaste = isAddress(pasted, { strict: false }) || pasted.length > 30;
   const lookup = useQuery({
@@ -176,14 +178,18 @@ export function TokenPicker({
   });
   const custom = lookup.data;
   const balances = useBalances(list, chainId, open);
-  const popular = POPULAR.flatMap((s) => list.filter((t) => t.symbol === s)).slice(0, 6);
+  const pinned = POPULAR.flatMap((s) => list.filter((t) => t.symbol === s));
+  const popular = [...pinned, ...list.filter((t) => !pinned.includes(t))].slice(0, 8);
   const chainName = SUPPORTED_CHAINS[chainId as keyof typeof SUPPORTED_CHAINS]?.name ?? "";
   const ch = characterForChain(chainId);
-  const sorted = [...filtered].sort(
-    (a, b) =>
-      Number((balances.get(b.address.toLowerCase()) ?? 0n) > 0n) -
-      Number((balances.get(a.address.toLowerCase()) ?? 0n) > 0n),
-  );
+  // Held tokens first only when browsing; when searching, relevance wins.
+  const sorted = q.trim()
+    ? filtered
+    : [...filtered].sort(
+        (a, b) =>
+          Number((balances.get(b.address.toLowerCase()) ?? 0n) > 0n) -
+          Number((balances.get(a.address.toLowerCase()) ?? 0n) > 0n),
+      );
 
   const pick = (t: Token) => {
     onChange(t);
