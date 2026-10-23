@@ -512,6 +512,14 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
             "cross-VM route: pass recipient (the receiving address on the destination chain)",
           );
         const built = await api.build(pick.id, a.taker, a.recipient);
+        // Server-side payload guard (router allowlist, recipient, minOut, approvals). Fail closed.
+        if (built.verified === false)
+          throw new UserError("API payload failed SwapChan verification; refusing to return it");
+        const guard = {
+          verified: built.verified ?? null,
+          verification: built.verification ?? null,
+          ...(built.fallbackFrom ? { fallbackFrom: built.fallbackFrom } : {}),
+        };
         if (built.execution === "nonevm" && built.nonEvmTx) {
           const how: Record<string, string> = {
             "svm-base64":
@@ -528,6 +536,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
             execution: "nonevm",
             unsignedTx: built.nonEvmTx,
             howToExecute: how[built.nonEvmTx.kind],
+            ...guard,
             safety: "Unsigned. SwapChan never holds keys or signs.",
           };
         }
@@ -541,6 +550,11 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           simulation: apiSim,
           execution,
           order,
+          verified: _v,
+          verification: _vf,
+          fallbackFrom: _fb,
+          quoteId: _qid,
+          provider: _prov,
           ...tx
         } = built;
 
@@ -607,6 +621,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
             unsignedTx: null,
             simulation: { status: "skipped", reason: "signed order; nothing to simulate" },
             permit2: null,
+            ...guard,
             safety: "Unsigned. SwapChan never holds keys or signs.",
           };
         }
@@ -654,6 +669,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
                   "Sign permit2 (EIP-712) with the wallet and append the signature to the tx per provider (0x) docs before sending.",
               }
             : {}),
+          ...guard,
           safety:
             "Unsigned. SwapChan never holds keys or signs. Review chainId, to, value and toAmountMin in the wallet before signing. Quote expires at quote.expiresAt.",
         };

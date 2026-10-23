@@ -13,7 +13,8 @@ import {
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
-import { fanOut } from "./aggregate.js";
+import { fanOut, logGuardFailure } from "./aggregate.js";
+import { buildPayload, failures, type GuardCtx, liveGuardCtx, verifyPayload } from "./guard/index.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
 import { mempoolUtxos } from "./btc.js";
 import { limitRoutes } from "./limit.js";
@@ -96,6 +97,8 @@ export interface AppOptions {
   cowFetch?: Fetch;
   /** Widget partner store; null disables /partners. Default: SQLite at $SWAPCHAN_DATA_DIR/partners.db (in-memory when unset). */
   partners?: PartnerStore | null;
+  /** Payload guard (router allowlist + calldata checks). Default: live THORChain/Relay/0x data. */
+  guard?: GuardCtx;
   /** SEO trending-token store; null disables /seo. Default: $SWAPCHAN_DATA_DIR/seo.db + 30-min job. */
   seo?: import("node:sqlite").DatabaseSync | null;
 }
@@ -107,6 +110,9 @@ export function createApp(
   const env = opts.env ?? process.env;
   const simulator = opts.simulator !== undefined ? opts.simulator : createSimulator(env);
   const cache = new Map<string, Quote>();
+  /** quoteId -> ranked sibling quote ids from the same /quotes call (build fallback order). */
+  const siblings = new Map<string, string[]>();
+  const guard = opts.guard ?? liveGuardCtx(env);
   const pricer = opts.pricer === undefined ? defaultPricer(env) : opts.pricer;
   const resolveToken = tokenResolver(
     opts.tokenReader ?? onchainReader(env),
@@ -170,8 +176,16 @@ export function createApp(
   if (partners) app.route("/partners", partnerRoutes(partners, cache, quotePartner));
   const quotes = async (query: Record<string, string>) => {
     const { partner, ...rest } = query;
-    const res = await fanOut(providers, QuoteRequest.parse(rest), 8000, undefined, pricer);
-    for (const q of res.quotes) cache.set(q.id, q);
+    const res = await fanOut(providers, QuoteRequest.parse(rest), 8000, undefined, pricer, guard);
+    const ids = res.quotes.map((q) => q.id);
+    for (const q of res.quotes) {
+      cache.set(q.id, q);
+      siblings.set(q.id, ids);
+    }
+    if (cache.size > 100_000) {
+      cache.clear();
+      siblings.clear();
+    }
     // Widget attribution: ?partner=<id> tags these quotes for that partner's revenue share.
     const p = partners && partner ? getPartner(partners, partner) : undefined;
     if (partners && p) {
@@ -218,38 +232,77 @@ export function createApp(
       taker,
       ...(recipient ? { recipient: recipient as `0x${string}` } : {}),
     };
-    const signal = AbortSignal.timeout(10_000);
-    let out: BuildResponse;
-    if (p.build) out = await p.build(req, signal);
-    else {
-      const fresh = await p.quote(req, signal);
-      if (fresh.execution === "order" && fresh.order) {
-        // CoW: nothing to send; return order typed data (tx fields point at settlement for reference).
-        out = {
-          chainId: req.fromChainId,
-          to: fresh.order.domain.verifyingContract as `0x${string}`,
-          data: "0x",
-          value: "0",
-          execution: "order",
-          order: fresh.order,
-        };
-      } else if (fresh.nonEvmTx) {
-        // Non-EVM origin: hand back the provider's payload for the Solana/Bitcoin/Tron wallet.
-        out = {
-          chainId: req.fromChainId,
-          to: "0x0000000000000000000000000000000000000000",
-          data: "0x",
-          value: "0",
-          execution: "nonevm",
-          nonEvmTx: fresh.nonEvmTx,
-        };
-      } else if (fresh.tx) out = { ...fresh.tx, execution: "tx" };
-      else return c.json({ error: "provider returned no tx" }, 502);
+    // Build the requested route; if its payload fails verification, fall back to the next
+    // best route from the same /quotes call. Nothing unverified is ever returned.
+    const order = [q, ...(siblings.get(quoteId) ?? []).map((id) => cache.get(id)!).filter((x) => x && x.id !== q.id)];
+    let first: { quoteId: string; provider: string; reason: string } | undefined;
+    for (const cand of order) {
+      const prov = providers.find((x) => x.name === cand.provider);
+      if (!prov) continue;
+      const creq = { ...req, ...cand.request, taker, ...(recipient ? { recipient: recipient as `0x${string}` } : {}) };
+      let out: BuildResponse | null;
+      try {
+        out = await buildOne(prov, creq);
+      } catch (e) {
+        if (cand === q) throw e;
+        continue;
+      }
+      if (!out) {
+        if (cand === q) return c.json({ error: "provider returned no tx" }, 502);
+        continue;
+      }
+      const v = await verifyPayload(buildPayload(cand, creq, out), guard);
+      if (!v.verified) {
+        const reason = v.checks.some((x) => !x.ok) ? failures(v) : `not verified (${v.level})`;
+        logGuardFailure("build", cand.provider, creq.fromChainId, reason);
+        first ??= { quoteId: cand.id, provider: cand.provider, reason };
+        continue;
+      }
+      if (simulator && out.execution === "tx" && isEvmChain(out.chainId))
+        out = { ...out, simulation: await simulator(out, taker) };
+      return c.json(
+        BuildResponse.parse({
+          ...out,
+          verified: true,
+          verification: v,
+          quoteId: cand.id,
+          provider: cand.provider,
+          ...(first ? { fallbackFrom: first } : {}),
+        }),
+      );
     }
-    if (simulator && out.execution === "tx" && isEvmChain(out.chainId))
-      out = { ...out, simulation: await simulator(out, taker) };
-    return c.json(BuildResponse.parse(out));
+    return c.json(
+      { error: "no route passed payload verification", rejected: first ?? null, verified: false },
+      502,
+    );
   });
+  async function buildOne(p: ProviderAdapter, req: QuoteRequest): Promise<BuildResponse | null> {
+    const signal = AbortSignal.timeout(10_000);
+    if (p.build) return p.build(req, signal);
+    const fresh = await p.quote(req, signal);
+    if (fresh.execution === "order" && fresh.order)
+      // CoW: nothing to send; return order typed data (tx fields point at settlement for reference).
+      return {
+        chainId: req.fromChainId,
+        to: fresh.order.domain.verifyingContract as `0x${string}`,
+        data: "0x",
+        value: "0",
+        execution: "order",
+        order: fresh.order,
+      };
+    if (fresh.nonEvmTx)
+      // Non-EVM origin: hand back the provider's payload for the Solana/Bitcoin/Tron wallet.
+      return {
+        chainId: req.fromChainId,
+        to: "0x0000000000000000000000000000000000000000",
+        data: "0x",
+        value: "0",
+        execution: "nonevm",
+        nonEvmTx: fresh.nonEvmTx,
+      };
+    if (fresh.tx) return { ...fresh.tx, execution: "tx" };
+    return null;
+  }
   app.route("/limit", limitRoutes(opts.cowFetch ?? fetch, env));
   app.get("/status", async (c) => {
     const req = StatusRequest.parse(c.req.query());

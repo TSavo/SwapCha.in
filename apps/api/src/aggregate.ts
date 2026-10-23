@@ -1,6 +1,36 @@
 import type { Quote, QuoteRequest, QuotesResponse } from "@swapchan/shared";
 import type { Pricer } from "./pricing.js";
 import type { ProviderAdapter } from "./providers/types.js";
+import { failures, type GuardCtx, quotePayload, verifyPayload } from "./guard/index.js";
+
+/** Loud, grep-able log line for a payload that failed verification. */
+export function logGuardFailure(stage: string, provider: string, chainId: number, reason: string) {
+  console.error(
+    `GUARD_REJECT ${JSON.stringify({ stage, provider, chainId, reason, at: new Date().toISOString() })}`,
+  );
+}
+
+/** Verify every quote; drop (and report) the ones whose payload fails. Fail closed. */
+export async function guardQuotes(
+  quotes: Quote[],
+  guard: GuardCtx,
+  errors: QuotesResponse["errors"],
+): Promise<Quote[]> {
+  const out: Quote[] = [];
+  for (const [q, v] of await Promise.all(
+    quotes.map(async (q) => [q, await verifyPayload(quotePayload(q), guard)] as const),
+  )) {
+    const failed = v.checks.some((c) => !c.ok);
+    if (failed) {
+      const reason = failures(v);
+      logGuardFailure("quote", q.provider, q.request.fromChainId, reason);
+      errors.push({ provider: q.provider, message: `rejected by payload verification: ${reason}` });
+      continue;
+    }
+    out.push({ ...q, verified: v.verified, verification: v });
+  }
+  return out;
+}
 
 /** Best first: priced quotes by netUsd, then unpriced by raw toAmount (bigint). */
 export function rank(quotes: Quote[], feeBps = 0): Quote[] {
@@ -29,6 +59,7 @@ export async function fanOut(
   timeoutMs = 8000,
   feeBps = Number(process.env.SWAPCHAN_FEE_BPS ?? 0),
   pricer: Pricer | null = null,
+  guard: GuardCtx | null = null,
 ): Promise<QuotesResponse> {
   const active = providers.filter((p) => p.enabled() && p.supports(req));
   const signal = AbortSignal.timeout(timeoutMs);
@@ -44,7 +75,8 @@ export async function fanOut(
         message: s.reason instanceof Error ? s.reason.message : String(s.reason),
       });
   });
-  const ranked = rank(pricer ? await repriceAll(quotes, req, pricer) : quotes, feeBps);
+  const safe = guard ? await guardQuotes(quotes, guard, errors) : quotes;
+  const ranked = rank(pricer ? await repriceAll(safe, req, pricer) : safe, feeBps);
   return { quotes: ranked, best: ranked[0]?.id ?? null, errors };
 }
 

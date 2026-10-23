@@ -150,6 +150,14 @@ export const NonEvmTx = z.object({
 });
 export type NonEvmTx = z.infer<typeof NonEvmTx>;
 
+/** Server-side payload verification (router allowlist, calldata decode, approvals). */
+export const Verification = z.object({
+  verified: z.boolean(),
+  level: z.enum(["full", "partial", "indicative"]),
+  checks: z.array(z.object({ name: z.string(), ok: z.boolean(), detail: z.string().optional() })),
+});
+export type Verification = z.infer<typeof Verification>;
+
 export const Quote = z.object({
   id: z.string(),
   provider: z.string(),
@@ -178,6 +186,9 @@ export const Quote = z.object({
   nonEvmTx: NonEvmTx.optional(),
   /** Who receives SwapChan's fee on this route (address + chain), when known. */
   feeRecipient: z.object({ address: z.string(), chainId: ChainId }).optional(),
+  /** Additive v1: true only when every guard check passed on this payload (needs taker). */
+  verified: z.boolean().optional(),
+  verification: Verification.optional(),
 });
 export type Quote = z.infer<typeof Quote>;
 
@@ -197,6 +208,12 @@ export const BuildResponse = TxRequest.extend({
   execution: z.enum(["tx", "order", "nonevm"]).optional(),
   order: TypedData.optional(),
   nonEvmTx: NonEvmTx.optional(),
+  verified: z.boolean().optional(),
+  verification: Verification.optional(),
+  /** Set when the requested quote failed verification and a fallback route was built instead. */
+  fallbackFrom: z.object({ quoteId: z.string(), provider: z.string(), reason: z.string() }).optional(),
+  quoteId: z.string().optional(),
+  provider: z.string().optional(),
 });
 export type BuildResponse = z.infer<typeof BuildResponse>;
 

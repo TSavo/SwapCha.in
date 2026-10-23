@@ -259,10 +259,16 @@ describe("simulation", () => {
     expect(r).toEqual({ ok: false, method: "tenderly", gasUsed: "21000", error: "revert" });
   });
   it("/build attaches simulation", async () => {
-    const tx = { chainId: 1, to: LINK, data: "0x01", value: "0" } as const;
+    // Undecodable calldata to an allowlisted router that names the taker: partial but verified.
+    const tx = {
+      chainId: 1,
+      to: "0x111111125421ca6dc452d289314280a0f8842a65",
+      data: `0x01${TAKER.slice(2).toLowerCase()}`,
+      value: "0",
+    } as const;
     const base = {
       id: "p:1",
-      provider: "p",
+      provider: "1inch",
       request: req,
       toAmount: "1",
       toAmountMin: "1",
@@ -275,7 +281,7 @@ describe("simulation", () => {
       expiresAt: 0,
     };
     const p = {
-      name: "p",
+      name: "1inch",
       enabled: () => true,
       supports: () => true,
       quote: async (r: QuoteRequest) => ({ ...base, tx: r.taker ? tx : null }),
@@ -296,6 +302,7 @@ describe("simulation", () => {
     expect(await r.json()).toMatchObject({
       ...tx,
       execution: "tx",
+      verified: true,
       simulation: { ok: true, gasUsed: "50000" },
     });
   });

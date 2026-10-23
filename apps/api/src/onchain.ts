@@ -1,3 +1,4 @@
+import { verifyRevoke } from "./guard/index.js";
 import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -615,7 +616,7 @@ export function revokeTx(chainId: number, token: string, spender: string) {
   if (!CHAINS[chainId]) throw new BadRequest("revoke is EVM-only");
   if (!isAddress(token) || !isAddress(spender))
     throw new BadRequest("token and spender must be EVM addresses");
-  return {
+  const tx = {
     chainId,
     to: getAddress(token),
     data: encodeFunctionData({
@@ -624,6 +625,11 @@ export function revokeTx(chainId: number, token: string, spender: string) {
       args: [getAddress(spender), 0n],
     }),
     value: "0",
+  };
+  verifyRevoke(tx, token, spender);
+  return {
+    ...tx,
+    verified: true,
     description: `approve(${getAddress(spender)}, 0) on token ${getAddress(token)}: removes the allowance`,
   };
 }
