@@ -3196,7 +3196,13 @@ export async function bridgeDoctor(f: F, env: NodeJS.ProcessEnv, hash: string, f
           const refund = /^REFUND/i.test(r.tx?.memo ?? "");
           add(
             "THORChain",
-            r.stages.outbound_signed?.completed ? (refund ? "refunded" : "done") : "pending",
+            r.stages.outbound_signed?.completed ||
+              // No outbound stage (e.g. swap to native RUNE / THOR-side): finalised swap = delivered.
+              (!r.stages.outbound_signed && r.stages.swap_finalised?.completed)
+              ? refund
+                ? "refunded"
+                : "done"
+              : "pending",
             { stages: r.stages, outTxs: r.out_txs?.map((x) => x.id) },
           );
         })
