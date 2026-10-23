@@ -22,7 +22,7 @@ import {
   TVM_CONTRACTS,
 } from "./allowlist.js";
 import type { GuardCtx } from "./ctx.js";
-import { type Decoded, decodeApprove, decodeEvm } from "./evm.js";
+import { type Decoded, decodeApprove, decodeEvm, lifiNonEvm } from "./evm.js";
 import {
   ata,
   checkSvmIxs,
@@ -167,6 +167,43 @@ async function thorVault(ctx: GuardCtx, chainId: number) {
   return xs.find((x) => x.chain === name) ?? undefined;
 }
 
+/** Bitcoin address as LI.FI's bytes32 nonEVMReceiver (5-bit program words, right-padded). */
+export function btcReceiverWord(a: string): string | null {
+  try {
+    const codec = lc(a).startsWith("bc1p") ? bech32m : bech32;
+    const w = codec.decode(lc(a) as `${string}1${string}`).words.slice(1);
+    return w.length <= 32 ? hex.encode(Uint8Array.from(w)).padEnd(64, "0") : null;
+  } catch {
+    return null;
+  }
+}
+
+function checkLifiNonEvm(c: Acc, data: Hex, dest: string, taker: string | undefined) {
+  const f = lifiNonEvm(data);
+  if (!f) {
+    // Unknown facet: fall back to locating the destination anywhere in calldata.
+    c.test("recipient", contains(data, dest), `non-EVM recipient ${dest} not found in calldata`);
+    return;
+  }
+  c.test(
+    "refund",
+    lc(f.refund) === taker,
+    `LI.FI ${f.bridge} refund/depositor ${f.refund} != taker`,
+  );
+  if (f.receiver === undefined) {
+    c.part("recipient", `LI.FI ${f.bridge}: recipient bound off-chain to the order id`);
+    return;
+  }
+  const want = /^(bc1|tb1)/i.test(dest) ? btcReceiverWord(dest) : null;
+  if (want)
+    c.test(
+      "recipient",
+      f.receiver === want,
+      `LI.FI ${f.bridge} receiver 0x${f.receiver} != ${dest}`,
+    );
+  else c.test("recipient", contains(data, dest), `non-EVM recipient ${dest} not found in calldata`);
+}
+
 async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest?: string) {
   const { req, provider } = p;
   const taker = req.taker ? lc(req.taker) : undefined;
@@ -274,11 +311,7 @@ async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest
     if (d.recipient === "sender")
       c.test("recipient", lc(dest) === taker, `output goes to msg.sender but recipient is ${dest}`);
     else if (provider === "lifi" && d.recipient === "0x11f111f111f111f111f111f111f111f111f111f1")
-      c.test(
-        "recipient",
-        contains(tx.data, dest),
-        `non-EVM recipient ${dest} not found in calldata`,
-      );
+      checkLifiNonEvm(c, tx.data as Hex, dest, taker);
     else if (d.dstCall)
       c.test(
         "recipient",

@@ -261,3 +261,54 @@ export function decodeApprove(data: Hex): { spender: string; amount: bigint } | 
 }
 
 export const SELECTOR_APPROVE = toFunctionSelector("approve(address,uint256)");
+
+/**
+ * LI.FI non-EVM bridge facets (BridgeData.receiver = 0x11f1… sentinel): the real destination
+ * lives in the facet-specific data. Layouts reverse-engineered from live ETH->BTC quotes (2026-10):
+ *  - layerswap 0x4c279d6b (BridgeData, SwapData[], LayerSwapData): facet tuple
+ *      [id, depositAddr, refund, nonEVMReceiver, sigOffset, deadline, sig]
+ *  - near      0x02631b09 (BridgeData, SwapData[], NearData): facet tuple
+ *      [nonEVMReceiver, token, depositAddr, quoteHash, deadline, minOut, refund, sigOffset, sig]
+ *  - relaydepository 0xa3443faa (BridgeData, SwapData[], {orderId, depositor}): no on-chain
+ *      receiver; Relay binds it to orderId off-chain.
+ * nonEVMReceiver for Bitcoin is the bech32 witness program as 5-bit words (no version), 32 bytes.
+ */
+export interface LifiNonEvm {
+  bridge: string;
+  /** bytes32 receiver, lowercase hex no 0x; undefined = bound off-chain. */
+  receiver?: string;
+  /** Address that gets refunds / is the depositor: must be the taker. */
+  refund: string;
+}
+const word = (data: Hex, i: number) => data.slice(10 + i * 64, 10 + (i + 1) * 64).toLowerCase();
+export function lifiNonEvm(data: Hex): LifiNonEvm | null {
+  const sel = data.slice(0, 10).toLowerCase();
+  let b: { bridge: string };
+  try {
+    [b] = decodeAbiParameters(BRIDGE_DATA, `0x${data.slice(10)}`) as unknown as [
+      { bridge: string },
+    ];
+  } catch {
+    return null;
+  }
+  const at = (w: string) => Number(BigInt(`0x${w}`) / 32n);
+  if (sel === "0x4c279d6b" && b.bridge === "layerswap") {
+    const f = at(word(data, 2));
+    return {
+      bridge: b.bridge,
+      receiver: word(data, f + 3),
+      refund: `0x${word(data, f + 2).slice(24)}`,
+    };
+  }
+  if (sel === "0x02631b09" && b.bridge === "near") {
+    const f = at(word(data, 2));
+    return {
+      bridge: b.bridge,
+      receiver: word(data, f),
+      refund: `0x${word(data, f + 6).slice(24)}`,
+    };
+  }
+  if (sel === "0xa3443faa" && b.bridge === "relaydepository")
+    return { bridge: b.bridge, refund: `0x${word(data, 3).slice(24)}` };
+  return null;
+}
