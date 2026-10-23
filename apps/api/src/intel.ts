@@ -2618,9 +2618,6 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push(
         "contract archaeology: full explorer history → every contract called/token received, probed with balanceOf/earned/dividendsOf/claimable/pendingRewards, ERC-4626 & Yearn vault shares, Uniswap-v2 LP shares, Uniswap v3 positions + simulated collect() fees, EtherDelta/IDEX ERC-20 balances, NFTs still held",
       );
-    } else if (vm === "svm") {
-      items.push(...(await solanaRent(f, env, address)));
-      sources.push("Solana RPC token accounts (rent reclaim)");
     } else if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address)) {
       const [tm, jl] = await Promise.all([
         tronMoney(f, address),
@@ -2628,6 +2625,10 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       ]);
       items.push(...tm, ...jl);
       sources.push("TronGrid (rewards, unfreezes, contract probes, JustLend supplied jTokens)");
+    } else if (vm === "svm") {
+      // Tron base58 also matches the Solana pattern, so Tron is tested first.
+      items.push(...(await solanaRent(f, env, address)));
+      sources.push("Solana RPC token accounts (rent reclaim)");
     } else throw new BadRequest("airdrop_check supports EVM, Solana and Tron addresses");
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
     const top = items[0];
@@ -3836,7 +3837,8 @@ export async function findMoney(
       checked: [
         "wallet balances",
         "unclaimed rewards (Merkl)",
-        "legacy contracts (PoWH3D, Fomo3D, EtherDelta, Liquity)",
+        "legacy contracts (PoWH3D, Fomo3D, EtherDelta ETH+ERC-20, IDEX v1, Liquity)",
+        "contract archaeology (EVM full history: reward views, vaults, LPs, Uniswap v3 fees, NFTs)",
         ...(vm === "evm"
           ? [
               "lending (Aave v2/v3, Compound v2/v3, Venus, Liquity)",
@@ -3847,8 +3849,8 @@ export async function findMoney(
         "dust",
         "token risk",
         "gas",
-        ...(vm === "svm" ? ["Solana rent in empty token accounts"] : []),
-        ...(isTron ? ["Tron rewards/unfreezes/dividend contracts"] : []),
+        ...(vm === "svm" && !isTron ? ["Solana rent in empty token accounts"] : []),
+        ...(isTron ? ["Tron rewards/unfreezes/dividend contracts/JustLend"] : []),
       ],
       notChecked:
         "Stuck bridge transfers need a tx hash (use bridge_doctor). One-off project airdrops have no free unified source. EVM balances cover SwapChan-listed tokens only.",
