@@ -5,6 +5,13 @@ import { API_URL, CONFIGS, MCP_URL, TOOLS } from "@/lib/agents";
 const REGISTER = `curl -X POST ${API_URL}/partners -H 'content-type: application/json' \\
   -d '{"name":"My Agent","siteUrl":"https://github.com/me/my-agent","evmAddress":"0xYourPayoutAddress"}'`;
 
+const PLUGINS: [string, string, string][] = [
+  ["Vercel AI SDK", "https://github.com/TSavo/swapchan-ai-sdk", "npm i swapchan-ai-sdk"],
+  ["LangChain (Python)", "https://github.com/TSavo/langchain-swapchan", "pip install langchain-swapchan"],
+  ["LangChain.js", "https://github.com/TSavo/langchain-swapchan", "npm i langchain-swapchan"],
+  ["ElizaOS", "https://github.com/TSavo/plugin-swapchan", "npm i elizaos-plugin-swapchan"],
+];
+
 export const metadata: Metadata = {
   title: "SwapChan for AI agents: MCP server + API",
   description:
@@ -78,6 +85,26 @@ export default function Agents() {
         </a>{" "}
         and earn half our fee.
       </p>
+
+      <h2 id="plugins" className="mt-10 mb-3 scroll-mt-4 text-2xl font-black">
+        Framework plugins
+      </h2>
+      <p className="mb-3 text-violet-200">
+        Same tools, native to your agent framework. Each takes an optional <code>partner</code> id
+        and only returns transactions the server verified.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {PLUGINS.map(([name, href, install]) => (
+          <a
+            key={name}
+            href={href}
+            className="rounded-xl border border-violet-500/50 bg-violet-950/70 p-3 hover:border-amber-300"
+          >
+            <span className="font-bold text-amber-300">{name}</span>
+            <code className="mt-1 block text-xs text-violet-200">{install}</code>
+          </a>
+        ))}
+      </div>
 
       <h2 id="rest-api" className="mt-10 mb-3 text-2xl font-black">
         REST API
