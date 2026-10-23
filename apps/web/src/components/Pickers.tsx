@@ -95,13 +95,15 @@ function TokenLogo({ t, size = 28 }: { t: Pick<Token, "symbol" | "logoURI">; siz
         style={{ width: size, height: size }}
       />
     );
+  let h = 0;
+  for (const ch of t.symbol) h = (h * 31 + ch.charCodeAt(0)) % 360;
   return (
     <span
       aria-hidden
-      className="flex shrink-0 items-center justify-center rounded-full bg-amber-400 text-xs font-black text-violet-950"
-      style={{ width: size, height: size }}
+      className="flex shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
+      style={{ width: size, height: size, background: `hsl(${h} 65% 45%)`, fontSize: size * 0.45 }}
     >
-      {t.symbol.slice(0, 1)}
+      {(t.symbol.replace(/[^A-Za-z0-9]/g, "")[0] ?? "?").toUpperCase()}
     </span>
   );
 }

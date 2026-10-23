@@ -4,63 +4,72 @@
     "symbol": "ETH",
     "name": "Ether",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png"
   },
   {
     "chainId": 8453,
     "symbol": "ETH",
     "name": "Ether",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png"
   },
   {
     "chainId": 42161,
     "symbol": "ETH",
     "name": "Ether",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png"
   },
   {
     "chainId": 10,
     "symbol": "ETH",
     "name": "Ether",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png"
   },
   {
     "chainId": 137,
     "symbol": "POL",
     "name": "Polygon Ecosystem Token",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/polygon/info/logo.png"
   },
   {
     "chainId": 56,
     "symbol": "BNB",
     "name": "BNB",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/info/logo.png"
   },
   {
     "chainId": 43114,
     "symbol": "AVAX",
     "name": "Avalanche",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanchec/info/logo.png"
   },
   {
     "chainId": 59144,
     "symbol": "ETH",
     "name": "Ether",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png"
   },
   {
     "chainId": 534352,
     "symbol": "ETH",
     "name": "Ether",
     "address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png"
   },
   {
     "chainId": 1,
@@ -171,384 +180,439 @@
     "symbol": "WBNB",
     "name": "Wrapped BNB",
     "address": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/coin/logo_url/bnb/9784283a36f23a58982fc964574ea530.png"
   },
   {
     "chainId": 56,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "0x55d398326f99059fF775485246999027B3197955",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png"
   },
   {
     "chainId": 56,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
   },
   {
     "chainId": 56,
     "symbol": "ETH",
     "name": "Binance-Peg Ether",
     "address": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
   },
   {
     "chainId": 43114,
     "symbol": "WAVAX",
     "name": "Wrapped AVAX",
     "address": "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/avax_token/logo_url/0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7/753d82f0137617110f8dec56309b4065.png"
   },
   {
     "chainId": 43114,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
   },
   {
     "chainId": 43114,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://static.debank.com/image/eth_token/logo_url/0xdac17f958d2ee523a2206206994597c13d831ec7/464c0de678334b8fe87327e527bc476d.png"
   },
   {
     "chainId": 43114,
     "symbol": "WETH.e",
     "name": "Wrapped Ether",
     "address": "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
   },
   {
     "chainId": 59144,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
   },
   {
     "chainId": 59144,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "0xA219439258ca9da29E9Cc4cE5596924745e12B93",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png"
   },
   {
     "chainId": 59144,
     "symbol": "WETH",
     "name": "Wrapped Ether",
     "address": "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/mtr_token/logo_url/0x79a61d3a28f8c8537a3df63092927cfa1150fb3c/61844453e63cf81301f845d7864236f6.png"
   },
   {
     "chainId": 534352,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
   },
   {
     "chainId": 534352,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png"
   },
   {
     "chainId": 534352,
     "symbol": "WETH",
     "name": "Wrapped Ether",
     "address": "0x5300000000000000000000000000000000000004",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/era_token/logo_url/0x5aea5775959fbc2557cc8789bc1bf90a239d9a91/61844453e63cf81301f845d7864236f6.png"
   },
   {
     "chainId": 8453,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
   },
   {
     "chainId": 8453,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://static.debank.com/image/coin/logo_url/usdt/23af7472292cb41dc39b3f1146ead0fe.png"
   },
   {
     "chainId": 8453,
     "symbol": "WETH",
     "name": "Wrapped Ether",
     "address": "0x4200000000000000000000000000000000000006",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/coin/logo_url/eth/d61441782d4a08a7479d54aea211679e.png"
   },
   {
     "chainId": 42161,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
   },
   {
     "chainId": 42161,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://static.debank.com/image/ink_token/logo_url/0x0200c29006150606b650577bbe7b6248f58470c1/8bba37fddc2774e06a94b8952e3e3ad7.png"
   },
   {
     "chainId": 42161,
     "symbol": "WETH",
     "name": "Wrapped Ether",
     "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/era_token/logo_url/0x5aea5775959fbc2557cc8789bc1bf90a239d9a91/61844453e63cf81301f845d7864236f6.png"
   },
   {
     "chainId": 10,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
   },
   {
     "chainId": 10,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png"
   },
   {
     "chainId": 10,
     "symbol": "WETH",
     "name": "Wrapped Ether",
     "address": "0x4200000000000000000000000000000000000006",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/op_token/logo_url/0x4200000000000000000000000000000000000006/61844453e63cf81301f845d7864236f6.png"
   },
   {
     "chainId": 137,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://static.debank.com/image/coin/logo_url/usdc/e87790bfe0b3f2ea855dc29069b38818.png"
   },
   {
     "chainId": 137,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png"
   },
   {
     "chainId": 137,
     "symbol": "WETH",
     "name": "Wrapped Ether",
     "address": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png"
   },
   {
     "chainId": 56,
     "symbol": "BTCB",
     "name": "BTCB Token",
     "address": "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/bsc_token/logo_url/0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c/6f9302fa889419e4ce8745931d2e19bf.png"
   },
   {
     "chainId": 56,
     "symbol": "DAI",
     "name": "Dai Stablecoin",
     "address": "0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
   },
   {
     "chainId": 56,
     "symbol": "CAKE",
     "name": "PancakeSwap Token",
     "address": "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/bsc_token/logo_url/0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82/9003539eb61139bd494b7412b785d482.png"
   },
   {
     "chainId": 56,
     "symbol": "FDUSD",
     "name": "First Digital USD",
     "address": "0xc5f0f7b66764F6ec8C8Dff7BA683102295E16409",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/eth_token/logo_url/0xc5f0f7b66764f6ec8c8dff7ba683102295e16409/9c61b134f82d8780005895d8fb6b19ab.png"
   },
   {
     "chainId": 8453,
     "symbol": "cbBTC",
     "name": "Coinbase Wrapped BTC",
     "address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://cdn.moralis.io/eth/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599.png"
   },
   {
     "chainId": 8453,
     "symbol": "DAI",
     "name": "Dai Stablecoin",
     "address": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
   },
   {
     "chainId": 8453,
     "symbol": "AERO",
     "name": "Aerodrome",
     "address": "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/base_token/logo_url/0x940181a94a35a4569e4529a3cdfb74e38fd98631/bb455b8557be5d08ad67f4314f899e15.png"
   },
   {
     "chainId": 42161,
     "symbol": "WBTC",
     "name": "Wrapped BTC",
     "address": "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599/logo.png"
   },
   {
     "chainId": 42161,
     "symbol": "DAI",
     "name": "Dai Stablecoin",
     "address": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
   },
   {
     "chainId": 42161,
     "symbol": "ARB",
     "name": "Arbitrum",
     "address": "0x912CE59144191C1204E64559FE8253a0e49E6548",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://static.debank.com/image/coin/logo_url/arbitrum/854f629937ce94bebeb2cd38fb336de7.png"
   },
   {
     "chainId": 10,
     "symbol": "WBTC",
     "name": "Wrapped BTC",
     "address": "0x68f180fcCe6836688e9084f035309E29Bf0A2095",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599/logo.png"
   },
   {
     "chainId": 10,
     "symbol": "DAI",
     "name": "Dai Stablecoin",
     "address": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
   },
   {
     "chainId": 10,
     "symbol": "OP",
     "name": "Optimism",
     "address": "0x4200000000000000000000000000000000000042",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://optimistic.etherscan.io/token/images/optimism_32.png"
   },
   {
     "chainId": 137,
     "symbol": "WBTC",
     "name": "Wrapped BTC",
     "address": "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599/logo.png"
   },
   {
     "chainId": 137,
     "symbol": "DAI",
     "name": "Dai Stablecoin",
     "address": "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
   },
   {
     "chainId": 43114,
     "symbol": "BTC.b",
     "name": "Bitcoin (Avalanche bridged)",
     "address": "0x152b9d0FdC40C096757F570A51E494bd4b943E50",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://static.debank.com/image/avax_token/logo_url/0x152b9d0fdc40c096757f570a51e494bd4b943e50/2411fb147c1cc4328edff5d204f09f80.png"
   },
   {
     "chainId": 43114,
     "symbol": "DAI.e",
     "name": "Dai Stablecoin",
     "address": "0xd586E7F844cEa2F87f50152665BCbc2C279D8d70",
-    "decimals": 18
+    "decimals": 18,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png"
   },
   {
     "chainId": 59144,
     "symbol": "WBTC",
     "name": "Wrapped BTC",
     "address": "0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b4",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://static.debank.com/image/doge_token/logo_url/0xfa9343c3897324496a05fc75abed6bac29f8a40f/fad0af39d842e1633a2dc0e879b5ea10.png"
   },
   {
     "chainId": 534352,
     "symbol": "WBTC",
     "name": "Wrapped BTC",
     "address": "0x3C1BCa5a656e69edCD0D4E36BEbb3FcDAcA60Cf1",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599/logo.png"
   },
   {
     "chainId": 792703809,
     "symbol": "SOL",
     "name": "Solana",
     "address": "11111111111111111111111111111111",
-    "decimals": 9
+    "decimals": 9,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png"
   },
   {
     "chainId": 792703809,
     "symbol": "USDC",
     "name": "USD Coin",
     "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png"
   },
   {
     "chainId": 792703809,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png"
   },
   {
     "chainId": 792703809,
     "symbol": "JUP",
     "name": "Jupiter",
     "address": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://static.jup.ag/jup/icon.png"
   },
   {
     "chainId": 792703809,
     "symbol": "cbBTC",
     "name": "Coinbase Wrapped BTC",
     "address": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://cdn.moralis.io/eth/0x2260fac5e5542a773aa44fbcfedf7c193bc2c599.png"
   },
   {
     "chainId": 792703809,
     "symbol": "BONK",
     "name": "Bonk",
     "address": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-    "decimals": 5
+    "decimals": 5,
+    "logoURI": "https://arweave.net/hQiPZOsRZXGXBJd_82PhVdlM_hACsT_q6wqwf5cSY7I?ext=png"
   },
   {
     "chainId": 792703809,
     "symbol": "WIF",
     "name": "dogwifhat",
     "address": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/assets/EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm/logo.png"
   },
   {
     "chainId": 8253038,
     "symbol": "BTC",
     "name": "Bitcoin",
     "address": "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8",
-    "decimals": 8
+    "decimals": 8,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png"
   },
   {
     "chainId": 728126428,
     "symbol": "TRX",
     "name": "TRON",
     "address": "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tron/info/logo.png"
   },
   {
     "chainId": 728126428,
     "symbol": "USDT",
     "name": "Tether USD",
     "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-    "decimals": 6
+    "decimals": 6,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tron/assets/TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t/logo.png"
   }
 ]

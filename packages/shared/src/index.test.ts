@@ -66,3 +66,11 @@ describe("chain registry", () => {
     expect(r.recipient).toBe("BUqwuxGmshL5aT9eW79D4c8kVdwCjcZLXjiotAntwFJE");
   });
 });
+
+describe("tokenList logos", () => {
+  it("every listed token on every chain has an https logoURI", async () => {
+    const { tokenList } = await import("./index.js");
+    const missing = tokenList.filter((t) => !t.logoURI?.startsWith("https://"));
+    expect(missing.map((t) => `${t.chainId}:${t.symbol}`)).toEqual([]);
+  });
+});
