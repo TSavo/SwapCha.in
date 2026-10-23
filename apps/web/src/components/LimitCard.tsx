@@ -23,6 +23,7 @@ import { formatAmount, parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import { api } from "@/lib/api";
 import { track } from "@/lib/ga";
 import { buyForPrice, type LimitOrder, limitApi, priceOf } from "@/lib/limit";
+import { AmountField } from "./AmountField";
 import { ConnectButton } from "./ConnectButton";
 import { ChainPicker, TokenPicker } from "./Pickers";
 
@@ -186,25 +187,21 @@ export function LimitCard() {
     <div data-testid="limit-card">
       <section className="rounded-2xl border-2 border-violet-700 bg-violet-900 p-3">
         <ChainPicker chains={CHAINS} value={chainId} onChange={setChainId} label="Limit order" />
-        <div className="mt-3 text-xs font-bold tracking-wider text-violet-200 uppercase">
-          You sell
-        </div>
-        <div className="mt-1 flex items-center gap-2">
-          <input
-            inputMode="decimal"
-            aria-label="Sell amount"
-            value={amountStr}
-            onChange={(e) => setAmount(sanitizeAmountInput(e.target.value))}
-            className="w-full bg-transparent text-3xl font-black outline-none"
-          />
-          <TokenPicker
-            tokens={list}
-            value={sell}
-            onChange={setSell}
-            chainId={chainId}
-            exclude={isNative}
-          />
-        </div>
+        <AmountField
+          label="You pay"
+          ariaLabel="Sell amount"
+          value={amountStr}
+          onChange={(v) => setAmount(sanitizeAmountInput(v))}
+          right={
+            <TokenPicker
+              tokens={list}
+              value={sell}
+              onChange={setSell}
+              chainId={chainId}
+              exclude={isNative}
+            />
+          }
+        />
       </section>
       <section className="mt-2 rounded-2xl border-2 border-violet-700 bg-violet-900 p-3">
         <div className="flex items-center justify-between text-xs font-bold tracking-wider text-violet-200 uppercase">
@@ -221,16 +218,14 @@ export function LimitCard() {
             </button>
           )}
         </div>
-        <div className="mt-1 flex items-center gap-2">
-          <input
-            inputMode="decimal"
-            aria-label="Limit price"
-            value={priceStr}
-            onChange={(e) => setPrice(sanitizeAmountInput(e.target.value))}
-            className="w-full bg-transparent text-2xl font-black outline-none"
-          />
-          <TokenPicker tokens={list} value={buy} onChange={setBuy} chainId={chainId} />
-        </div>
+        <AmountField
+          label="Price"
+          ariaLabel="Limit price"
+          size="md"
+          value={priceStr}
+          onChange={(v) => setPrice(sanitizeAmountInput(v))}
+          right={<TokenPicker tokens={list} value={buy} onChange={setBuy} chainId={chainId} />}
+        />
         <div className="mt-1 flex gap-1.5">
           {[0, 1, 2, 5, 10].map((p) => (
             <button

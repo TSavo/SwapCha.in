@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="sparkles antialiased">
         <Providers>
           <RefCapture />
-          <header className="site-chrome mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-4 sm:p-4">
+          <header className="site-chrome mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-3">
             <Link
               href="/"
               className="flex shrink-0 items-center gap-1.5 text-lg font-black tracking-tight sm:gap-2 sm:text-2xl"

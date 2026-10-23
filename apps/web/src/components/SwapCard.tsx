@@ -36,6 +36,7 @@ import { toSolanaTx } from "@/lib/solana";
 import { sendTron, useTron } from "@/lib/tron";
 import { useSolana } from "@/lib/useSolana";
 import { Character, SpeechBubble } from "./Character";
+import { AmountField, AmountReadout, BalanceRow } from "./AmountField";
 import { ConnectButton } from "./ConnectButton";
 import { ChainPicker, TokenPicker } from "./Pickers";
 import { RouteList, RoutesLoading } from "./RouteList";
@@ -581,35 +582,34 @@ export function SwapCard({
       )}
       <section className="rounded-2xl border-2 border-violet-700 bg-violet-900 p-3">
         <ChainPicker chains={chainList} value={fromChain} onChange={setFromChain} label="From" />
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            inputMode="decimal"
-            aria-label="Amount"
-            placeholder="0.0"
-            value={amountStr}
-            onChange={(e) => setAmountStr(sanitizeAmountInput(e.target.value))}
-            className={`w-full bg-transparent text-3xl font-black text-white outline-none ${amountInvalid ? "text-rose-400" : ""}`}
-          />
-          <TokenPicker
-            tokens={fromTokens.data?.data ?? []}
-            value={fromToken}
-            onChange={setFromToken}
-            chainId={fromChain}
-          />
-        </div>
-        {balance !== undefined && fromToken && (
-          <button
-            type="button"
-            className="mt-1 text-xs text-violet-300 hover:text-amber-300"
-            onClick={() =>
-              setAmountStr(
-                formatAmount(balance, fromToken.decimals, fromToken.decimals).replace(/,/g, ""),
-              )
-            }
-          >
-            Balance: {formatAmount(balance, fromToken.decimals)} (max)
-          </button>
-        )}
+        <AmountField
+          label="You pay"
+          ariaLabel="Amount"
+          value={amountStr}
+          onChange={(v) => setAmountStr(sanitizeAmountInput(v))}
+          invalid={amountInvalid}
+          autoFocus
+          right={
+            <TokenPicker
+              tokens={fromTokens.data?.data ?? []}
+              value={fromToken}
+              onChange={setFromToken}
+              chainId={fromChain}
+            />
+          }
+          footer={
+            balance !== undefined && fromToken ? (
+              <BalanceRow
+                text={`${formatAmount(balance, fromToken.decimals)} ${fromToken.symbol}`}
+                onPct={(pct) =>
+                  setAmountStr(
+                    formatAmount((balance * BigInt(pct)) / 100n, fromToken.decimals, fromToken.decimals).replace(/,/g, ""),
+                  )
+                }
+              />
+            ) : null
+          }
+        />
       </section>
 
       <div className="relative z-10 -my-3 flex justify-center">
@@ -627,17 +627,18 @@ export function SwapCard({
       <section className="rounded-2xl border-2 border-violet-700 bg-violet-900 p-3">
         <fieldset disabled={lockTo} className="contents" data-locked={lockTo || undefined}>
           <ChainPicker chains={chainList} value={toChain} onChange={setToChain} label="To" />
-          <div className="mt-3 flex items-center gap-2">
-            <div className="w-full text-3xl font-black text-violet-200">
-              {quote && toToken ? formatAmount(quote.toAmount, toToken.decimals) : "0.0"}
-            </div>
-            <TokenPicker
-              tokens={toTokens.data?.data ?? []}
-              value={toToken}
-              onChange={setToToken}
-              chainId={toChain}
-            />
-          </div>
+          <AmountReadout
+            label="You receive"
+            value={quote && toToken ? formatAmount(quote.toAmount, toToken.decimals) : "0.0"}
+            right={
+              <TokenPicker
+                tokens={toTokens.data?.data ?? []}
+                value={toToken}
+                onChange={setToToken}
+                chainId={toChain}
+              />
+            }
+          />
         </fieldset>
         {needsRecipient && (
           <input
@@ -682,6 +683,32 @@ export function SwapCard({
         )}
       </div>
 
+      {!compact && request !== null && (
+        <p className="mt-3 text-center text-xs font-semibold text-violet-200" data-testid="route-summary">
+          {quote
+            ? `Best of ${qres?.quotes.length ?? 0} routes: ${quote.provider}`
+            : quotes.isFetching
+              ? "Finding routes…"
+              : qres
+                ? "No route for this pair"
+                : ""}
+        </p>
+      )}
+      {!address && fromVm === "evm" ? (
+        <div className="mt-3" data-testid="connect-cta">
+          <ConnectButton primary />
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={!cta.action || busy}
+          onClick={cta.action}
+          data-testid="swap-cta"
+          className="mt-3 w-full cursor-pointer rounded-2xl border-2 border-violet-950 bg-amber-400 py-4 text-xl font-black text-violet-950 shadow-[0_4px_0_#2e1065] transition enabled:hover:bg-amber-300 enabled:active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {cta.label}
+        </button>
+      )}
       <div className="mt-4">
         {compact ? (
           <p className="text-center text-xs text-violet-300" data-testid="compact-route">
@@ -695,10 +722,10 @@ export function SwapCard({
           </p>
         ) : request === null ? (
           <div
-            className="flex items-center justify-center gap-3 py-6 text-sm text-violet-300"
+            className="flex items-center justify-center gap-3 py-2 text-sm text-violet-300"
             data-testid="empty-state"
           >
-            <Character who={fromCh.key} size={72} mood="idle" />
+            <Character who={fromCh.key} size={48} mood="idle" />
             <span>
               {fromChain === toChain
                 ? `${fromCh.name} is ready to swap.`
@@ -741,20 +768,6 @@ export function SwapCard({
         </div>
       )}
 
-      {!address && fromVm === "evm" ? (
-        <div className="mt-4" data-testid="connect-cta">
-          <ConnectButton primary />
-        </div>
-      ) : (
-        <button
-          type="button"
-          disabled={!cta.action || busy}
-          onClick={cta.action}
-          className="mt-4 w-full rounded-2xl bg-gradient-to-r from-amber-400 to-fuchsia-500 py-4 text-lg font-black text-violet-950 shadow-[0_0_30px_rgba(245,183,0,.35)] transition enabled:hover:scale-[1.01] disabled:opacity-40"
-        >
-          {cta.label}
-        </button>
-      )}
     </Card>
   );
 }

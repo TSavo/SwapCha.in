@@ -97,7 +97,7 @@ export default async function RoutePage({ params }: Props) {
   return (
     <article className="w-full" data-testid="route-page">
       <script type="application/ld+json">{JSON.stringify(ld)}</script>
-      <nav className="mb-3 text-sm font-bold text-violet-300">
+      <nav className="mb-1 text-xs font-bold text-violet-300 md:text-sm">
         <Link href="/swap" className="hover:text-amber-300">
           Swap routes
         </Link>
@@ -110,8 +110,8 @@ export default async function RoutePage({ params }: Props) {
           </>
         )}
       </nav>
-      <header className="mb-5 flex flex-col items-center gap-3 text-center">
-        <div className="flex items-end gap-2">
+      <header className="mb-2 flex flex-col items-center gap-1 text-center md:mb-3 md:flex-row md:justify-center md:gap-3">
+        <div className="hidden items-end gap-1 md:flex">
           {[fk, ...(tk !== fk ? [tk] : [])].map((k) => (
             <Link key={k} href={castHref(k)} title={`Meet ${CHARACTERS[k].name}`}>
               <img
@@ -119,13 +119,13 @@ export default async function RoutePage({ params }: Props) {
                 alt={CHARACTERS[k].name}
                 width={96}
                 height={96}
-                className="h-24 w-24"
+                className="h-12 w-12"
               />
             </Link>
           ))}
         </div>
-        <h1 className="text-2xl font-black md:text-4xl">{title(r)}</h1>
-        <p className="text-violet-200">
+        <h1 className="text-xl font-black md:text-3xl">{title(r)}</h1>
+        <p className="hidden text-sm text-violet-200 md:block">
           {best
             ? `Right now: ${r.amount} ${r.fromToken.symbol} gets you ${out(best.toAmount)} ${r.toToken.symbol} via ${providerName(best.provider)}.`
             : "Live quotes refresh every few minutes."}
