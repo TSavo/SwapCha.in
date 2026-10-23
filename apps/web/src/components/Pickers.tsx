@@ -31,13 +31,32 @@ export function ChainPicker({
   onChange: (id: number) => void;
   label: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const cur = chains.find((c) => c.id === value);
+  const curCh = characterForChain(value);
   return (
     <div>
-      <div className="mb-1.5 text-xs font-bold tracking-wider text-violet-200 uppercase">
-        {label} chain
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-bold tracking-wider text-violet-200 uppercase">{label} chain</span>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={`${label} chain: ${cur?.name ?? "choose"}`}
+          data-testid="chain-toggle"
+          onClick={() => setOpen((o) => !o)}
+          className="flex cursor-pointer items-center gap-1.5 rounded-lg border-2 py-0.5 pr-2 pl-0.5 text-xs font-bold text-white shadow-md hover:brightness-110"
+          style={{ borderColor: curCh.color, background: curCh.color }}
+        >
+          <span className="shrink-0 overflow-hidden rounded-md bg-violet-900">
+            <Character who={curCh.key} size={22} link={false} />
+          </span>
+          <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]">{cur?.name ?? "Choose"}</span>
+          <span aria-hidden className="drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]">{open ? "▴" : "▾"}</span>
+        </button>
       </div>
       <div
-        className="grid grid-cols-3 gap-1.5 sm:grid-cols-4"
+        hidden={!open}
+        className="mt-1.5 grid grid-cols-3 gap-1.5 sm:grid-cols-4"
         role="radiogroup"
         aria-label={`${label} chain`}
       >
@@ -50,7 +69,10 @@ export function ChainPicker({
               type="button"
               role="radio"
               aria-checked={active}
-              onClick={() => onChange(c.id)}
+              onClick={() => {
+                onChange(c.id);
+                setOpen(false);
+              }}
               className={`flex min-h-10 cursor-pointer items-center gap-1.5 rounded-lg border-2 py-1 pr-1.5 pl-1 text-left text-[11px] leading-tight font-bold sm:text-xs transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 ${
                 active
                   ? "text-white shadow-md"
