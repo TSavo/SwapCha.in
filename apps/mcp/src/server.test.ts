@@ -101,6 +101,18 @@ describe("swapchan mcp over streamable http", () => {
         "scan_new_tokens",
         "scan_trending",
         "token_risk",
+        "get_wallet_balances",
+        "check_approvals",
+        "build_revoke_tx",
+        "explain_transaction",
+        "get_gas",
+        "token_info",
+        "resolve_name",
+        "watch_token",
+        "list_watches",
+        "check_watches",
+        "unwatch_token",
+        "get_yields",
       ].sort(),
     );
     await c.close();

@@ -28,6 +28,8 @@ export class ApiError extends Error {
 export type FetchFn = (input: string, init?: RequestInit) => Promise<Response>;
 
 /** Thin typed client over the frozen HTTP contract in packages/shared/README.md. */
+type Rec = Record<string, unknown>;
+
 export class SwapChanApi {
   constructor(
     private readonly baseUrl: string,
@@ -119,6 +121,51 @@ export class SwapChanApi {
   /** Memecoin scanner list: new | trending | movers. */
   scan(kind: "new" | "trending" | "movers", q: Record<string, unknown>): Promise<ScanResponse> {
     return this.req(ScanResponse, `/scanner/${kind}?${qs(q)}`);
+  }
+  private rec(path: string, init?: RequestInit): Promise<Rec> {
+    return this.req(z.record(z.string(), z.unknown()), path, init);
+  }
+  walletBalances(address: string, chains?: string): Promise<Rec> {
+    return this.rec(`/onchain/balances?${qs({ address, ...(chains ? { chains } : {}) })}`);
+  }
+  approvals(owner: string, chainId: string): Promise<Rec> {
+    return this.rec(`/onchain/approvals?${qs({ owner, chainId })}`);
+  }
+  revokeTx(chainId: string, token: string, spender: string): Promise<Rec> {
+    return this.rec(`/onchain/revoke?${qs({ chainId, token, spender })}`);
+  }
+  explainTx(chainId: string, hash: string): Promise<Rec> {
+    return this.rec(`/onchain/tx?${qs({ chainId, hash })}`);
+  }
+  gas(chains?: string): Promise<Rec> {
+    return this.rec(`/onchain/gas${chains ? `?${qs({ chains })}` : ""}`);
+  }
+  tokenInfo(chainId: string, address: string): Promise<Rec> {
+    return this.rec(`/onchain/token?${qs({ chainId, address })}`);
+  }
+  resolveName(q: string): Promise<Rec> {
+    return this.rec(`/onchain/name?${qs({ q })}`);
+  }
+  yields(p: Record<string, string>): Promise<Rec> {
+    return this.rec(`/onchain/yields?${qs(p)}`);
+  }
+  watch(watchId: string, items: unknown[]): Promise<Rec> {
+    return this.rec("/onchain/watches", {
+      method: "POST",
+      body: JSON.stringify({ watchId, items }),
+    });
+  }
+  listWatches(watchId: string): Promise<Rec> {
+    return this.rec(`/onchain/watches/${encodeURIComponent(watchId)}`);
+  }
+  checkWatches(watchId: string): Promise<Rec> {
+    return this.rec(`/onchain/watches/${encodeURIComponent(watchId)}/check`);
+  }
+  unwatch(watchId: string, itemId?: string): Promise<Rec> {
+    return this.rec(
+      `/onchain/watches/${encodeURIComponent(watchId)}${itemId ? `/${encodeURIComponent(itemId)}` : ""}`,
+      { method: "DELETE" },
+    );
   }
   tokenRisk(chain: string, address: string): Promise<Record<string, unknown>> {
     return this.req(z.record(z.string(), z.unknown()), `/scanner/risk?${qs({ chain, address })}`);

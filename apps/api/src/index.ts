@@ -17,6 +17,7 @@ import { fanOut } from "./aggregate.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
 import { mempoolUtxos } from "./btc.js";
 import { limitRoutes } from "./limit.js";
+import { type BestOut, onchainRoutes, openWatchDb } from "./onchain.js";
 import {
   getPartner,
   openPartnerStore,
@@ -186,6 +187,24 @@ export function createApp(
     const best = res.quotes[0];
     return best ? c.json(best) : c.json({ error: "no route", errors: res.errors }, 404);
   });
+  if (opts.scannerFetch !== null) {
+    const watchDb = openWatchDb(
+      env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/watches.db` : ":memory:",
+    );
+    // Watches compare the best route's raw output (base units of toToken) between checks.
+    const bestOut: BestOut = async (q) => {
+      const res = await quotes({
+        fromChainId: String(q.fromChainId),
+        toChainId: String(q.toChainId),
+        fromToken: q.fromToken,
+        toToken: q.toToken,
+        amount: q.amount,
+      });
+      const best = res.quotes[0];
+      return best ? Number(best.toAmount) : null;
+    };
+    app.route("/onchain", onchainRoutes(opts.scannerFetch ?? fetch, env, watchDb, bestOut));
+  }
   app.post("/build", async (c) => {
     const { quoteId, taker } = z
       .object({ quoteId: z.string(), taker: Address, recipient: Address.optional() })

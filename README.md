@@ -25,7 +25,10 @@ Any MCP client, via stdio bridge:
 ```json
 {
   "mcpServers": {
-    "swapchan": { "command": "npx", "args": ["-y", "mcp-remote", "https://mcp.swapchan.com/mcp"] }
+    "swapchan": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.swapchan.com/mcp"]
+    }
   }
 }
 ```
@@ -53,6 +56,14 @@ Returns `id`, a private dashboard `token` and `dashboardUrl`. Sites can embed th
 | `get_route_status`                                  | Track a cross-chain swap to completion                                                                               |
 | `scan_new_tokens` / `scan_trending` / `scan_movers` | Memecoin scanner: new pairs, trending and big movers on Solana, Base, BNB, Ethereum, with risk badges and swap links |
 | `token_risk`                                        | Mint/freeze authority, holder concentration, LP, honeypot and tax checks for one token                               |
+| `get_wallet_balances`                               | Token balances + USD value for any EVM, Solana, Bitcoin or Tron address.                                             |
+| `check_approvals`                                   | Open ERC-20 allowances with risk flags; build_revoke_tx makes the approve(0) tx.                                     |
+| `explain_transaction`                               | Plain-English summary of any EVM, Solana, Bitcoin or Tron transaction.                                               |
+| `get_gas`                                           | Live gas/fee prices across chains, cheapest first.                                                                   |
+| `token_info`                                        | Price, liquidity, supply, holders and risk checks for one token.                                                     |
+| `resolve_name`                                      | ENS, Basenames and .sol names to addresses, and back.                                                                |
+| `watch_token`                                       | Price watches with list_watches / check_watches (pull, no push).                                                     |
+| `get_yields`                                        | Top DefiLlama yield pools for an asset, with a swap-in link.                                                         |
 
 ### Networks
 

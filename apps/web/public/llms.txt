@@ -4,7 +4,8 @@
 
 ## MCP server
 - URL: https://mcp.swapchan.com/mcp (Streamable HTTP; stdio via `swapchan-mcp --stdio`)
-- Tools: get_supported_chains, get_supported_tokens, get_quote, compare_routes, build_swap_tx, get_route_status, scan_new_tokens, scan_trending, scan_movers, token_risk
+- Tools: get_supported_chains, get_supported_tokens, get_quote, compare_routes, build_swap_tx, get_route_status, scan_new_tokens, scan_trending, scan_movers, token_risk, get_wallet_balances, check_approvals, build_revoke_tx, explain_transaction, get_gas, token_info, resolve_name, watch_token, list_watches, check_watches, unwatch_token, get_yields
+- REST mirrors: https://api.swapchan.com/onchain/{balances,approvals,revoke,tx,gas,token,name,yields,watches}
 - Setup guide: https://swapchan.com/agents
 
 ## Earn with SwapChan (agent builders, bots, sites)
