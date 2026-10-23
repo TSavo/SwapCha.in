@@ -641,9 +641,10 @@ export async function walletHistory(
   input: string,
   chain?: string,
   priceN = 40,
+  twoSidedOnly = false,
 ) {
   const { address, name } = await resolveAddr(f, env, input);
-  return cached(`hist:${address}:${chain ?? ""}:${priceN}`, 300_000, async () => {
+  return cached(`hist:${address}:${chain ?? ""}:${priceN}:${twoSidedOnly}`, 300_000, async () => {
     const vm = vmOfAddr(address);
     let swaps: SwapEvent[] = [];
     const sources: string[] = [];
@@ -683,7 +684,10 @@ export async function walletHistory(
       isNative(l.chainId, l.address)
         ? (LLAMA_NATIVE[l.chainId] ?? "coingecko:ethereum")
         : `${DS_LLAMA[l.chainId]}:${l.chainId === SOLANA ? l.address : l.address.toLowerCase()}`;
-    const top = swaps.slice(0, priceN);
+    // PnL needs real swaps; airdrop/spam receives would otherwise crowd out the priced window.
+    const top = (
+      twoSidedOnly ? swaps.filter((s) => s.sold.length && s.bought.length) : swaps
+    ).slice(0, priceN);
     for (const s of top)
       for (const l of [...s.sold, ...s.bought])
         want.set(lid(l), [...(want.get(lid(l)) ?? []), Math.floor(Date.parse(s.time) / 1000)]);
@@ -774,7 +778,7 @@ const DS_LLAMA: Record<number, string> = {
 };
 
 export async function walletPnl(f: F, env: NodeJS.ProcessEnv, input: string, chain?: string) {
-  const h0 = await walletHistory(f, env, input, chain, 300);
+  const h0 = await walletHistory(f, env, input, chain, 300, true);
   const h = { ...h0, swaps: h0.allPriced };
   const bal = (await walletBalances(f, env, h.address).catch(() => null)) as {
     holdings?: {
