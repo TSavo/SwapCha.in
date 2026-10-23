@@ -14,9 +14,15 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
 import { fanOut, logGuardFailure } from "./aggregate.js";
-import { buildPayload, failures, type GuardCtx, liveGuardCtx, verifyPayload } from "./guard/index.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
 import { mempoolUtxos } from "./btc.js";
+import {
+  buildPayload,
+  failures,
+  type GuardCtx,
+  liveGuardCtx,
+  verifyPayload,
+} from "./guard/index.js";
 import { limitRoutes } from "./limit.js";
 import { type BestOut, onchainRoutes, openWatchDb } from "./onchain.js";
 import {
@@ -234,12 +240,22 @@ export function createApp(
     };
     // Build the requested route; if its payload fails verification, fall back to the next
     // best route from the same /quotes call. Nothing unverified is ever returned.
-    const order = [q, ...(siblings.get(quoteId) ?? []).map((id) => cache.get(id)!).filter((x) => x && x.id !== q.id)];
+    const order = [
+      q,
+      ...(siblings.get(quoteId) ?? [])
+        .map((id) => cache.get(id)!)
+        .filter((x) => x && x.id !== q.id),
+    ];
     let first: { quoteId: string; provider: string; reason: string } | undefined;
     for (const cand of order) {
       const prov = providers.find((x) => x.name === cand.provider);
       if (!prov) continue;
-      const creq = { ...req, ...cand.request, taker, ...(recipient ? { recipient: recipient as `0x${string}` } : {}) };
+      const creq = {
+        ...req,
+        ...cand.request,
+        taker,
+        ...(recipient ? { recipient: recipient as `0x${string}` } : {}),
+      };
       let out: BuildResponse | null;
       try {
         out = await buildOne(prov, creq);

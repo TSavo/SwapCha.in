@@ -1,7 +1,7 @@
 import { encodeFunctionData, erc20Abi, maxUint256, parseAbi } from "viem";
 import { describe, expect, it } from "vitest";
-import { ABIS } from "./evm.js";
 import type { GuardCtx } from "./ctx.js";
+import { ABIS } from "./evm.js";
 import { type Payload, verifyPayload, verifyRevoke } from "./index.js";
 
 const TAKER = "0xeb0ec7a28e4b6b175806e21d9d3afe45792c5c7b";
@@ -27,34 +27,35 @@ const req = {
   slippageBps: 50,
 } as Payload["req"];
 
-const oneinch = (o: { to?: string; recv?: string; min?: bigint; value?: string }) => ({
-  provider: "1inch",
-  req,
-  toAmount: "1000000000000000000",
-  approvalAddress: ONEINCH,
-  tx: {
-    chainId: 1,
-    to: (o.to ?? ONEINCH) as `0x${string}`,
-    value: o.value ?? "0",
-    data: encodeFunctionData({
-      abi: ABIS.oneinch,
-      functionName: "swap",
-      args: [
-        EVIL,
-        {
-          srcToken: USDC,
-          dstToken: WETH,
-          srcReceiver: EVIL,
-          dstReceiver: (o.recv ?? TAKER) as `0x${string}`,
-          amount: 1000000000n,
-          minReturnAmount: o.min ?? 995000000000000000n,
-          flags: 0n,
-        },
-        "0x",
-      ],
-    }),
-  },
-}) as Payload;
+const oneinch = (o: { to?: string; recv?: string; min?: bigint; value?: string }) =>
+  ({
+    provider: "1inch",
+    req,
+    toAmount: "1000000000000000000",
+    approvalAddress: ONEINCH,
+    tx: {
+      chainId: 1,
+      to: (o.to ?? ONEINCH) as `0x${string}`,
+      value: o.value ?? "0",
+      data: encodeFunctionData({
+        abi: ABIS.oneinch,
+        functionName: "swap",
+        args: [
+          EVIL,
+          {
+            srcToken: USDC,
+            dstToken: WETH,
+            srcReceiver: EVIL,
+            dstReceiver: (o.recv ?? TAKER) as `0x${string}`,
+            amount: 1000000000n,
+            minReturnAmount: o.min ?? 995000000000000000n,
+            flags: 0n,
+          },
+          "0x",
+        ],
+      }),
+    },
+  }) as Payload;
 
 const failed = async (p: Payload) =>
   (await verifyPayload(p, ctx)).checks.filter((c) => !c.ok).map((c) => c.name);
@@ -83,7 +84,11 @@ describe("payload guard", () => {
       chainId: 1,
       to: USDC,
       value: "0",
-      data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [ONEINCH, maxUint256] }),
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [ONEINCH, maxUint256],
+      }),
     };
     expect((await verifyPayload(p, ctx)).verified).toBe(false);
   });
@@ -93,23 +98,40 @@ describe("payload guard", () => {
       chainId: 1,
       to: USDC,
       value: "0",
-      data: encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [EVIL, 1000000000n] }),
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [EVIL, 1000000000n],
+      }),
     };
     expect((await verifyPayload(p, ctx)).verified).toBe(false);
   });
   const thor = (vault: string, memo: string) =>
     ({
       provider: "thorchain",
-      req: { ...req, fromToken: "0x0000000000000000000000000000000000000000", toChainId: 1, amount: "1000000000000000000" },
+      req: {
+        ...req,
+        fromToken: "0x0000000000000000000000000000000000000000",
+        toChainId: 1,
+        amount: "1000000000000000000",
+      },
       toAmount: "100000",
       tx: {
         chainId: 1,
         to: THOR_ROUTER,
         value: "1000000000000000000",
         data: encodeFunctionData({
-          abi: parseAbi(["function depositWithExpiry(address vault,address asset,uint256 amount,string memo,uint256 expiration)"]),
+          abi: parseAbi([
+            "function depositWithExpiry(address vault,address asset,uint256 amount,string memo,uint256 expiration)",
+          ]),
           functionName: "depositWithExpiry",
-          args: [vault as `0x${string}`, "0x0000000000000000000000000000000000000000", 1000000000000000000n, memo, 9999999999n],
+          args: [
+            vault as `0x${string}`,
+            "0x0000000000000000000000000000000000000000",
+            1000000000000000000n,
+            memo,
+            9999999999n,
+          ],
         }),
       },
     }) as unknown as Payload;
@@ -131,7 +153,11 @@ describe("payload guard", () => {
     expect(v.verified).toBe(false);
   });
   it("revoke self-check", () => {
-    const data = encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [ONEINCH, 0n] });
+    const data = encodeFunctionData({
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [ONEINCH, 0n],
+    });
     expect(() => verifyRevoke({ to: USDC, data, value: "0" }, USDC, ONEINCH)).not.toThrow();
     const bad = encodeFunctionData({ abi: erc20Abi, functionName: "approve", args: [ONEINCH, 1n] });
     expect(() => verifyRevoke({ to: USDC, data: bad, value: "0" }, USDC, ONEINCH)).toThrow();

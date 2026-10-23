@@ -1,7 +1,7 @@
 import type { Quote, QuoteRequest, QuotesResponse } from "@swapchan/shared";
+import { failures, type GuardCtx, quotePayload, verifyPayload } from "./guard/index.js";
 import type { Pricer } from "./pricing.js";
 import type { ProviderAdapter } from "./providers/types.js";
-import { failures, type GuardCtx, quotePayload, verifyPayload } from "./guard/index.js";
 
 /** Loud, grep-able log line for a payload that failed verification. */
 export function logGuardFailure(stage: string, provider: string, chainId: number, reason: string) {

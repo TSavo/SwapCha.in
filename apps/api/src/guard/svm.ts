@@ -1,5 +1,5 @@
-import { ed25519 } from "@noble/curves/ed25519";
 import { createHash } from "node:crypto";
+import { ed25519 } from "@noble/curves/ed25519";
 import { base58, base64, hex } from "@scure/base";
 
 export const TOKEN = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";

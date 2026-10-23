@@ -1,9 +1,10 @@
+import { base58, bech32, bech32m, hex } from "@scure/base";
 import {
   type BuildResponse,
   isEvmChain,
   NATIVE_TOKEN,
-  nativeOf,
   type NonEvmTx,
+  nativeOf,
   type Quote,
   type QuoteRequest,
   SOLANA,
@@ -11,13 +12,26 @@ import {
   type TypedData,
   vmOf,
 } from "@swapchan/shared";
-import { base58, bech32, bech32m, hex } from "@scure/base";
 import * as bitcoin from "bitcoinjs-lib";
 import type { Hex } from "viem";
-import { COW_SETTLEMENT, evmAllowed, SVM_FEE_WALLETS, SVM_PROGRAMS, TVM_CONTRACTS } from "./allowlist.js";
+import {
+  COW_SETTLEMENT,
+  evmAllowed,
+  SVM_FEE_WALLETS,
+  SVM_PROGRAMS,
+  TVM_CONTRACTS,
+} from "./allowlist.js";
 import type { GuardCtx } from "./ctx.js";
 import { type Decoded, decodeApprove, decodeEvm } from "./evm.js";
-import { ata, checkSvmIxs, parseSvmBase64, parseSvmInstructions, TOKEN, TOKEN22, WSOL } from "./svm.js";
+import {
+  ata,
+  checkSvmIxs,
+  parseSvmBase64,
+  parseSvmInstructions,
+  TOKEN,
+  TOKEN22,
+  WSOL,
+} from "./svm.js";
 
 export type { GuardCtx } from "./ctx.js";
 export { liveGuardCtx } from "./ctx.js";
@@ -171,7 +185,11 @@ async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest
     settlers = await ctx.zeroxSettlers(req.fromChainId);
     allowed = new Set([...allowed, ...settlers]);
   }
-  c.test("router", allowed.has(lc(tx.to)), `tx.to ${tx.to} is not an allowlisted ${provider} router on chain ${req.fromChainId}`);
+  c.test(
+    "router",
+    allowed.has(lc(tx.to)),
+    `tx.to ${tx.to} is not an allowlisted ${provider} router on chain ${req.fromChainId}`,
+  );
   // Native value.
   const value = BigInt(tx.value);
   const amount = BigInt(req.amount);
@@ -183,7 +201,8 @@ async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest
   const d: Decoded | null = decodeEvm(provider, tx.data as Hex);
   if (!d) {
     c.part("decode", `unknown selector ${tx.data.slice(0, 10)}`);
-    if (dest) c.test("recipient", contains(tx.data, dest), `recipient ${dest} not found in calldata`);
+    if (dest)
+      c.test("recipient", contains(tx.data, dest), `recipient ${dest} not found in calldata`);
     c.part("minOut", "calldata not decoded");
     return;
   }
@@ -191,20 +210,40 @@ async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest
   if (d.inAmount !== undefined)
     c.test("inAmount", d.inAmount <= amount, `pulls ${d.inAmount} > sell amount ${amount}`);
   if (d.inToken && !(provider === "across" && nativeIn))
-    c.test("inToken", sameTok(req.fromChainId, d.inToken, req.fromToken), `input token ${d.inToken} != ${req.fromToken}`);
+    c.test(
+      "inToken",
+      sameTok(req.fromChainId, d.inToken, req.fromToken),
+      `input token ${d.inToken} != ${req.fromToken}`,
+    );
   if (d.outToken && !cross)
-    c.test("outToken", sameTok(req.toChainId, d.outToken, req.toToken), `output token ${d.outToken} != ${req.toToken}`);
+    c.test(
+      "outToken",
+      sameTok(req.toChainId, d.outToken, req.toToken),
+      `output token ${d.outToken} != ${req.toToken}`,
+    );
   if (taker)
     for (const o of d.owners ?? [])
       c.test("owner", o === taker || o === ZERO, `depositor/refund/authority ${o} != taker`);
   if (d.target && settlers.length)
-    c.test("target", settlers.includes(d.target), `0x inner target ${d.target} is not the registered Settler`);
+    c.test(
+      "target",
+      settlers.includes(d.target),
+      `0x inner target ${d.target} is not the registered Settler`,
+    );
   if (d.dstChainId !== undefined && isEvmChain(req.toChainId) && provider !== "lifi")
-    c.test("dstChain", d.dstChainId === BigInt(req.toChainId), `destination chain ${d.dstChainId} != ${req.toChainId}`);
+    c.test(
+      "dstChain",
+      d.dstChainId === BigInt(req.toChainId),
+      `destination chain ${d.dstChainId} != ${req.toChainId}`,
+    );
 
   // Recipient.
   if (provider === "thorchain") {
-    c.test("vault", !!thor && d.vault === lc(thor.address), `vault ${d.vault} not in THORChain inbound_addresses`);
+    c.test(
+      "vault",
+      !!thor && d.vault === lc(thor.address),
+      `vault ${d.vault} not in THORChain inbound_addresses`,
+    );
     if (thor?.halted) c.bad("vault", "THORChain chain halted");
     return checkRecipientMemo(c, d.memo ?? "", dest);
   }
@@ -218,8 +257,16 @@ async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest
   }
   if (provider === "debridge") {
     if (dest) {
-      c.test("recipient", d.recipientBytes === addrBytes(dest), `receiverDst 0x${d.recipientBytes} != ${dest}`);
-      c.test("dstAuthority", d.dstAuthorityBytes === addrBytes(dest), `orderAuthorityDst 0x${d.dstAuthorityBytes} != ${dest}`);
+      c.test(
+        "recipient",
+        d.recipientBytes === addrBytes(dest),
+        `receiverDst 0x${d.recipientBytes} != ${dest}`,
+      );
+      c.test(
+        "dstAuthority",
+        d.dstAuthorityBytes === addrBytes(dest),
+        `orderAuthorityDst 0x${d.dstAuthorityBytes} != ${dest}`,
+      );
     }
     c.test("externalCall", !d.dstCall, "order carries a destination external call");
   } else if (d.recipient !== undefined && dest) {
@@ -227,18 +274,34 @@ async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest
     if (d.recipient === "sender")
       c.test("recipient", lc(dest) === taker, `output goes to msg.sender but recipient is ${dest}`);
     else if (provider === "lifi" && d.recipient === "0x11f111f111f111f111f111f111f111f111f111f1")
-      c.test("recipient", contains(tx.data, dest), `non-EVM recipient ${dest} not found in calldata`);
+      c.test(
+        "recipient",
+        contains(tx.data, dest),
+        `non-EVM recipient ${dest} not found in calldata`,
+      );
     else if (d.dstCall)
-      c.test("recipient", contains(tx.data, dest), `recipient ${dest} not found in destination call`);
+      c.test(
+        "recipient",
+        contains(tx.data, dest),
+        `recipient ${dest} not found in destination call`,
+      );
     else if (provider === "across" && !evmDest)
-      c.test("recipient", d.recipientBytes === addrBytes(dest).padStart(64, "0"), `recipient ${d.recipientBytes} != ${dest}`);
+      c.test(
+        "recipient",
+        d.recipientBytes === addrBytes(dest).padStart(64, "0"),
+        `recipient ${d.recipientBytes} != ${dest}`,
+      );
     else c.test("recipient", d.recipient === lc(dest), `recipient ${d.recipient} != ${dest}`);
   } else if (dest) {
     c.test("recipient", contains(tx.data, dest), `recipient ${dest} not found in calldata`);
   }
   if (d.minOut !== undefined) {
     const b = minBound(p);
-    c.test("minOut", d.minOut >= b, `min output ${d.minOut} < bound ${b} (quote ${p.toAmount}, slippage ${req.slippageBps}bps)`);
+    c.test(
+      "minOut",
+      d.minOut >= b,
+      `min output ${d.minOut} < bound ${b} (quote ${p.toAmount}, slippage ${req.slippageBps}bps)`,
+    );
   } else if (d.inputMin !== undefined) {
     c.test("inputMin", d.inputMin <= amount, `bridge amount ${d.inputMin} > sell amount`);
     c.part("minOut", "LI.FI bridge facet: output minimum lives in bridge-specific data");
@@ -260,14 +323,26 @@ async function checkApprovals(c: Acc, p: Payload, ctx: GuardCtx) {
   if (p.permit2) extra.push(PERMIT2);
   const ok = spenderAllowed(p, extra);
   if (p.approvalAddress)
-    c.test("spender", ok.has(lc(p.approvalAddress)) || (lc(p.approvalAddress) === PERMIT2 && p.provider === "0x"), `approval spender ${p.approvalAddress} not allowlisted for ${p.provider}`);
+    c.test(
+      "spender",
+      ok.has(lc(p.approvalAddress)) || (lc(p.approvalAddress) === PERMIT2 && p.provider === "0x"),
+      `approval spender ${p.approvalAddress} not allowlisted for ${p.provider}`,
+    );
   if (p.approval) {
     const a = decodeApprove(p.approval.data as Hex);
-    c.test("approval.to", lc(p.approval.to) === lc(p.req.fromToken), `approval tx targets ${p.approval.to}, not the sell token`);
+    c.test(
+      "approval.to",
+      lc(p.approval.to) === lc(p.req.fromToken),
+      `approval tx targets ${p.approval.to}, not the sell token`,
+    );
     if (!a) c.bad("approval", "approval tx is not approve(address,uint256)");
     else {
       c.test("approval.spender", ok.has(a.spender), `approve spender ${a.spender} not allowlisted`);
-      c.test("approval.amount", a.amount <= BigInt(p.req.amount), `approve amount ${a.amount} > sell amount (unlimited approvals are never built server-side)`);
+      c.test(
+        "approval.amount",
+        a.amount <= BigInt(p.req.amount),
+        `approve amount ${a.amount} > sell amount (unlimited approvals are never built server-side)`,
+      );
     }
     c.test("approval.value", BigInt(p.approval.value) === 0n, "approval tx sends native value");
   }
@@ -285,12 +360,28 @@ async function checkApprovals(c: Acc, p: Payload, ctx: GuardCtx) {
 function checkOrder(c: Acc, p: Payload, dest?: string) {
   const o = p.order!;
   const m = o.message as Record<string, any>;
-  c.test("router", lc(String(o.domain.verifyingContract)) === COW_SETTLEMENT, `order verifyingContract ${String(o.domain.verifyingContract)} is not CoW settlement`);
+  c.test(
+    "router",
+    lc(String(o.domain.verifyingContract)) === COW_SETTLEMENT,
+    `order verifyingContract ${String(o.domain.verifyingContract)} is not CoW settlement`,
+  );
   const recv = lc(String(m.receiver ?? ZERO));
   if (dest)
-    c.test("recipient", recv === lc(dest) || (recv === ZERO && lc(dest) === lc(p.req.taker ?? "")), `order receiver ${recv} != ${dest}`);
-  c.test("inToken", sameTok(p.req.fromChainId, String(m.sellToken), p.req.fromToken), `sellToken ${m.sellToken}`);
-  c.test("outToken", sameTok(p.req.toChainId, String(m.buyToken), p.req.toToken), `buyToken ${m.buyToken}`);
+    c.test(
+      "recipient",
+      recv === lc(dest) || (recv === ZERO && lc(dest) === lc(p.req.taker ?? "")),
+      `order receiver ${recv} != ${dest}`,
+    );
+  c.test(
+    "inToken",
+    sameTok(p.req.fromChainId, String(m.sellToken), p.req.fromToken),
+    `sellToken ${m.sellToken}`,
+  );
+  c.test(
+    "outToken",
+    sameTok(p.req.toChainId, String(m.buyToken), p.req.toToken),
+    `buyToken ${m.buyToken}`,
+  );
   const sell = BigInt(m.sellAmount ?? 0) + BigInt(m.feeAmount ?? 0);
   c.test("inAmount", sell <= BigInt(p.req.amount), `order sells ${sell} > amount`);
   const b = minBound(p);
@@ -313,7 +404,9 @@ async function checkSvm(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
   const mints = [p.req.fromToken, p.req.toToken, WSOL].filter((m) => m !== nativeOf(SOLANA));
   const fees = [
     ...(SVM_FEE_WALLETS[p.provider] ?? []),
-    ...(process.env.SWAPCHAN_FEE_RECIPIENT_SOLANA ? [process.env.SWAPCHAN_FEE_RECIPIENT_SOLANA] : []),
+    ...(process.env.SWAPCHAN_FEE_RECIPIENT_SOLANA
+      ? [process.env.SWAPCHAN_FEE_RECIPIENT_SOLANA]
+      : []),
   ];
   const dests = new Set<string>([taker, ...fees]);
   for (const owner of [taker, ...fees])
@@ -339,13 +432,23 @@ async function checkSvm(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
     );
     const swapIx = ixs.find((i) => i.programId.startsWith("JUP6"));
     if (swapIx)
-      c.test("recipient", swapIx.keys.some((k) => k && outMine.includes(k)), `Jupiter destination is not the taker's ${p.req.toToken} token account`);
+      c.test(
+        "recipient",
+        swapIx.keys.some((k) => k && outMine.includes(k)),
+        `Jupiter destination is not the taker's ${p.req.toToken} token account`,
+      );
     else c.part("recipient", "no Jupiter instruction to inspect");
     c.part("minOut", "Solana swap amounts are program-specific");
   } else {
-    const blob = ixs.map((i) => hex.encode(i.data) + i.keys.map((k) => (k ? hex.encode(base58.decode(k)) : "")).join("")).join("");
+    const blob = ixs
+      .map(
+        (i) =>
+          hex.encode(i.data) + i.keys.map((k) => (k ? hex.encode(base58.decode(k)) : "")).join(""),
+      )
+      .join("");
     if (contains(blob, dest)) c.ok("recipient", "found in instruction data");
-    else if (p.provider === "relay") c.part("recipient", "Relay deposit: recipient bound off-chain to the request id");
+    else if (p.provider === "relay")
+      c.part("recipient", "Relay deposit: recipient bound off-chain to the request id");
     else c.bad("recipient", `recipient ${dest} not found in the Solana tx`);
     c.part("minOut", "cross-chain Solana payload");
   }
@@ -392,7 +495,8 @@ async function checkBtc(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
   // Relay BTC uses a per-request deposit address (not derivable): allow exactly one payment.
   const relayDeposit = p.provider === "relay" && pays.length === 1;
   for (const a of pays)
-    if (!allowedTo.includes(a) && !relayDeposit) bad.push(`pays ${a}, not a ${p.provider} vault/solver`);
+    if (!allowedTo.includes(a) && !relayDeposit)
+      bad.push(`pays ${a}, not a ${p.provider} vault/solver`);
   if (relayDeposit && !allowedTo.includes(pays[0]!))
     c.part("router", `Relay per-request deposit address ${pays[0]}`);
   c.test("router", bad.length === 0, bad.join("; "));
@@ -405,7 +509,9 @@ async function checkBtc(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
 }
 
 /** Minimal protobuf reader for Tron raw_data → TriggerSmartContract fields. */
-function tronRaw(rawHex: string): { owner: string; contract: string; callValue: bigint; data: string } | null {
+function tronRaw(
+  rawHex: string,
+): { owner: string; contract: string; callValue: bigint; data: string } | null {
   const b = hex.decode(rawHex.replace(/^0x/, ""));
   const read = (buf: Uint8Array, cb: (f: number, wt: number, v: Uint8Array | bigint) => void) => {
     let i = 0;
@@ -464,7 +570,11 @@ async function checkTron(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: 
   if (n.kind === "tvm-deposit") {
     const d = n.data as { to: string; amount: string; memo: string };
     const v = await thorVault(ctx, p.req.fromChainId);
-    c.test("router", !!v && v.address === d.to, `deposit to ${d.to} is not the THORChain Tron vault`);
+    c.test(
+      "router",
+      !!v && v.address === d.to,
+      `deposit to ${d.to} is not the THORChain Tron vault`,
+    );
     c.test("value", BigInt(d.amount) <= BigInt(p.req.amount), "deposit > amount");
     return checkRecipientMemo(c, d.memo, dest);
   }
@@ -486,7 +596,11 @@ async function checkTron(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: 
   let val = 0n;
   for (const x of calls) {
     c.test("owner", x!.owner === me, `owner ${x!.owner} != taker`);
-    c.test("router", allowed.includes(x!.contract), `contract 41${x!.contract.slice(2)} not allowlisted for ${p.provider}`);
+    c.test(
+      "router",
+      allowed.includes(x!.contract),
+      `contract 41${x!.contract.slice(2)} not allowlisted for ${p.provider}`,
+    );
     val += x!.callValue;
   }
   const nativeIn = p.req.fromToken === nativeOf(p.req.fromChainId);
@@ -554,11 +668,24 @@ export const buildPayload = (q: Quote, req: QuoteRequest, b: BuildResponse): Pay
 });
 
 export const failures = (v: Verification) =>
-  v.checks.filter((x) => !x.ok).map((x) => `${x.name}: ${x.detail ?? "failed"}`).join("; ");
+  v.checks
+    .filter((x) => !x.ok)
+    .map((x) => `${x.name}: ${x.detail ?? "failed"}`)
+    .join("; ");
 
 /** Self-check for /onchain/revoke: approve(spender, 0) on the token, nothing else. */
-export function verifyRevoke(tx: { to: string; data: string; value: string }, token: string, spender: string) {
+export function verifyRevoke(
+  tx: { to: string; data: string; value: string },
+  token: string,
+  spender: string,
+) {
   const a = decodeApprove(tx.data as Hex);
-  if (!a || a.amount !== 0n || a.spender !== lc(spender) || lc(tx.to) !== lc(token) || tx.value !== "0")
+  if (
+    !a ||
+    a.amount !== 0n ||
+    a.spender !== lc(spender) ||
+    lc(tx.to) !== lc(token) ||
+    tx.value !== "0"
+  )
     throw new Error("revoke tx failed self-verification");
 }

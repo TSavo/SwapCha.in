@@ -1,4 +1,3 @@
-import { verifyRevoke } from "./guard/index.js";
 import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -31,6 +30,7 @@ import {
 } from "viem";
 import { normalize } from "viem/ens";
 import { z } from "zod";
+import { verifyRevoke } from "./guard/index.js";
 import { cached, SCAN_CHAINS, type ScanChain, tokenRisk } from "./scanner.js";
 import { CHAINS } from "./simulate.js";
 

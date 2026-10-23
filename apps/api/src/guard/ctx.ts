@@ -40,8 +40,7 @@ const cached = <T>(ttl: number, load: () => Promise<T>) => {
 };
 
 export function liveGuardCtx(env: NodeJS.ProcessEnv = process.env, f: Fetch = fetch): GuardCtx {
-  const thorBase =
-    env.THORNODE_URL || "https://gateway.liquify.com/chain/thorchain_api/thorchain";
+  const thorBase = env.THORNODE_URL || "https://gateway.liquify.com/chain/thorchain_api/thorchain";
   const inbound = cached(60_000, async () => {
     const r = await f(`${thorBase}/inbound_addresses`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) throw new Error(`thornode inbound_addresses ${r.status}`);
@@ -92,7 +91,10 @@ export function liveGuardCtx(env: NodeJS.ProcessEnv = process.env, f: Fetch = fe
       // multicall3 is a public utility, not a Relay contract: never a valid tx target.
       const m3 = "0xca11bde05977b3631167028862be2a173976ca11";
       const mc = "0x0000000000002bdbf1bf3279983603ec279cc6df";
-      return { contracts: contracts.filter((x) => x !== m3 && x !== mc), solvers: c?.solverAddresses ?? [] };
+      return {
+        contracts: contracts.filter((x) => x !== m3 && x !== mc),
+        solvers: c?.solverAddresses ?? [],
+      };
     },
   };
 }
