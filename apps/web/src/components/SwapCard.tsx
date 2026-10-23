@@ -27,7 +27,7 @@ import {
 } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { formatAmount, parseAmount, sanitizeAmountInput } from "@/lib/amount";
-import { api, cowExplorer, submitCowOrder } from "@/lib/api";
+import { API_URL, api, cowExplorer, submitCowOrder } from "@/lib/api";
 import { sendBitcoinPsbt, useBitcoin } from "@/lib/bitcoin";
 import { characterForChain } from "@/lib/characters";
 import { quoteParams, track } from "@/lib/ga";
@@ -35,8 +35,8 @@ import { publishSays, say, unverifiedWarning } from "@/lib/says";
 import { toSolanaTx } from "@/lib/solana";
 import { sendTron, useTron } from "@/lib/tron";
 import { useSolana } from "@/lib/useSolana";
-import { Character, SpeechBubble } from "./Character";
 import { AmountField, AmountReadout, BalanceRow } from "./AmountField";
+import { Character, SpeechBubble } from "./Character";
 import { ConnectButton } from "./ConnectButton";
 import { ChainPicker, TokenPicker } from "./Pickers";
 import { RouteList, RoutesLoading } from "./RouteList";
@@ -157,27 +157,55 @@ export function SwapCard({
   const prefill = useRef<{ fromToken?: string | undefined; toToken?: string | undefined } | null>(
     null,
   );
+  const wantMax = useRef(false);
   useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    if (initial && !sp.get("fromChain"))
-      for (const [k, v] of Object.entries(initial)) sp.set(k, String(v));
-    const fc = Number(sp.get("fromChain"));
-    const tc = Number(sp.get("toChain"));
-    if (fc > 0) setFromChain(fc);
-    if (tc > 0) setToChain(tc);
-    const amt = sp.get("amount");
-    if (amt && /^\d+(\.\d+)?$/.test(amt)) setAmountStr(amt);
-    const ft = sp.get("fromToken") ?? undefined;
-    const tt = sp.get("toToken") ?? undefined;
-    if (ft || tt) {
-      prefill.current = { ...(ft ? { fromToken: ft } : {}), ...(tt ? { toToken: tt } : {}) };
-      const pick = async (chain: number, a: string, set: (t: Token) => void) => {
-        const t = await api.token(chain, a);
-        if (t) set(t);
-      };
-      if (ft && fc > 0) void pick(fc, ft, setFromToken);
-      if (tt && tc > 0) void pick(tc, tt, setToToken);
+    const raw = new URLSearchParams(window.location.search);
+    if (initial && !raw.get("fromChain"))
+      for (const [k, v] of Object.entries(initial)) raw.set(k, String(v));
+    const apply = (sp: URLSearchParams) => {
+      const fc = Number(sp.get("fromChain"));
+      const tc = Number(sp.get("toChain"));
+      if (fc > 0) setFromChain(fc);
+      if (tc > 0) setToChain(tc);
+      const amt = sp.get("amount");
+      if (amt && /^\d+(\.\d+)?$/.test(amt)) setAmountStr(amt);
+      const rcp = sp.get("recipient");
+      if (rcp) setRecipientInput(rcp);
+      const ft = sp.get("fromToken") ?? undefined;
+      const tt = sp.get("toToken") ?? undefined;
+      if (ft || tt) {
+        prefill.current = { ...(ft ? { fromToken: ft } : {}), ...(tt ? { toToken: tt } : {}) };
+        const pick = async (chain: number, a: string, set: (t: Token) => void) => {
+          const t = await api.token(chain, a);
+          if (t) set(t);
+        };
+        if (ft && fc > 0) void pick(fc, ft, setFromToken);
+        if (tt && tc > 0) void pick(tc, tt, setToToken);
+      }
+    };
+    // Human deep links (?fromChain=base&fromToken=ETH&amount=max) resolve via the API first.
+    if (raw.get("amount")?.toLowerCase() === "max") {
+      wantMax.current = true;
+      raw.delete("amount");
     }
+    const isAddr = (v: string | null) =>
+      !v || /^(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{25,44})$/.test(v);
+    const needs =
+      ["fromChain", "toChain"].some((k) => raw.get(k) && !/^\d+$/.test(raw.get(k) ?? "")) ||
+      !isAddr(raw.get("fromToken")) ||
+      !isAddr(raw.get("toToken"));
+    if (!needs) return apply(raw);
+    const q = new URLSearchParams();
+    for (const k of ["fromChain", "toChain", "fromToken", "toToken", "amount", "recipient"]) {
+      const v = raw.get(k);
+      if (v) q.set(k, v);
+    }
+    fetch(`${API_URL}/links/swap?${q}`, { signal: AbortSignal.timeout(15_000) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j: { url?: string }) =>
+        apply(new URL(j.url ?? "", window.location.origin).searchParams),
+      )
+      .catch(() => apply(raw));
   }, []);
 
   // Default token selection per chain: native in, USDC (or first) out.
@@ -298,6 +326,12 @@ export function SwapCard({
     !quotesMocked &&
     amount !== null &&
     (allowance.data ?? 0n) < amount;
+  useEffect(() => {
+    if (!wantMax.current || balance === undefined || !fromToken) return;
+    wantMax.current = false;
+    const b = isNative(fromToken) ? (balance * 98n) / 100n : balance;
+    setAmountStr(formatAmount(b, fromToken.decimals, fromToken.decimals).replace(/,/g, ""));
+  }, [balance, fromToken]);
   const insufficient = balance !== undefined && amount !== null && balance < amount;
 
   // Swap-chan's greeting follows the swap box.
@@ -603,7 +637,11 @@ export function SwapCard({
                 text={`${formatAmount(balance, fromToken.decimals)} ${fromToken.symbol}`}
                 onPct={(pct) =>
                   setAmountStr(
-                    formatAmount((balance * BigInt(pct)) / 100n, fromToken.decimals, fromToken.decimals).replace(/,/g, ""),
+                    formatAmount(
+                      (balance * BigInt(pct)) / 100n,
+                      fromToken.decimals,
+                      fromToken.decimals,
+                    ).replace(/,/g, ""),
                   )
                 }
               />
@@ -684,7 +722,10 @@ export function SwapCard({
       </div>
 
       {!compact && request !== null && (
-        <p className="mt-3 text-center text-xs font-semibold text-violet-200" data-testid="route-summary">
+        <p
+          className="mt-3 text-center text-xs font-semibold text-violet-200"
+          data-testid="route-summary"
+        >
           {quote
             ? `Best of ${qres?.quotes.length ?? 0} routes: ${quote.provider}`
             : quotes.isFetching
@@ -767,7 +808,6 @@ export function SwapCard({
           </SpeechBubble>
         </div>
       )}
-
     </Card>
   );
 }

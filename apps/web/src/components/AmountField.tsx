@@ -34,7 +34,8 @@ export function AmountField({
     <div
       data-testid="amount-field"
       onClick={(e) => {
-        if (!(e.target as HTMLElement).closest("button,a,select,[role=dialog]")) ref.current?.focus();
+        if (!(e.target as HTMLElement).closest("button,a,select,[role=dialog]"))
+          ref.current?.focus();
       }}
       className={`mt-2 cursor-text rounded-xl border-2 bg-white px-3 py-2 shadow-sm transition focus-within:border-amber-400 focus-within:ring-4 focus-within:ring-amber-400/40 ${invalid ? "border-rose-500" : "border-violet-400 hover:border-violet-300"}`}
     >
@@ -58,12 +59,23 @@ export function AmountField({
 }
 
 /** Read-only output: greyed, borderless so the pay field stands out. */
-export function AmountReadout({ label, value, right }: { label: string; value: string; right?: ReactNode }) {
+export function AmountReadout({
+  label,
+  value,
+  right,
+}: {
+  label: string;
+  value: string;
+  right?: ReactNode;
+}) {
   return (
     <div data-testid="amount-readout" className="mt-2 rounded-xl bg-violet-950/60 px-3 py-2">
       <div className="text-[11px] font-bold tracking-wider text-violet-400 uppercase">{label}</div>
       <div className="flex items-center gap-2">
-        <div aria-readonly="true" className="w-full min-w-0 truncate text-3xl font-black text-violet-300 select-all">
+        <div
+          aria-readonly="true"
+          className="w-full min-w-0 truncate text-3xl font-black text-violet-300 select-all"
+        >
           {value}
         </div>
         {right}
@@ -72,13 +84,7 @@ export function AmountReadout({ label, value, right }: { label: string; value: s
   );
 }
 
-export function BalanceRow({
-  text,
-  onPct,
-}: {
-  text: string;
-  onPct: (pct: 50 | 100) => void;
-}) {
+export function BalanceRow({ text, onPct }: { text: string; onPct: (pct: 50 | 100) => void }) {
   return (
     <div className="mt-1 flex items-center justify-between gap-2 text-xs text-violet-600">
       <span>Balance: {text}</span>

@@ -7,7 +7,11 @@ const REGISTER = `curl -X POST ${API_URL}/partners -H 'content-type: application
 
 const PLUGINS: [string, string, string][] = [
   ["Vercel AI SDK", "https://github.com/TSavo/swapchan-ai-sdk", "npm i swapchan-ai-sdk"],
-  ["LangChain (Python)", "https://github.com/TSavo/langchain-swapchan", "pip install langchain-swapchan"],
+  [
+    "LangChain (Python)",
+    "https://github.com/TSavo/langchain-swapchan",
+    "pip install langchain-swapchan",
+  ],
   ["LangChain.js", "https://github.com/TSavo/langchain-swapchan", "npm i langchain-swapchan"],
   ["ElizaOS", "https://github.com/TSavo/plugin-swapchan", "npm i elizaos-plugin-swapchan"],
 ];
@@ -115,6 +119,38 @@ export default function Agents() {
         <code>/status</code>. Amounts are in base units.
       </p>
       <pre className="overflow-x-auto rounded-lg bg-black/50 p-3 text-xs">{CONFIGS.curl}</pre>
+      <h3 id="free-tools" className="mt-6 mb-2 text-xl font-black">
+        Free DeFi tools over REST
+      </h3>
+      <p className="mb-2 text-sm text-violet-200">
+        Under <code>/onchain</code>: <code>GET /money?address=</code> (find money),{" "}
+        <code>POST /simulate</code>, <code>GET /history</code>, <code>/pnl</code>,{" "}
+        <code>/pools</code>, <code>/whales</code>, <code>/contract</code>, <code>/airdrops</code>,{" "}
+        <code>/market</code>, <code>POST /rebalance</code>, <code>GET /bridge?tx=</code>,{" "}
+        <code>/gas/history?chain=</code>. Every response ends with <code>next.swapUrl</code>. Human
+        pages live at{" "}
+        <a href="/tools" className="underline">
+          swapchan.com/tools
+        </a>
+        .
+      </p>
+      <h3 id="deep-links" className="mt-6 mb-2 text-xl font-black">
+        Swap deep links & short links
+      </h3>
+      <p className="mb-2 text-sm text-violet-200">
+        <code>
+          https://swapchan.com/?fromChain=&amp;fromToken=&amp;amount=&amp;toChain=&amp;toToken=&amp;recipient=&amp;ref=
+        </code>{" "}
+        (also <code>/swap?…</code>). Chains take names or ids (<code>base</code>, <code>8453</code>
+        ), tokens take symbols or addresses, <code>amount=max</code> fills the connected balance.
+        The card auto-quotes on load. Resolve and shorten with <code>GET /links/swap?…</code> or{" "}
+        <code>POST /links</code> (<code>{"{url}"}</code>, params, or{" "}
+        <code>{"{items: [...], ref}"}</code> for a <code>/batch</code> link). Short links (
+        <code>swapchan.com/s/&lt;id&gt;</code>) are permanent, never reused, only point at
+        swapchan.com, keep <code>ref</code> and count clicks.
+      </p>
+      <pre className="overflow-x-auto rounded-lg bg-black/50 p-3 text-xs">{`curl "${API_URL}/links/swap?fromChain=base&fromToken=ETH&toToken=USDC&amount=0.1&ref=<partnerId>"
+curl "${API_URL}/onchain/money?address=vitalik.eth"`}</pre>
       <p className="mt-3 text-sm text-violet-300">
         Auth: open with fair rate limits today. For higher limits, ask for a key and send it as{" "}
         <code>x-api-key: &lt;key&gt;</code> (or <code>Authorization: Bearer &lt;key&gt;</code>) to

@@ -19,6 +19,28 @@ export const CONFIGS = {
 } as const;
 
 export const TOOLS = [
+  [
+    "find_money",
+    'Headline tool: "Here\'s my wallet 0x…, find me money." Ranked claims, idle stables, lending, approvals, dust, with honest estimates and short swap links.',
+  ],
+  [
+    "build_swap_link",
+    "Prefilled swapchan.com link (and permanent swapchan.com/s/… short link) from chain names, symbols, amount or max; batch links too.",
+  ],
+  ["simulate_swap", "Dry-run a quote or raw tx: balance changes, approvals, revert reason."],
+  ["wallet_history", "Recent swaps for an EVM or Solana wallet."],
+  ["wallet_pnl", "Average-cost PnL estimate from visible swaps."],
+  ["token_pools", "Every pool for a token, DEX and liquidity."],
+  ["whale_watch", "Large recent transfers of a token."],
+  ["contract_reader", "Verification, proxy and owner powers in plain English."],
+  [
+    "airdrop_check",
+    "Merkl rewards, legacy contracts (PoWH3D, Fomo3D, EtherDelta), Solana and Tron, with stated coverage.",
+  ],
+  ["market_context", "Fear & greed, funding, OI, stablecoin supply and TVL."],
+  ["rebalance_plan", "Target weights in, priced swap plan out."],
+  ["bridge_doctor", "Diagnose a stuck bridge across LI.FI, Across, Relay, deBridge, THORChain."],
+  ["best_time_to_swap", "Gas percentiles and the cheapest hour of day."],
   ["get_supported_chains", "Every chain SwapChan routes on."],
   ["get_supported_tokens", "Token list per chain; any ERC-20 by address works too."],
   ["get_quote", "Best route across 0x, CoW, Velora, LI.FI, Across, Relay and Jupiter."],

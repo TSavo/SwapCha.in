@@ -20,6 +20,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/swap", 0.9),
     page("/bridge", 0.9),
     page("/agents", 0.8),
+    page("/tools", 0.9),
+    page("/dashboard", 0.9),
+    ...[
+      "/simulate",
+      "/wallet",
+      "/token",
+      "/contract",
+      "/airdrops",
+      "/market",
+      "/rebalance",
+      "/bridge-status",
+      "/gas",
+    ].map((p) => page(p, 0.8)),
+    ...[8453, 42161, 10, 137, 56].map((c) => page(`/gas?chain=${c}`, 0.6)),
+    page("/contract/ethereum/0xdAC17F958D2ee523a2206206994597C13D831ec7", 0.5),
+    page("/contract/ethereum/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 0.5),
+    ...trending
+      .slice(0, 40)
+      .flatMap((t) => [
+        page(`/token/${t.chain}/${t.address}/pools`, 0.5),
+        page(`/token/${t.chain}/${t.address}/whales`, 0.4),
+      ]),
     page("/how-it-works", 0.6),
     page("/widget", 0.6),
     page("/partners", 0.5),

@@ -37,7 +37,9 @@ export function ChainPicker({
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-bold tracking-wider text-violet-200 uppercase">{label} chain</span>
+        <span className="text-xs font-bold tracking-wider text-violet-200 uppercase">
+          {label} chain
+        </span>
         <button
           type="button"
           aria-expanded={open}
@@ -51,7 +53,9 @@ export function ChainPicker({
             <Character who={curCh.key} size={22} link={false} />
           </span>
           <span className="drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]">{cur?.name ?? "Choose"}</span>
-          <span aria-hidden className="drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]">{open ? "▴" : "▾"}</span>
+          <span aria-hidden className="drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]">
+            {open ? "▴" : "▾"}
+          </span>
         </button>
       </div>
       <div

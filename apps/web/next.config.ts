@@ -10,6 +10,18 @@ const config: NextConfig = {
   typescript: { ignoreBuildErrors: true },
   transpilePackages: ["@swapchan/shared"],
   // Only the widget (/embed) may be framed, by anyone. Everything else is non-frameable.
+  // Deep links: /swap?fromChain=…&toToken=… (and /swap/batch?items=…) land on the swap card.
+  async redirects() {
+    return [
+      ...["fromChain", "fromToken", "toChain", "toToken", "amount"].map((key) => ({
+        source: "/swap",
+        has: [{ type: "query" as const, key }],
+        destination: "/",
+        permanent: false,
+      })),
+      { source: "/swap/batch", destination: "/batch", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

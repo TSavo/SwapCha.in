@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { ConnectButton } from "@/components/ConnectButton";
 import { Providers } from "@/components/Providers";
 import { RefCapture } from "@/components/RefCapture";
+import { DashboardPrompt } from "@/components/tools/DashboardPrompt";
 import { GA_ID } from "@/lib/ga";
 import "./globals.css";
 
@@ -65,8 +66,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </header>
           <main className="mx-auto flex max-w-5xl flex-col items-center px-4 pb-16">
             {children}
+            <DashboardPrompt />
           </main>
           <footer className="site-chrome mx-auto flex max-w-5xl flex-wrap justify-center gap-4 p-6 text-xs text-violet-300">
+            <Link href="/tools" className="font-bold hover:text-amber-300">
+              Free DeFi tools
+            </Link>
+            <Link href="/dashboard" className="hover:text-amber-300">
+              Wallet dashboard
+            </Link>
             <Link href="/agents" className="hover:text-amber-300">
               MCP server for AI agents
             </Link>
