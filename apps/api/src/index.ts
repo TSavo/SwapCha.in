@@ -38,6 +38,7 @@ import type { Fetch, ProviderAdapter } from "./providers/types.js";
 import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
 import { scannerRoutes } from "./scanner.js";
+import { openSeoStore, seoRoutes, startSeoJob } from "./seo.js";
 import { createSimulator, type Simulator } from "./simulate.js";
 import {
   jupiterTokenReader,
@@ -94,6 +95,8 @@ export interface AppOptions {
   cowFetch?: Fetch;
   /** Widget partner store; null disables /partners. Default: SQLite at $SWAPCHAN_DATA_DIR/partners.db (in-memory when unset). */
   partners?: PartnerStore | null;
+  /** SEO trending-token store; null disables /seo. Default: $SWAPCHAN_DATA_DIR/seo.db + 30-min job. */
+  seo?: import("node:sqlite").DatabaseSync | null;
 }
 
 export function createApp(
@@ -147,6 +150,14 @@ export function createApp(
   });
   if (opts.scannerFetch !== null)
     app.route("/scanner", scannerRoutes(opts.scannerFetch ?? fetch, env));
+  if (opts.scannerFetch !== null && opts.seo !== null) {
+    const seoDb =
+      opts.seo ??
+      openSeoStore(env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/seo.db` : ":memory:");
+    app.route("/seo", seoRoutes(seoDb, opts.scannerFetch ?? fetch));
+    if (opts.seo === undefined && env.SWAPCHAN_DATA_DIR && env.SWAPCHAN_SEO_JOB !== "0")
+      startSeoJob(seoDb, opts.scannerFetch ?? fetch, env);
+  }
   const partners =
     opts.partners !== undefined
       ? opts.partners

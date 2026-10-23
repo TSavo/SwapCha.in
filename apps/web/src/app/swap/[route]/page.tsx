@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SwapTabs } from "@/components/SwapTabs";
+import { TrendingRoute, trendTitle } from "@/components/TrendingRoute";
 import { formatEta, formatUsd } from "@/lib/amount";
 import { castHref } from "@/lib/bios";
 import { CHARACTERS, characterSrc } from "@/lib/characters";
@@ -19,6 +20,7 @@ import {
   routeHref,
   title,
 } from "@/lib/routes";
+import { CHAIN_LABEL, inputFor, parseTrendSlug, trendingToken } from "@/lib/trending";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -28,9 +30,33 @@ export function generateStaticParams() {
 
 type Props = { params: Promise<{ route: string }> };
 
+/** Trending-token page for slugs like sol-to-wif (created by the API's SEO job; never 404s once made). */
+async function trend(slug: string) {
+  const p = parseTrendSlug(slug);
+  if (!p) return null;
+  const d = await trendingToken(p.key);
+  if (!d) return null;
+  const input = inputFor(d.token, p.from);
+  return input ? { ...d, input } : null;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const r = routeBySlug((await params).route);
-  if (!r) return {};
+  const slug = (await params).route;
+  const r = routeBySlug(slug);
+  if (!r) {
+    const tr = await trend(slug);
+    if (!tr) return {};
+    const t = trendTitle(tr.token, tr.input.symbol);
+    const description = `Buy ${tr.token.name} (${tr.token.symbol}) on ${CHAIN_LABEL[tr.token.chain]} at the best live price across every aggregator. Contract ${tr.token.address}, live price and liquidity, risk check. Non-custodial.`;
+    return {
+      title: `${t} | SwapChan`,
+      description,
+      alternates: { canonical: `/swap/${slug}` },
+      robots: tr.token.indexable ? undefined : { index: false, follow: true },
+      openGraph: { title: t, description, url: `/swap/${slug}` },
+      twitter: { card: "summary_large_image", title: t, description },
+    };
+  }
   const t = title(r);
   const description = `${t}: live quotes from ${r.providers.map(providerName).join(", ")} compared side by side. Best price after gas and fees, non-custodial, by SwapChan.`;
   return {
@@ -43,8 +69,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function RoutePage({ params }: Props) {
-  const r = routeBySlug((await params).route);
-  if (!r) notFound();
+  const slug = (await params).route;
+  const r = routeBySlug(slug);
+  if (!r) {
+    const tr = await trend(slug);
+    if (!tr) notFound();
+    return <TrendingRoute token={tr.token} market={tr.market} input={tr.input} />;
+  }
   const q = await routeQuotes(r);
   const fk = chainKey(r.fromChainId);
   const tk = chainKey(r.toChainId);

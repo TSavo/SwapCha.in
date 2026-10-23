@@ -222,7 +222,7 @@ const fromDsPair = (p: DsPair): Omit<ScanToken, "risk" | "swapUrl"> | null => {
   };
 };
 /** DexScreener pair data for token addresses (<=30 per call): deepest-liquidity pair per token. */
-async function dsTokens(f: F, chain: ScanChain, addrs: string[]) {
+export async function dsTokens(f: F, chain: ScanChain, addrs: string[]) {
   const out: Omit<ScanToken, "risk" | "swapUrl">[] = [];
   const uniq = [...new Set(addrs)];
   for (let i = 0; i < uniq.length; i += 30) {

@@ -1,11 +1,15 @@
 import type { MetadataRoute } from "next";
 import { castOrder } from "@/lib/bios";
 import { ROUTES, routeHref } from "@/lib/routes";
+import { trendingTokens, trendSlugs } from "@/lib/trending";
 
 const SITE = "https://swapchan.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const revalidate = 600;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const trending = (await trendingTokens()).filter((t) => t.indexable);
   const page = (p: string, priority: number) => ({
     url: `${SITE}${p}`,
     lastModified: now,
@@ -23,5 +27,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/cast", 0.6),
     ...castOrder.map((k) => page(`/cast/${k}`, 0.5)),
     ...ROUTES.map((r) => page(routeHref(r), 0.7)),
+    ...trending.flatMap((t) =>
+      trendSlugs(t).map((s) => ({
+        url: `${SITE}/swap/${s}`,
+        lastModified: new Date(t.lastSeen),
+        priority: 0.6,
+      })),
+    ),
   ];
 }
