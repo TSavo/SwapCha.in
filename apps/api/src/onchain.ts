@@ -42,9 +42,9 @@ import { CHAINS } from "./simulate.js";
  */
 type F = typeof fetch;
 export const SITE = "https://swapchan.com";
-const EVM_IDS = [1, 8453, 42161, 10, 137, 56, 43114, 59144, 534352];
-const ALL_IDS = [...EVM_IDS, SOLANA, BITCOIN, TRON];
-const PUBLIC_RPC: Record<number, string> = {
+export const EVM_IDS = [1, 8453, 42161, 10, 137, 56, 43114, 59144, 534352];
+export const ALL_IDS = [...EVM_IDS, SOLANA, BITCOIN, TRON];
+export const PUBLIC_RPC: Record<number, string> = {
   1: "https://ethereum-rpc.publicnode.com",
   8453: "https://base-rpc.publicnode.com",
   42161: "https://arbitrum-one-rpc.publicnode.com",
@@ -55,7 +55,7 @@ const PUBLIC_RPC: Record<number, string> = {
   59144: "https://linea-rpc.publicnode.com",
   534352: "https://scroll-rpc.publicnode.com",
 };
-const LLAMA: Record<number, string> = {
+export const LLAMA: Record<number, string> = {
   1: "ethereum",
   8453: "base",
   42161: "arbitrum",
@@ -83,7 +83,7 @@ const NATIVE_GECKO: Record<number, string> = {
   [BITCOIN]: "bitcoin",
   [TRON]: "tron",
 };
-const NATIVE_SYMBOL: Record<number, string> = {
+export const NATIVE_SYMBOL: Record<number, string> = {
   1: "ETH",
   8453: "ETH",
   42161: "ETH",
@@ -97,7 +97,7 @@ const NATIVE_SYMBOL: Record<number, string> = {
   [BITCOIN]: "BTC",
   [TRON]: "TRX",
 };
-const EXPLORER: Record<number, string> = {
+export const EXPLORER: Record<number, string> = {
   1: "https://etherscan.io",
   8453: "https://basescan.org",
   42161: "https://arbiscan.io",
@@ -111,7 +111,7 @@ const EXPLORER: Record<number, string> = {
   [BITCOIN]: "https://mempool.space",
   [TRON]: "https://tronscan.org/#",
 };
-const chainName = (id: number) =>
+export const chainName = (id: number) =>
   (SUPPORTED_CHAINS as Record<number, { name: string }>)[id]?.name ?? String(id);
 export const CHAIN_ALIASES: Record<string, number> = {
   ethereum: 1,
@@ -162,11 +162,11 @@ export function swapUrl(
   });
   return `${SITE}/?${q}`;
 }
-const listed = (chainId: number) => tokenList.filter((t) => t.chainId === chainId);
-const usdcOf = (chainId: number) =>
+export const listed = (chainId: number) => tokenList.filter((t) => t.chainId === chainId);
+export const usdcOf = (chainId: number) =>
   listed(chainId).find((t) => t.symbol === "USDC")?.address ??
   listed(chainId).find((t) => t.symbol === "USDT")?.address;
-const STABLES = new Set([
+export const STABLES = new Set([
   "USDC",
   "USDT",
   "DAI",
@@ -184,7 +184,7 @@ const STABLES = new Set([
   "USDD",
 ]);
 
-async function json<T>(f: F, url: string, init?: RequestInit, timeoutMs = 10_000): Promise<T> {
+export async function json<T>(f: F, url: string, init?: RequestInit, timeoutMs = 10_000): Promise<T> {
   const r = await f(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   if (!r.ok) throw new Error(`${new URL(url).host} ${r.status}`);
   return (await r.json()) as T;
@@ -210,7 +210,7 @@ export function evmClient(chainId: number, env: NodeJS.ProcessEnv = process.env)
   return c;
 }
 
-async function solRpc<T>(
+export async function solRpc<T>(
   f: F,
   env: NodeJS.ProcessEnv,
   method: string,
@@ -239,16 +239,16 @@ async function solRpc<T>(
 }
 
 // ---------- prices (DefiLlama coins, batched, 60s cache) ----------
-interface Px {
+export interface Px {
   price: number;
   symbol?: string;
   decimals?: number;
 }
-const isNativeAddr = (chainId: number, a: string) =>
+export const isNativeAddr = (chainId: number, a: string) =>
   NON_EVM[chainId]?.native === a ||
   a.toLowerCase() === NATIVE_TOKEN.toLowerCase() ||
   a === "0x0000000000000000000000000000000000000000";
-const llamaId = (chainId: number, a: string) =>
+export const llamaId = (chainId: number, a: string) =>
   isNativeAddr(chainId, a)
     ? `coingecko:${NATIVE_GECKO[chainId]}`
     : `${LLAMA[chainId]}:${vmOf(chainId) === "evm" ? a.toLowerCase() : a}`;
@@ -271,7 +271,7 @@ export async function prices(
   }
   return out;
 }
-const pxOf = (m: Map<string, Px>, chainId: number, a: string) => m.get(llamaId(chainId, a));
+export const pxOf = (m: Map<string, Px>, chainId: number, a: string) => m.get(llamaId(chainId, a));
 const fmt = (n: string | number) => {
   const x = Number(n);
   return x === 0

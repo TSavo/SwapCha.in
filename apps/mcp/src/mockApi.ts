@@ -149,6 +149,37 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
           status: q.get("txHash")?.endsWith("00") ? "pending" : "done",
           receivingTxHash: null,
         });
+      case "/onchain/money":
+        return send(200, {
+          address: q.get("address"),
+          opportunities: 1,
+          totalEstUsd: 3.14,
+          atRiskUsd: 0,
+          items: [
+            {
+              rank: 1,
+              category: "Forgotten money in old contracts",
+              title: "PoWH3D (P3D): dividends",
+              estUsd: 3.14,
+              estimateKind: "exact",
+              swapUrl: "https://swapchan.com/?fromChain=1",
+              shortUrl: "https://swapchan.com/s/100",
+            },
+          ],
+          next: { label: "#1: PoWH3D", swapUrl: "https://swapchan.com/?fromChain=1" },
+        });
+      case "/links/swap":
+        return send(200, {
+          url: `https://swapchan.com/?fromChain=${q.get("fromChain")}`,
+          shortUrl: "https://swapchan.com/s/101",
+          fromChainId: 8453,
+          toChainId: 8453,
+        });
+      case "/onchain/market":
+        return send(200, {
+          read: "Sentiment: Neutral (50/100).",
+          next: { label: "Swap", swapUrl: "https://swapchan.com" },
+        });
       case "/scanner/new":
       case "/scanner/trending":
       case "/scanner/movers":

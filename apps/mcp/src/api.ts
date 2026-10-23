@@ -40,7 +40,12 @@ export class SwapChanApi {
     } = {},
   ) {}
 
-  private async req<T>(schema: z.ZodType<T>, path: string, init?: RequestInit): Promise<T> {
+  private async req<T>(
+    schema: z.ZodType<T>,
+    path: string,
+    init?: RequestInit,
+    timeoutMs?: number,
+  ): Promise<T> {
     const headers: Record<string, string> = { accept: "application/json" };
     if (init?.body) headers["content-type"] = "application/json";
     if (this.opts.apiKey) headers["x-api-key"] = this.opts.apiKey;
@@ -50,7 +55,7 @@ export class SwapChanApi {
       res = await f(`${this.baseUrl}${path}`, {
         ...init,
         headers,
-        signal: AbortSignal.timeout(this.opts.timeoutMs ?? 20_000),
+        signal: AbortSignal.timeout(timeoutMs ?? this.opts.timeoutMs ?? 20_000),
       });
     } catch (e) {
       throw new ApiError(502, `SwapChan API unreachable: ${(e as Error).message}`);
@@ -122,8 +127,8 @@ export class SwapChanApi {
   scan(kind: "new" | "trending" | "movers", q: Record<string, unknown>): Promise<ScanResponse> {
     return this.req(ScanResponse, `/scanner/${kind}?${qs(q)}`);
   }
-  private rec(path: string, init?: RequestInit): Promise<Rec> {
-    return this.req(z.record(z.string(), z.unknown()), path, init);
+  private rec(path: string, init?: RequestInit, timeoutMs?: number): Promise<Rec> {
+    return this.req(z.record(z.string(), z.unknown()), path, init, timeoutMs);
   }
   walletBalances(address: string, chains?: string): Promise<Rec> {
     return this.rec(`/onchain/balances?${qs({ address, ...(chains ? { chains } : {}) })}`);
@@ -166,6 +171,52 @@ export class SwapChanApi {
       `/onchain/watches/${encodeURIComponent(watchId)}${itemId ? `/${encodeURIComponent(itemId)}` : ""}`,
       { method: "DELETE" },
     );
+  }
+  // v0.3 DeFi toolbox (free sources; logic in apps/api/src/intel.ts)
+  simulate(body: Rec): Promise<Rec> {
+    return this.rec("/onchain/simulate", { method: "POST", body: JSON.stringify(body) });
+  }
+  walletHistory(address: string, chainId?: string): Promise<Rec> {
+    return this.rec(`/onchain/history?${qs({ address, chainId })}`, undefined, 90_000);
+  }
+  walletPnl(address: string, chainId?: string): Promise<Rec> {
+    return this.rec(`/onchain/pnl?${qs({ address, chainId })}`, undefined, 90_000);
+  }
+  tokenPools(chainId: string, address: string): Promise<Rec> {
+    return this.rec(`/onchain/pools?${qs({ chainId, address })}`);
+  }
+  whales(chainId: string, address: string, minUsd?: number): Promise<Rec> {
+    return this.rec(`/onchain/whales?${qs({ chainId, address, minUsd })}`, undefined, 90_000);
+  }
+  contract(chainId: string, address: string): Promise<Rec> {
+    return this.rec(`/onchain/contract?${qs({ chainId, address })}`);
+  }
+  airdrops(address: string): Promise<Rec> {
+    return this.rec(`/onchain/airdrops?${qs({ address })}`, undefined, 90_000);
+  }
+  market(): Promise<Rec> {
+    return this.rec("/onchain/market", undefined, 90_000);
+  }
+  rebalance(body: Rec): Promise<Rec> {
+    return this.rec("/onchain/rebalance", { method: "POST", body: JSON.stringify(body) }, 90_000);
+  }
+  bridge(hash: string, fromChainId?: string): Promise<Rec> {
+    return this.rec(`/onchain/bridge?${qs({ hash, fromChainId })}`, undefined, 90_000);
+  }
+  gasHistory(chainId: string): Promise<Rec> {
+    return this.rec(`/onchain/gas/history?${qs({ chainId })}`);
+  }
+  findMoney(address: string): Promise<Rec> {
+    return this.rec(`/onchain/money?${qs({ address })}`, undefined, 90_000);
+  }
+  swapLink(p: Rec): Promise<Rec> {
+    return this.rec(`/links/swap?${qs(p)}`);
+  }
+  batchLink(items: Rec[], ref?: string): Promise<Rec> {
+    return this.rec("/links", {
+      method: "POST",
+      body: JSON.stringify({ items, ...(ref ? { ref } : {}) }),
+    });
   }
   tokenRisk(chain: string, address: string): Promise<Record<string, unknown>> {
     return this.req(z.record(z.string(), z.unknown()), `/scanner/risk?${qs({ chain, address })}`);

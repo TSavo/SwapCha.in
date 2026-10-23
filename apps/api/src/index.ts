@@ -23,6 +23,7 @@ import {
   liveGuardCtx,
   verifyPayload,
 } from "./guard/index.js";
+import { intelRoutes, linkRoutes } from "./intel.js";
 import { limitRoutes } from "./limit.js";
 import { type BestOut, onchainRoutes, openWatchDb } from "./onchain.js";
 import {
@@ -223,6 +224,36 @@ export function createApp(
       const best = res.quotes[0];
       return best ? Number(best.toAmount) : null;
     };
+    const quoteFn = async (q: {
+      fromChainId: number;
+      fromToken: string;
+      toChainId: number;
+      toToken: string;
+      amount: string;
+    }) => {
+      const res = await quotes({
+        fromChainId: String(q.fromChainId),
+        toChainId: String(q.toChainId),
+        fromToken: q.fromToken,
+        toToken: q.toToken,
+        amount: q.amount,
+      });
+      const b = res.quotes[0];
+      return b
+        ? {
+            id: b.id,
+            provider: b.provider,
+            toAmount: b.toAmount,
+            netUsd: (b as { netUsd?: number | null }).netUsd ?? null,
+          }
+        : null;
+    };
+    app.route("/onchain", intelRoutes(opts.scannerFetch ?? fetch, env, watchDb, quoteFn));
+    // Permanent short links (never expire, never reused): $SWAPCHAN_DATA_DIR/links.db.
+    const linksDb = openWatchDb(
+      env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/links.db` : ":memory:",
+    );
+    app.route("/links", linkRoutes(opts.scannerFetch ?? fetch, env, linksDb));
     app.route("/onchain", onchainRoutes(opts.scannerFetch ?? fetch, env, watchDb, bestOut));
   }
   app.post("/build", async (c) => {

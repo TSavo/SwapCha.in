@@ -113,8 +113,38 @@ describe("swapchan mcp over streamable http", () => {
         "check_watches",
         "unwatch_token",
         "get_yields",
+        "find_money",
+        "build_swap_link",
+        "simulate_swap",
+        "wallet_history",
+        "wallet_pnl",
+        "token_pools",
+        "whale_watch",
+        "contract_reader",
+        "airdrop_check",
+        "market_context",
+        "rebalance_plan",
+        "bridge_doctor",
+        "best_time_to_swap",
       ].sort(),
     );
+    await c.close();
+  });
+
+  it("find_money, build_swap_link and market_context end in a swap link", async () => {
+    const c = await connect();
+    const m = data(await c.callTool({ name: "find_money", arguments: { address: "vitalik.eth" } }));
+    expect(m.items[0].shortUrl).toBe("https://swapchan.com/s/100");
+    expect(m.swapUrl).toContain("swapchan.com");
+    const l = data(
+      await c.callTool({
+        name: "build_swap_link",
+        arguments: { fromChain: "base", fromToken: "ETH", toToken: "USDC", amount: "0.1" },
+      }),
+    );
+    expect(l.shortUrl).toBe("https://swapchan.com/s/101");
+    const k = await c.callTool({ name: "market_context", arguments: {} });
+    expect(text(k)).toContain("Neutral");
     await c.close();
   });
 
