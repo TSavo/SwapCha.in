@@ -53,6 +53,7 @@ import {
   walletBalances,
   yields,
 } from "./onchain.js";
+import { ETHERSCAN_FREE } from "./onchain.js";
 import { READ_OPS, readChain } from "./readchain.js";
 import {
   type Evidence,
@@ -334,24 +335,22 @@ export interface SwapEvent {
 const HIST_CAP = 10_000;
 /** Free Etherscan-compatible explorers with full account history. ETHERSCAN_API_KEY (free tier) unlocks every chain. */
 function explorerApi(chainId: number, env: NodeJS.ProcessEnv) {
-  if (env.ETHERSCAN_API_KEY)
-    return [
-      {
-        name: "Etherscan v2",
-        url: (q: string) =>
-          `https://api.etherscan.io/v2/api?chainid=${chainId}&${q}&apikey=${env.ETHERSCAN_API_KEY}`,
-      },
-    ];
+  const out: { name: string; url: (q: string) => string }[] = [];
+  if (env.ETHERSCAN_API_KEY && ETHERSCAN_FREE.has(chainId))
+    out.push({
+      name: "Etherscan v2",
+      url: (q: string) => `https://api.etherscan.io/v2/api?chainid=${chainId}&${q}&apikey=${env.ETHERSCAN_API_KEY}`,
+    });
   const bs: Record<number, string> = {
     1: "https://eth.blockscout.com/api",
     10: "https://optimism.blockscout.com/api",
     534352: "https://scroll.blockscout.com/api",
+    59144: "https://api-explorer.linea.build/api",
   };
   const rs: Record<number, string> = {
     1: "https://api.routescan.io/v2/network/mainnet/evm/1/etherscan/api",
     43114: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api",
   };
-  const out: { name: string; url: (q: string) => string }[] = [];
   if (bs[chainId]) out.push({ name: "Blockscout", url: (q) => `${bs[chainId]}?${q}` });
   if (rs[chainId]) out.push({ name: "Routescan", url: (q) => `${rs[chainId]}?${q}` });
   return out;
@@ -3429,9 +3428,8 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       const legacyP = prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]).then((eth) =>
         legacyEth(env, own, pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null),
       );
-      const archChains = env.ETHERSCAN_API_KEY
-        ? [1, 8453, 42161, 10, 137, 56, 43114, 534352]
-        : [1, 10, 534352, 43114];
+      // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
+      const archChains = env.ETHERSCAN_API_KEY ? [1, 42161, 10, 137, 43114, 534352, 59144] : [1, 10, 534352, 43114, 59144];
       const noArch = { items: [] as Found[], stats: { error: "not checked (timeout)" } as Record<string, number | string> };
       const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, stuck, ...arch] = await Promise.all([
         timed("Merkl", merklP, [] as Found[]),

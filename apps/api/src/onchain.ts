@@ -598,7 +598,12 @@ const APPROVAL_TOPIC = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200a
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const ROUTESCAN = new Set([1, 43114]);
 /** Free Etherscan-compatible explorers that serve getLogs without a key. */
-const APPROVAL_EXPLORER: Record<number, string> = { 10: "https://explorer.optimism.io/api" };
+const APPROVAL_EXPLORER: Record<number, string[]> = {
+  10: ["https://optimism.blockscout.com/api", "https://explorer.optimism.io/api"],
+  59144: ["https://api-explorer.linea.build/api"],
+};
+/** Chains the free Etherscan v2 tier serves (OP, Base, BSC, Avalanche are paid-only; Scroll unsupported). */
+export const ETHERSCAN_FREE = new Set([1, 137, 42161, 59144]);
 /** Public RPCs that answer a full-range topic-filtered eth_getLogs. */
 const FULL_RANGE_LOG_RPC: Record<number, string> = { 534352: "https://rpc.scroll.io" };
 type SpenderInfo = {
@@ -697,7 +702,7 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
           45_000,
         );
         if (Array.isArray(r.result)) return r.result;
-        return /no logs found/i.test(r.message ?? "") ? [] : null;
+        return /no (logs|records) found/i.test(r.message ?? "") ? [] : null;
       },
     });
   if (ROUTESCAN.has(chainId))
@@ -705,9 +710,9 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
       "Routescan Approval logs",
       `https://api.routescan.io/v2/network/mainnet/evm/${chainId}/etherscan/api?${q}`,
     );
-  if (APPROVAL_EXPLORER[chainId])
-    ex("Explorer Approval logs", `${APPROVAL_EXPLORER[chainId]}?${q}`);
-  if (env.ETHERSCAN_API_KEY)
+  for (const [i, u] of (APPROVAL_EXPLORER[chainId] ?? []).entries())
+    ex(`Explorer${i ? i + 1 : ""} Approval logs`, `${u}?${q}`);
+  if (env.ETHERSCAN_API_KEY && ETHERSCAN_FREE.has(chainId))
     ex(
       "Etherscan v2 Approval logs",
       `https://api.etherscan.io/v2/api?chainid=${chainId}&${q}&apikey=${env.ETHERSCAN_API_KEY}`,
