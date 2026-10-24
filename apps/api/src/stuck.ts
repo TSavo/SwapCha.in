@@ -3,25 +3,12 @@
  * that archaeology alone can't safely withdraw. Pair with history-driven archaeology
  * (intel.ts) — archaeology on every chain; promote recurring unknown hits here.
  */
-import {
-  encodeFunctionData,
-  formatUnits,
-  getAddress,
-  parseAbiItem,
-  toHex,
-} from "viem";
-import { BITCOIN, NATIVE_TOKEN } from "@swapchan/shared";
-import {
-  evmClient,
-  json,
-  prices,
-  pxOf,
-  SITE,
-  swapUrl,
-  usdcOf,
-} from "./onchain.js";
-import type { Evidence } from "./recover.js";
+
 import { appendFileSync, mkdirSync } from "node:fs";
+import { BITCOIN, NATIVE_TOKEN } from "@swapchan/shared";
+import { encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
+import { evmClient, json, prices, pxOf, SITE, swapUrl, usdcOf } from "./onchain.js";
+import type { Evidence } from "./recover.js";
 
 type F = typeof fetch;
 const fn = (s: string) => [parseAbiItem(`function ${s}`)] as const;
@@ -58,13 +45,16 @@ export interface StuckFound {
 }
 
 // ---------- promote-to-registry log (recurring unknown contracts with money) ----------
-export function logPromoteCandidate(env: NodeJS.ProcessEnv, row: {
-  chainId: number;
-  address: string;
-  what: string;
-  valueUsd: number | null;
-  selectors?: string[];
-}) {
+export function logPromoteCandidate(
+  env: NodeJS.ProcessEnv,
+  row: {
+    chainId: number;
+    address: string;
+    what: string;
+    valueUsd: number | null;
+    selectors?: string[];
+  },
+) {
   const dir = env.SWAPCHAN_DATA_DIR;
   if (!dir) return;
   try {
@@ -139,7 +129,14 @@ export async function curveConvex(
       action: "Claim rewards, then swap on SwapChan",
       link: swapUrl(1, CRV, 1, usdcOf(1)!, String(amt)),
       evidence: [
-        ev(1, p.addr, "earned(address)", [owner], toHex(earned), "earned(address) view returns (uint256)"),
+        ev(
+          1,
+          p.addr,
+          "earned(address)",
+          [owner],
+          toHex(earned),
+          "earned(address) view returns (uint256)",
+        ),
       ],
       underlying: CRV,
     });
@@ -152,18 +149,22 @@ export async function curveConvex(
   ];
   for (const g of GAUGES) {
     const [staked, claimable] = await Promise.all([
-      c.readContract({
-        address: g.addr,
-        abi: fn("balanceOf(address) view returns (uint256)"),
-        functionName: "balanceOf",
-        args: [owner],
-      }).catch(() => 0n),
-      c.readContract({
-        address: g.addr,
-        abi: fn("claimable_tokens(address) view returns (uint256)"),
-        functionName: "claimable_tokens",
-        args: [owner],
-      }).catch(() => 0n),
+      c
+        .readContract({
+          address: g.addr,
+          abi: fn("balanceOf(address) view returns (uint256)"),
+          functionName: "balanceOf",
+          args: [owner],
+        })
+        .catch(() => 0n),
+      c
+        .readContract({
+          address: g.addr,
+          abi: fn("claimable_tokens(address) view returns (uint256)"),
+          functionName: "claimable_tokens",
+          args: [owner],
+        })
+        .catch(() => 0n),
     ]);
     if (typeof claimable === "bigint" && claimable > 10n ** 14n) {
       const amt = Number(formatUnits(claimable, 18));
@@ -172,8 +173,11 @@ export async function curveConvex(
         kind: "claimable",
         protocol: g.name,
         chainId: 1,
-        what: `${amt.toPrecision(5)} claimable CRV` +
-          (typeof staked === "bigint" && staked > 0n ? ` (staked LP ${Number(formatUnits(staked, 18)).toPrecision(5)})` : ""),
+        what:
+          `${amt.toPrecision(5)} claimable CRV` +
+          (typeof staked === "bigint" && staked > 0n
+            ? ` (staked LP ${Number(formatUnits(staked, 18)).toPrecision(5)})`
+            : ""),
         valueUsd: crvP ? r2(amt * crvP) : null,
         confidence: "high",
         claimTx: {
@@ -303,7 +307,14 @@ export async function synthetixStuck(
       action: "Vest unlocked SNX on staking.synthetix.io, then swap",
       link: "https://staking.synthetix.io",
       evidence: [
-        ev(1, SNX_REWARD_ESCROW, "balanceOf(address)", [owner], toHex(escrowBal), "balanceOf(address) view returns (uint256)"),
+        ev(
+          1,
+          SNX_REWARD_ESCROW,
+          "balanceOf(address)",
+          [owner],
+          toHex(escrowBal),
+          "balanceOf(address) view returns (uint256)",
+        ),
       ],
       underlying: SNX,
     });
@@ -331,13 +342,26 @@ export async function synthetixStuck(
       claimTx: {
         chainId: 1,
         to: SNX_LIQUIDATOR_REWARDS,
-        data: encodeFunctionData({ abi: fn("getReward(address)"), functionName: "getReward", args: [owner] }),
+        data: encodeFunctionData({
+          abi: fn("getReward(address)"),
+          functionName: "getReward",
+          args: [owner],
+        }),
         value: "0",
         description: "getReward(you): claim Synthetix liquidator rewards",
       },
       action: "Claim SNX, then swap on SwapChan",
       link: swapUrl(1, SNX, 1, usdcOf(1)!, String(amt)),
-      evidence: [ev(1, SNX_LIQUIDATOR_REWARDS, "earned(address)", [owner], toHex(liq), "earned(address) view returns (uint256)")],
+      evidence: [
+        ev(
+          1,
+          SNX_LIQUIDATOR_REWARDS,
+          "earned(address)",
+          [owner],
+          toHex(liq),
+          "earned(address) view returns (uint256)",
+        ),
+      ],
       underlying: SNX,
     });
   }
@@ -350,7 +374,11 @@ export async function synthetixStuck(
       args: [owner],
     })
     .catch(() => 0n);
-  if (typeof escrowTotal === "bigint" && escrowTotal > 10n ** 15n && !out.some((x) => x.protocol === "Synthetix RewardEscrow")) {
+  if (
+    typeof escrowTotal === "bigint" &&
+    escrowTotal > 10n ** 15n &&
+    !out.some((x) => x.protocol === "Synthetix RewardEscrow")
+  ) {
     const amt = Number(formatUnits(escrowTotal, 18));
     const px = await prices(f, [{ chainId: 1, address: SNX }]).catch(() => new Map());
     const p = pxOf(px, 1, SNX)?.price ?? null;
@@ -370,7 +398,15 @@ export async function synthetixStuck(
       },
       action: "Vest unlocked SNX on staking.synthetix.io, then swap",
       link: "https://staking.synthetix.io",
-      evidence: [ev(1, SNX_REWARD_ESCROW, "totalEscrowedAccountBalance(address)", [owner], toHex(escrowTotal))],
+      evidence: [
+        ev(
+          1,
+          SNX_REWARD_ESCROW,
+          "totalEscrowedAccountBalance(address)",
+          [owner],
+          toHex(escrowTotal),
+        ),
+      ],
       underlying: SNX,
     });
   }
@@ -466,7 +502,8 @@ export async function sablierStuck(
               args: [tid],
             })
             .catch(() => null);
-          if (typeof cur === "string" && cur.toLowerCase() === owner.toLowerCase()) ids.push(tid);
+          if (typeof cur === "string" && (cur as string).toLowerCase() === owner.toLowerCase())
+            ids.push(tid);
           if (ids.length >= Number(max)) break;
         }
       } catch {
@@ -513,7 +550,14 @@ export async function sablierStuck(
       action: "Withdraw from each Sablier stream, then swap on SwapChan",
       link: "https://app.sablier.com",
       evidence: [
-        ev(1, addr, "balanceOf(address)", [owner], toHex(n), "balanceOf(address) view returns (uint256)"),
+        ev(
+          1,
+          addr,
+          "balanceOf(address)",
+          [owner],
+          toHex(n),
+          "balanceOf(address) view returns (uint256)",
+        ),
         ...(withdrawable > 0n && firstId !== null
           ? [ev(1, addr, "withdrawableAmountOf(uint256)", [String(firstId)], toHex(withdrawable))]
           : []),
@@ -716,16 +760,20 @@ export async function l2Withdrawals(
     try {
       const key =
         chainId === 10
-          ? env.OPTIMISM_ETHERSCAN_KEY ?? env.ETHERSCAN_KEY ?? ""
-          : env.BASESCAN_KEY ?? env.ETHERSCAN_KEY ?? "";
+          ? (env.OPTIMISM_ETHERSCAN_KEY ?? env.ETHERSCAN_KEY ?? "")
+          : (env.BASESCAN_KEY ?? env.ETHERSCAN_KEY ?? "");
       // txlist to L2ToL1MessagePasser from owner
       const url = `${api}?module=account&action=txlist&address=${owner}&sort=desc&page=1&offset=200${key ? `&apikey=${key}` : ""}`;
-      const r = await json<{ result: { to: string; hash: string; timeStamp: string; isError: string; functionName?: string; input: string }[] }>(
-        f,
-        url,
-        undefined,
-        15_000,
-      ).catch(() => ({ result: [] as never[] }));
+      const r = await json<{
+        result: {
+          to: string;
+          hash: string;
+          timeStamp: string;
+          isError: string;
+          functionName?: string;
+          input: string;
+        }[];
+      }>(f, url, undefined, 15_000).catch(() => ({ result: [] as never[] }));
       const hits = (Array.isArray(r.result) ? r.result : [])
         .filter(
           (t) =>
@@ -748,15 +796,17 @@ export async function l2Withdrawals(
             chainId === 10
               ? "https://app.optimism.io/bridge/withdraw"
               : "https://bridge.base.org/withdraw",
-          evidence: [
-            ev(chainId, L2_TO_L1, "tx", [t.hash], t.input?.slice(0, 66) ?? "0x"),
-          ],
+          evidence: [ev(chainId, L2_TO_L1, "tx", [t.hash], t.input?.slice(0, 66) ?? "0x")],
           risk: "Prove/finalize txs built when L2 receipt + output/game available (see claimTx)",
         });
         // Try building prove/finalize from this initiation tx
         try {
           const { buildOpStackWithdrawalTxs } = await import("./l2bridge.js");
-          const built = await buildOpStackWithdrawalTxs(env, chainId as 10 | 8453, t.hash as `0x${string}`);
+          const built = await buildOpStackWithdrawalTxs(
+            env,
+            chainId as 10 | 8453,
+            t.hash as `0x${string}`,
+          );
           if (built.proveTx) {
             out[out.length - 1]!.claimTx = built.proveTx;
             out[out.length - 1]!.what += built.finalizeTx
@@ -776,12 +826,9 @@ export async function l2Withdrawals(
     const ARB_SYS = "0x0000000000000000000000000000000000000064";
     const key = env.ARBISCAN_KEY ?? env.ETHERSCAN_KEY ?? "";
     const url = `https://api.arbiscan.io/api?module=account&action=txlist&address=${owner}&sort=desc&page=1&offset=200${key ? `&apikey=${key}` : ""}`;
-    const r = await json<{ result: { to: string; hash: string; input: string; isError: string; functionName?: string }[] }>(
-      f,
-      url,
-      undefined,
-      15_000,
-    ).catch(() => ({ result: [] as never[] }));
+    const r = await json<{
+      result: { to: string; hash: string; input: string; isError: string; functionName?: string }[];
+    }>(f, url, undefined, 15_000).catch(() => ({ result: [] as never[] }));
     const hits = (Array.isArray(r.result) ? r.result : [])
       .filter(
         (t) =>
@@ -819,7 +866,9 @@ export async function polygonExits(
   // Detect burns on Polygon that haven't been exited on L1 via Plasma/PoS bridge.
   // Heuristic: recent txs to ERC20Predicate / withdrawTo patterns — use Polygon PoS checkpoint API.
   try {
-    const r = await json<{ result: { to: string; hash: string; input: string; isError: string }[] }>(
+    const r = await json<{
+      result: { to: string; hash: string; input: string; isError: string }[];
+    }>(
       f,
       `https://api.polygonscan.com/api?module=account&action=txlist&address=${owner}&sort=desc&page=1&offset=100${env.POLYGONSCAN_KEY ? `&apikey=${env.POLYGONSCAN_KEY}` : env.ETHERSCAN_KEY ? `&apikey=${env.ETHERSCAN_KEY}` : ""}`,
       undefined,
@@ -827,7 +876,10 @@ export async function polygonExits(
     ).catch(() => ({ result: [] as never[] }));
     const PREDICATE = "0x401F6c983eA34274ec46f84D70b31C151321188b".toLowerCase(); // RootChainManager-ish interactions often via withdraw
     const hits = (Array.isArray(r.result) ? r.result : [])
-      .filter((t) => /withdraw|burn/i.test(t.input?.slice(0, 10) ?? "") || t.to?.toLowerCase() === PREDICATE)
+      .filter(
+        (t) =>
+          /withdraw|burn/i.test(t.input?.slice(0, 10) ?? "") || t.to?.toLowerCase() === PREDICATE,
+      )
       .slice(0, 3);
     return hits.map((t) => ({
       kind: "legacy" as const,
@@ -893,7 +945,8 @@ export async function multichainCeler(
           what: `Wallet interacted with Multichain router ${addr.slice(0, 8)}… (tx ${hit.hash.slice(0, 10)}…). Protocol collapsed; funds may be lost.`,
           valueUsd: null,
           confidence: "low",
-          action: "Check official Multichain recovery claims if any remain; otherwise treat as loss",
+          action:
+            "Check official Multichain recovery claims if any remain; otherwise treat as loss",
           link: `${SITE}/find-money/guide`,
           evidence: [ev(chainId, addr, "tx", [hit.hash], "0x")],
           risk: "Impossible to auto-recover: Multichain validators/MPC are gone. Detection only.",
@@ -906,7 +959,10 @@ export async function multichainCeler(
     const chainId = Number(id);
     try {
       // cbridge transfer history API (keyless)
-      const r = await json<{ err: string; transfer?: { status: string; dst_tx_hash?: string; src_amount?: string; token?: string }[] }>(
+      const r = await json<{
+        err: string;
+        transfer?: { status: string; dst_tx_hash?: string; src_amount?: string; token?: string }[];
+      }>(
         f,
         `https://cbridge-prod2.celer.network/v2/getTransferStatus?transfer_id=0&addr=${owner}`,
         undefined,
@@ -1055,7 +1111,12 @@ export async function merkleAirdrops(
                 data: encodeFunctionData({
                   abi: fn("claim(uint256,address,uint256,bytes32[])"),
                   functionName: "claim",
-                  args: [BigInt(row.index), owner, BigInt(row.amount), row.proof as `0x${string}`[]],
+                  args: [
+                    BigInt(row.index),
+                    owner,
+                    BigInt(row.amount),
+                    row.proof as `0x${string}`[],
+                  ],
                 }),
                 value: "0",
                 description: `claim(${row.index}): ${d.name} merkle airdrop`,
@@ -1122,9 +1183,7 @@ export async function uniV2RemoveLiquidityTx(
     chainId,
     to: router,
     data: encodeFunctionData({
-      abi: fn(
-        "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)",
-      ),
+      abi: fn("removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)"),
       functionName: "removeLiquidity",
       args: [token0, token1, liquidity, 0n, 0n, owner, deadline],
     }),
@@ -1162,10 +1221,7 @@ export async function btcXpubScan(f: F, xpubOrAddr: string): Promise<StuckFound[
         { chainId: BITCOIN, address: BTC_NATIVE },
         { chainId: BITCOIN, address: "btc" },
       ]).catch(() => new Map());
-      const btcP =
-        pxOf(px, BITCOIN, BTC_NATIVE)?.price ??
-        pxOf(px, BITCOIN, "btc")?.price ??
-        null;
+      const btcP = pxOf(px, BITCOIN, BTC_NATIVE)?.price ?? pxOf(px, BITCOIN, "btc")?.price ?? null;
       return [
         {
           kind: "claimable",
@@ -1176,9 +1232,7 @@ export async function btcXpubScan(f: F, xpubOrAddr: string): Promise<StuckFound[
           confidence: "high",
           action: "Spend via your wallet / SwapChan BTC route (PSBT)",
           link: `${SITE}/?fromChain=${BITCOIN}&fromToken=btc`,
-          evidence: [
-            ev(BITCOIN, xpubOrAddr, "mempool.space/address", [], String(sats)),
-          ],
+          evidence: [ev(BITCOIN, xpubOrAddr, "mempool.space/address", [], String(sats))],
         },
       ];
     }
@@ -1193,25 +1247,25 @@ export async function btcXpubScan(f: F, xpubOrAddr: string): Promise<StuckFound[
     { chainId: BITCOIN, address: BTC_NATIVE },
     { chainId: BITCOIN, address: "btc" },
   ]).catch(() => new Map());
-  const btcP =
-    pxOf(px, BITCOIN, BTC_NATIVE)?.price ??
-    pxOf(px, BITCOIN, "btc")?.price ??
-    null;
+  const btcP = pxOf(px, BITCOIN, BTC_NATIVE)?.price ?? pxOf(px, BITCOIN, "btc")?.price ?? null;
   return [
     {
       kind: "claimable",
-      protocol: xpubOrAddr.startsWith("xpub") || xpubOrAddr.startsWith("ypub") || xpubOrAddr.startsWith("zpub")
-        ? "Bitcoin xpub scan"
-        : "Bitcoin UTXO",
+      protocol:
+        xpubOrAddr.startsWith("xpub") ||
+        xpubOrAddr.startsWith("ypub") ||
+        xpubOrAddr.startsWith("zpub")
+          ? "Bitcoin xpub scan"
+          : "Bitcoin UTXO",
       chainId: BITCOIN,
       what: `${btc} BTC across ${addrs.length || "?"} funded address(es)`,
       valueUsd: btcP ? r2(btc * btcP) : null,
       confidence: "high",
       action: "Use your wallet to spend; SwapChan can build a PSBT for a bc1q sender",
       link: `${SITE}/?fromChain=${BITCOIN}`,
-      evidence: addrs.slice(0, 20).map((a) =>
-        ev(BITCOIN, a.address, "final_balance", [], String(a.final_balance)),
-      ),
+      evidence: addrs
+        .slice(0, 20)
+        .map((a) => ev(BITCOIN, a.address, "final_balance", [], String(a.final_balance))),
     },
   ];
 }

@@ -22,12 +22,29 @@ const ABI = parseAbi([
   "function collect((uint256 tokenId, address recipient, uint128 amount0Max, uint128 amount1Max) params)",
 ]);
 const CHAINS: Record<number, string> = {
-  1: "Ethereum", 8453: "Base", 10: "Optimism", 42161: "Arbitrum", 137: "Polygon", 56: "BNB Chain", 43114: "Avalanche",
+  1: "Ethereum",
+  8453: "Base",
+  10: "Optimism",
+  42161: "Arbitrum",
+  137: "Polygon",
+  56: "BNB Chain",
+  43114: "Avalanche",
 };
 const show = (v: unknown): string =>
-  typeof v === "bigint" ? v.toString() : typeof v === "object" && v ? JSON.stringify(v, (_, x) => (typeof x === "bigint" ? x.toString() : x)) : String(v);
+  typeof v === "bigint"
+    ? v.toString()
+    : typeof v === "object" && v
+      ? JSON.stringify(v, (_, x) => (typeof x === "bigint" ? x.toString() : x))
+      : String(v);
 
-export function Recover(p: { chain: number; to: `0x${string}`; data: `0x${string}`; value: string; title: string; next?: string }) {
+export function Recover(p: {
+  chain: number;
+  to: `0x${string}`;
+  data: `0x${string}`;
+  value: string;
+  title: string;
+  next?: string;
+}) {
   const { address, chainId } = useAccount();
   const { switchChainAsync } = useSwitchChain();
   const { sendTransactionAsync } = useSendTransaction();
@@ -51,21 +68,35 @@ export function Recover(p: { chain: number; to: `0x${string}`; data: `0x${string
         <p className="text-xs font-bold text-violet-300">Step 1 of 2 · recover</p>
         <h1 className="text-xl font-black">{p.title}</h1>
         <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-xs break-all">
-          <dt className="text-violet-400">chain</dt><dd data-testid="chain">{CHAINS[p.chain] ?? p.chain} ({p.chain})</dd>
-          <dt className="text-violet-400">to</dt><dd data-testid="to">{p.to}</dd>
+          <dt className="text-violet-400">chain</dt>
+          <dd data-testid="chain">
+            {CHAINS[p.chain] ?? p.chain} ({p.chain})
+          </dd>
+          <dt className="text-violet-400">to</dt>
+          <dd data-testid="to">{p.to}</dd>
           <dt className="text-violet-400">call</dt>
-          <dd data-testid="call">{call ? `${call.functionName}(${(call.args ?? []).map(show).join(", ")})` : "unrecognised calldata"}</dd>
-          <dt className="text-violet-400">value</dt><dd>{formatEther(BigInt(p.value || "0"))} (sends nothing)</dd>
-          <dt className="text-violet-400">data</dt><dd data-testid="data">{p.data}</dd>
+          <dd data-testid="call">
+            {call
+              ? `${call.functionName}(${(call.args ?? []).map(show).join(", ")})`
+              : "unrecognised calldata"}
+          </dd>
+          <dt className="text-violet-400">value</dt>
+          <dd>{formatEther(BigInt(p.value || "0"))} (sends nothing)</dd>
+          <dt className="text-violet-400">data</dt>
+          <dd data-testid="data">{p.data}</dd>
         </dl>
         {!safe && (
           <p className="mt-2 font-bold text-rose-300">
             I don't recognise this call as a withdraw-to-you, so I won't let you sign it here.
           </p>
         )}
-        {call?.functionName === "redeem" && address && (call.args?.[1] as string)?.toLowerCase() !== address.toLowerCase() && (
-          <p className="mt-2 font-bold text-rose-300">This redeem pays someone other than the connected wallet. Don't sign.</p>
-        )}
+        {call?.functionName === "redeem" &&
+          address &&
+          (call.args?.[1] as string)?.toLowerCase() !== address.toLowerCase() && (
+            <p className="mt-2 font-bold text-rose-300">
+              This redeem pays someone other than the connected wallet. Don't sign.
+            </p>
+          )}
         <div className="mt-3 flex flex-wrap gap-2">
           {!address ? (
             <ConnectButton />
@@ -92,12 +123,17 @@ export function Recover(p: { chain: number; to: `0x${string}`; data: `0x${string
         {err && <p className="mt-2 text-xs text-rose-300">{err}</p>}
       </div>
       {p.next && (
-        <a href={p.next} data-testid="next" className="rounded-2xl border-2 border-emerald-500 bg-emerald-950 p-4 font-bold">
+        <a
+          href={p.next}
+          data-testid="next"
+          className="rounded-2xl border-2 border-emerald-500 bg-emerald-950 p-4 font-bold"
+        >
           Step 2 of 2 · swap it to USDC on SwapChan →
         </a>
       )}
       <p className="text-xs text-violet-400">
-        You sign in your own wallet; SwapChan never holds your keys or funds. The call is decoded above so you can check it first.
+        You sign in your own wallet; SwapChan never holds your keys or funds. The call is decoded
+        above so you can check it first.
       </p>
     </div>
   );

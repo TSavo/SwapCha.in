@@ -70,7 +70,13 @@ interface Item {
   swapUrl: string;
   shortUrl?: string;
   protocolUrl?: string;
-  steps?: { step: number; kind: "recover" | "swap"; label: string; url: string; shortUrl?: string }[];
+  steps?: {
+    step: number;
+    kind: "recover" | "swap";
+    label: string;
+    url: string;
+    shortUrl?: string;
+  }[];
   revokeTx?: { chainId: number; to: `0x${string}`; data: `0x${string}` };
 }
 
@@ -196,7 +202,11 @@ export function DashboardView({ address: input }: { address: string }) {
             {(() => {
               const all = d.swapAll as { url: string; shortUrl?: string } | undefined;
               return all ? (
-                <a href={all.shortUrl ?? all.url} data-testid="swap-all" className="self-start rounded-full bg-amber-300 px-5 py-2 font-black text-violet-950">
+                <a
+                  href={all.shortUrl ?? all.url}
+                  data-testid="swap-all"
+                  className="self-start rounded-full bg-amber-300 px-5 py-2 font-black text-violet-950"
+                >
                   Swap all of it to USDC →
                 </a>
               ) : null;
@@ -236,9 +246,11 @@ export function DashboardView({ address: input }: { address: string }) {
                           key={st.step}
                           href={st.shortUrl ?? st.url}
                           data-testid={`step-${st.kind}`}
-                          className={st.kind === "recover"
-                            ? "rounded-lg border-2 border-emerald-400 px-3 py-1 text-xs font-black text-emerald-200"
-                            : "rounded-lg border-2 border-violet-950 bg-amber-400 px-3 py-1 text-xs font-black text-violet-950 hover:bg-amber-300"}
+                          className={
+                            st.kind === "recover"
+                              ? "rounded-lg border-2 border-emerald-400 px-3 py-1 text-xs font-black text-emerald-200"
+                              : "rounded-lg border-2 border-violet-950 bg-amber-400 px-3 py-1 text-xs font-black text-violet-950 hover:bg-amber-300"
+                          }
                         >
                           {st.step}. {st.kind === "recover" ? "Get it back" : "Swap to USDC"} →
                         </a>

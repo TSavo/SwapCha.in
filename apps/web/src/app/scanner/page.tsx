@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { AgentCTASection } from "@/components/AgentCTASection";
 import { Character } from "@/components/Character";
 import { API_URL } from "@/lib/api";
 import { track } from "@/lib/ga";
@@ -342,6 +343,7 @@ export default function ScannerPage() {
         </a>
         .
       </p>
+      <AgentCTASection tool="scan_new_tokens" />
     </div>
   );
 }

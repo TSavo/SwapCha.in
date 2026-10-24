@@ -15,12 +15,13 @@ export default function Page() {
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10 text-white">
       <h1 className="text-4xl font-black">Broadcast a signed transaction</h1>
       <SpeechBubble who="swapchan">
-        You signed it. I just put it on the wire. I can&apos;t change a single byte of a signed tx, and I never held the
-        key.
+        You signed it. I just put it on the wire. I can&apos;t change a single byte of a signed tx,
+        and I never held the key.
       </SpeechBubble>
       <section className="rounded-2xl border-2 border-emerald-400 bg-emerald-950 p-5">
-        <b>Trustless:</b> broadcast_tx only relays bytes your wallet already signed. Optional <code>strict</code> refuses
-        danger verdicts. Optional <code>private</code> uses Flashbots Protect on Ethereum mainnet.
+        <b>Trustless:</b> broadcast_tx only relays bytes your wallet already signed. Optional{" "}
+        <code>strict</code> refuses danger verdicts. Optional <code>private</code> uses Flashbots
+        Protect on Ethereum mainnet.
       </section>
       <ul className="list-disc space-y-2 pl-6">
         <li>EVM: raw signed hex (0x…)</li>
@@ -35,8 +36,12 @@ export default function Page() {
       <section className="rounded-2xl border-2 border-fuchsia-400 bg-violet-950 p-6">
         <h2 className="text-2xl font-black">Use this in your agent</h2>
         <p>
-          Full loop: <code>find_money</code> → <code>verify_tx</code> → human signs → <code>broadcast_tx</code> →{" "}
-          <code>tx_status</code>. See the <Link className="underline" href="/agents/secure-signing">secure signing guide</Link>.
+          Full loop: <code>find_money</code> → <code>verify_tx</code> → human signs →{" "}
+          <code>broadcast_tx</code> → <code>tx_status</code>. See the{" "}
+          <Link className="underline" href="/agents/secure-signing">
+            secure signing guide
+          </Link>
+          .
         </p>
         <AgentCTAs />
       </section>

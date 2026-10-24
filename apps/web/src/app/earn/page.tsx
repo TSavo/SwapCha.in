@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AgentCTASection } from "@/components/AgentCTASection";
 import { EarnCalculator } from "@/components/EarnCalculator";
 import { castHref } from "@/lib/bios";
 
@@ -137,6 +138,7 @@ export default function EarnPage() {
           </details>
         ))}
       </div>
+      <AgentCTASection />
     </div>
   );
 }

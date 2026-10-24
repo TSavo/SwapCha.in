@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { AgentCTASection } from "@/components/AgentCTASection";
 import { Character } from "@/components/Character";
 import { StatusTracker } from "@/components/StatusTracker";
 
@@ -42,6 +43,7 @@ export default function StatusPage() {
       <Suspense>
         <Inner />
       </Suspense>
+      <AgentCTASection tool="get_route_status" />
     </div>
   );
 }

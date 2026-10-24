@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AgentCTASection } from "@/components/AgentCTASection";
 import { SwapTabs } from "@/components/SwapTabs";
 import { CHAIN_NAME } from "@/lib/intel";
 
@@ -93,6 +94,7 @@ export default async function Batch({ searchParams }: Props) {
           )}
         </ol>
       </div>
+      <AgentCTASection />
     </div>
   );
 }

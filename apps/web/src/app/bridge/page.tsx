@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AgentCTASection } from "@/components/AgentCTASection";
 import { RouteHub } from "@/components/RouteHub";
 import { isBridge, ROUTES } from "@/lib/routes";
 
@@ -17,6 +18,10 @@ export default function BridgeHub() {
         {BRIDGES.length} cross-chain routes, each with a live best-price quote.
       </p>
       <RouteHub routes={BRIDGES} />
+      <AgentCTASection
+        tool="get_quote"
+        prompt="Bridge 100 USDC from Ethereum to Base at the best price."
+      />
     </div>
   );
 }

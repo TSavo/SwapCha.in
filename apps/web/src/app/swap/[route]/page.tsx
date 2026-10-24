@@ -2,6 +2,7 @@ import { fromBaseUnits } from "@swapchan/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AgentCTASection } from "@/components/AgentCTASection";
 import { SwapTabs } from "@/components/SwapTabs";
 import { TrendingRoute, trendTitle } from "@/components/TrendingRoute";
 import { formatEta, formatUsd } from "@/lib/amount";
@@ -239,6 +240,7 @@ export default async function RoutePage({ params }: Props) {
           </Link>
         </p>
       </section>
+      <AgentCTASection tool="get_quote" />
     </article>
   );
 }

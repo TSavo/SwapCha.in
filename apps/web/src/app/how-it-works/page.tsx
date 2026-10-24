@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AgentCTASection } from "@/components/AgentCTASection";
 import { HowItWorks } from "@/components/HowItWorks";
 
 export const metadata = { title: "How it works · SwapChan" };
@@ -14,6 +15,7 @@ export default function HowItWorksPage() {
       >
         Let&apos;s swap!
       </Link>
+      <AgentCTASection />
     </>
   );
 }

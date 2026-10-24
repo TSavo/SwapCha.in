@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AgentCTASection } from "@/components/AgentCTASection";
 import { RouteHub } from "@/components/RouteHub";
 import { ROUTES } from "@/lib/routes";
 import { CHAIN_LABEL, trendingTokens, trendSlugs } from "@/lib/trending";
@@ -39,6 +40,10 @@ export default async function SwapHub() {
         </section>
       )}
       <RouteHub routes={ROUTES} />
+      <AgentCTASection
+        tool="get_quote"
+        prompt="Find me the cheapest route to swap 1 ETH to USDC on Base."
+      />
     </div>
   );
 }

@@ -43,16 +43,16 @@ export default function Page() {
       <header className="flex flex-col gap-4">
         <h1 className="text-4xl font-black">How to let an AI agent sign crypto safely</h1>
         <SpeechBubble who="swapchan">
-          I find the money and build the unsigned tx. You keep the keys. Every single transaction gets your explicit yes
-          before your wallet signs it. That&apos;s the deal, senpai.
+          I find the money and build the unsigned tx. You keep the keys. Every single transaction
+          gets your explicit yes before your wallet signs it. That&apos;s the deal, senpai.
         </SpeechBubble>
       </header>
 
       <section className="rounded-2xl border-2 border-emerald-400 bg-emerald-950 p-6">
         <h2 className="text-2xl font-black">Trustless</h2>
         <p>
-          SwapChan <b>never signs, never holds keys or funds, and cannot move money</b>. It only builds unsigned
-          transactions and (optionally) relays bytes your wallet already signed.
+          SwapChan <b>never signs, never holds keys or funds, and cannot move money</b>. It only
+          builds unsigned transactions and (optionally) relays bytes your wallet already signed.
         </p>
       </section>
 
@@ -72,14 +72,22 @@ export default function Page() {
       </section>
 
       <section id="verify" className="flex flex-col gap-3">
-        <h2 className="text-2xl font-black">Verification guide (always ships with signing_guide)</h2>
+        <h2 className="text-2xl font-black">
+          Verification guide (always ships with signing_guide)
+        </h2>
         <ol className="list-decimal space-y-2 pl-6 text-sm">
           <li>Decode calldata against the verified ABI. Unknown selector → stop.</li>
-          <li>Right contract: allowlist / docs, verified source, not brand-new, not a lookalike.</li>
+          <li>
+            Right contract: allowlist / docs, verified source, not brand-new, not a lookalike.
+          </li>
           <li>Right recipient: every to/receiver is the user (or the person they named).</li>
           <li>Right price: minOut vs an independent quote (SwapChan get_quote).</li>
           <li>Simulate: eth_simulateV1 / eth_call / Solana simulateTransaction; diff balances.</li>
-          <li>Red flags: unlimited approve, permit/Permit2, setApprovalForAll, Safe DELEGATECALL, upgradeTo, ownership transfers, EIP-7702, unexpected value; Solana unknown programs; Tron AccountPermissionUpdate.</li>
+          <li>
+            Red flags: unlimited approve, permit/Permit2, setApprovalForAll, Safe DELEGATECALL,
+            upgradeTo, ownership transfers, EIP-7702, unexpected value; Solana unknown programs;
+            Tron AccountPermissionUpdate.
+          </li>
           <li>Explain in plain language.</li>
           <li>Human sign-off for THIS tx, every time.</li>
         </ol>
@@ -88,13 +96,23 @@ export default function Page() {
       <section id="sign" className="flex flex-col gap-3">
         <h2 className="text-2xl font-black">Custody options</h2>
         <ul className="list-disc pl-6">
-          <li><b>Recommended:</b> the user&apos;s own wallet (MetaMask, Rabby, Phantom, TronLink) or a hardware wallet.</li>
-          <li>Embedded / MPC (Turnkey, Privy, Lit, Coinbase CDP / AgentKit): configure per-tx human approval.</li>
-          <li>Local keystore: developers only, unlocked by the human per tx. Never put a raw key in a prompt.</li>
+          <li>
+            <b>Recommended:</b> the user&apos;s own wallet (MetaMask, Rabby, Phantom, TronLink) or a
+            hardware wallet.
+          </li>
+          <li>
+            Embedded / MPC (Turnkey, Privy, Lit, Coinbase CDP / AgentKit): configure per-tx human
+            approval.
+          </li>
+          <li>
+            Local keystore: developers only, unlocked by the human per tx. Never put a raw key in a
+            prompt.
+          </li>
         </ul>
         <p className="text-sm text-violet-200">
-          Advanced autonomous / session-key signing is <b>not</b> the default. If you must: scope to specific contracts
-          and selectors, small caps, short expiry, exact-amount approvals, and still run verify_tx before every send.
+          Advanced autonomous / session-key signing is <b>not</b> the default. If you must: scope to
+          specific contracts and selectors, small caps, short expiry, exact-amount approvals, and
+          still run verify_tx before every send.
         </p>
       </section>
 
@@ -112,9 +130,17 @@ export default function Page() {
       </section>
 
       <p className="text-sm">
-        <Link className="underline" href="/recover">Key recovery hub</Link> ·{" "}
-        <Link className="underline" href="/broadcast">Broadcast tool</Link> ·{" "}
-        <Link className="underline" href="/find-money/guide">Find money guide</Link>
+        <Link className="underline" href="/recover">
+          Key recovery hub
+        </Link>{" "}
+        ·{" "}
+        <Link className="underline" href="/broadcast">
+          Broadcast tool
+        </Link>{" "}
+        ·{" "}
+        <Link className="underline" href="/find-money/guide">
+          Find money guide
+        </Link>
       </p>
     </main>
   );
