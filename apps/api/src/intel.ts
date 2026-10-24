@@ -3988,8 +3988,15 @@ export async function findMoney(
 }
 
 // ---------- routes ----------
-export function intelRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync | null, quote: QuoteFn) {
+export function intelRoutes(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  db: DatabaseSync | null,
+  quote: QuoteFn,
+  linksDb: DatabaseSync | null = db,
+) {
   const app = new Hono();
+  if (linksDb) initLinksDb(linksDb);
   if (db) {
     initGasDb(db);
     initLinksDb(db);
@@ -4073,9 +4080,27 @@ export function intelRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync | nul
   );
   app.get("/gas/history", (c) => run(c, () => gasHistory(f, env, db, c.req.query("chainId") ?? 1)));
   app.get("/money", (c) =>
-    run(c, () => findMoney(f, env, db, need(c.req.query("address"), "address"))),
+    run(c, () => findMoney(f, env, linksDb, need(c.req.query("address"), "address"))),
   );
   return app;
+}
+/**
+ * find_money used to write short links into the watch DB, which /links never read.
+ * Copy them into links.db keeping their ids (URLs are forever) and lift links.db's
+ * AUTOINCREMENT past them so no id is ever issued twice. Ids already taken in links.db win.
+ */
+export function migrateStrayLinks(from: DatabaseSync, to: DatabaseSync) {
+  initLinksDb(to);
+  let rows: { n: number; id: string; url: string; created: number; clicks: number }[] = [];
+  try {
+    rows = from.prepare("SELECT n, id, url, created, clicks FROM links").all() as typeof rows;
+  } catch {
+    return 0;
+  }
+  const ins = to.prepare("INSERT OR IGNORE INTO links (n, id, url, created, clicks) VALUES (?, ?, ?, ?, ?)");
+  let moved = 0;
+  for (const r of rows) moved += Number(ins.run(r.n, r.id, r.url, r.created, r.clicks).changes);
+  return moved;
 }
 export function linkRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync) {
   const app = new Hono();
