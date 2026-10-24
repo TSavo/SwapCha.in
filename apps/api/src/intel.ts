@@ -2861,6 +2861,7 @@ export async function evmArchaeology(
                 : [];
         await c
           .call({
+            account: owner,
             to: addr,
             data: encodeFunctionData({
               abi: [parseAbiItem(`function ${sig}`)] as const,
