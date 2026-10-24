@@ -76,7 +76,7 @@ export async function clPositions(f: F, env: NodeJS.ProcessEnv, owner: `0x${stri
     const leg = (t: string, a: bigint) => {
       const p = pxOf(px, x.chainId, t);
       const amt = p?.decimals !== undefined ? Number(formatUnits(a, p.decimals)) : null;
-      return { s: `${amt === null ? a.toString() + " raw" : amt.toPrecision(6)} ${p?.symbol ?? t.slice(0, 8)}`, usd: amt !== null && p?.price ? amt * p.price : null };
+      return { unp: !p?.price, s: `${amt === null ? a.toString() + " raw" : amt.toPrecision(6)} ${p?.symbol ?? t.slice(0, 8)}`, usd: amt !== null && p?.price ? amt * p.price : null };
     };
     const l0 = leg(x.t0, x.a0);
     const l1 = leg(x.t1, x.a1);
@@ -85,7 +85,7 @@ export async function clPositions(f: F, env: NodeJS.ProcessEnv, owner: `0x${stri
       kind: "claimable" as const,
       protocol: `${x.name} LP`,
       chainId: x.chainId,
-      what: `Position #${x.id}${x.liq > 0n ? "" : " (liquidity already removed)"}: ${l0.s} + ${l1.s} incl. fees (exact, simulated as you)`,
+      what: `Position #${x.id}${x.liq > 0n ? "" : " (liquidity already removed)"}: ${l0.s} + ${l1.s} incl. fees (exact, simulated as you)${l0.unp || l1.unp ? "; USD counts priced legs only, " + [l0, l1].filter((l) => l.unp).map((l) => l.s.split(" ").pop()).join("/") + " price unverified" : ""}`,
       valueUsd: usd,
       claimTx: x.tx,
       action: "Sign one transaction to remove the liquidity and collect both tokens to your wallet, then swap on SwapChan",

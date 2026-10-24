@@ -257,6 +257,17 @@ export const llamaId = (chainId: number, a: string) =>
   isNativeAddr(chainId, a)
     ? `coingecko:${NATIVE_GECKO[chainId]}`
     : `${LLAMA[chainId]}:${vmOf(chainId) === "evm" ? a.toLowerCase() : a}`;
+/** Only BTC wrappers legitimately trade above $15k per token. Anything else that high (e.g. HAY at $50k), anything
+ *  over $1M, or a low-confidence quote is dropped: amount still shown, USD left unpriced and flagged unverified. */
+const HIGH_OK = /BTC|^SATS?$/i;
+export function sanePx<T extends { price?: number; symbol?: string; confidence?: number }>(v: T): T & { unverified?: true } {
+  const p = v.price;
+  if (p === undefined) return v;
+  const absurd = !Number.isFinite(p) || p < 0 || p > 1_000_000 || (p > 15_000 && !HIGH_OK.test(v.symbol ?? "")) || (v.confidence !== undefined && v.confidence < 0.5);
+  if (!absurd) return v;
+  const { price: _drop, ...rest } = v;
+  return { ...(rest as T), unverified: true };
+}
 export async function prices(
   f: F,
   items: { chainId: number; address: string }[],
@@ -272,7 +283,7 @@ export async function prices(
         `https://coins.llama.fi/prices/current/${encodeURIComponent(key)}`,
       ),
     ).catch(() => ({ coins: {} as Record<string, Px> }));
-    for (const [k, v] of Object.entries(r.coins)) out.set(k, v);
+    for (const [k, v] of Object.entries(r.coins)) out.set(k, sanePx(v));
   }
   return out;
 }
