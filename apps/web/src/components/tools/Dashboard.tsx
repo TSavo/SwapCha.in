@@ -76,6 +76,13 @@ interface Item {
     label: string;
     url: string;
     shortUrl?: string;
+    tx?: {
+      chainId: number;
+      to: `0x${string}`;
+      data: `0x${string}`;
+      value?: string;
+      description?: string;
+    };
   }[];
   revokeTx?: { chainId: number; to: `0x${string}`; data: `0x${string}` };
 }
@@ -102,6 +109,53 @@ function Revoke({ tx }: { tx: NonNullable<Item["revokeTx"]> }) {
       }}
     >
       {st ?? "Revoke"}
+    </button>
+  );
+}
+
+/** "Get it back": build-in-place and hand the unsigned tx to the connected wallet. SwapChan never signs. */
+function SignStep({
+  step,
+  tx,
+}: {
+  step: number;
+  tx: NonNullable<NonNullable<Item["steps"]>[number]["tx"]>;
+}) {
+  const { address, chainId } = useAccount();
+  const { switchChainAsync } = useSwitchChain();
+  const { sendTransactionAsync } = useSendTransaction();
+  const [st, setSt] = useState<string>();
+  const [wantConnect, setWantConnect] = useState(false);
+  if (!address && wantConnect)
+    return (
+      <span className="flex items-center gap-2 text-xs font-bold text-emerald-200">
+        Connect your wallet to sign: <ConnectButton />
+      </span>
+    );
+  return (
+    <button
+      type="button"
+      data-testid="step-recover"
+      title={tx.description}
+      className="rounded-lg border-2 border-emerald-400 px-3 py-1 text-xs font-black text-emerald-200"
+      onClick={async () => {
+        if (!address) return setWantConnect(true);
+        try {
+          if (chainId !== tx.chainId) await switchChainAsync({ chainId: tx.chainId });
+          setSt("Confirm in wallet…");
+          const h = await sendTransactionAsync({
+            to: tx.to,
+            data: tx.data,
+            value: BigInt(tx.value ?? "0"),
+            chainId: tx.chainId,
+          });
+          setSt(`Sent ${h.slice(0, 10)}…`);
+        } catch (e) {
+          setSt(e instanceof Error ? e.message.split("\n")[0] : "Failed");
+        }
+      }}
+    >
+      {st ?? `${step}. Get it back →`}
     </button>
   );
 }
@@ -243,20 +297,20 @@ export function DashboardView({ address: input }: { address: string }) {
                     {i.estimateKind === "lead" ? (
                       <span className="text-xs font-bold text-amber-200">lead, not money</span>
                     ) : i.steps?.length ? (
-                      i.steps.map((st) => (
-                        <a
-                          key={st.step}
-                          href={st.shortUrl ?? st.url}
-                          data-testid={`step-${st.kind}`}
-                          className={
-                            st.kind === "recover"
-                              ? "rounded-lg border-2 border-emerald-400 px-3 py-1 text-xs font-black text-emerald-200"
-                              : "rounded-lg border-2 border-violet-950 bg-amber-400 px-3 py-1 text-xs font-black text-violet-950 hover:bg-amber-300"
-                          }
-                        >
-                          {st.step}. {st.kind === "recover" ? "Get it back" : "Swap to USDC"} →
-                        </a>
-                      ))
+                      i.steps.map((st) =>
+                        st.kind === "recover" && st.tx ? (
+                          <SignStep key={st.step} step={st.step} tx={st.tx} />
+                        ) : st.kind === "recover" ? null : (
+                          <a
+                            key={st.step}
+                            href={st.shortUrl ?? st.url}
+                            data-testid="step-swap"
+                            className="rounded-lg border-2 border-violet-950 bg-amber-400 px-3 py-1 text-xs font-black text-violet-950 hover:bg-amber-300"
+                          >
+                            {st.step}. Swap to USDC →
+                          </a>
+                        ),
+                      )
                     ) : (
                       <a
                         href={i.swapUrl}

@@ -597,6 +597,10 @@ export async function walletBalances(
 const APPROVAL_TOPIC = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const ROUTESCAN = new Set([1, 43114]);
+/** Free Etherscan-compatible explorers that serve getLogs without a key. */
+const APPROVAL_EXPLORER: Record<number, string> = { 10: "https://explorer.optimism.io/api" };
+/** Public RPCs that answer a full-range topic-filtered eth_getLogs. */
+const FULL_RANGE_LOG_RPC: Record<number, string> = { 534352: "https://rpc.scroll.io" };
 type SpenderInfo = {
   contract_name?: string | null;
   tag?: string | null;
@@ -677,38 +681,84 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
           tokenMalicious: t.malicious_address === 1,
         });
   }
-  if (ROUTESCAN.has(chainId)) {
-    const topic1 = `0x${o.slice(2).toLowerCase().padStart(64, "0")}`;
-    const r = await cached(`rs:${chainId}:${o}`, 120_000, () =>
-      json<{
-        result:
-          | { address: string; topics: string[]; timeStamp: string; transactionHash: string }[]
-          | null;
-      }>(
-        f,
-        `https://api.routescan.io/v2/network/mainnet/evm/${chainId}/etherscan/api?module=logs&action=getLogs&fromBlock=0&toBlock=latest&topic0=${APPROVAL_TOPIC}&topic1=${topic1}&topic0_1_opr=and`,
-        undefined,
-        45_000,
-      ),
-    ).catch(() => null);
-    if (Array.isArray(r?.result)) {
-      sources.push("Routescan Approval logs");
-      for (const l of r.result) {
-        if (l.topics.length !== 3 || !l.topics[2]) continue; // NFT approvals index the id too
-        const spender = getAddress(`0x${l.topics[2].slice(26)}`);
-        const k = `${l.address.toLowerCase()}:${spender.toLowerCase()}`;
-        const prev = pairs.get(k);
-        pairs.set(k, {
-          ...prev,
-          token: l.address,
-          spender,
-          time: Number(l.timeStamp),
-          hash: l.transactionHash,
-        });
-      }
+  // Approval(owner, spender) log sources: Etherscan-compatible explorers, then a direct RPC scan.
+  const topic1 = `0x${o.slice(2).toLowerCase().padStart(64, "0")}`;
+  type Log = { address: string; topics: string[]; timeStamp?: string; transactionHash: string };
+  const q = `module=logs&action=getLogs&fromBlock=0&toBlock=latest&topic0=${APPROVAL_TOPIC}&topic1=${topic1}&topic0_1_opr=and`;
+  const logSources: { name: string; get: () => Promise<Log[] | null> }[] = [];
+  const ex = (name: string, url: string) =>
+    logSources.push({
+      name,
+      get: async () => {
+        const r = await json<{ message?: string; result: Log[] | null | string }>(
+          f,
+          url,
+          undefined,
+          45_000,
+        );
+        if (Array.isArray(r.result)) return r.result;
+        return /no logs found/i.test(r.message ?? "") ? [] : null;
+      },
+    });
+  if (ROUTESCAN.has(chainId))
+    ex(
+      "Routescan Approval logs",
+      `https://api.routescan.io/v2/network/mainnet/evm/${chainId}/etherscan/api?${q}`,
+    );
+  if (APPROVAL_EXPLORER[chainId])
+    ex("Explorer Approval logs", `${APPROVAL_EXPLORER[chainId]}?${q}`);
+  if (env.ETHERSCAN_API_KEY)
+    ex(
+      "Etherscan v2 Approval logs",
+      `https://api.etherscan.io/v2/api?chainid=${chainId}&${q}&apikey=${env.ETHERSCAN_API_KEY}`,
+    );
+  if (FULL_RANGE_LOG_RPC[chainId])
+    logSources.push({
+      name: "RPC Approval log scan",
+      get: async () => {
+        const r = await json<{ result?: Log[] }>(
+          f,
+          FULL_RANGE_LOG_RPC[chainId]!,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "eth_getLogs",
+              params: [{ fromBlock: "0x0", toBlock: "latest", topics: [APPROVAL_TOPIC, topic1] }],
+            }),
+          },
+          45_000,
+        );
+        return Array.isArray(r.result) ? r.result : null;
+      },
+    });
+  for (const src of logSources) {
+    const logs = await cached(`apl:${src.name}:${chainId}:${o}`, 120_000, src.get).catch(
+      () => null,
+    );
+    if (!logs) continue;
+    sources.push(src.name);
+    for (const l of logs) {
+      if (l.topics.length !== 3 || !l.topics[2]) continue; // NFT approvals index the id too
+      const spender = getAddress(`0x${l.topics[2].slice(26)}`);
+      const k = `${l.address.toLowerCase()}:${spender.toLowerCase()}`;
+      const prev = pairs.get(k);
+      pairs.set(k, {
+        ...prev,
+        token: l.address,
+        spender,
+        ...(l.timeStamp ? { time: Number(l.timeStamp) } : {}),
+        hash: l.transactionHash,
+      });
     }
+    break;
   }
-  if (!sources.length) throw new Error("no free approval source answered; retry shortly");
+  if (!sources.length)
+    throw new Error(
+      `approvals not checked on ${chainName(chainId)}: no free approval source for this chain answered`,
+    );
   const list = [...pairs.values()].slice(0, 300);
   const c = evmClient(chainId, env);
   const res = await c.multicall({

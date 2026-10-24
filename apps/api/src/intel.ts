@@ -1392,6 +1392,7 @@ export async function contractReader(
   });
 }
 
+const APPROVAL_CHAINS = [1, 8453, 42161, 56, 43114, 10, 137, 59144, 534352];
 // ---------- 6a. forgotten money: legacy contracts, lending, Tron, Solana rent ----------
 export interface Found {
   kind: "legacy" | "lending" | "tron" | "solana-rent" | "claimable" | "lead";
@@ -4339,6 +4340,7 @@ export async function findMoney(
     };
     const items: Item[] = [];
     const errors: string[] = [];
+    const notChecked: string[] = [];
     const run = async <T>(n: string, p: () => Promise<T>) => {
       try {
         return await p();
@@ -4371,7 +4373,12 @@ export async function findMoney(
         ? run("approvals", async () =>
             (
               await Promise.all(
-                [1, 8453, 42161, 56].map((id) => approvals(f, env, address, id).catch(() => null)),
+                APPROVAL_CHAINS.map((id) =>
+                  approvals(f, env, address, id).catch(() => {
+                    notChecked.push(`approvals not checked on ${chainName(id)}`);
+                    return null;
+                  }),
+                ),
               )
             ).filter(Boolean),
           )
@@ -4688,7 +4695,9 @@ export async function findMoney(
         ...(vm === "evm"
           ? [
               "lending (Aave v2/v3, Compound v2/v3, Venus, Liquity)",
-              "approvals on Ethereum/Base/Arbitrum/BNB",
+              `approvals on ${APPROVAL_CHAINS.map(chainName)
+                .filter((n) => !notChecked.some((x) => x.endsWith(` ${n}`)))
+                .join("/")}`,
             ]
           : []),
         "idle stablecoin yields (DefiLlama)",
@@ -4698,8 +4707,10 @@ export async function findMoney(
         ...(vm === "svm" && !isTron ? ["Solana rent in empty token accounts"] : []),
         ...(isTron ? ["Tron rewards/unfreezes/dividend contracts/JustLend"] : []),
       ],
-      notChecked:
+      notChecked: [
+        ...notChecked,
         "Stuck bridge transfers need a tx hash (use bridge_doctor). One-off project airdrops have no free unified source. EVM balances cover SwapChan-listed tokens only.",
+      ],
       errors,
       disclaimer:
         "Estimates are labeled; yields are variable; nothing is financial advice. Claim/revoke txs are unsigned and only built for allowlisted contracts.",
