@@ -1130,6 +1130,109 @@ export async function btcXpubScan(f: F, xpubOrAddr: string): Promise<StuckFound[
   ];
 }
 
+// ---------- HEX stakes (late-end penalty) ----------
+const HEX = "0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39" as const;
+/** HEX late penalty: after lockedDay+stakedDays+14 grace days, 1/700 of the stake per late day. */
+export function hexLatePenalty(hearts: bigint, lateDays: number): bigint {
+  const over = BigInt(Math.max(0, lateDays - 14));
+  if (over >= 700n) return hearts;
+  return (hearts * over) / 700n;
+}
+export async function hexStakes(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: `0x${string}`,
+): Promise<StuckFound[]> {
+  const c = evmClient(1, env);
+  const n = Number(
+    await c.readContract({
+      address: HEX,
+      abi: fn("stakeCount(address) view returns (uint256)"),
+      functionName: "stakeCount",
+      args: [owner],
+    }),
+  );
+  if (!n) return [];
+  const today = Number(
+    await c.readContract({
+      address: HEX,
+      abi: fn("currentDay() view returns (uint256)"),
+      functionName: "currentDay",
+    }),
+  );
+  const [px, ethPx, gas] = await Promise.all([
+    prices(f, [
+      { chainId: 1, address: HEX },
+      { chainId: 1, address: NATIVE_TOKEN },
+    ]),
+    Promise.resolve(null),
+    c.getGasPrice(),
+  ]);
+  void ethPx;
+  const hexUsd = pxOf(px, 1, HEX)?.price ?? null;
+  const ethUsd = pxOf(px, 1, NATIVE_TOKEN)?.price ?? null;
+  const gasUsd = ethUsd === null ? null : (Number(gas) * 80_000 * ethUsd) / 1e18;
+  const out: StuckFound[] = [];
+  for (let i = 0; i < Math.min(n, 50); i++) {
+    const s = (await c.readContract({
+      address: HEX,
+      abi: fn(
+        "stakeLists(address,uint256) view returns (uint40 stakeId, uint72 stakedHearts, uint72 stakeShares, uint16 lockedDay, uint16 stakedDays, uint16 unlockedDay, bool isAutoStake)",
+      ),
+      functionName: "stakeLists",
+      args: [owner, BigInt(i)],
+    })) as readonly [number, bigint, bigint, number, number, number, boolean];
+    const [stakeId, hearts, , lockedDay, stakedDays] = s;
+    const endDay = lockedDay + stakedDays;
+    const late = today - endDay;
+    const principal = Number(hearts) / 1e8;
+    const pen = late > 0 ? hexLatePenalty(hearts, late) : 0n;
+    const left = Number(hearts - pen) / 1e8;
+    const leftUsd = hexUsd === null ? null : r2(left * hexUsd);
+    const status =
+      today < endDay
+        ? `still locked until day ${endDay} (today ${today}); ending early costs an emergency-end penalty`
+        : late <= 14
+          ? `matured day ${endDay}; inside the 14-day grace, no penalty yet`
+          : `matured day ${endDay}, ${late} days ago; late penalty ${Math.min(late - 14, 700)}/700 of the stake${late - 14 >= 700 ? " (100%, capped)" : ""} = ${(Number(pen) / 1e8).toLocaleString("en-US", { maximumFractionDigits: 2 })} HEX`;
+    const worth =
+      today >= endDay && left > 0 && leftUsd !== null && gasUsd !== null && leftUsd > gasUsd * 1.5;
+    out.push({
+      kind: worth ? "claimable" : "lead",
+      protocol: "HEX stake",
+      chainId: 1,
+      what: `HEX stake #${stakeId}: ${principal.toLocaleString("en-US", { maximumFractionDigits: 2 })} HEX staked day ${lockedDay} for ${stakedDays} days; ${status}. Principal left after penalty ≈ ${left.toLocaleString("en-US", { maximumFractionDigits: 2 })} HEX${leftUsd !== null ? ` ($${leftUsd})` : ""} (estimate: excludes accrued yield, which the same penalty also cuts)`,
+      valueUsd: worth ? leftUsd : null,
+      ...(worth
+        ? {
+            claimTx: {
+              chainId: 1,
+              to: HEX,
+              data: encodeFunctionData({
+                abi: fn("stakeEnd(uint256 stakeIndex, uint40 stakeIdParam)"),
+                functionName: "stakeEnd",
+                args: [BigInt(i), stakeId],
+              }),
+              value: "0",
+              description: `HEX stakeEnd(${i}, ${stakeId}): returns principal + yield minus late penalty to you`,
+            },
+          }
+        : {}),
+      action: worth
+        ? "Sign stakeEnd to pull what's left, then swap on SwapChan"
+        : left <= 0
+          ? "Nothing recoverable: the late penalty has consumed the whole stake"
+          : today < endDay
+            ? "Not recoverable yet without an early-end penalty"
+            : `Not worth ending: what's left is below the ~$${gasUsd === null ? "?" : r2(gasUsd)} gas cost`,
+      ...(worth ? {} : { risk: "Lead only, not counted in the total" }),
+      link: `https://etherscan.io/address/${HEX}#readContract`,
+      evidence: [ev(1, HEX, "stakeLists(address,uint256)", [owner, String(i)], s.map(String))],
+    });
+  }
+  return out;
+}
+
 /** Run all known-registry stuck-money detectors for an EVM owner. */
 export async function stuckMoneyRegistry(
   f: F,
@@ -1147,6 +1250,7 @@ export async function stuckMoneyRegistry(
     polygonExits(f, env, owner).catch(() => []),
     multichainCeler(f, env, owner).catch(() => []),
     merkleAirdrops(f, env, owner).catch(() => []),
+    hexStakes(f, env, owner).catch(() => []),
   ]);
   return parts.flat();
 }

@@ -304,6 +304,14 @@ export async function simulateSwap(
 }
 
 // ---------- 2. wallet_history + wallet_pnl ----------
+/** Airdrop/phishing spam tokens: URL/claim-bait symbols, or nothing in the leg has a price. */
+export const SPAM_SYMBOL =
+  /(https?:|www\.|\.(com|io|org|net|xyz|cfd|top|site|online|app|fi|gift|lol|click|link|pro|vip|shop|live)\b|claim|visit|reward|airdrop|voucher|✅|\$\s?\d)/i;
+export function isSpamLegs(ls: { symbol: string; usd?: number | null }[]) {
+  if (!ls.length) return false;
+  if (ls.some((l) => SPAM_SYMBOL.test(l.symbol) || /[^\x20-\x7e]/.test(l.symbol))) return true;
+  return ls.every((l) => l.usd === null || l.usd === undefined);
+}
 interface Leg {
   chainId: number;
   address: string;
@@ -760,8 +768,12 @@ export async function walletHistory(
           s.sold.length && s.bought.length
             ? "swap"
             : s.bought.length
-              ? "receive/buy-with-native"
-              : "send/sell-for-native",
+              ? isSpamLegs(v(s.bought))
+                ? "unsolicited/spam receive"
+                : "receive/buy-with-native"
+              : isSpamLegs(v(s.sold))
+                ? "spam-token send (unsolicited token moved out)"
+                : "send/sell-for-native",
       };
     });
     const last = priced.find((s) => s.bought.length);
@@ -2919,12 +2931,58 @@ export async function evmArchaeology(
         selectors: hints.map((h) => h.selector),
       });
     }
+    // P3D clones (PoWH/GREED/etc.): dividends are paid in the chain's native coin out of the
+    // contract's own balance. Detect generically: dividends view + buyPrice()/sellPrice() answers
+    // + contract holds at least the owed amount natively → value exactly in native & USD.
+    let p3d: { amount: number; usd: number | null; sym: string } | null = null;
+    if (/^(dividendsOf|myDividends)/.test(hit.view)) {
+      try {
+        const [bal, okPrice] = await Promise.all([
+          c.getBalance({ address: addr }),
+          c
+            .call({
+              to: addr,
+              data: encodeFunctionData({
+                abi: [parseAbiItem("function sellPrice() view returns (uint256)")] as const,
+                functionName: "sellPrice",
+              }),
+            })
+            .then(() => true)
+            .catch(() => false),
+        ]);
+        if (okPrice && bal >= hit.raw) {
+          const cg: Record<number, [string, string]> = {
+            1: ["ethereum", "ETH"],
+            10: ["ethereum", "ETH"],
+            42161: ["ethereum", "ETH"],
+            8453: ["ethereum", "ETH"],
+            56: ["binancecoin", "BNB"],
+            137: ["matic-network", "POL"],
+            43114: ["avalanche-2", "AVAX"],
+          };
+          const [id, sym] = cg[chainId] ?? ["ethereum", "ETH"];
+          const px = await json<{ coins?: Record<string, { price: number }> }>(
+            f,
+            `https://coins.llama.fi/prices/current/coingecko:${id}`,
+            undefined,
+            8_000,
+          )
+            .then((r) => r.coins?.[`coingecko:${id}`]?.price ?? null)
+            .catch(() => null);
+          const amount = Number(hit.raw) / 1e18;
+          p3d = { amount, usd: px === null ? null : Math.round(amount * px * 100) / 100, sym };
+        }
+      } catch {}
+    }
     items.push({
       kind: "claimable",
       protocol: `Contract ${short(addr)}`,
       chainId,
-      what: `${hit.view.split("(")[0]}(you) = ${hit.raw} (raw units; reward token unknown)${hints.length ? `; recovery selectors: ${hints.map((h) => h.name).join(", ")}` : ""}`,
-      valueUsd: null,
+      ...(p3d ? { estimateKind: "exact" } : {}),
+      what: p3d
+        ? `${p3d.amount.toFixed(9).replace(/0+$/, "")} ${p3d.sym} in P3D-style dividends (${hit.view.split("(")[0]}; paid in native ${p3d.sym} from the contract's balance)${hints.length ? `; recovery: ${hints.map((h) => h.name).join(", ")}` : ""}`
+        : `${hit.view.split("(")[0]}(you) = ${hit.raw} (raw units; reward token unknown)${hints.length ? `; recovery selectors: ${hints.map((h) => h.name).join(", ")}` : ""}`,
+      valueUsd: p3d?.usd ?? null,
       ...(claimTx ? { claimTx } : {}),
       action: claimTx
         ? "Sign the suggested recovery call (funds pinned to your wallet), then swap on SwapChan"

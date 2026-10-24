@@ -93,6 +93,10 @@ const safe =
     } catch (e) {
       if (e instanceof UserError) return fail(e.message);
       if (e instanceof ApiError) {
+        if (/execution reverted|revert/i.test(e.message))
+          return fail(
+            `contract reverted (the function may not exist or be non-public): ${e.message}`,
+          );
         const hint =
           e.status === 404
             ? " (no route found; try another amount, token or chain)"
