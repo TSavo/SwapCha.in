@@ -144,8 +144,73 @@ export async function curveConvex(
       underlying: CRV,
     });
   }
-  // Curve gauge: any ERC-20 the wallet holds that looks like a gauge (claimable_tokens)
-  // Defer discovery to archaeology; handler here for known minter mint(gauge)
+  // Curve gauges: claimable_tokens + staked LP on well-known gauges
+  const GAUGES: { addr: `0x${string}`; name: string }[] = [
+    { addr: "0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A", name: "Curve 3pool gauge" },
+    { addr: "0x7ca5b0a2910B33e9759DC7dDB0413949071D7575", name: "Curve renBTC gauge" },
+    { addr: "0xBC89Cd062d8201503f2F52cC4b88dFb17fc2b1A0", name: "Curve sETH gauge" },
+  ];
+  for (const g of GAUGES) {
+    const [staked, claimable] = await Promise.all([
+      c.readContract({
+        address: g.addr,
+        abi: fn("balanceOf(address) view returns (uint256)"),
+        functionName: "balanceOf",
+        args: [owner],
+      }).catch(() => 0n),
+      c.readContract({
+        address: g.addr,
+        abi: fn("claimable_tokens(address) view returns (uint256)"),
+        functionName: "claimable_tokens",
+        args: [owner],
+      }).catch(() => 0n),
+    ]);
+    if (typeof claimable === "bigint" && claimable > 10n ** 14n) {
+      const amt = Number(formatUnits(claimable, 18));
+      const crvP = pxOf(px, 1, CRV)?.price ?? null;
+      out.push({
+        kind: "claimable",
+        protocol: g.name,
+        chainId: 1,
+        what: `${amt.toPrecision(5)} claimable CRV` +
+          (typeof staked === "bigint" && staked > 0n ? ` (staked LP ${Number(formatUnits(staked, 18)).toPrecision(5)})` : ""),
+        valueUsd: crvP ? r2(amt * crvP) : null,
+        confidence: "high",
+        claimTx: {
+          chainId: 1,
+          to: "0xd061D61a4d941c39E5453435B6345Dc261C2fcE0", // Curve Minter
+          data: encodeFunctionData({
+            abi: fn("mint(address)"),
+            functionName: "mint",
+            args: [g.addr],
+          }),
+          value: "0",
+          description: `mint(${g.name}): claim CRV from gauge`,
+        },
+        action: "Mint/claim CRV, then swap on SwapChan",
+        link: swapUrl(1, CRV, 1, usdcOf(1)!, String(amt)),
+        evidence: [
+          ev(1, g.addr, "claimable_tokens(address)", [owner], toHex(claimable)),
+          ...(typeof staked === "bigint" && staked > 0n
+            ? [ev(1, g.addr, "balanceOf(address)", [owner], toHex(staked))]
+            : []),
+        ],
+        underlying: CRV,
+      });
+    } else if (typeof staked === "bigint" && staked > 10n ** 15n) {
+      out.push({
+        kind: "legacy",
+        protocol: g.name,
+        chainId: 1,
+        what: `${Number(formatUnits(staked, 18)).toPrecision(5)} LP staked in gauge (withdraw via gauge.withdraw)`,
+        valueUsd: null,
+        confidence: "medium",
+        action: "Withdraw LP from gauge, remove liquidity, swap on SwapChan",
+        link: "https://curve.fi",
+        evidence: [ev(1, g.addr, "balanceOf(address)", [owner], toHex(staked))],
+      });
+    }
+  }
   void CONVEX_BOOSTER;
   void f;
   return out;
@@ -153,8 +218,9 @@ export async function curveConvex(
 
 // ---------- Synthetix escrow + rewards (SNX) ----------
 const SNX = "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F" as const;
-const SNX_FEE_POOL = "0xb440DD674e1243644795a1e1F7c84F3a5A95FD2a" as const; // ProxyFeePool (approx - may change)
-const SNX_REWARD_ESCROW = "0xb671F2719ECfB1feB12f669370E731D67a410DDD" as const; // RewardEscrowV2
+const SNX_FEE_POOL = "0xb440DD674e1243644791a4AdfE3A2AbB0A92d309" as const; // ProxyFeePool
+const SNX_REWARD_ESCROW = "0xFAd53Cc9480634563E8ec71E8e693Ffd07981d38" as const; // RewardEscrowV2
+const SNX_LIQUIDATOR_REWARDS = "0xf79603a71144e415730C1A6f57F366E4Ea962C00" as const;
 
 export async function synthetixStuck(
   f: F,
@@ -242,12 +308,78 @@ export async function synthetixStuck(
       underlying: SNX,
     });
   }
+  // LiquidatorRewards: earned(address)
+  const liq = await c
+    .readContract({
+      address: SNX_LIQUIDATOR_REWARDS,
+      abi: fn("earned(address) view returns (uint256)"),
+      functionName: "earned",
+      args: [owner],
+    })
+    .catch(() => 0n);
+  if (typeof liq === "bigint" && liq > 10n ** 15n) {
+    const amt = Number(formatUnits(liq, 18));
+    const px = await prices(f, [{ chainId: 1, address: SNX }]).catch(() => new Map());
+    const p = pxOf(px, 1, SNX)?.price ?? null;
+    out.push({
+      kind: "claimable",
+      protocol: "Synthetix LiquidatorRewards",
+      chainId: 1,
+      what: `${amt.toPrecision(5)} SNX earned from liquidator rewards`,
+      valueUsd: p ? r2(amt * p) : null,
+      confidence: "high",
+      claimTx: {
+        chainId: 1,
+        to: SNX_LIQUIDATOR_REWARDS,
+        data: encodeFunctionData({ abi: fn("getReward(address)"), functionName: "getReward", args: [owner] }),
+        value: "0",
+        description: "getReward(you): claim Synthetix liquidator rewards",
+      },
+      action: "Claim SNX, then swap on SwapChan",
+      link: swapUrl(1, SNX, 1, usdcOf(1)!, String(amt)),
+      evidence: [ev(1, SNX_LIQUIDATOR_REWARDS, "earned(address)", [owner], toHex(liq), "earned(address) view returns (uint256)")],
+      underlying: SNX,
+    });
+  }
+  // Escrow: prefer totalEscrowedAccountBalance
+  const escrowTotal = await c
+    .readContract({
+      address: SNX_REWARD_ESCROW,
+      abi: fn("totalEscrowedAccountBalance(address) view returns (uint256)"),
+      functionName: "totalEscrowedAccountBalance",
+      args: [owner],
+    })
+    .catch(() => 0n);
+  if (typeof escrowTotal === "bigint" && escrowTotal > 10n ** 15n && !out.some((x) => x.protocol === "Synthetix RewardEscrow")) {
+    const amt = Number(formatUnits(escrowTotal, 18));
+    const px = await prices(f, [{ chainId: 1, address: SNX }]).catch(() => new Map());
+    const p = pxOf(px, 1, SNX)?.price ?? null;
+    out.push({
+      kind: "legacy",
+      protocol: "Synthetix RewardEscrow",
+      chainId: 1,
+      what: `${amt.toPrecision(5)} SNX in escrow (vest when unlocked)`,
+      valueUsd: p ? r2(amt * p) : null,
+      confidence: "medium",
+      claimTx: {
+        chainId: 1,
+        to: SNX_REWARD_ESCROW,
+        data: encodeFunctionData({ abi: fn("vest()"), functionName: "vest" }),
+        value: "0",
+        description: "vest(): claim unlocked escrowed SNX",
+      },
+      action: "Vest unlocked SNX on staking.synthetix.io, then swap",
+      link: "https://staking.synthetix.io",
+      evidence: [ev(1, SNX_REWARD_ESCROW, "totalEscrowedAccountBalance(address)", [owner], toHex(escrowTotal))],
+      underlying: SNX,
+    });
+  }
   return out;
 }
 
 // ---------- Sablier v1 / v2 ----------
 const SABLIER_V1 = "0xA4fc358455Febe425536fd1878bE67FfDBDEC59e" as const; // legacy Payroll
-const SABLIER_V2_LOCKUP_LINEAR = "0xA3695984F5b0686884C113863a8601F5275a7b87" as const; // mainnet LockupLinear (approx)
+const SABLIER_V2_LOCKUP_LINEAR = "0x3962f6585946823440d274aD7C719B02b49DE51E" as const; // LockupLinear v1.2
 
 export async function sablierStuck(
   f: F,
@@ -269,21 +401,124 @@ export async function sablierStuck(
         args: [owner],
       })
       .catch(() => 0n);
-    if (typeof n === "bigint" && n > 0n) {
-      out.push({
-        kind: "claimable",
-        protocol: name,
-        chainId: 1,
-        what: `${n} Sablier stream NFT(s) — withdraw streamed tokens on app.sablier.com`,
-        valueUsd: null,
-        confidence: "medium",
-        action: "Open Sablier, withdraw from each stream, then swap on SwapChan",
-        link: "https://app.sablier.com",
-        evidence: [
-          ev(1, addr, "balanceOf(address)", [owner], toHex(n), "balanceOf(address) view returns (uint256)"),
-        ],
-      });
+    if (typeof n !== "bigint" || n <= 0n) continue;
+    let withdrawable = 0n;
+    let firstId: bigint | null = null;
+    const max = n > 5n ? 5n : n;
+    const ids: bigint[] = [];
+    for (let i = 0n; i < max; i++) {
+      const id = await c
+        .readContract({
+          address: addr as `0x${string}`,
+          abi: fn("tokenOfOwnerByIndex(address,uint256) view returns (uint256)"),
+          functionName: "tokenOfOwnerByIndex",
+          args: [owner, i],
+        })
+        .catch(() => null);
+      if (typeof id === "bigint") ids.push(id);
     }
+    // LockupLinear is not ERC721Enumerable — fall back to explorer NFT inventory
+    if (!ids.length) {
+      try {
+        const url = `https://eth.blockscout.com/api/v2/addresses/${owner}/nft?type=ERC-721`;
+        const r = await f(url, { signal: AbortSignal.timeout(12_000) });
+        if (r.ok) {
+          const j = (await r.json()) as {
+            items?: { id?: string; token?: { address_hash?: string; address?: string } }[];
+          };
+          const want = addr.toLowerCase();
+          for (const it of j.items ?? []) {
+            const a = (it.token?.address_hash || it.token?.address || "").toLowerCase();
+            if (a !== want || !it.id) continue;
+            try {
+              ids.push(BigInt(it.id));
+            } catch {
+              /* skip */
+            }
+            if (ids.length >= Number(max)) break;
+          }
+        }
+      } catch {
+        /* explorer unavailable */
+      }
+    }
+    if (!ids.length) {
+      try {
+        const bn = await c.getBlockNumber();
+        const fromBlock = bn > 50_000n ? bn - 50_000n : 0n;
+        const logs = await c.getLogs({
+          address: addr as `0x${string}`,
+          event: parseAbiItem(
+            "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+          ),
+          args: { to: owner },
+          fromBlock,
+          toBlock: bn,
+        });
+        for (const log of logs) {
+          const tid = (log as { args?: { tokenId?: bigint } }).args?.tokenId;
+          if (typeof tid !== "bigint") continue;
+          const cur = await c
+            .readContract({
+              address: addr as `0x${string}`,
+              abi: fn("ownerOf(uint256) view returns (address)"),
+              functionName: "ownerOf",
+              args: [tid],
+            })
+            .catch(() => null);
+          if (typeof cur === "string" && cur.toLowerCase() === owner.toLowerCase()) ids.push(tid);
+          if (ids.length >= Number(max)) break;
+        }
+      } catch {
+        /* RPC range limits — detection still reports NFT count */
+      }
+    }
+    for (const id of ids) {
+      if (firstId === null) firstId = id;
+      const w = await c
+        .readContract({
+          address: addr as `0x${string}`,
+          abi: fn("withdrawableAmountOf(uint256) view returns (uint128)"),
+          functionName: "withdrawableAmountOf",
+          args: [id],
+        })
+        .catch(() => 0n);
+      if (typeof w === "bigint") withdrawable += w;
+    }
+    out.push({
+      kind: "claimable",
+      protocol: name,
+      chainId: 1,
+      what:
+        withdrawable > 0n
+          ? `${n} stream NFT(s), ${Number(formatUnits(withdrawable, 18)).toPrecision(5)} withdrawable (token units)`
+          : `${n} Sablier stream NFT(s) — withdraw streamed tokens on app.sablier.com`,
+      valueUsd: null,
+      confidence: withdrawable > 0n ? "high" : "medium",
+      ...(firstId !== null
+        ? {
+            claimTx: {
+              chainId: 1,
+              to: addr,
+              data: encodeFunctionData({
+                abi: fn("withdrawMax(uint256,address)"),
+                functionName: "withdrawMax",
+                args: [firstId, owner],
+              }),
+              value: "0",
+              description: `withdrawMax(streamId=${firstId}): claim streamed tokens`,
+            },
+          }
+        : {}),
+      action: "Withdraw from each Sablier stream, then swap on SwapChan",
+      link: "https://app.sablier.com",
+      evidence: [
+        ev(1, addr, "balanceOf(address)", [owner], toHex(n), "balanceOf(address) view returns (uint256)"),
+        ...(withdrawable > 0n && firstId !== null
+          ? [ev(1, addr, "withdrawableAmountOf(uint256)", [String(firstId)], toHex(withdrawable))]
+          : []),
+      ],
+    });
   }
   void SABLIER_V1;
   void f;
@@ -304,26 +539,32 @@ export async function pendleStuck(
   const c = evmClient(1, env);
   const out: StuckFound[] = [];
   // Common: VePendle / voting escrow leftover
-  const VE = "0x4f30A9E8B6668C0B1188e7A48bEe6a479Cfa3BaA" as `0x${string}`;
-  const bal = await c
+  const VE = "0x4f30A9D41B80ecC5B94306AB4364951AE3170210" as `0x${string}`; // vePENDLE VotingEscrow
+  const PENDLE = "0x808507121B80c02388fAd14726482e061B8da827" as const;
+  const pos = await c
     .readContract({
       address: VE,
-      abi: fn("balanceOf(address) view returns (uint256)"),
-      functionName: "balanceOf",
+      abi: fn("positionData(address) view returns (uint128,uint128)"),
+      functionName: "positionData",
       args: [owner],
     })
-    .catch(() => 0n);
-  if (typeof bal === "bigint" && bal > 0n) {
+    .catch(() => null);
+  const bal = pos && Array.isArray(pos) ? (pos[0] as bigint) : 0n;
+  if (bal > 0n) {
+    const amt = Number(formatUnits(bal, 18));
+    const px = await prices(f, [{ chainId: 1, address: PENDLE }]).catch(() => new Map());
+    const p = pxOf(px, 1, PENDLE)?.price ?? null;
     out.push({
       kind: "legacy",
       protocol: "Pendle vePENDLE",
       chainId: 1,
-      what: `${formatUnits(bal, 18)} vePENDLE locked — unlock/claim on app.pendle.finance`,
-      valueUsd: null,
-      confidence: "medium",
+      what: `${amt.toPrecision(5)} PENDLE locked as vePENDLE — unlock/claim on app.pendle.finance`,
+      valueUsd: p ? r2(amt * p) : null,
+      confidence: "high",
       action: "Manage lock on Pendle app, then swap unlocked PENDLE on SwapChan",
       link: "https://app.pendle.finance/ve",
-      evidence: [ev(1, VE, "balanceOf(address)", [owner], toHex(bal))],
+      evidence: [ev(1, VE, "positionData(address)", [owner], toHex(bal))],
+      underlying: PENDLE,
     });
   }
   void PENDLE_ROUTER;
@@ -343,62 +584,65 @@ export async function gmxStuck(
 ): Promise<StuckFound[]> {
   const c = evmClient(42161, env);
   const out: StuckFound[] = [];
-  const es = "0xf42Ae1D54fd613C9bb14810b0585AAaD7239C94c" as `0x${string}`;
-  const bal = await c
+  // Staked GMX reward tracker (esGMX token self-destructed; tracker still holds staked balances)
+  const STAKED_GMX = "0x908C4D94D34924765f1eDc22A1DD098397c59dD4" as `0x${string}`;
+  const staked = await c
     .readContract({
-      address: es,
+      address: STAKED_GMX,
       abi: fn("balanceOf(address) view returns (uint256)"),
       functionName: "balanceOf",
       args: [owner],
     })
     .catch(() => 0n);
-  if (typeof bal === "bigint" && bal > 10n ** 15n) {
-    const amt = Number(formatUnits(bal, 18));
-    const px = await prices(f, [{ chainId: 42161, address: GMX }]).catch(() => new Map());
-    const p = pxOf(px, 42161, GMX)?.price ?? null;
-    out.push({
-      kind: "legacy",
-      protocol: "GMX esGMX",
-      chainId: 42161,
-      what: `${amt.toPrecision(5)} esGMX (vest to GMX on app.gmx.io)`,
-      valueUsd: p ? r2(amt * p) : null,
-      confidence: "high",
-      action: "Vest esGMX → GMX on GMX app, then swap on SwapChan",
-      link: "https://app.gmx.io/#/earn",
-      evidence: [ev(42161, es, "balanceOf(address)", [owner], toHex(bal))],
-      underlying: GMX,
-    });
-  }
-  // claimable from RewardRouter v2
   const claimable = await c
     .readContract({
-      address: GMX_REWARD_ROUTER,
+      address: STAKED_GMX,
       abi: fn("claimable(address) view returns (uint256)"),
       functionName: "claimable",
       args: [owner],
     })
     .catch(() => 0n);
+  const px = await prices(f, [{ chainId: 42161, address: GMX }]).catch(() => new Map());
+  const p = pxOf(px, 42161, GMX)?.price ?? null;
+  if (typeof staked === "bigint" && staked > 10n ** 15n) {
+    const amt = Number(formatUnits(staked, 18));
+    out.push({
+      kind: "legacy",
+      protocol: "GMX staked",
+      chainId: 42161,
+      what: `${amt.toPrecision(5)} staked GMX/esGMX on RewardTracker`,
+      valueUsd: p ? r2(amt * p) : null,
+      confidence: "high",
+      action: "Unstake / vest on app.gmx.io/#/earn, then swap on SwapChan",
+      link: "https://app.gmx.io/#/earn",
+      evidence: [ev(42161, STAKED_GMX, "balanceOf(address)", [owner], toHex(staked))],
+      underlying: GMX,
+    });
+  }
   if (typeof claimable === "bigint" && claimable > 0n) {
+    const amt = Number(formatUnits(claimable, 18));
     out.push({
       kind: "claimable",
       protocol: "GMX rewards",
       chainId: 42161,
-      what: `${formatUnits(claimable, 18)} claimable on GMX RewardRouter`,
-      valueUsd: null,
-      confidence: "medium",
+      what: `${amt.toPrecision(5)} claimable on GMX Staked tracker`,
+      valueUsd: p ? r2(amt * p) : null,
+      confidence: "high",
       claimTx: {
         chainId: 42161,
         to: GMX_REWARD_ROUTER,
         data: encodeFunctionData({
-          abi: fn("claim()"),
-          functionName: "claim",
+          abi: fn("handleRewards(bool,bool,bool,bool,bool,bool,bool)"),
+          functionName: "handleRewards",
+          args: [true, true, true, true, true, true, true],
         }),
         value: "0",
-        description: "claim(): claim GMX staking rewards",
+        description: "handleRewards(...): claim GMX staking rewards",
       },
       action: "Claim on GMX, then swap",
       link: "https://app.gmx.io/#/earn",
-      evidence: [ev(42161, GMX_REWARD_ROUTER, "claimable(address)", [owner], toHex(claimable))],
+      evidence: [ev(42161, STAKED_GMX, "claimable(address)", [owner], toHex(claimable))],
+      underlying: GMX,
     });
   }
   void GMX_FEE_GMX;
@@ -507,8 +751,23 @@ export async function l2Withdrawals(
           evidence: [
             ev(chainId, L2_TO_L1, "tx", [t.hash], t.input?.slice(0, 66) ?? "0x"),
           ],
-          risk: "Manual: proving/finalizing needs the withdrawal proof from the L2 output root; SwapChan detects but does not build the L1 prove/finalize txs yet",
+          risk: "Prove/finalize txs built when L2 receipt + output/game available (see claimTx)",
         });
+        // Try building prove/finalize from this initiation tx
+        try {
+          const { buildOpStackWithdrawalTxs } = await import("./l2bridge.js");
+          const built = await buildOpStackWithdrawalTxs(env, chainId as 10 | 8453, t.hash as `0x${string}`);
+          if (built.proveTx) {
+            out[out.length - 1]!.claimTx = built.proveTx;
+            out[out.length - 1]!.what += built.finalizeTx
+              ? `; prove+finalize calldata ready (status=${built.status})`
+              : `; prove calldata ready (status=${built.status})`;
+            out[out.length - 1]!.confidence = "high";
+          } else if (built.finalizeTx) {
+            out[out.length - 1]!.claimTx = built.finalizeTx;
+            out[out.length - 1]!.what += `; finalize calldata ready (status=${built.status})`;
+          }
+        } catch {}
       }
     } catch {}
   }
@@ -543,7 +802,7 @@ export async function l2Withdrawals(
         action: "Finalize on bridge.arbitrum.io after the dispute period, then swap on SwapChan",
         link: "https://bridge.arbitrum.io/?destinationChain=ethereum&sourceChain=arbitrum",
         evidence: [ev(42161, ARB_SYS, "tx", [t.hash], t.input?.slice(0, 66) ?? "0x")],
-        risk: "Manual: L1 execute needs the merkle proof from the Arbitrum node; detection only",
+        risk: "L1 Outbox.executeTransaction built via NodeInterface.constructOutboxProof when size/leaf known",
       });
     }
   } catch {}
@@ -745,8 +1004,12 @@ export async function merkleAirdrops(
   env: NodeJS.ProcessEnv,
   owner: `0x${string}`,
 ): Promise<StuckFound[]> {
-  const out: StuckFound[] = [];
+  const { merkleClaimFromTrees } = await import("./merkleClaims.js");
+  const fromTrees = await merkleClaimFromTrees(f, env, owner).catch(() => []);
+  const out: StuckFound[] = [...fromTrees];
+  const claimedProtocols = new Set(fromTrees.map((x) => x.protocol));
   for (const d of MERKLE_DROPS) {
+    if (claimedProtocols.has(`${d.name} airdrop`)) continue;
     const c = evmClient(d.chainId, env);
     // Many distributors expose isClaimed(uint256) — without index we check token dust at distributor
     // and whether owner already holds the airdrop token from a prior claim.
@@ -894,15 +1157,22 @@ export async function btcXpubScan(f: F, xpubOrAddr: string): Promise<StuckFound[
       const sats = u.chain_stats.funded_txo_sum - u.chain_stats.spent_txo_sum;
       if (sats <= 0) return [];
       const btc = sats / 1e8;
-      const px = await prices(f, [{ chainId: BITCOIN, address: "btc" }]).catch(() => new Map());
-      // llama uses coingecko:bitcoin sometimes — try native
+      const BTC_NATIVE = "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8";
+      const px = await prices(f, [
+        { chainId: BITCOIN, address: BTC_NATIVE },
+        { chainId: BITCOIN, address: "btc" },
+      ]).catch(() => new Map());
+      const btcP =
+        pxOf(px, BITCOIN, BTC_NATIVE)?.price ??
+        pxOf(px, BITCOIN, "btc")?.price ??
+        null;
       return [
         {
           kind: "claimable",
           protocol: "Bitcoin UTXO",
           chainId: BITCOIN,
           what: `${btc} BTC across UTXOs at ${xpubOrAddr.slice(0, 12)}…`,
-          valueUsd: null,
+          valueUsd: btcP ? r2(btc * btcP) : null,
           confidence: "high",
           action: "Spend via your wallet / SwapChan BTC route (PSBT)",
           link: `${SITE}/?fromChain=${BITCOIN}&fromToken=btc`,
@@ -918,6 +1188,15 @@ export async function btcXpubScan(f: F, xpubOrAddr: string): Promise<StuckFound[
   const totalSats = r.wallet?.final_balance ?? addrs.reduce((s, a) => s + a.final_balance, 0);
   if (totalSats <= 0) return [];
   const btc = totalSats / 1e8;
+  const BTC_NATIVE = "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8";
+  const px = await prices(f, [
+    { chainId: BITCOIN, address: BTC_NATIVE },
+    { chainId: BITCOIN, address: "btc" },
+  ]).catch(() => new Map());
+  const btcP =
+    pxOf(px, BITCOIN, BTC_NATIVE)?.price ??
+    pxOf(px, BITCOIN, "btc")?.price ??
+    null;
   return [
     {
       kind: "claimable",
@@ -926,7 +1205,7 @@ export async function btcXpubScan(f: F, xpubOrAddr: string): Promise<StuckFound[
         : "Bitcoin UTXO",
       chainId: BITCOIN,
       what: `${btc} BTC across ${addrs.length || "?"} funded address(es)`,
-      valueUsd: null,
+      valueUsd: btcP ? r2(btc * btcP) : null,
       confidence: "high",
       action: "Use your wallet to spend; SwapChan can build a PSBT for a bc1q sender",
       link: `${SITE}/?fromChain=${BITCOIN}`,

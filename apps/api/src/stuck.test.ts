@@ -78,3 +78,29 @@ describe("logPromoteCandidate", () => {
     }
   });
 });
+
+describe("merkleClaims + l2bridge builders", () => {
+  it("buildMerkleClaimTx encodes claim(uint256,address,uint256,bytes32[])", async () => {
+    const { buildMerkleClaimTx } = await import("./merkleClaims.js");
+    const tx = buildMerkleClaimTx(
+      {
+        chainId: 1,
+        distributor: "0x090D4613473dEE047c3f2706764f49E0821D256e",
+        name: "Uniswap UNI",
+      },
+      "0x1111111111111111111111111111111111111111",
+      { index: 0, amount: "0x64", proof: ["0x" + "11".repeat(32)] },
+    );
+    expect(tx.data.slice(0, 10)).toBe(toFunctionSelector("function claim(uint256,address,uint256,bytes32[])"));
+    expect(tx.to.toLowerCase()).toBe("0x090d4613473dee047c3f2706764f49e0821d256e");
+    expect(verifyRecovery({ to: tx.to, data: tx.data, value: "0" }, "0x1111111111111111111111111111111111111111").verified).toBe(true);
+  });
+
+  it("OP/Base portals and Arb outbox constants are set", async () => {
+    const { OP_PORTAL, ARB_OUTBOX, ARB_NODE_INTERFACE } = await import("./l2bridge.js");
+    expect(OP_PORTAL[10]).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(OP_PORTAL[8453]).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(ARB_OUTBOX).toMatch(/^0x[a-fA-F0-9]{40}$/);
+    expect(ARB_NODE_INTERFACE.toLowerCase()).toBe("0x00000000000000000000000000000000000000c8");
+  });
+});

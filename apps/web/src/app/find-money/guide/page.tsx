@@ -26,12 +26,12 @@ const ROWS: Row[] = [
   ["Deactivated stake accounts", "Solana", "Native stake", "getProgramAccounts + StakeProgram.Withdraw svm-instructions", "Covered"],
   ["Solana program archaeology", "Solana", "History programs + SPL balances", "signatures → program ids; token accounts by owner", "New"],
   ["Tron stake / votes / resources", "Tron", "Stake 1.0+2.0, voting rewards, delegated BW/energy", "getaccount + WithdrawBalance / WithdrawExpireUnfreeze", "Covered"],
-  ["Tron DeFi + archaeology", "Tron", "JustLend, WTRX, JST, USDJ, sTRX/stUSDT, SUN, 2019–21 dividend dapps", "TronGrid views + recoveryHints + promote-candidates log", "New"],
-  ["L2 withdrawals not finalized", "Optimism, Arbitrum, Base", "OP/Base MessagePasser, ArbSys", "Detect prior withdraw txs; prove/finalize still manual on official bridges", "New"],
+  ["Tron DeFi + archaeology", "Tron", "JustLend, WTRX, JST, USDJ, sTRX/stUSDT, SUN, 2019–21 dividend dapps", "TronGrid views + Stake1/2 + SR rewards + recoveryHints + promote log", "Covered"],
+  ["L2 withdrawals not finalized", "Optimism, Arbitrum, Base", "OP/Base MessagePasser, ArbSys", "Detect + build proveWithdrawalTransaction / finalizeWithdrawalTransaction (eth_getProof) and Arb Outbox.executeTransaction", "Covered"],
   ["Bridge exits", "Polygon PoS, Multichain, Celer", "PoS portal, Anyswap, cBridge", "History detect + explain (Multichain often unrecoverable)", "New"],
-  ["Gauges, escrow, streams", "EVM", "Curve/Convex, Synthetix, Sablier, Pendle, GMX, Rocket Pool rETH", "known-contract registry handlers + evidence", "New"],
-  ["Governance airdrops", "EVM", "ENS, UNI, 1INCH, OP, ARB", "Distributor live check + claim tx when merkle tree published", "New"],
-  ["Bitcoin", "BTC", "xpub / bc1 / legacy addresses", "blockchain.info multiaddr + mempool.space UTXO (read-only)", "New"],
+  ["Gauges, escrow, streams", "EVM", "Curve/Convex, Synthetix, Sablier, Pendle, GMX, Rocket Pool rETH", "known-contract registry handlers + evidence + claim/withdraw txs", "Covered"],
+  ["Governance airdrops", "EVM", "ENS, UNI, 1INCH, OP, ARB", "Bundled public merkle trees → claim() calldata; Merkl + distributor portals", "Covered"],
+  ["Bitcoin", "BTC", "xpub / bc1 / legacy addresses", "blockchain.info multiaddr + mempool.space UTXO + DefiLlama BTC USD", "Covered"],
   ["Unknown contract archaeology", "Every supported chain", "Any history contract with earned/claimable/balance", "Probe recovery selectors, Sourcify ABI, confidence + promote-to-registry log", "New"],
 ];
 
