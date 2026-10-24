@@ -32,8 +32,19 @@ type Drop = {
   token: `0x${string}`;
   decimals?: number;
   portal: string;
-  /** Resolve claim row for owner; null if ineligible / unknown. */
+  /** Resolve claim row for owner: null = not in the published tree (not eligible).
+   *  Throws SourceUnavailable when the tree is not published / not reachable. */
   lookup: (f: F, env: NodeJS.ProcessEnv, owner: `0x${string}`) => Promise<ClaimRow | null>;
+  /** On-chain claim deadline getter (unix seconds). Past = closed, emit nothing. */
+  deadlineFn?: string;
+  /** When the tree is unavailable, only surface a lead if the wallet called one of these
+   *  contracts on `chainId` before `beforeBlock` (the snapshot), i.e. plausibly eligible. */
+  leadHint?: { chainId: number; beforeBlock: number; to: string[]; why: string };
+};
+
+export class SourceUnavailable extends Error {}
+const unavailable = (name: string) => {
+  throw new SourceUnavailable(`${name} claim tree is not published`);
 };
 
 function cacheDir(env: NodeJS.ProcessEnv) {
@@ -109,8 +120,8 @@ function flatLookup(url: string, cacheKey: string) {
       const map = await cachedJson<Record<string, ClaimRow>>(f, env, cacheKey, url);
       const row = map[owner.toLowerCase()] ?? map[getAddress(owner)] ?? map[owner];
       return row ?? null;
-    } catch {
-      return null;
+    } catch (e) {
+      throw new SourceUnavailable(`${cacheKey}: ${(e as Error).message}`);
     }
   };
 }
@@ -134,9 +145,11 @@ export const PUBLISHED_DROPS: Drop[] = [
     distributor: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
     token: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
     portal: "https://claim.ens.domains",
+    // Claim window closed 2022-05-04; unclaimed ENS went to the DAO.
+    deadlineFn: "claimPeriodEnds",
     lookup: async (f, env, owner) => {
       const url = env.SWAPCHAN_MERKLE_ENS_URL;
-      if (!url) return null;
+      if (!url) return unavailable("ENS");
       return flatLookup(url, "ens-claims.json")(f, env, owner);
     },
   },
@@ -146,21 +159,33 @@ export const PUBLISHED_DROPS: Drop[] = [
     distributor: "0xE295aD71242373C37C5FdA7B57F26f9eA1088AFe",
     token: "0x111111111117dC0aa78b770fA6A738034120C302",
     portal: "https://1inch.io",
+    // Dec 2020 drop: no expiry, but 1inch took the claim API/tree offline (1inch/merkle-distribution#48).
+    leadHint: {
+      chainId: 1,
+      beforeBlock: 11_512_000,
+      to: [
+        "0x11111254369792b2ca5d084ab5eea397ca8fa48b",
+        "0x111111125434b319222cdbf8c261674adb56f3ae",
+        "0x111111254b08ceeee8ad6ca827de9952d2a46781",
+        "0xc4a8b7e29e3c8ec560cd4945c1cf3461a85a148d",
+      ],
+      why: "used 1inch before the Dec 2020 snapshot",
+    },
     lookup: async (f, env, owner) => {
       const url = env.SWAPCHAN_MERKLE_1INCH_URL;
-      if (!url) return null;
+      if (!url) return unavailable("1INCH");
       return flatLookup(url, "1inch-claims.json")(f, env, owner);
     },
   },
   {
     name: "Optimism OP",
     chainId: 10,
-    distributor: "0xEe6c5Ad861F185Be4aC151C9d0D811298bD1a483",
+    distributor: "0xFeDFAF1A10335448b7FA0268F56D2B44DBD357de",
     token: "0x4200000000000000000000000000000000000042",
     portal: "https://app.optimism.io/airdrops",
     lookup: async (f, env, owner) => {
       const url = env.SWAPCHAN_MERKLE_OP_URL;
-      if (!url) return null;
+      if (!url) return unavailable("OP");
       return flatLookup(url, "op-claims.json")(f, env, owner);
     },
   },
@@ -172,66 +197,171 @@ export const PUBLISHED_DROPS: Drop[] = [
     portal: "https://arbitrum.foundation/claim",
     lookup: async (f, env, owner) => {
       const url = env.SWAPCHAN_MERKLE_ARB_URL;
-      if (!url) return null;
+      if (!url) return unavailable("ARB");
       return flatLookup(url, "arb-claims.json")(f, env, owner);
     },
   },
 ];
 
-/** Build claim() calldata from a published tree row; returns StuckFound when unclaimed. */
+const erc20 = fn("balanceOf(address) view returns (uint256)");
+
+/** Claim still possible on-chain: deadline not passed and distributor still holds >= 1 token. */
+async function dropOpen(d: Drop, env: NodeJS.ProcessEnv): Promise<boolean> {
+  const c = evmClient(d.chainId, env);
+  if (d.deadlineFn) {
+    const end = await c
+      .readContract({
+        address: d.token,
+        abi: fn(`${d.deadlineFn}() view returns (uint256)`),
+        functionName: d.deadlineFn,
+      })
+      .catch(() => null);
+    if (typeof end === "bigint" && Number(end) * 1000 < Date.now()) return false;
+  }
+  const bal = await c
+    .readContract({
+      address: d.token,
+      abi: erc20,
+      functionName: "balanceOf",
+      args: [d.distributor],
+    })
+    .catch(() => null);
+  if (bal === null) return false;
+  return bal >= 10n ** BigInt(d.decimals ?? 18);
+}
+
+type ExTx = { to?: string; from?: string; blockNumber?: string; contractAddress?: string };
+async function explorerRows(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  chainId: number,
+  q: string,
+): Promise<ExTx[] | null> {
+  const urls = [
+    ...(env.ETHERSCAN_API_KEY
+      ? [`https://api.etherscan.io/v2/api?chainid=${chainId}&${q}&apikey=${env.ETHERSCAN_API_KEY}`]
+      : []),
+    ...(chainId === 1 ? [`https://eth.blockscout.com/api?${q}`] : []),
+  ];
+  for (const u of urls) {
+    try {
+      const r = await json<{ status?: string; message?: string; result: ExTx[] | string }>(
+        f,
+        u,
+        undefined,
+        20_000,
+      );
+      if (Array.isArray(r.result)) return r.result;
+      if (/no (token )?transactions|no token transfers/i.test(r.message ?? "")) return [];
+    } catch {}
+  }
+  return null;
+}
+
+/** Wallet already received the drop token from the distributor (claimed). null = unknown. */
+async function alreadyReceived(f: F, env: NodeJS.ProcessEnv, d: Drop, owner: string) {
+  const rows = await explorerRows(
+    f,
+    env,
+    d.chainId,
+    `module=account&action=tokentx&address=${owner}&contractaddress=${d.token}&page=1&offset=1000&sort=asc`,
+  );
+  if (!rows) return null;
+  const dist = d.distributor.toLowerCase();
+  return rows.some((r) => r.from?.toLowerCase() === dist);
+}
+
+async function plausiblyEligible(f: F, env: NodeJS.ProcessEnv, d: Drop, owner: string) {
+  const h = d.leadHint;
+  if (!h) return false;
+  const rows = await explorerRows(
+    f,
+    env,
+    h.chainId,
+    `module=account&action=txlist&address=${owner}&startblock=0&endblock=${h.beforeBlock}&page=1&offset=10000&sort=asc`,
+  );
+  if (!rows) return false;
+  const want = new Set(h.to.map((x) => x.toLowerCase()));
+  return rows.some(
+    (r) => r.from?.toLowerCase() === owner.toLowerCase() && want.has((r.to ?? "").toLowerCase()),
+  );
+}
+
+/**
+ * Per-address merkle airdrop check:
+ *  - closed window (deadline passed / distributor swept) -> nothing
+ *  - published tree: not in tree or isClaimed -> nothing; eligible+unclaimed -> exact claim()
+ *  - tree unpublished: lead (not money, never counted) only if the wallet plausibly qualified
+ *    and never received the token from the distributor.
+ */
 export async function merkleClaimFromTrees(
   f: F,
   env: NodeJS.ProcessEnv,
   owner: `0x${string}`,
 ): Promise<StuckFound[]> {
-  const out: StuckFound[] = [];
-  for (const d of PUBLISHED_DROPS) {
-    try {
-      const row = await d.lookup(f, env, owner);
-      if (!row) continue;
-      const c = evmClient(d.chainId, env);
-      const claimed = await c
-        .readContract({
-          address: d.distributor,
-          abi: fn("isClaimed(uint256) view returns (bool)"),
-          functionName: "isClaimed",
-          args: [BigInt(row.index)],
-        })
-        .catch(() => true);
-      if (claimed) continue;
-      const dec = d.decimals ?? 18;
-      const amt = Number(formatUnits(BigInt(row.amount), dec));
-      const px = await prices(f, [{ chainId: d.chainId, address: d.token }]).catch(() => new Map());
-      const p = pxOf(px, d.chainId, d.token)?.price ?? null;
-      out.push({
-        kind: "claimable",
-        protocol: `${d.name} airdrop`,
-        chainId: d.chainId,
-        what: `${amt.toPrecision(5)} unclaimed ${d.name}`,
-        valueUsd: p ? r2(amt * p) : null,
-        confidence: "high",
-        claimTx: {
+  const res = await Promise.all(
+    PUBLISHED_DROPS.map(async (d): Promise<StuckFound | null> => {
+      try {
+        if (!(await dropOpen(d, env))) return null;
+        let row: ClaimRow | null;
+        try {
+          row = await d.lookup(f, env, owner);
+        } catch (e) {
+          if (!(e instanceof SourceUnavailable) && !(e instanceof Error)) return null;
+          if (!(await plausiblyEligible(f, env, d, owner))) return null;
+          if ((await alreadyReceived(f, env, d, owner)) !== false) return null;
+          return {
+            kind: "lead",
+            protocol: `${d.name} airdrop`,
+            chainId: d.chainId,
+            what: `lead, not money: you ${d.leadHint?.why}; the ${d.name} claim list is not published, so eligibility can't be confirmed`,
+            valueUsd: null,
+            confidence: "low",
+            action: `Check ${d.portal}`,
+            link: d.portal,
+            evidence: [],
+            risk: "Lead only, not counted in the total",
+          } as StuckFound;
+        }
+        if (!row) return null;
+        const c = evmClient(d.chainId, env);
+        const claimed = await c
+          .readContract({
+            address: d.distributor,
+            abi: fn("isClaimed(uint256) view returns (bool)"),
+            functionName: "isClaimed",
+            args: [BigInt(row.index)],
+          })
+          .catch(() => true);
+        if (claimed) return null;
+        const dec = d.decimals ?? 18;
+        const amt = Number(formatUnits(BigInt(row.amount), dec));
+        const px = await prices(f, [{ chainId: d.chainId, address: d.token }]).catch(
+          () => new Map(),
+        );
+        const p = pxOf(px, d.chainId, d.token)?.price ?? null;
+        return {
+          kind: "claimable",
+          protocol: `${d.name} airdrop`,
           chainId: d.chainId,
-          to: d.distributor,
-          data: encodeFunctionData({
-            abi: fn("claim(uint256,address,uint256,bytes32[])"),
-            functionName: "claim",
-            args: [BigInt(row.index), owner, BigInt(row.amount), row.proof as `0x${string}`[]],
-          }),
-          value: "0",
-          description: `claim(${row.index}): ${d.name} merkle airdrop`,
-        },
-        action: "Claim airdrop, then swap on SwapChan",
-        link: swapUrl(d.chainId, d.token, d.chainId, usdcOf(d.chainId)!, String(amt)),
-        evidence: [
-          ev(d.chainId, d.distributor, "isClaimed(uint256)", [String(row.index)], "false"),
-          ev(d.chainId, d.distributor, "merkleRow", [owner, String(row.index)], row.amount),
-        ],
-        underlying: d.token,
-      });
-    } catch {}
-  }
-  return out;
+          what: `${amt.toPrecision(5)} unclaimed ${d.name}`,
+          valueUsd: p ? r2(amt * p) : null,
+          confidence: "high",
+          claimTx: buildMerkleClaimTx(d, owner, row),
+          action: "Claim airdrop from your own wallet, then swap on SwapChan",
+          link: swapUrl(d.chainId, d.token, d.chainId, usdcOf(d.chainId)!, String(amt)),
+          evidence: [
+            ev(d.chainId, d.distributor, "isClaimed(uint256)", [String(row.index)], "false"),
+            ev(d.chainId, d.distributor, "merkleRow", [owner, String(row.index)], row.amount),
+          ],
+          underlying: d.token,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return res.filter((x): x is StuckFound => !!x);
 }
 
 /** Build claim calldata for a known row without checking isClaimed (tests / dry-run). */

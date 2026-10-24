@@ -79,3 +79,37 @@ describe.runIf(ARCHIVE)("historical recoveries (archive fixtures)", () => {
     );
   }, 60_000);
 });
+
+describe("recover steps never point at external sites", () => {
+  const ok = (u: string) => /^https:\/\/swapchan\.com\/(recover|s\/)/.test(u);
+  it("merkle claim() to the owner -> /recover step; portal-only item -> no recover step", () => {
+    const db = new DatabaseSync(":memory:");
+    initLinksDb(db);
+    const claim = encodeFunctionData({
+      abi: fn("claim(uint256,address,uint256,bytes32[])"),
+      functionName: "claim",
+      args: [7n, ME, 10n ** 18n, []],
+    });
+    const items = [
+      {
+        title: "Uniswap UNI airdrop: 400 unclaimed",
+        claimTx: { chainId: 1, to: EVIL, data: claim, value: "0", description: "claim(7)" },
+        swapUrl: "https://swapchan.com/?fromChain=1",
+        protocolUrl: "https://app.uniswap.org/claim",
+      },
+      {
+        title: "1INCH airdrop: lead",
+        swapUrl: "https://swapchan.com/?fromChain=1",
+        protocolUrl: "https://1inch.io",
+      },
+    ];
+    const flows = items.map((i) => recoveryFlow(db, shorten, ME, i));
+    expect(flows[0]!.steps.some((s) => s.kind === "recover")).toBe(true);
+    expect(flows[1]!.steps.some((s) => s.kind === "recover")).toBe(false);
+    for (const f of flows)
+      for (const s of f.steps.filter((s) => s.kind === "recover")) {
+        expect(ok(s.url)).toBe(true);
+        if (s.shortUrl) expect(ok(s.shortUrl)).toBe(true);
+      }
+  });
+});

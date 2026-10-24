@@ -1394,7 +1394,7 @@ export async function contractReader(
 
 // ---------- 6a. forgotten money: legacy contracts, lending, Tron, Solana rent ----------
 export interface Found {
-  kind: "legacy" | "lending" | "tron" | "solana-rent" | "claimable";
+  kind: "legacy" | "lending" | "tron" | "solana-rent" | "claimable" | "lead";
   protocol: string;
   chainId: number;
   what: string;
@@ -4326,7 +4326,7 @@ export async function findMoney(
       category: string;
       title: string;
       estUsd: number | null;
-      estimateKind: "exact" | "estimate" | "protected";
+      estimateKind: "exact" | "estimate" | "protected" | "lead";
       detail: string;
       action: string;
       swapUrl: string;
@@ -4382,18 +4382,20 @@ export async function findMoney(
     for (const it of (air as { items?: Found[] } | null)?.items ?? [])
       items.push({
         category:
-          it.kind === "solana-rent"
-            ? "Reclaim rent"
-            : it.kind === "lending"
-              ? "Lending position"
-              : it.kind === "legacy"
-                ? "Forgotten money in old contracts"
-                : it.kind === "tron"
-                  ? "Tron rewards/unstake"
-                  : "Unclaimed rewards",
+          it.kind === "lead"
+            ? "Leads (not money, not counted)"
+            : it.kind === "solana-rent"
+              ? "Reclaim rent"
+              : it.kind === "lending"
+                ? "Lending position"
+                : it.kind === "legacy"
+                  ? "Forgotten money in old contracts"
+                  : it.kind === "tron"
+                    ? "Tron rewards/unstake"
+                    : "Unclaimed rewards",
         title: `${it.protocol}: ${it.what}`,
-        estUsd: it.valueUsd,
-        estimateKind: it.valueUsd === null ? "estimate" : "exact",
+        estUsd: it.kind === "lead" ? null : it.valueUsd,
+        estimateKind: it.kind === "lead" ? "lead" : it.valueUsd === null ? "estimate" : "exact",
         detail: it.risk ?? "",
         action: it.action,
         swapUrl: it.link?.startsWith(SITE)
@@ -4401,7 +4403,9 @@ export async function findMoney(
           : it.chainId === TRON || it.chainId === SOLANA || it.chainId === BITCOIN
             ? toUsdc(it.chainId, nativeOf(it.chainId))
             : toUsdc(it.chainId, it.underlying ?? nativeOf(it.chainId)),
-        ...(it.link && !it.link.startsWith(SITE) ? { protocolUrl: it.link } : {}),
+        ...(it.link && !it.link.startsWith(SITE) && it.kind !== "lead"
+          ? { protocolUrl: it.link }
+          : {}),
         ...(it.claimTx ? { claimTx: it.claimTx } : {}),
         ...(it.evidence?.length ? { evidence: it.evidence } : {}),
       });
@@ -4615,6 +4619,7 @@ export async function findMoney(
     for (const it of items) {
       if (
         it.estimateKind === "protected" ||
+        it.estimateKind === "lead" ||
         it.category === "Cheaper gas" ||
         it.category === "Idle stablecoins"
       )

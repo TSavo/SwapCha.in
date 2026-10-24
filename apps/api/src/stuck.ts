@@ -24,7 +24,7 @@ const ev = (
 ): Evidence => ({ chainId, address, call, abi, args, raw, block });
 
 export interface StuckFound {
-  kind: "claimable" | "legacy" | "lending";
+  kind: "claimable" | "legacy" | "lending" | "lead";
   protocol: string;
   chainId: number;
   what: string;
@@ -1006,154 +1006,14 @@ export async function multichainCeler(
   return out;
 }
 
-// ---------- ENS / governance merkle airdrops ----------
-/** Distributors with public claim APIs or isClaimed(index) once index known.
- *  Without merkle proof we cannot build claim txs — we check claim portals / residual. */
-const MERKLE_DROPS: {
-  name: string;
-  chainId: number;
-  distributor: `0x${string}`;
-  token: `0x${string}`;
-  portal: string;
-  /** Optional: public JSON map address→{index,amount,proof} */
-  claimsUrl?: string;
-}[] = [
-  {
-    name: "Uniswap UNI",
-    chainId: 1,
-    distributor: "0x090D4613473dEE047c3f2706764f49E0821D256e",
-    token: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
-    portal: "https://app.uniswap.org/claim",
-  },
-  {
-    name: "ENS",
-    chainId: 1,
-    distributor: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
-    token: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72",
-    portal: "https://claim.ens.domains",
-  },
-  {
-    name: "1INCH",
-    chainId: 1,
-    distributor: "0xE295aD71242373C37C5FdA7B57F26f9eA1088AFe",
-    token: "0x111111111117dC0aa78b770fA6A738034120C302",
-    portal: "https://1inch.io",
-  },
-  {
-    name: "Optimism OP",
-    chainId: 10,
-    distributor: "0xEe6c5Ad861F185Be4aC151C9d0D811298bD1a483",
-    token: "0x4200000000000000000000000000000000000042",
-    portal: "https://app.optimism.io/airdrops",
-  },
-  {
-    name: "Arbitrum ARB",
-    chainId: 42161,
-    distributor: "0x67a24CE4321aB3aF51c2D0a4801c3E111D88C9d9",
-    token: "0x912CE59144191C1204E64559FE8253a0e49E6548",
-    portal: "https://arbitrum.foundation/claim",
-  },
-];
-
+// ---------- merkle airdrops (UNI / ENS / 1INCH / OP / ARB): see merkleClaims.ts ----------
 export async function merkleAirdrops(
-  f: F,
+  f: typeof fetch,
   env: NodeJS.ProcessEnv,
   owner: `0x${string}`,
 ): Promise<StuckFound[]> {
   const { merkleClaimFromTrees } = await import("./merkleClaims.js");
-  const fromTrees = await merkleClaimFromTrees(f, env, owner).catch(() => []);
-  const out: StuckFound[] = [...fromTrees];
-  const claimedProtocols = new Set(fromTrees.map((x) => x.protocol));
-  for (const d of MERKLE_DROPS) {
-    if (claimedProtocols.has(`${d.name} airdrop`)) continue;
-    const c = evmClient(d.chainId, env);
-    // Many distributors expose isClaimed(uint256) — without index we check token dust at distributor
-    // and whether owner already holds the airdrop token from a prior claim.
-    const held = await c
-      .readContract({
-        address: d.token,
-        abi: fn("balanceOf(address) view returns (uint256)"),
-        functionName: "balanceOf",
-        args: [owner],
-      })
-      .catch(() => 0n);
-    // If claimsUrl available, look up
-    if (d.claimsUrl) {
-      try {
-        const map = await json<Record<string, { index: number; amount: string; proof: string[] }>>(
-          f,
-          d.claimsUrl,
-          undefined,
-          20_000,
-        );
-        const row = map[owner.toLowerCase()] ?? map[getAddress(owner)];
-        if (row) {
-          const claimed = await c
-            .readContract({
-              address: d.distributor,
-              abi: fn("isClaimed(uint256) view returns (bool)"),
-              functionName: "isClaimed",
-              args: [BigInt(row.index)],
-            })
-            .catch(() => true);
-          if (!claimed) {
-            const amt = Number(formatUnits(BigInt(row.amount), 18));
-            out.push({
-              kind: "claimable",
-              protocol: `${d.name} airdrop`,
-              chainId: d.chainId,
-              what: `${amt.toPrecision(5)} unclaimed ${d.name}`,
-              valueUsd: null,
-              confidence: "high",
-              claimTx: {
-                chainId: d.chainId,
-                to: d.distributor,
-                data: encodeFunctionData({
-                  abi: fn("claim(uint256,address,uint256,bytes32[])"),
-                  functionName: "claim",
-                  args: [
-                    BigInt(row.index),
-                    owner,
-                    BigInt(row.amount),
-                    row.proof as `0x${string}`[],
-                  ],
-                }),
-                value: "0",
-                description: `claim(${row.index}): ${d.name} merkle airdrop`,
-              },
-              action: "Claim airdrop, then swap on SwapChan",
-              link: swapUrl(d.chainId, d.token, d.chainId, usdcOf(d.chainId)!, String(amt)),
-              evidence: [
-                ev(d.chainId, d.distributor, "isClaimed(uint256)", [String(row.index)], "false"),
-              ],
-              underlying: d.token,
-            });
-            continue;
-          }
-        }
-      } catch {}
-    }
-    // Fallback: point at portal if distributor still has code / balance and wallet never claimed
-    // (we can't know eligibility without the tree — surface as check)
-    if (typeof held === "bigint" && held === 0n) {
-      const code = await c.getCode({ address: d.distributor }).catch(() => "0x");
-      if (code && code !== "0x") {
-        out.push({
-          kind: "legacy",
-          protocol: `${d.name} airdrop (eligibility unknown)`,
-          chainId: d.chainId,
-          what: `Distributor ${d.distributor.slice(0, 10)}… still live — check portal if you were eligible and never claimed`,
-          valueUsd: null,
-          confidence: "low",
-          action: `Check ${d.portal}; if eligible, claim then swap on SwapChan`,
-          link: d.portal,
-          evidence: [ev(d.chainId, d.distributor, "getCode", [], (code as string).slice(0, 10))],
-          risk: "Cannot confirm eligibility without the merkle tree; portal check required",
-        });
-      }
-    }
-  }
-  return out;
+  return merkleClaimFromTrees(f, env, owner).catch(() => []);
 }
 
 // ---------- Uni v2 removeLiquidity tx builder ----------

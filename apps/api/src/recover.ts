@@ -186,14 +186,9 @@ export function recoveryFlow(
       shortUrl: s(rurl),
       tx,
     });
-  } else if (it.protocolUrl)
-    steps.push({
-      step: 1,
-      kind: "recover",
-      label: "Claim/withdraw on the protocol's app",
-      url: it.protocolUrl,
-      shortUrl: null,
-    });
+  }
+  // No buildable, verified tx -> no "Get it back" step. Never send people to an external portal
+  // as a recovery step; the protocol link stays informational (protocolUrl) only.
   steps.push({
     step: steps.length + 1,
     kind: "swap",

@@ -240,7 +240,9 @@ export function DashboardView({ address: input }: { address: string }) {
                         Open protocol
                       </a>
                     )}
-                    {i.steps?.length ? (
+                    {i.estimateKind === "lead" ? (
+                      <span className="text-xs font-bold text-amber-200">lead, not money</span>
+                    ) : i.steps?.length ? (
                       i.steps.map((st) => (
                         <a
                           key={st.step}
