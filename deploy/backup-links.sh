@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Off-box backup of SwapChan's permanent data (links.db = short URLs, "URLs are forever"; plus partners.db).
+# Off-box backup of SwapChan's permanent data (links.db = short URLs, "URLs are forever"; partners.db; watches.db = price watches + the pre-6539e94 stray short links).
 # Runs nightly at 03:17 from the Mac via launchd (~/Library/LaunchAgents/com.swapchan.backup-links.plist).
 #   1. VACUUM INTO a consistent snapshot inside the api container (Battleaxe, volume api-data)
 #   2. copy it to the Mac: ~/Backups/swapchan/<db>-YYYY-MM-DD.db (keep 90 days)
@@ -11,7 +11,7 @@ CTX=battleaxe; C=swapchan-api-1; OUT=$HOME/Backups/swapchan; D=$(date +%F)
 mkdir -p "$OUT"
 T=$(vault kv get -field=r2_edit secret/shared/cloudflare 2>/dev/null || true)
 A=$(vault kv get -field=account_id secret/swapchan/cloudflare 2>/dev/null || true)
-for db in links partners; do
+for db in links partners watches; do
   docker --context $CTX exec $C node -e "
     const {DatabaseSync}=require('node:sqlite');const fs=require('node:fs');
     fs.rmSync('/tmp/$db-offbox.db',{force:true});
