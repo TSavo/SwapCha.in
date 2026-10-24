@@ -347,7 +347,12 @@ export function createApp(
         execution: "nonevm",
         nonEvmTx: fresh.nonEvmTx,
       };
-    if (fresh.tx) return { ...fresh.tx, execution: "tx" };
+    if (fresh.tx)
+      return {
+        ...fresh.tx,
+        execution: "tx",
+        ...(fresh.relayOrder ? { relayOrder: fresh.relayOrder } : {}),
+      };
     return null;
   }
   app.route("/limit", limitRoutes(opts.cowFetch ?? fetch, env));

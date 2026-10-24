@@ -19,6 +19,7 @@
   "dependencies": {
     "@hono/node-server": "2.1.5",
     "@noble/curves": "1.9.7",
+    "@relay-protocol/settlement-sdk": "0.0.151",
     "@scure/base": "1.2.6",
     "@swapchan/shared": "workspace:*",
     "bitcoinjs-lib": "^7.0.4",

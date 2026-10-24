@@ -37,6 +37,7 @@ interface RelayQuote {
   }[];
   fees: Record<string, (Amt & { currency?: { chainId: number } }) | undefined>;
   details: { currencyOut: Amt; timeEstimate?: number };
+  protocol?: { v2?: { orderId: string; orderData: unknown } };
 }
 
 /** Relay: keyless (RELAY_API_KEY optional), same- and cross-chain. */
@@ -65,6 +66,7 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
           destinationCurrency: toRelay(req.toToken),
           amount: req.amount,
           tradeType: "EXACT_INPUT",
+          includeProtocolData: true, // order data the guard verifies (recipient, min out)
           slippageTolerance: String(req.slippageBps),
           ...(env.RELAY_API_KEY ? { referrer: "swapchan" } : {}), // referrer requires a key
           ...(env.SWAPCHAN_FEE_RECIPIENT && Number(env.SWAPCHAN_FEE_BPS) > 0
@@ -135,6 +137,9 @@ export function relay(env: NodeJS.ProcessEnv, f: Fetch = fetch): ProviderAdapter
         expiresAt: Date.now() + 30_000,
         ourFeeUsd: Number(app?.amountUsd ?? 0),
         ourFeeVerified: BigInt(app?.amount ?? "0") > 0n,
+        ...(r.protocol?.v2
+          ? { relayOrder: { orderId: r.protocol.v2.orderId, orderData: r.protocol.v2.orderData } }
+          : {}),
         ...(req.taker && nonEvmTx ? { execution: "nonevm" as const, nonEvmTx } : {}),
         // Relay only accepts an EVM app-fee recipient; fees on every chain accrue to it as a
         // claimable balance (api.relay.link/app-fees/<addr>/balances).

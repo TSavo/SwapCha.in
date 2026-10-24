@@ -184,6 +184,8 @@ export const Quote = z.object({
   order: TypedData.optional(),
   /** Additive v1: set when the origin chain is non-EVM (execution === "nonevm"). */
   nonEvmTx: NonEvmTx.optional(),
+  /** Relay Protocol v2 order (orderId + orderData) the deposit commits to; verify with @relay-protocol/settlement-sdk. */
+  relayOrder: z.object({ orderId: z.string(), orderData: z.any() }).optional(),
   /** Who receives SwapChan's fee on this route (address + chain), when known. */
   feeRecipient: z.object({ address: z.string(), chainId: ChainId }).optional(),
   /** Additive v1: true only when every guard check passed on this payload (needs taker). */
@@ -208,6 +210,8 @@ export const BuildResponse = TxRequest.extend({
   execution: z.enum(["tx", "order", "nonevm"]).optional(),
   order: TypedData.optional(),
   nonEvmTx: NonEvmTx.optional(),
+  /** Relay Protocol v2 order (orderId + orderData) the deposit commits to; verify with @relay-protocol/settlement-sdk. */
+  relayOrder: z.object({ orderId: z.string(), orderData: z.any() }).optional(),
   verified: z.boolean().optional(),
   verification: Verification.optional(),
   /** Set when the requested quote failed verification and a fallback route was built instead. */

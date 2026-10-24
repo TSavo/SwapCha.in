@@ -23,6 +23,7 @@ import {
 } from "./allowlist.js";
 import type { GuardCtx } from "./ctx.js";
 import { type Decoded, decodeApprove, decodeEvm, lifiNonEvm } from "./evm.js";
+import { checkRelayOrder, type RelayOrder } from "./relay.js";
 import {
   ata,
   checkSvmIxs,
@@ -60,6 +61,8 @@ export interface Payload {
   permit2?: TypedData | undefined;
   order?: TypedData | undefined;
   nonEvmTx?: NonEvmTx | undefined;
+  /** Relay Protocol v2 order the deposit must commit to. */
+  relayOrder?: RelayOrder | undefined;
 }
 
 const PERMIT2 = "0x000000000022d473030f116ddee9f6b43ac78ba3";
@@ -283,6 +286,26 @@ async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest
     );
     if (thor?.halted) c.bad("vault", "THORChain chain halted");
     return checkRecipientMemo(c, d.memo ?? "", dest);
+  }
+  if (provider === "relay" && d.fn.startsWith("deposit")) {
+    // Depository deposit: recipient + min out live in the Relay order the deposit id commits to.
+    if (!taker || !dest) return c.part("recipient", "indicative Relay quote without taker");
+    const cur = (chainId: number, t: string) =>
+      isNativeTok(chainId, t) && isEvmChain(chainId) ? ZERO : t;
+    checkRelayOrder(c, {
+      order: p.relayOrder,
+      proto: await ctx.relayProtocol?.().catch(() => undefined),
+      tx,
+      fromChainId: req.fromChainId,
+      toChainId: req.toChainId,
+      fromCurrency: cur(req.fromChainId, req.fromToken),
+      toCurrency: cur(req.toChainId, req.toToken),
+      amount: BigInt(req.amount),
+      taker,
+      recipient: dest,
+      minOut: minBound(p),
+    });
+    return;
   }
   if (provider === "relay") {
     if (dest && contains(tx.data, dest)) c.ok("recipient", "found in calldata");
@@ -686,6 +709,7 @@ export const quotePayload = (q: Quote): Payload => ({
   tx: q.tx,
   order: q.order,
   nonEvmTx: q.nonEvmTx,
+  relayOrder: q.relayOrder,
 });
 
 export const buildPayload = (q: Quote, req: QuoteRequest, b: BuildResponse): Payload => ({
@@ -698,6 +722,7 @@ export const buildPayload = (q: Quote, req: QuoteRequest, b: BuildResponse): Pay
   permit2: b.permit2,
   order: b.order,
   nonEvmTx: b.nonEvmTx,
+  relayOrder: b.relayOrder,
 });
 
 export const failures = (v: Verification) =>

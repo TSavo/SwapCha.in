@@ -1,6 +1,7 @@
 import { createPublicClient, http, parseAbi } from "viem";
 import type { Fetch } from "../providers/types.js";
 import { CHAINS } from "../simulate.js";
+import { type RelayProtocol, relayProtocolFromChains } from "./relay.js";
 
 export interface ThorInbound {
   chain: string;
@@ -14,6 +15,8 @@ export interface GuardCtx {
   thorInbound(): Promise<ThorInbound[]>;
   /** Relay contracts + solver addresses for a chain, from api.relay.link/chains. */
   relay(chainId: number): Promise<{ contracts: string[]; solvers: string[] }>;
+  /** Relay Protocol v2 chain names, VM types and canonical depositories (GET /chains). */
+  relayProtocol?(): Promise<RelayProtocol>;
   /** Current + previous 0x Settler (taker-submitted, feature 2) from the 0x Deployer registry. */
   zeroxSettlers(chainId: number): Promise<string[]>;
 }
@@ -51,13 +54,20 @@ export function liveGuardCtx(env: NodeJS.ProcessEnv = process.env, f: Fetch = fe
     if (!r.ok) throw new Error(`relay chains ${r.status}`);
     return (
       (await r.json()) as {
-        chains: { id: number; contracts?: Record<string, unknown>; solverAddresses?: string[] }[];
+        chains: {
+          id: number;
+          vmType?: string;
+          protocol?: { v2?: { chainId?: string; depository?: string } };
+          contracts?: Record<string, unknown>;
+          solverAddresses?: string[];
+        }[];
       }
     ).chains;
   });
   const settlers = new Map<number, () => Promise<string[]>>();
   return {
     thorInbound: inbound,
+    relayProtocol: async () => relayProtocolFromChains(await relayChains()),
     zeroxSettlers(chainId) {
       let g = settlers.get(chainId);
       if (!g) {
