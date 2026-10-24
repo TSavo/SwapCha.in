@@ -1,3 +1,4 @@
+import { aaveSupplied } from "./aave.js";
 import { vaultPositions } from "./vaults.js";
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
@@ -3404,13 +3405,14 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       );
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
       const own = getAddress(address);
-      const [wn, lido, safes, vaults] = await Promise.all([
+      const [wn, lido, safes, vaults, aaveS] = await Promise.all([
         wrappedNative(f, env, own).catch(() => []),
         lidoWithdrawals(f, env, own).catch(() => []),
         ownedSafes(f, env, own).catch(() => []),
         vaultPositions(f, env, own).catch(() => []),
+        aaveSupplied(f, env, own).catch(() => []),
       ]);
-      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]));
+      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]));
       sources.push("vault registry: Yearn v2/v3, Beefy, Morpho, sDAI/sUSDS/sfrxETH/scrvUSD/sUSDe on 7 EVM chains");
       sources.push(
         "unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains",

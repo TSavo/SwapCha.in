@@ -52,6 +52,7 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "vest()", owners: [] },
   { sig: "claimRewards()", owners: [] },
   { sig: "withdraw(uint256)", owners: [] },
+  { sig: "withdraw(address,uint256,address)", owners: [2] },
   { sig: "redeem(uint256,address,address)", owners: [1, 2] },
   { sig: "withdrawToken(address,uint256)", owners: [] },
   { sig: "claimComp(address)", owners: [0] },
