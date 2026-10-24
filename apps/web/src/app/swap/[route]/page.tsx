@@ -75,7 +75,12 @@ export default async function RoutePage({ params }: Props) {
   if (!r) {
     const tr = await trend(slug);
     if (!tr) notFound();
-    return <TrendingRoute token={tr.token} market={tr.market} input={tr.input} />;
+    return (
+      <>
+        <TrendingRoute token={tr.token} market={tr.market} input={tr.input} />
+        <AgentCTASection tool="get_quote" />
+      </>
+    );
   }
   const q = await routeQuotes(r);
   const fk = chainKey(r.fromChainId);

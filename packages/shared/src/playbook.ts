@@ -148,7 +148,7 @@ export const WORKFLOWS: Record<
       "Poll find_money_status {jobId} every ~15s (scans can take minutes). Tell the user progress if it's slow ('3/7 wallets, ~$410 so far').",
       "Confirm the top items: for each recovery package, re-run its evidence reads with read_chain (op=call, same address/function/args, blockTag) and check the value matches. Drop anything you can't reproduce.",
       "Relay `summary` verbatim (it has the total, ranked items, and short + full links), then walk `plan`: phase1_recover (highest $ first), phase2_protect (revokes via build_revoke_tx), phase3_swap (swapAll).",
-      "No key / lost wallet app? signing_guide / recovery_guide first: user runs the local script, gives back public addresses, rescan.",
+      "No key / lost wallet app? signing_guide / recovery_guide first: user runs the local script (gap limit 20 per path, 50+ heavy users, all wallet paths, passphrase candidates), gives back ALL the labeled public addresses, find_money_batch them.",
       ...SIGN_LOOP.map((s) => `For each recovery tx: ${s}`),
       "Then swap the freed funds: build_swap_link (short + full) or get_quote/compare_routes → build_swap_tx → verify_tx → human → sign → broadcast_tx → get_route_status.",
       "Finish with a recap: recovered $, tx hashes with explorer links, what's left.",
@@ -217,7 +217,8 @@ export const WORKFLOWS: Record<
     steps: [
       "NEVER ask for the phrase/key/file contents in chat. Explain why (logs, scams).",
       "recovery_guide {situation} (seed-phrase, missing-word, passphrase, keystore, presale, electrum, wallet-dat, …) → write/run the reference script LOCALLY OFFLINE with the user.",
-      "The script prints PUBLIC addresses only (all common derivation paths). Paste those into find_money_batch.",
+      "The script prints labeled PUBLIC addresses only: GAP per path (20 default, 50+ for heavy users) on all 10 paths (MetaMask/Trezor/Trust/Exodus EVM, Ledger Live, Ledger legacy, TronLink, Phantom, Solflare legacy, BTC 44/49/84/86), for every passphrase candidate. 10 paths x 20 = 200 addresses per phrase; GAP=50 = 500.",
+      "Paste ALL of them into find_money_batch (up to 500 labeled addresses per batch; labels come back as walletLabel). Never scan only index 0. If anything near index GAP-1 has activity, rerun with a bigger GAP.",
       "Then the find-money workflow. Signing happens locally (same script or an imported wallet), after verify_tx and an explicit human yes; broadcast_tx relays the signed bytes.",
     ],
   },

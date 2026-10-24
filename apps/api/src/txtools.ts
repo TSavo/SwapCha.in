@@ -845,7 +845,7 @@ export function signingGuide(
         n: 1,
         name: "Key recovery (do you have the key?)",
         summary:
-          "If the user cannot already sign, recover the key offline on their machine. Only PUBLIC addresses leave the box. Full playbook is in `keyRecovery` below (pass situation= to get one branch).",
+          "If the user cannot already sign, recover the key offline on their machine. Only PUBLIC addresses leave the box. Full playbook is in `keyRecovery` below (pass situation= to get one branch). From a phrase, derive MANY addresses: 20 per path (50+ for heavy users) on every wallet path, plus passphrase candidates (keyRecovery.gapPolicy), and send them all, labeled, to find_money_batch.",
         tool: "recovery_guide / signing_guide",
       },
       {
@@ -875,7 +875,8 @@ export function signingGuide(
     verifyTool:
       "Run verify_tx on every unsigned tx before showing it to the human. It returns a verdict, findings, a simulation and a plain-language summary.",
     loop: [
-      "recovery_guide (if needed) -> PUBLIC addresses only",
+      "recovery_guide (if needed) -> PUBLIC addresses only (gap limit 20 per path, 50+ heavy users, all paths, passphrase candidates)",
+      "find_money_batch with all of them (up to 500 labeled addresses per batch)",
       "find_money or get_quote: unsigned tx",
       "verify_tx: verdict + plain-language summary",
       "the human reviews the summary and signs in their own wallet",

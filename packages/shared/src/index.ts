@@ -215,7 +215,9 @@ export const BuildResponse = TxRequest.extend({
   verified: z.boolean().optional(),
   verification: Verification.optional(),
   /** Set when the requested quote failed verification and a fallback route was built instead. */
-  fallbackFrom: z.object({ quoteId: z.string(), provider: z.string(), reason: z.string() }).optional(),
+  fallbackFrom: z
+    .object({ quoteId: z.string(), provider: z.string(), reason: z.string() })
+    .optional(),
   quoteId: z.string().optional(),
   provider: z.string().optional(),
 });

@@ -14,40 +14,116 @@ export const KEY_WARNINGS = [
   "Work on a COPY of any wallet file. Once found, move funds to a fresh wallet: an old key that has been typed into a script is no longer pristine.",
 ];
 
+/** How many addresses to derive per phrase. */
+export const GAP_POLICY = {
+  perPath: 20,
+  heavyUser: 50,
+  rule: "Derive GAP addresses on EVERY path below (not just index 0): 20 per path by default, 50+ for heavy users (many accounts, exchanges' deposit habits, Ledger Live with several accounts). If any address near index GAP-1 has history, raise GAP and rerun. Also derive with each BIP39 passphrase candidate the user remembers (blank first). Send ALL of them, labeled with wallet + path, to find_money_batch (up to 500 per batch).",
+  example: "GAP=20, one passphrase: 10 paths x 20 = 200 addresses. GAP=50: 500 (one full batch).",
+};
+
 export const DERIVATION_PATHS = [
   {
-    wallet: "MetaMask, Trust, Exodus, Trezor, Rabby (EVM)",
+    wallet: "MetaMask, Trezor, Trust, Exodus, Rabby (EVM)",
     chain: "evm",
     path: "m/44'/60'/0'/0/{i}",
   },
   { wallet: "Ledger Live (EVM)", chain: "evm", path: "m/44'/60'/{i}'/0/0" },
   { wallet: "Ledger legacy / MEW / MyCrypto (EVM)", chain: "evm", path: "m/44'/60'/0'/{i}" },
-  { wallet: "Phantom, Solflare, Backpack (Solana)", chain: "solana", path: "m/44'/501'/{i}'/0'" },
+  {
+    wallet: "Phantom, Solflare, Backpack, Trust, Exodus (Solana)",
+    chain: "solana",
+    path: "m/44'/501'/{i}'/0'",
+  },
   { wallet: "Solflare legacy / Sollet", chain: "solana", path: "m/44'/501'/{i}'" },
   { wallet: "TronLink, Trust (Tron)", chain: "tron", path: "m/44'/195'/0'/0/{i}" },
   { wallet: "Bitcoin legacy P2PKH (1…)", chain: "btc", path: "m/44'/0'/0'/0/{i}" },
   { wallet: "Bitcoin nested SegWit (3…)", chain: "btc", path: "m/49'/0'/0'/0/{i}" },
-  { wallet: "Bitcoin native SegWit (bc1q…)", chain: "btc", path: "m/84'/0'/0'/0/{i}" },
+  {
+    wallet: "Bitcoin native SegWit (bc1q…; Exodus, Trezor, Ledger default)",
+    chain: "btc",
+    path: "m/84'/0'/0'/0/{i}",
+  },
   { wallet: "Bitcoin Taproot (bc1p…)", chain: "btc", path: "m/86'/0'/0'/0/{i}" },
 ];
 
-const SCAN_JS = `// npm i @scure/bip39 @scure/bip32 viem   (then go OFFLINE)
-// Run locally:  node scan.mjs   - prompts for the phrase, prints PUBLIC addresses only.
+/** Offline multi-chain deriver: every path below, GAP addresses each, optional passphrase candidates; prints labeled PUBLIC addresses for find_money_batch. Verified against the public "abandon x11 about" test vectors. */
+export const SCAN_JS = String.raw`// npm i @scure/bip39 @scure/bip32 @scure/btc-signer @noble/hashes @noble/curves @scure/base   (then go OFFLINE)
+// Run locally:  node scan.mjs  [GAP=20|50 env]  [PASSPHRASES=file.txt env, one candidate per line]
+// Prompts for the phrase, prints LABELED PUBLIC addresses only, one per line, ready to paste into find_money_batch.
 import { mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { HDKey } from "@scure/bip32";
-import { privateKeyToAddress } from "viem/accounts";
-import { toHex } from "viem";
+import { keccak_256 } from "@noble/hashes/sha3.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { hmac } from "@noble/hashes/hmac.js";
+import { sha512 } from "@noble/hashes/sha2.js";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { ed25519 } from "@noble/curves/ed25519.js";
+import { base58, base58check } from "@scure/base";
+import * as btc from "@scure/btc-signer";
+import { readFileSync, writeFileSync } from "node:fs";
 import readline from "node:readline/promises";
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const phrase = (await rl.question("phrase (stays on this machine): ")).trim().toLowerCase();
-const pass = await rl.question("BIP39 passphrase (blank if none): "); rl.close();
-if (!validateMnemonic(phrase, wordlist)) throw new Error("checksum fails: see missing-word recovery");
-const root = HDKey.fromMasterSeed(mnemonicToSeedSync(phrase, pass));
-const paths = ["m/44'/60'/0'/0/{i}", "m/44'/60'/{i}'/0/0", "m/44'/60'/0'/{i}"];
-for (const p of paths) for (let i = 0; i < 10; i++)
-  console.log(p.replace("{i}", String(i)), privateKeyToAddress(toHex(root.derive(p.replace("{i}", String(i))).privateKey!)));
-// Paste ONLY these addresses into find_money.`;
+
+const GAP = Number(process.env.GAP || 20); // 20 per path; 50+ for heavy users
+const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+const phrase = (process.env.PHRASE || (await rl.question("phrase (stays on this machine): "))).trim().toLowerCase().split(/\s+/).join(" ");
+rl.close();
+if (!validateMnemonic(phrase, wordlist)) throw new Error("checksum fails: see the missing-word branch");
+const passes = [""].concat(process.env.PASSPHRASES ? readFileSync(process.env.PASSPHRASES, "utf8").split("\n").filter(Boolean) : []);
+
+const evm = (k) => {
+  const pub = secp256k1.getPublicKey(k.privateKey, false).slice(1);
+  const h = Buffer.from(keccak_256(pub)).toString("hex").slice(-40);
+  const hh = Buffer.from(keccak_256(new TextEncoder().encode(h))).toString("hex");
+  return "0x" + [...h].map((c, i) => (parseInt(hh[i], 16) >= 8 ? c.toUpperCase() : c)).join("");
+};
+const tron = (k) => base58check(sha256).encode(Uint8Array.from(Buffer.from("41" + evm(k).slice(2).toLowerCase(), "hex")));
+// Solana: SLIP-10 ed25519, all segments hardened
+const slip10 = (seed, path) => {
+  let I = hmac(sha512, new TextEncoder().encode("ed25519 seed"), seed);
+  let key = I.slice(0, 32), chain = I.slice(32);
+  for (const seg of path.split("/").slice(1)) {
+    const idx = (parseInt(seg, 10) | 0x80000000) >>> 0;
+    const data = new Uint8Array(37); data.set(key, 1);
+    new DataView(data.buffer).setUint32(33, idx);
+    I = hmac(sha512, chain, data); key = I.slice(0, 32); chain = I.slice(32);
+  }
+  return base58.encode(ed25519.getPublicKey(key));
+};
+const BTC = {
+  44: (pk) => btc.p2pkh(pk).address,
+  49: (pk) => btc.p2sh(btc.p2wpkh(pk)).address,
+  84: (pk) => btc.p2wpkh(pk).address,
+  86: (pk) => btc.p2tr(pk.slice(1)).address,
+};
+const PATHS = [
+  ["MetaMask/Trezor/Trust/Exodus/Rabby EVM", "m/44'/60'/0'/0/{i}", "evm"],
+  ["Ledger Live EVM", "m/44'/60'/{i}'/0/0", "evm"],
+  ["Ledger legacy/MEW EVM", "m/44'/60'/0'/{i}", "evm"],
+  ["TronLink/Trust Tron", "m/44'/195'/0'/0/{i}", "tron"],
+  ["Phantom/Solflare/Backpack/Trust/Exodus Solana", "m/44'/501'/{i}'/0'", "sol"],
+  ["Solflare legacy/Sollet Solana", "m/44'/501'/{i}'", "sol"],
+  ["BTC legacy (1...)", "m/44'/0'/0'/0/{i}", "btc44"],
+  ["BTC nested SegWit (3...)", "m/49'/0'/0'/0/{i}", "btc49"],
+  ["BTC native SegWit (bc1q...) Exodus/Trezor/Ledger", "m/84'/0'/0'/0/{i}", "btc84"],
+  ["BTC Taproot (bc1p...)", "m/86'/0'/0'/0/{i}", "btc86"],
+];
+const out = [];
+for (const [pi, pass] of passes.entries()) {
+  const seed = mnemonicToSeedSync(phrase, pass);
+  const root = HDKey.fromMasterSeed(seed);
+  const tag = pi ? " [passphrase #" + pi + "]" : "";
+  for (const [name, tpl, kind] of PATHS)
+    for (let i = 0; i < GAP; i++) {
+      const p = tpl.replace("{i}", String(i));
+      const a = kind === "sol" ? slip10(seed, p) : kind === "evm" ? evm(root.derive(p)) : kind === "tron" ? tron(root.derive(p)) : BTC[kind.slice(3)](root.derive(p).publicKey);
+      out.push(name + " " + p + tag + " " + a);
+    }
+}
+writeFileSync("addresses.txt", out.join("\n") + "\n");
+console.log(out.join("\n"));
+console.error("\n" + out.length + " public addresses (GAP=" + GAP + ", " + passes.length + " passphrase candidate(s)) -> addresses.txt. Paste ONLY this file into find_money_batch (max 500 per batch; split if larger). If any address near index GAP-1 shows activity, rerun with a bigger GAP.");`;
 
 const SCAN_PY = `# pip install bip_utils   (then go OFFLINE). Covers EVM, Solana, Tron and all 4 BTC script types.
 from getpass import getpass
@@ -183,8 +259,9 @@ export const RECOVERY_BRANCHES: RecoveryBranch[] = [
     steps: [
       "Confirm the human will run the script on THEIR machine. Write scan.mjs or scan.py to disk; do not ask them to paste the phrase into chat.",
       "Have them disconnect networking (or use a live USB), run the script, enter the phrase at the local prompt.",
-      "Script prints PUBLIC addresses across common derivation paths. Copy those addresses only.",
-      "Call find_money on each address. For any finding: verify_tx -> human signs locally -> broadcast_tx.",
+      "Script derives GAP addresses (20 per path; GAP=50 for heavy users) on all 10 wallet paths (MetaMask/Trezor/Trust/Exodus EVM, Ledger Live, Ledger legacy, TronLink, Phantom, Solflare legacy, BTC 44/49/84/86) and for each passphrase candidate (PASSPHRASES=file), and writes labeled PUBLIC addresses to addresses.txt.",
+      "Send the WHOLE addresses.txt to find_money_batch (it keeps the labels; up to 500 per batch). Do not send only index 0: forgotten money is usually on account 2, 3 or a Ledger Live account.",
+      "If any address near index GAP-1 has activity, rerun with a bigger GAP. For any finding: verify_tx -> human signs locally -> broadcast_tx.",
       "After funds move, generate a NEW wallet for ongoing use; the typed seed is no longer pristine.",
     ],
     code: `${SCAN_JS}\n\n# --- or Python (multi-chain) ---\n${SCAN_PY}`,
@@ -360,9 +437,10 @@ export function recoveryGuide(situation: Situation | string = "full") {
     warnings: KEY_WARNINGS,
     decisionTree: DECISION_TREE,
     derivationPaths: DERIVATION_PATHS,
+    gapPolicy: GAP_POLICY,
     situations: branches,
     nextSteps: [
-      "find_money(address) on every public address the local script printed",
+      "find_money_batch with EVERY labeled public address the local script printed (GAP per path, all paths, all passphrase candidates); find_money for a single address",
       "verify_tx on every unsigned recovery / swap tx",
       "human reviews the verify_tx summary and signs in THEIR wallet (hardware preferred)",
       "broadcast_tx (optional; Flashbots Protect on Ethereum mainnet) then tx_status",
