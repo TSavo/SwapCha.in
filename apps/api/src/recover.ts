@@ -52,6 +52,9 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "vest()", owners: [] },
   { sig: "claimRewards()", owners: [] },
   { sig: "withdraw(uint256)", owners: [] },
+  { sig: "withdrawAndUnwrap(uint256,bool)", owners: [] },
+  { sig: "withdrawAndHarvest(uint256,uint256,address)", owners: [2] },
+  { sig: "withdraw(uint256,uint256)", owners: [] },
   { sig: "withdraw(address,uint256,address)", owners: [2] },
   {
     sig: "completeQueuedWithdrawal((address staker,address delegatedTo,address withdrawer,uint256 nonce,uint32 startBlock,address[] strategies,uint256[] scaledShares),address[],bool)",
