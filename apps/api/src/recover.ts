@@ -53,6 +53,11 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "claimRewards()", owners: [] },
   { sig: "withdraw(uint256)", owners: [] },
   { sig: "withdraw(address,uint256,address)", owners: [2] },
+  {
+    sig: "completeQueuedWithdrawal((address staker,address delegatedTo,address withdrawer,uint256 nonce,uint32 startBlock,address[] strategies,uint256[] scaledShares),address[],bool)",
+    owners: [-2],
+  },
+  { sig: "queueWithdrawals((address[] strategies,uint256[] depositShares,address withdrawer)[])", owners: [] },
   { sig: "redeem(uint256,address,address)", owners: [1, 2] },
   { sig: "withdrawToken(address,uint256)", owners: [] },
   { sig: "claimComp(address)", owners: [0] },
@@ -76,7 +81,12 @@ export function verifyRecovery(tx: { to: string; data: string; value: string }, 
       const d = decodeFunctionData({ abi: s.abi, data: tx.data as `0x${string}` });
       const args = (d.args ?? []) as unknown[];
       const ok = s.owners.every((i) => {
-        const v = i === -1 ? (args[0] as { recipient: string }).recipient : args[i];
+        const v =
+          i === -1
+            ? (args[0] as { recipient: string }).recipient
+            : i === -2
+              ? (args[0] as { withdrawer: string }).withdrawer
+              : args[i];
         return typeof v === "string" && v.toLowerCase() === owner.toLowerCase();
       });
       return ok
