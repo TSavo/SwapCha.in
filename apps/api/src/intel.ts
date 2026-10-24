@@ -2,6 +2,7 @@ import { aaveSupplied } from "./aave.js";
 import { eigenLayer } from "./eigen.js";
 import { beaconValidators } from "./beacon.js";
 import { lstQueues } from "./lst.js";
+import { clPositions } from "./lp.js";
 import { vaultPositions } from "./vaults.js";
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
@@ -3432,7 +3433,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
       const archChains = env.ETHERSCAN_API_KEY ? [1, 42161, 10, 137, 43114, 534352, 59144] : [1, 10, 534352, 43114, 59144];
       const noArch = { items: [] as Found[], stats: { error: "not checked (timeout)" } as Record<string, number | string> };
-      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, stuck, ...arch] = await Promise.all([
+      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, stuck, ...arch] = await Promise.all([
         timed("Merkl", merklP, [] as Found[]),
         timed("legacy contracts", legacyP, [] as Found[]),
         timed("wrapped native", wrappedNative(f, env, own), []),
@@ -3443,13 +3444,15 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         timed("EigenLayer", eigenLayer(f, env, own), []),
         timed("beacon validators", beaconValidators(f, own), []),
         timed("LST queues", lstQueues(f, env, own), []),
+        timed("LP positions", clPositions(f, env, own), []),
         timed("contract registry", stuckMoneyRegistry(f, env, own), []),
         ...archChains.map((id) => timed(`history ${chainName(id)}`, evmArchaeology(f, env, id, own), noArch, Number(env.FIND_ARCH_TIMEOUT_MS ?? 15_000))),
       ]);
       items.push(...(merklR as Found[]), ...(legacyR as Found[]));
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
-      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]), ...(eigen as Found[]), ...(beacon as Found[]), ...(lstQ as Found[]));
+      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]), ...(eigen as Found[]), ...(beacon as Found[]), ...(lstQ as Found[]), ...(lp as Found[]));
+      sources.push("concentrated-liquidity positions (principal + fees, exact): Uniswap v3 on 7 chains, Sushi v3, PancakeSwap v3");
       sources.push("withdrawal queues: ether.fi, Frax, Swell, Stader; EigenLayer; beacon validators; Aave/Spark supplied; vault registry: Yearn v2/v3, Beefy, Morpho, sDAI/sUSDS/sfrxETH/scrvUSD/sUSDe on 7 EVM chains");
       sources.push(
         "unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains",
@@ -3462,10 +3465,13 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       const vaultKeys = new Set(
         (vaults as Found[]).map((v) => `${v.chainId}:${String((v.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase()}`),
       );
+      // a position already reported with principal+fees is not repeated as "fees only"
+      const lpKeys = new Set((lp as Found[]).map((x) => `${x.chainId}:${/#(\d+)/.exec(x.what)?.[1]}`));
       for (const a of arch)
         items.push(
           ...a.items.filter(
             (x) =>
+              !(x.protocol === "Uniswap v3 fees" && lpKeys.has(`${x.chainId}:${/#(\d+)/.exec(x.what)?.[1]}`)) &&
               !(
                 x.protocol.startsWith("Vault ") &&
                 vaultKeys.has(`${x.chainId}:${String((x.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase()}`)

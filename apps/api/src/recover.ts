@@ -70,16 +70,30 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "claimCollateral()", owners: [] },
   { sig: "claim(uint256,address,uint256,bytes32[])", owners: [1] },
   { sig: "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)", owners: [5] },
+  { sig: "decreaseLiquidity((uint256 tokenId,uint128 liquidity,uint256 amount0Min,uint256 amount1Min,uint256 deadline))", owners: [] },
   {
     sig: "collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max))",
     owners: [-1],
   },
 ];
+const MULTICALL = fn("multicall(bytes[])");
 const ABIS = STANDARD_RECOVERY.map((s) => ({ ...s, abi: fn(s.sig) }));
 
 /** Decode a recovery tx and prove it can only pay the owner. Fails closed. */
-export function verifyRecovery(tx: { to: string; data: string; value: string }, owner: string) {
+export type Verdict = { readonly verified: true; readonly call: string } | { readonly verified: false; readonly reason: string };
+export function verifyRecovery(tx: { to: string; data: string; value: string }, owner: string): Verdict {
   if (BigInt(tx.value || "0") !== 0n) return { verified: false, reason: "non-zero value" } as const;
+  // multicall(bytes[]): every inner call must itself be a verified recovery call
+  try {
+    const m = decodeFunctionData({ abi: MULTICALL, data: tx.data as `0x${string}` });
+    const inner = m.args[0] as readonly `0x${string}`[];
+    if (!inner.length) return { verified: false, reason: "empty multicall" } as const;
+    for (const d of inner) {
+      const v = verifyRecovery({ to: tx.to, data: d, value: "0" }, owner);
+      if (!v.verified) return { verified: false, reason: `multicall: ${v.reason}` } as const;
+    }
+    return { verified: true, call: "multicall(bytes[])" } as const;
+  } catch {}
   for (const s of ABIS) {
     try {
       const d = decodeFunctionData({ abi: s.abi, data: tx.data as `0x${string}` });
