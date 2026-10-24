@@ -4132,9 +4132,26 @@ export function migrateStrayLinks(from: DatabaseSync, to: DatabaseSync) {
   } catch {
     return 0;
   }
+  // Ids that collided with an id already issued from links.db (2026-10-23: 100..103) are never
+  // overwritten (the links.db target is the one that has been resolving); their other target is
+  // kept in link_collisions so it is never silently lost.
+  to.exec(
+    `CREATE TABLE IF NOT EXISTS link_collisions (id TEXT NOT NULL, url TEXT NOT NULL, created INTEGER NOT NULL, source TEXT NOT NULL, recorded INTEGER NOT NULL, PRIMARY KEY (id, url));`,
+  );
   const ins = to.prepare("INSERT OR IGNORE INTO links (n, id, url, created, clicks) VALUES (?, ?, ?, ?, ?)");
+  const held = to.prepare("SELECT url FROM links WHERE id = ?");
+  const col = to.prepare(
+    "INSERT OR IGNORE INTO link_collisions (id, url, created, source, recorded) VALUES (?, ?, ?, 'watches.db', ?)",
+  );
   let moved = 0;
-  for (const r of rows) moved += Number(ins.run(r.n, r.id, r.url, r.created, r.clicks).changes);
+  for (const r of rows) {
+    const c = Number(ins.run(r.n, r.id, r.url, r.created, r.clicks).changes);
+    moved += c;
+    if (!c) {
+      const h = held.get(r.id) as { url: string } | undefined;
+      if (h && h.url !== r.url) col.run(r.id, r.url, r.created, Date.now());
+    }
+  }
   return moved;
 }
 export function linkRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync) {
