@@ -126,6 +126,11 @@ describe("swapchan mcp over streamable http", () => {
         "rebalance_plan",
         "bridge_doctor",
         "best_time_to_swap",
+        "verify_tx",
+        "broadcast_tx",
+        "tx_status",
+        "signing_guide",
+        "recovery_guide",
       ].sort(),
     );
     await c.close();

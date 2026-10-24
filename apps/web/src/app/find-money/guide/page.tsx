@@ -104,6 +104,12 @@ export default function Page() {
   "recoveryTx": { "to": "0xB377…efBe", "data": "0x3ccfd60b", "value": "0",
                   "unsigned": true, "verified": true }
 }`}</pre>
+        <p className="text-sm">
+          Full agent loop: find_money →{" "}
+          <Link href="/agents/secure-signing" className="underline">signing_guide / verify_tx</Link> → human signs →{" "}
+          <Link href="/broadcast" className="underline">broadcast_tx</Link>. Lost the key?{" "}
+          <Link href="/recover" className="underline">Key recovery hub</Link>.
+        </p>
         <AgentCTAs />
       </section>
 

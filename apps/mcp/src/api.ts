@@ -209,6 +209,21 @@ export class SwapChanApi {
   findMoney(address: string): Promise<Rec> {
     return this.rec(`/onchain/money?${qs({ address })}`, undefined, 90_000);
   }
+  verifyTx(body: Rec): Promise<Rec> {
+    return this.rec("/onchain/verify-tx", { method: "POST", body: JSON.stringify(body) }, 60_000);
+  }
+  broadcastTx(body: Rec): Promise<Rec> {
+    return this.rec("/onchain/broadcast", { method: "POST", body: JSON.stringify(body) }, 60_000);
+  }
+  txStatus(chainId: string, hash: string): Promise<Rec> {
+    return this.rec(`/onchain/tx-status?${qs({ chainId, hash })}`);
+  }
+  signingGuide(chain?: string, situation?: string): Promise<Rec> {
+    return this.rec(`/onchain/signing-guide?${qs({ chain, situation })}`);
+  }
+  recoveryGuide(situation?: string): Promise<Rec> {
+    return this.rec(`/onchain/recovery-guide?${qs({ situation })}`);
+  }
   swapLink(p: Rec): Promise<Rec> {
     return this.rec(`/links/swap?${qs(p)}`);
   }

@@ -1850,5 +1850,121 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     ),
   );
 
+  const situationArg = z
+    .string()
+    .optional()
+    .describe(
+      'Recovery branch: full | seed-phrase | missing-word | passphrase | keystore | presale | electrum | wallet-dat | blockchain-info | hardware | raw-key | password-hints. Default full returns every branch in-context.',
+    );
+  const txObj = z.union([
+    z.string().max(200_000),
+    z.record(z.string(), z.unknown()),
+  ]);
+  const expectedObj = z
+    .object({
+      to: z.string().optional(),
+      recipient: z.string().optional(),
+      maxValue: z.string().optional(),
+      minOut: z.string().optional(),
+      quotedOut: z.string().optional(),
+    })
+    .optional();
+
+  server.registerTool(
+    "verify_tx",
+    {
+      title: "Verify an unsigned transaction before signing",
+      description: `Run SwapChan's calldata guard + simulation on any unsigned tx and return a verdict (ok / caution / danger), findings, balance-diff simulation and a plain-language summary for human sign-off. Covers unlimited approvals, Permit2, setApprovalForAll, Safe DELEGATECALL, proxy upgrades, EIP-7702, ownership transfers, address poisoning lookalikes, minOut vs quote, Solana program allowlist + simulateTransaction, Tron AccountPermissionUpdate. Always show the summary to the human and get an explicit yes for THIS tx before their wallet signs. Trustless: read-only, never signs. ${DISPLAY}`,
+      inputSchema: z.object({
+        chainId: chainArg,
+        tx: txObj.describe("EVM {from,to,data,value}, Solana base64 tx, or Tron tx JSON"),
+        expected: expectedObj,
+      }),
+      annotations: ro,
+    },
+    safe(
+      async (a: { chainId: number | string; tx: unknown; expected?: Record<string, unknown> | undefined }) =>
+        api.verifyTx({ chainId: a.chainId, tx: a.tx, ...(a.expected ? { expected: a.expected } : {}) }),
+      (_a, r) => ({ says: String(r.summary ?? r.verdict ?? "verified") }),
+    ),
+  );
+
+  server.registerTool(
+    "broadcast_tx",
+    {
+      title: "Broadcast an already-signed transaction",
+      description: `Relay a transaction the user's wallet already signed. Decodes it, runs the same checks as verify_tx (warnings only unless strict=true), and broadcasts. Optional private submission via Flashbots Protect on Ethereum mainnet. Cannot alter signed bytes. Returns hash + statusUrl. Supports EVM raw hex, Solana base64, Tron JSON, Bitcoin raw hex. Trustless: SwapChan never holds keys and cannot change a signed tx. ${DISPLAY}`,
+      inputSchema: z.object({
+        chainId: chainArg,
+        tx: txObj.describe("Already-signed tx bytes / JSON"),
+        private: z.boolean().optional().describe("Ethereum: submit via Flashbots Protect"),
+        strict: z.boolean().optional().describe("Refuse to broadcast when verify_tx verdict is danger"),
+      }),
+      annotations: { readOnlyHint: false, openWorldHint: true, idempotentHint: false },
+    },
+    safe(
+      async (a: { chainId: number | string; tx: unknown; private?: boolean | undefined; strict?: boolean | undefined }) =>
+        api.broadcastTx({
+          chainId: a.chainId,
+          tx: a.tx,
+          ...(a.private ? { private: true } : {}),
+          ...(a.strict ? { strict: true } : {}),
+        }),
+      (_a, r) => ({
+        says: r.broadcast
+          ? `Broadcast. Hash ${r.hash}. Track: ${r.statusUrl ?? r.explorer ?? ""}`
+          : `Not broadcast: ${r.reason}`,
+      }),
+    ),
+  );
+
+  server.registerTool(
+    "tx_status",
+    {
+      title: "Look up a broadcast transaction",
+      description: `Confirmation status for a hash previously returned by broadcast_tx (or any hash): confirmed / pending / failed / not-found. EVM receipt, Solana signature status, Tron gettransactioninfobyid, Bitcoin mempool.space. ${DISPLAY}`,
+      inputSchema: z.object({ chainId: chainArg, hash: z.string() }),
+      annotations: ro,
+    },
+    safe(
+      async (a: { chainId: number | string; hash: string }) =>
+        api.txStatus(String(cid(a.chainId) ?? a.chainId), a.hash),
+      (_a, r) => ({ says: `Status: ${r.status}` }),
+    ),
+  );
+
+  server.registerTool(
+    "signing_guide",
+    {
+      title: "How to let an AI agent sign crypto safely (full playbook)",
+      description: `FULL in-context playbook. Signing starts with "do you have the key?" Step 1 key recovery (complete BIP39, missing word, passphrase, keystore v3, 2014-15 Ethereum presale, Electrum, wallet.dat, blockchain.info, hardware, raw key, password-hints) with reference code the human runs LOCALLY OFFLINE; only PUBLIC addresses leave the machine. Step 2 verify_tx. Step 3 human sign-off on EVERY tx and sign in their own wallet. Step 4 broadcast_tx. Pass situation to get one branch, or situation=full (default) for everything. Never ask the user to paste a seed or key into chat. ${DISPLAY}`,
+      inputSchema: z.object({
+        chain: z.enum(["evm", "solana", "tron"]).optional(),
+        situation: situationArg,
+      }),
+      annotations: ro,
+    },
+    safe(
+      async (a: { chain?: "evm" | "solana" | "tron" | undefined; situation?: string | undefined }) =>
+        api.signingGuide(a.chain, a.situation ?? "full"),
+      (_a, r) => ({ says: String((r as Record<string, unknown>).principle ?? "signing guide") }),
+    ),
+  );
+
+  server.registerTool(
+    "recovery_guide",
+    {
+      title: "Wallet / key recovery playbook (local, offline)",
+      description: `Step 1 of signing_guide, also callable alone. Returns the COMPLETE recovery playbook in-context (or one branch via situation=): BIP39 scan across MetaMask/Ledger Live/Ledger legacy/Trezor/Phantom/Solflare/Trust/Exodus/TronLink and BTC BIP44/49/84/86 paths, missing-word checksum brute force, BIP39 passphrase search, Ethereum keystore v3, 2014-15 presale JSON, Electrum seeds, wallet.dat (btcrecover), blockchain.info legacy, hardware wallets, raw keys, password-guessing from the user's own hints. Reference code runs on the user's machine; SwapChan never receives secrets. Strong warnings against pasting phrases into chat or "recovery service" scams. After addresses: find_money -> verify_tx -> human signs -> broadcast_tx. ${DISPLAY}`,
+      inputSchema: z.object({ situation: situationArg }),
+      annotations: ro,
+    },
+    safe(
+      async (a: { situation?: string | undefined }) => api.recoveryGuide(a.situation ?? "full"),
+      (_a, r) => ({ says: String((r as Record<string, unknown>).principle ?? "recovery guide") }),
+    ),
+  );
+
+
   return server;
 }

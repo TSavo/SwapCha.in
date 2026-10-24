@@ -38,6 +38,8 @@ import {
   walletBalances,
   yields,
 } from "./onchain.js";
+import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
+import { recoveryGuide } from "./keyrecovery.js";
 import { type Evidence, lidoWithdrawals, ownedSafes, recoveryFlow, solanaStake, wrappedNative } from "./recover.js";
 import { cached, tokenRisk } from "./scanner.js";
 
@@ -4021,6 +4023,39 @@ export function intelRoutes(
     if (!v) throw new BadRequest(`${n} is required`);
     return v;
   };
+  const TxBody = z.object({
+    chainId: z.union([z.number(), z.string()]),
+    tx: z.union([z.string().max(200_000), z.record(z.string(), z.unknown())]),
+    expected: z.object({ to: z.string(), recipient: z.string(), maxValue: z.string(), minOut: z.string(), quotedOut: z.string() }).partial().optional(),
+    private: z.boolean().optional(),
+    strict: z.boolean().optional(),
+  });
+  app.post("/verify-tx", (c) =>
+    run(c, async () => {
+      const b = TxBody.parse(await c.req.json());
+      return verifyTx(f, env, chainOf(b.chainId), b.tx, (b.expected ?? {}) as never);
+    }),
+  );
+  app.post("/broadcast", (c) =>
+    run(c, async () => {
+      const b = TxBody.parse(await c.req.json());
+      return broadcastTx(f, env, { chainId: chainOf(b.chainId), tx: b.tx as never, ...(b.private ? { private: true } : {}), ...(b.strict ? { strict: true } : {}) });
+    }),
+  );
+  app.get("/tx-status", (c) =>
+    run(c, () => txStatus(f, env, chainOf(need(c.req.query("chainId"), "chainId")), need(c.req.query("hash"), "hash"))),
+  );
+  app.get("/signing-guide", (c) =>
+    run(c, async () =>
+      signingGuide(
+        (["evm", "solana", "tron"].includes(c.req.query("chain") ?? "") ? c.req.query("chain") : "evm") as never,
+        c.req.query("situation") ?? "full",
+      ),
+    ),
+  );
+  app.get("/recovery-guide", (c) =>
+    run(c, async () => recoveryGuide(c.req.query("situation") ?? "full")),
+  );
   app.post("/simulate", (c) =>
     run(c, async () => simulateSwap(f, env, SimulateBody.parse(await c.req.json()))),
   );
