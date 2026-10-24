@@ -12,6 +12,12 @@ Your agent asks in plain English → SwapChan fans out to every router, ranks by
 
 ![SwapChan agent call: swap 100 USDC Ethereum→Base, routes ranked, unsigned tx built, user confirms](https://raw.githubusercontent.com/TSavo/SwapCha.in/main/docs/agent-call.gif)
 
+### find_money: paste your addresses, get your money back
+
+Paste wallet addresses into your agent → `find_money` scans every chain and contract the wallet touched, ranks what's recoverable, and builds **unsigned** recovery txs (unwrap, withdraw, redeem) plus one swap-to-USDC link. Real numbers from a live run on vitalik.eth, plus an archive replay of a real P3D recovery.
+
+![SwapChan find_money: paste addresses, scan chains, "I found $4,538 for you", ranked recovery steps, swap all to USDC](https://raw.githubusercontent.com/TSavo/SwapCha.in/main/docs/find-money.gif)
+
 ## Use it as an MCP server
 
 Hosted, keyless, zero setup:
