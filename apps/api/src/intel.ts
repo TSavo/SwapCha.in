@@ -38,6 +38,7 @@ import {
   walletBalances,
   yields,
 } from "./onchain.js";
+import { type Evidence, lidoWithdrawals, ownedSafes, recoveryFlow, solanaStake, wrappedNative } from "./recover.js";
 import { cached, tokenRisk } from "./scanner.js";
 
 /**
@@ -1383,6 +1384,9 @@ export interface Found {
   action: string;
   link?: string;
   risk?: string | undefined;
+  /** underlying token received by the recovery step (for the swap step) */
+  underlying?: string;
+  evidence?: Evidence[];
 }
 const fn = (s: string) => [parseAbiItem(`function ${s}`)] as const;
 // Curated legacy Ethereum contracts (addresses verified on-chain by code presence at call time).
@@ -1413,12 +1417,33 @@ const claim = (chainId: number, to: string, data: `0x${string}`, description: st
   return tx;
 };
 
-async function legacyEth(
+export async function legacyEth(
   env: NodeJS.ProcessEnv,
   owner: `0x${string}`,
   ethPx: number | null,
+  blockNumber?: bigint,
 ): Promise<Found[]> {
-  const c = evmClient(1, env);
+  const c0 = evmClient(1, env);
+  // blockNumber pins every probe to historical state (regression fixtures use the block before a real recovery)
+  const block = blockNumber ?? (await c0.getBlockNumber().catch(() => undefined));
+  // every read is recorded as machine-readable evidence (call, args, raw return, block) so agents can re-verify
+  const reads: Evidence[] = [];
+  const c = {
+    readContract: async (a: Parameters<typeof c0.readContract>[0]) => {
+      const raw = await c0.readContract({ ...a, ...(block ? { blockNumber: block } : {}) } as never);
+      const f = (a.abi as readonly { name?: string; inputs?: { type: string }[]; outputs?: { type: string }[] }[]).find((x) => x.name === a.functionName);
+      reads.push({
+        chainId: 1,
+        address: a.address ?? "",
+        call: `${a.functionName}(${(f?.inputs ?? []).map((i) => i.type).join(",")})`,
+        abi: f ? `function ${a.functionName}(${(f.inputs ?? []).map((i) => i.type).join(",")}) view returns (${(f.outputs ?? []).map((o) => o.type).join(",")})` : undefined,
+        args: (a.args ?? []).map(String),
+        raw: Array.isArray(raw) ? raw.map(String) : String(raw),
+        block: block?.toString(),
+      });
+      return raw;
+    },
+  } as unknown as typeof c0;
   const out: Found[] = [];
   const usd = (eth: number) => (ethPx ? r2(eth * ethPx) : null);
   const [p3dDiv, p3dBal, pid, edEth] = await Promise.all([
@@ -1456,7 +1481,7 @@ async function legacyEth(
       .catch(() => 0n),
   ]);
   if (p3dDiv > 0n || p3dBal > 0n) {
-    const sellValue =
+    const sellValue0 =
       p3dBal > 0n
         ? await c
             .readContract({
@@ -1467,15 +1492,18 @@ async function legacyEth(
             })
             .catch(() => 0n)
         : 0n;
+    const sellValue = sellValue0 as bigint;
+    // dust P3D with no dividends (worth < 0.0001 ETH) is not money: skip it
     const eth = Number(formatUnits(p3dDiv + sellValue, 18));
-    out.push({
+    if (p3dDiv > 0n || sellValue > 10n ** 14n) out.push({
       kind: "legacy",
       protocol: "PoWH3D (P3D)",
       chainId: 1,
       what: `${formatUnits(p3dBal, 18)} P3D (≈${formatUnits(sellValue, 18)} ETH if sold) + ${formatUnits(p3dDiv, 18)} ETH dividends`,
       valueUsd: usd(eth),
+      // exit() only when the tokens are worth selling; dust balances (e.g. 1e-14 P3D) just withdraw dividends
       claimTx:
-        p3dBal > 0n
+        sellValue > 10n ** 14n
           ? claim(
               1,
               P3D,
@@ -1600,6 +1628,10 @@ async function legacyEth(
       link: swapUrl(1, NATIVE_TOKEN, 1, "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0"),
       risk: cr && cr < 1.5 ? "low collateral ratio" : undefined,
     });
+  }
+  for (const o of out) {
+    const to = (o.claimTx as { to?: string } | undefined)?.to?.toLowerCase();
+    o.evidence = reads.filter((r) => r.address.toLowerCase() === to);
   }
   return out;
 }
@@ -1821,7 +1853,14 @@ async function lending(
             chainId: ct.chainId,
             what: `${amt.toPrecision(4)} ${ct.rewardSym} accrued (unclaimed)`,
             valueUsd: r2(amt * (pxOf(px, ct.chainId, ct.rewardToken)?.price ?? 0)),
-            action: `Claim ${ct.rewardSym} (claimComp/claimVenus on the protocol app), then swap it on SwapChan`,
+            action: `Claim ${ct.rewardSym} (step 1), then swap it on SwapChan`,
+            claimTx: {
+              chainId: ct.chainId,
+              to: ct.addr,
+              data: encodeFunctionData({ abi: fn(`${ct.accrued === "compAccrued" ? "claimComp" : "claimVenus"}(address)`), functionName: ct.accrued === "compAccrued" ? "claimComp" : "claimVenus", args: [owner] }),
+              value: "0",
+              description: `${ct.accrued === "compAccrued" ? "claimComp" : "claimVenus"}(you): claim ${ct.rewardSym}`,
+            },
             link: toUsdc(ct.chainId, ct.rewardToken),
           });
         }
@@ -2232,8 +2271,18 @@ export async function evmArchaeology(
           chainId,
           what: `${sh.toPrecision(5)} ${s} vault shares (${asset[i] ? "ERC-4626" : "Yearn-v2 pricePerShare"}) at ${x.a}`,
           valueUsd: usd,
-          action: `Withdraw from the ${s} vault on its app, then swap the underlying on SwapChan`,
+          action: `Withdraw from the ${s} vault, then swap the underlying on SwapChan`,
           link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${x.a}`,
+          claimTx: {
+            chainId,
+            to: x.a,
+            data: asset[i]
+              ? encodeFunctionData({ abi: fn("redeem(uint256,address,address)"), functionName: "redeem", args: [x.bal, owner, owner] })
+              : encodeFunctionData({ abi: fn("withdraw()"), functionName: "withdraw" }),
+            value: "0",
+            description: asset[i] ? `redeem(all shares, you, you): withdraw from ${s}` : `withdraw(): exit the ${s} Yearn vault`,
+          },
+          underlying: und,
         }),
       });
     }
@@ -2287,6 +2336,18 @@ export async function evmArchaeology(
             what: `${amts} deposited in ${e.name}`,
             valueUsd: usd,
             action: `Withdraw from ${e.name} (${e.addr}) with withdrawToken/withdraw, then swap on SwapChan`,
+            ...(e.name === "EtherDelta" && i > 0
+              ? {
+                  claimTx: {
+                    chainId: 1,
+                    to: e.addr,
+                    data: encodeFunctionData({ abi: fn("withdrawToken(address,uint256)"), functionName: "withdrawToken", args: [tok as `0x${string}`, v] }),
+                    value: "0",
+                    description: "withdrawToken(token, amount): pull it out of EtherDelta",
+                  },
+                  underlying: tok,
+                }
+              : {}),
             link: `https://etherscan.io/address/${e.addr}#readContract`,
             risk: "Legacy exchange contract; withdraw directly via Etherscan write-contract.",
           }),
@@ -2365,7 +2426,19 @@ export async function evmArchaeology(
             chainId,
             what: `Position #${id} (${liq > 0n ? "active liquidity" : "liquidity withdrawn"}): uncollected fees ${amts}`,
             valueUsd: usd,
-            action: "Collect fees on app.uniswap.org (Positions → Collect), then swap on SwapChan",
+            action: "Collect the fees (step 1), then swap on SwapChan",
+            claimTx: {
+              chainId,
+              to: npm,
+              data: encodeFunctionData({
+                abi: fn("collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max)) returns (uint256,uint256)"),
+                functionName: "collect",
+                args: [{ tokenId: id, recipient: owner, amount0Max: MAX_U128, amount1Max: MAX_U128 }],
+              }),
+              value: "0",
+              description: `collect(#${id}): send uncollected fees to you`,
+            },
+            underlying: String(p[2]),
             link: `https://app.uniswap.org/positions/v3/${chainName(chainId).toLowerCase()}/${id}`,
           }),
         });
@@ -2606,6 +2679,14 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         ).catch(() => [])),
       );
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
+      const own = getAddress(address);
+      const [wn, lido, safes] = await Promise.all([
+        wrappedNative(f, env, own).catch(() => []),
+        lidoWithdrawals(f, env, own).catch(() => []),
+        ownedSafes(f, env, own).catch(() => []),
+      ]);
+      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]));
+      sources.push("unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains");
       const archChains = env.ETHERSCAN_API_KEY
         ? [1, 8453, 42161, 10, 137, 56, 43114, 534352]
         : [1, 10, 534352, 43114];
@@ -2632,7 +2713,8 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     } else if (vm === "svm") {
       // Tron base58 also matches the Solana pattern, so Tron is tested first.
       items.push(...(await solanaRent(f, env, address)));
-      sources.push("Solana RPC token accounts (rent reclaim)");
+      items.push(...((await solanaStake(f, env, address).catch(() => [])) as Found[]));
+      sources.push("Solana RPC token accounts (rent reclaim), stake accounts (deactivated = withdrawable)");
     } else throw new BadRequest("airdrop_check supports EVM, Solana and Tron addresses");
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
     const top = items[0];
@@ -3552,6 +3634,9 @@ export async function findMoney(
       detail: string;
       action: string;
       swapUrl: string;
+      protocolUrl?: string;
+      steps?: unknown[];
+      recoverUrl?: string;
       shortUrl?: string | null;
       claimTx?: unknown;
       revokeTx?: unknown;
@@ -3615,8 +3700,14 @@ export async function findMoney(
         estimateKind: it.valueUsd === null ? "estimate" : "exact",
         detail: it.risk ?? "",
         action: it.action,
-        swapUrl: it.link ?? SITE,
+        swapUrl: it.link?.startsWith(SITE)
+          ? it.link
+          : it.chainId === TRON || it.chainId === SOLANA || it.chainId === BITCOIN
+            ? toUsdc(it.chainId, nativeOf(it.chainId))
+            : toUsdc(it.chainId, it.underlying ?? nativeOf(it.chainId)),
+        ...(it.link && !it.link.startsWith(SITE) ? { protocolUrl: it.link } : {}),
         ...(it.claimTx ? { claimTx: it.claimTx } : {}),
+        ...(it.evidence?.length ? { evidence: it.evidence } : {}),
       });
     for (const it of (lend as Found[] | null) ?? [])
       items.push({
@@ -3631,8 +3722,10 @@ export async function findMoney(
         estimateKind: "exact",
         detail: it.risk ?? "",
         action: it.action,
-        swapUrl: it.link?.startsWith(SITE) ? it.link : SITE,
+        swapUrl: it.link?.startsWith(SITE) ? it.link : toUsdc(it.chainId, nativeOf(it.chainId)),
         ...(it.link && !it.link.startsWith(SITE) ? { protocolUrl: it.link } : {}),
+        ...(it.claimTx ? { claimTx: it.claimTx } : {}),
+        ...(it.evidence?.length ? { evidence: it.evidence } : {}),
       });
     // risky approvals (money protected)
     for (const a of (appr as
@@ -3822,6 +3915,29 @@ export async function findMoney(
     items.forEach((it, i) => {
       it.rank = i + 1;
     });
+    // guided recovery: step 1 sign the claim/withdraw/unstake on swapchan.com/recover, step 2 swap to USDC
+    for (const it of items) {
+      if (it.estimateKind === "protected" || it.category === "Cheaper gas" || it.category === "Idle stablecoins") continue;
+      Object.assign(it, recoveryFlow(db, shorten, address, it as never));
+    }
+    // "swap all of it": one batch link over every recoverable finding's swap step
+    const swapAll = db
+      ? await (async () => {
+          const rows = items
+            .filter((i) => i.estimateKind !== "protected" && i.swapUrl.startsWith(`${SITE}/?`) && (i.estUsd ?? 0) >= 1)
+            .map((i) => new URL(i.swapUrl).searchParams)
+            .filter((q) => q.get("fromToken") && q.get("toToken") && q.get("fromToken") !== q.get("toToken"))
+            .slice(0, 20)
+            .map((q) => ({
+              fromChain: Number(q.get("fromChain")),
+              fromToken: q.get("fromToken")!,
+              toChain: Number(q.get("toChain") ?? q.get("fromChain")),
+              toToken: q.get("toToken")!,
+              ...(q.get("amount") ? { amount: q.get("amount")! } : {}),
+            }));
+          return rows.length >= 2 ? batchLink(f, env, db, rows as never).catch(() => null) : null;
+        })()
+      : null;
     const total = r2(
       items.filter((i) => i.estimateKind !== "protected").reduce((s, i) => s + (i.estUsd ?? 0), 0),
     );
@@ -3833,6 +3949,9 @@ export async function findMoney(
       ...(name ? { name } : {}),
       portfolioUsd: bal?.totalUsd ?? null,
       opportunities: items.length,
+      ...(swapAll ? { swapAll: { label: "Swap all of it to USDC (one guided batch)", url: swapAll.url, shortUrl: swapAll.shortUrl } } : {}),
+      trust: "Trustless: SwapChan never signs, never holds keys or funds, and cannot move money. Every recoveryTx is unsigned; your own wallet signs it.",
+      flow: "Each item has steps: [1] sign the recovery tx on swapchan.com/recover (claim/withdraw/unstake/unwrap; built only when every recipient argument is your own wallet), [2] swap to USDC. swapAll batches every swap step.",
       totalEstUsd: total,
       atRiskUsd: protectedUsd,
       totals:

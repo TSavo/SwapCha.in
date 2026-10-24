@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
+import { SpeechBubble } from "@/components/Character";
 import { ConnectButton } from "@/components/ConnectButton";
 import { API_URL } from "@/lib/api";
 import { useSolana } from "@/lib/useSolana";
@@ -69,6 +70,7 @@ interface Item {
   swapUrl: string;
   shortUrl?: string;
   protocolUrl?: string;
+  steps?: { step: number; kind: "recover" | "swap"; label: string; url: string; shortUrl?: string }[];
   revokeTx?: { chainId: number; to: `0x${string}`; data: `0x${string}` };
 }
 
@@ -186,6 +188,19 @@ export function DashboardView({ address: input }: { address: string }) {
               </div>
             </div>
             <p className="text-xs text-violet-300">{String(d.totals ?? "")}</p>
+            <SpeechBubble who="swapchan">
+              {items.length
+                ? "SwapChan is here to help you find your money, senpai! Step 1 gets it back to your wallet, step 2 swaps it to USDC. I never sign or hold anything: your wallet signs every step."
+                : "I looked everywhere I know, senpai. Nothing stuck here right now!"}
+            </SpeechBubble>
+            {(() => {
+              const all = d.swapAll as { url: string; shortUrl?: string } | undefined;
+              return all ? (
+                <a href={all.shortUrl ?? all.url} data-testid="swap-all" className="self-start rounded-full bg-amber-300 px-5 py-2 font-black text-violet-950">
+                  Swap all of it to USDC →
+                </a>
+              ) : null;
+            })()}
             <ol className="flex flex-col gap-2">
               {items.map((i) => (
                 <li
@@ -215,12 +230,27 @@ export function DashboardView({ address: input }: { address: string }) {
                         Open protocol
                       </a>
                     )}
-                    <a
-                      href={i.swapUrl}
-                      className="rounded-lg border-2 border-violet-950 bg-amber-400 px-3 py-1 text-xs font-black text-violet-950 hover:bg-amber-300"
-                    >
-                      Swap →
-                    </a>
+                    {i.steps?.length ? (
+                      i.steps.map((st) => (
+                        <a
+                          key={st.step}
+                          href={st.shortUrl ?? st.url}
+                          data-testid={`step-${st.kind}`}
+                          className={st.kind === "recover"
+                            ? "rounded-lg border-2 border-emerald-400 px-3 py-1 text-xs font-black text-emerald-200"
+                            : "rounded-lg border-2 border-violet-950 bg-amber-400 px-3 py-1 text-xs font-black text-violet-950 hover:bg-amber-300"}
+                        >
+                          {st.step}. {st.kind === "recover" ? "Get it back" : "Swap to USDC"} →
+                        </a>
+                      ))
+                    ) : (
+                      <a
+                        href={i.swapUrl}
+                        className="rounded-lg border-2 border-violet-950 bg-amber-400 px-3 py-1 text-xs font-black text-violet-950 hover:bg-amber-300"
+                      >
+                        Swap →
+                      </a>
+                    )}
                   </div>
                 </li>
               ))}
