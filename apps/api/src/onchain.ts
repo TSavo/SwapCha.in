@@ -697,12 +697,12 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
       get: async () => {
         // public Blockscout instances rate-limit bursts (the history scan hits the same host); back off and retry
         let r: { message?: string; result: Log[] | null | string } = { result: null };
-        for (let i = 0; i < 4; i++) {
-          r = await json<{ message?: string; result: Log[] | null | string }>(f, url, undefined, 45_000).catch(
+        for (let i = 0; i < 3; i++) {
+          r = await json<{ message?: string; result: Log[] | null | string }>(f, url, undefined, 10_000).catch(
             (e) => ({ message: String((e as Error).message), result: null }),
           );
           if (!/too many|429|rate limit/i.test(`${r.message ?? ""} ${typeof r.result === "string" ? r.result : ""}`)) break;
-          await new Promise((res) => setTimeout(res, 1200 * (i + 1)));
+          await new Promise((res) => setTimeout(res, 800 * (i + 1)));
         }
         if (Array.isArray(r.result)) return r.result;
         return /no (logs|records) found/i.test(r.message ?? "") ? [] : null;
