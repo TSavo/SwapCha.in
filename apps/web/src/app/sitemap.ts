@@ -22,6 +22,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/agents", 0.8),
     page("/tools", 0.9),
     page("/dashboard", 0.9),
+    page("/find-money", 0.9),
+    page("/find-money/powh3d", 0.8),
     page("/find-money/guide", 0.9),
     page("/agents/secure-signing", 0.9),
     page("/broadcast", 0.8),

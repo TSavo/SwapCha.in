@@ -287,7 +287,7 @@ export function view(job: Job) {
   };
   const lines = [
     finished
-      ? `I scanned ${unique.length} wallet${unique.length > 1 ? "s" : ""} and found about ${usd(totalEstUsd)} for you${exact ? ` (${usd(exact)} of it exact, on-chain)` : ""}${atRiskUsd ? `, plus ${usd(atRiskUsd)} exposed to risky approvals/tokens to protect` : ""}.`
+      ? `I scanned ${unique.length} wallet${unique.length > 1 ? "s" : ""} and found ${usd(exact)} exact, on-chain${totalEstUsd > exact ? ` plus about ${usd(r2(totalEstUsd - exact))} in estimates (yields/savings, not money sitting there)` : ""}${atRiskUsd ? `, plus ${usd(atRiskUsd)} exposed to risky approvals/tokens to protect` : ""}.`
       : `Scanning ${progress.done}/${progress.total} wallets so far: about ${usd(totalEstUsd)} found.`,
     ...money
       .slice(0, 10)

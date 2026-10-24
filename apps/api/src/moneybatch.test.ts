@@ -68,7 +68,7 @@ describe("find_money batch", () => {
     expect(v.items[0]!.rank).toBe(1);
     expect(v.plan.phase1_recover).toHaveLength(2);
     expect(v.plan.phase3_swap).toHaveLength(2);
-    expect(v.summary).toMatch(/found about \$105/);
+    expect(v.summary).toMatch(/found \$[\d.,]+ exact, on-chain/);
     expect(v.summary).toContain(
       "short: https://swapchan.com/s/1 | full: https://swapchan.com/recover?x",
     );

@@ -4876,6 +4876,28 @@ export function intelRoutes(
     }),
   );
   app.get("/money/batch/:id", (c) => run(c, async () => batchStatus(c.req.param("id"))));
+  // fast single-contract check for the /find-money/<protocol> landing pages (seconds, not a full scan)
+  app.get("/money/legacy", (c) =>
+    run(c, async () => {
+      const address = getAddress(need(c.req.query("address"), "address"));
+      const eth = await prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]);
+      const ethUsd = pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null;
+      const items = (await legacyEth(env, address, ethUsd)).map((i) => ({
+        ...i,
+        ...recoveryFlow(null, null, address, {
+          title: `${i.protocol}: ${i.what}`,
+          claimTx: i.claimTx,
+          swapUrl: i.link ?? "https://swapchan.com/",
+        }),
+      }));
+      return {
+        address,
+        ethUsd,
+        items,
+        fullScan: `https://swapchan.com/find-money?address=${address}`,
+      };
+    }),
+  );
   app.get("/playbook", (c) =>
     run(c, async () => playbook(c.req.query("workflow"), c.req.query("full") === "true")),
   );
