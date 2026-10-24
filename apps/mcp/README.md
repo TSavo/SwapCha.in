@@ -4,7 +4,7 @@ Swap-chan for AI agents: best-price **same-chain and cross-chain** EVM swap quot
 **unsigned** swap transactions over the [Model Context Protocol](https://modelcontextprotocol.io).
 - Official MCP TypeScript SDK **v2** (`@modelcontextprotocol/server` 2.3.1, spec 2026-07-28; stateless, also serves 2025-era clients).
 - Transports: **Streamable HTTP** at `/mcp` (remote, API-key auth + per-key rate limits) and **stdio** (`--stdio`, local).
-- Talks to `apps/api` over HTTP using the frozen contract in `packages/shared/README.md`. No chain keys, no signing, no broadcasting, ever.
+- Talks to `apps/api` over HTTP using the frozen contract in `packages/shared/README.md`. No chain keys, no signing, no custody, ever. `broadcast_tx` only relays a transaction the user already signed locally, unchanged; it cannot alter it.
 
 ## Tools
 

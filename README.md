@@ -2,7 +2,7 @@
 
 **Best-price same-chain and cross-chain crypto swap routing — as an MCP server, with an anime cast.** 🎌
 
-SwapChan fans out a single swap request to 0x, CoW, LI.FI, Across and Relay at once, ranks every route by net USD after gas and fees, and returns an **unsigned** transaction for the winner. It never holds keys and never signs or broadcasts — your wallet does. 12 networks, same-chain and cross-chain.
+SwapChan fans out a single swap request to 0x, CoW, LI.FI, Across and Relay at once, ranks every route by net USD after gas and fees, and returns an **unsigned** transaction for the winner. It never signs, never holds keys or funds, and never controls your money — your wallet signs. The optional `broadcast_tx` only relays a transaction you already signed locally, unchanged; it can't alter it. 12 networks, same-chain and cross-chain.
 
 **[swapchan.com](https://swapchan.com)** · MCP endpoint `https://mcp.swapchan.com/mcp` · Official MCP Registry `io.github.TSavo/swapchan`
 
