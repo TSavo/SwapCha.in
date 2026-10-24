@@ -44,6 +44,11 @@ import { readChain, READ_OPS } from "./readchain.js";
 import { batchStatus, startBatch } from "./moneybatch.js";
 import { playbook } from "@swapchan/shared";
 import { type Evidence, lidoWithdrawals, ownedSafes, recoveryFlow, solanaStake, wrappedNative } from "./recover.js";
+import {
+  btcXpubScan,
+  logPromoteCandidate,
+  stuckMoneyRegistry,
+} from "./stuck.js";
 import { cached, tokenRisk } from "./scanner.js";
 
 /**
@@ -1385,13 +1390,19 @@ export interface Found {
   /** Unsigned claim/withdraw tx, only for curated contracts with known ABIs. */
   claimTx?:
     | { chainId: number; to: string; data: string; value: string; description: string }
-    | { chainId: number; tronTx: unknown; description: string };
+    | { chainId: number; tronTx: unknown; description: string }
+    | { chainId: number; solanaTx: unknown; description: string };
   action: string;
   link?: string;
   risk?: string | undefined;
   /** underlying token received by the recovery step (for the swap step) */
   underlying?: string;
   evidence?: Evidence[];
+  confidence?: "high" | "medium" | "low";
+  /** For unknown archaeology hits: recovery-looking fns with selectors. */
+  recoveryHints?: { name: string; selector: string; abi?: string }[];
+  verifiedSource?: string;
+  verifiedAbi?: unknown;
 }
 const fn = (s: string) => [parseAbiItem(`function ${s}`)] as const;
 // Curated legacy Ethereum contracts (addresses verified on-chain by code presence at call time).
@@ -1880,23 +1891,40 @@ type TronAcct = {
   unfrozenV2?: { unfreeze_amount: number; unfreeze_expire_time: number }[];
   frozen?: { frozen_balance: number; expire_time: number }[];
 };
-async function tronMoney(f: F, owner: string): Promise<Found[]> {
+async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.env): Promise<Found[]> {
   const out: Found[] = [];
-  const post = <T>(p: string, b: unknown) =>
-    json<T>(f, `${TG}${p}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(b),
-    });
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (env.TRONGRID_API_KEY) headers["TRON-PRO-API-KEY"] = env.TRONGRID_API_KEY;
+  const post = async <T>(path: string, b: unknown, attempt = 0): Promise<T> => {
+    try {
+      return await json<T>(f, `${TG}${path}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(b),
+      });
+    } catch (e) {
+      if (attempt >= 3) throw e;
+      await new Promise((ok) => setTimeout(ok, 800 * (attempt + 1) * (attempt + 1)));
+      return post(path, b, attempt + 1);
+    }
+  };
   const px = await prices(f, [{ chainId: TRON, address: nativeOf(TRON) }]);
   const trxPx = pxOf(px, TRON, nativeOf(TRON))?.price ?? null;
+  type Acct = TronAcct & {
+    balance?: number;
+    votes?: { vote_address: string; vote_count: number }[];
+    frozenV2?: { type?: string; amount?: number }[];
+    delegated_frozenV2_balance_for_bandwidth?: number;
+    delegated_frozenV2_balance_for_energy?: number;
+    account_resource?: { delegated_frozenV2_balance_for_bandwidth?: number; delegated_frozenV2_balance_for_energy?: number };
+    assetV2?: { key: string; value: number }[];
+    trc20?: Record<string, string>[];
+  };
   const [rew, acct] = await Promise.all([
     post<{ reward?: number }>("/wallet/getReward", { address: owner, visible: true }).catch(() => ({
       reward: 0,
     })),
-    post<TronAcct>("/wallet/getaccount", { address: owner, visible: true }).catch(
-      (): TronAcct => ({}),
-    ),
+    post<Acct>("/wallet/getaccount", { address: owner, visible: true }).catch((): Acct => ({})),
   ]);
   const reward = (rew.reward ?? 0) / 1e6;
   if (reward > 0) {
@@ -1908,8 +1936,9 @@ async function tronMoney(f: F, owner: string): Promise<Found[]> {
       kind: "tron",
       protocol: "Tron voting rewards",
       chainId: TRON,
-      what: `${reward} TRX unclaimed voting rewards`,
+      what: `${reward} TRX unclaimed voting/SR rewards`,
       valueUsd: trxPx ? r2(reward * trxPx) : null,
+      confidence: "high",
       ...(tx && !(tx as { Error?: string }).Error
         ? {
             claimTx: {
@@ -1921,6 +1950,9 @@ async function tronMoney(f: F, owner: string): Promise<Found[]> {
         : {}),
       action: "Claim TRX voting rewards, then swap on SwapChan",
       link: toUsdc(TRON, nativeOf(TRON), String(reward)),
+      evidence: [
+        { chainId: TRON, address: owner, call: "getReward", args: [owner], raw: String(rew.reward ?? 0) },
+      ],
     });
   }
   const now = Date.now();
@@ -1937,8 +1969,9 @@ async function tronMoney(f: F, owner: string): Promise<Found[]> {
       kind: "tron",
       protocol: "Tron Stake 2.0 unfreeze",
       chainId: TRON,
-      what: `${ready} TRX unstaked and ready to withdraw`,
+      what: `${ready} TRX unstaked and ready to withdraw (withdrawExpireUnfreeze)`,
       valueUsd: trxPx ? r2(ready * trxPx) : null,
+      confidence: "high",
       ...(tx && !(tx as { Error?: string }).Error
         ? {
             claimTx: {
@@ -1950,23 +1983,189 @@ async function tronMoney(f: F, owner: string): Promise<Found[]> {
         : {}),
       action: "Withdraw your expired unfreeze",
       link: toUsdc(TRON, nativeOf(TRON), String(ready)),
+      evidence: [
+        {
+          chainId: TRON,
+          address: owner,
+          call: "getaccount.unfrozenV2",
+          args: [],
+          raw: JSON.stringify(acct.unfrozenV2 ?? []),
+        },
+      ],
     });
   }
-  const v1 =
+  // Stake 2.0 still frozen
+  const frozen2 =
+    (acct.frozenV2 ?? []).reduce((s, x) => s + (x.amount ?? 0), 0) / 1e6;
+  if (frozen2 > 0)
+    out.push({
+      kind: "tron",
+      protocol: "Tron Stake 2.0 freeze",
+      chainId: TRON,
+      what: `${frozen2} TRX still frozen (Stake 2.0) — unfreeze then withdrawExpireUnfreeze after wait`,
+      valueUsd: trxPx ? r2(frozen2 * trxPx) : null,
+      confidence: "high",
+      action: "UnfreezeBandwidth/UnfreezeEnergy in TronLink, wait, then withdraw",
+      link: toUsdc(TRON, nativeOf(TRON)),
+      evidence: [
+        {
+          chainId: TRON,
+          address: owner,
+          call: "getaccount.frozenV2",
+          args: [],
+          raw: JSON.stringify(acct.frozenV2 ?? []),
+        },
+      ],
+    });
+  const v1Ready =
     (acct.frozen ?? [])
       .filter((x) => x.expire_time <= now)
       .reduce((s, x) => s + x.frozen_balance, 0) / 1e6;
-  if (v1 > 0)
+  if (v1Ready > 0)
     out.push({
       kind: "tron",
       protocol: "Tron Stake 1.0",
       chainId: TRON,
-      what: `${v1} TRX in expired Stake 1.0 freeze (unfreezable)`,
-      valueUsd: trxPx ? r2(v1 * trxPx) : null,
+      what: `${v1Ready} TRX in expired Stake 1.0 freeze (unfreezable)`,
+      valueUsd: trxPx ? r2(v1Ready * trxPx) : null,
+      confidence: "high",
       action: "Unfreeze in your Tron wallet (UnfreezeBalance), then swap on SwapChan",
       link: toUsdc(TRON, nativeOf(TRON)),
     });
-  // contract archaeology: contracts this wallet called, probed with generic dividend/reward views
+  const v1Locked =
+    (acct.frozen ?? [])
+      .filter((x) => x.expire_time > now)
+      .reduce((s, x) => s + x.frozen_balance, 0) / 1e6;
+  if (v1Locked > 0)
+    out.push({
+      kind: "tron",
+      protocol: "Tron Stake 1.0 (still locked)",
+      chainId: TRON,
+      what: `${v1Locked} TRX still in Stake 1.0 freeze (not yet expired)`,
+      valueUsd: trxPx ? r2(v1Locked * trxPx) : null,
+      confidence: "high",
+      action: "Wait for expire_time, then UnfreezeBalance",
+      link: toUsdc(TRON, nativeOf(TRON)),
+    });
+  // Delegated resources
+  const delBw =
+    (acct.delegated_frozenV2_balance_for_bandwidth ??
+      acct.account_resource?.delegated_frozenV2_balance_for_bandwidth ??
+      0) / 1e6;
+  const delEn =
+    (acct.delegated_frozenV2_balance_for_energy ??
+      acct.account_resource?.delegated_frozenV2_balance_for_energy ??
+      0) / 1e6;
+  if (delBw + delEn > 0)
+    out.push({
+      kind: "tron",
+      protocol: "Tron delegated resources",
+      chainId: TRON,
+      what: `${delBw} TRX bandwidth + ${delEn} TRX energy delegated — undelegate to reclaim`,
+      valueUsd: trxPx ? r2((delBw + delEn) * trxPx) : null,
+      confidence: "medium",
+      action: "UndelegateResource in TronLink, then unfreeze/withdraw",
+      link: toUsdc(TRON, nativeOf(TRON)),
+    });
+
+  // Known Tron tokens: WTRX, JST, USDJ, sTRX, stUSDT, SUN
+  const KNOWN: { addr: string; name: string; dec: number; kind: "unwrap" | "stable" | "stake" | "farm" }[] = [
+    { addr: "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", name: "WTRX", dec: 6, kind: "unwrap" },
+    { addr: "TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9", name: "JST", dec: 18, kind: "farm" },
+    { addr: "TMwFHYXLJaRUPeW6421aqXL4ZEzPRFGkGT", name: "USDJ", dec: 18, kind: "stable" },
+    { addr: "TU3kjFun7CMfHPC4G34jWYdGCTKvQh6k7R", name: "sTRX", dec: 18, kind: "stake" }, // approx — may vary
+    { addr: "TThzxDN6Yy1RoeQkTdBBqNqDcMfKzS6x6s", name: "stUSDT", dec: 18, kind: "stake" },
+    { addr: "TSSMHYeV2uE9qYH95DqyoKmUkGSsCGWHz2", name: "SUN", dec: 18, kind: "farm" },
+  ];
+  const hex = (await import("./onchain.js")).b58decode(owner);
+  const me = Buffer.from(hex.slice(1, 21)).toString("hex").padStart(64, "0");
+  for (const k of KNOWN) {
+    try {
+      await new Promise((ok) => setTimeout(ok, 200));
+      const r = await post<{ constant_result?: string[] }>("/wallet/triggerconstantcontract", {
+        owner_address: owner,
+        contract_address: k.addr,
+        function_selector: "balanceOf(address)",
+        parameter: me,
+        visible: true,
+      });
+      const raw = r.constant_result?.[0];
+      if (!raw) continue;
+      const bal = BigInt(`0x${raw.slice(0, 64) || "0"}`);
+      if (bal <= 0n) continue;
+      const amt = Number(bal) / 10 ** k.dec;
+      if (amt < 0.01) continue;
+      out.push({
+        kind: "tron",
+        protocol: k.name,
+        chainId: TRON,
+        what: `${amt.toPrecision(5)} ${k.name} ${
+          k.kind === "unwrap"
+            ? "(unwrap to TRX)"
+            : k.kind === "stake"
+              ? "(check unstake queue on JustLend/SUN)"
+              : k.kind === "stable"
+                ? "(JustStables / USDJ)"
+                : "(SUN.io / farm — check claim)"
+        }`,
+        valueUsd: k.name === "WTRX" && trxPx ? r2(amt * trxPx) : null,
+        confidence: "high",
+        action:
+          k.kind === "unwrap"
+            ? "Call WTRX.withdraw(amount), then swap TRX on SwapChan"
+            : `Open the ${k.name} dApp to unstake/claim, then swap on SwapChan`,
+        link: toUsdc(TRON, k.addr, String(amt)),
+        evidence: [
+          {
+            chainId: TRON,
+            address: k.addr,
+            call: "balanceOf(address)",
+            abi: "balanceOf(address) view returns (uint256)",
+            args: [owner],
+            raw: `0x${bal.toString(16)}`,
+          },
+        ],
+        ...await (async () => {
+          if (k.kind !== "unwrap") return {};
+          const tronTx = await post("/wallet/triggersmartcontract", {
+            owner_address: owner,
+            contract_address: k.addr,
+            function_selector: "withdraw(uint256)",
+            parameter: bal.toString(16).padStart(64, "0"),
+            fee_limit: 100_000_000,
+            call_value: 0,
+            visible: true,
+          }).catch(() => null);
+          if (!tronTx || (tronTx as { Error?: string }).Error) return {};
+          return {
+            claimTx: {
+              chainId: TRON,
+              tronTx,
+              description: `WTRX.withdraw(${amt})`,
+            },
+          };
+        })(),
+      });
+    } catch {}
+  }
+
+  // TRC-10 leftovers
+  for (const a of acct.assetV2 ?? []) {
+    if (!a.value || a.value <= 0) continue;
+    out.push({
+      kind: "tron",
+      protocol: `TRC-10 ${a.key}`,
+      chainId: TRON,
+      what: `${a.value} units of TRC-10 asset ${a.key}`,
+      valueUsd: null,
+      confidence: "low",
+      action: "Check Tronscan for the asset; swap or transfer if still listed",
+      link: `https://tronscan.org/#/token/${a.key}`,
+      evidence: [{ chainId: TRON, address: owner, call: "assetV2", args: [a.key], raw: String(a.value) }],
+    });
+  }
+
+  // Archaeology: history contracts + recovery selectors + promote
   try {
     const tx = await json<{
       data: {
@@ -1974,7 +2173,9 @@ async function tronMoney(f: F, owner: string): Promise<Found[]> {
           contract: { type: string; parameter: { value: { contract_address?: string } } }[];
         };
       }[];
-    }>(f, `${TG}/v1/accounts/${owner}/transactions?only_from=true&limit=200`);
+    }>(f, `${TG}/v1/accounts/${owner}/transactions?only_from=true&limit=200`, {
+      headers: env.TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": env.TRONGRID_API_KEY } : {},
+    });
     const contracts = [
       ...new Set(
         tx.data
@@ -1985,7 +2186,7 @@ async function tronMoney(f: F, owner: string): Promise<Found[]> {
           )
           .filter(Boolean),
       ),
-    ].slice(0, 25);
+    ].slice(0, 30);
     const VIEWS = [
       "dividendsOf(address)",
       "myDividends(bool)",
@@ -1993,38 +2194,81 @@ async function tronMoney(f: F, owner: string): Promise<Found[]> {
       "pendingReward(address)",
       "claimable(address)",
       "withdrawable(address)",
+      "getReward(address)",
+      "balanceOf(address)",
     ];
-    const hex = (await import("./onchain.js")).b58decode(owner);
-    const param = Buffer.from(hex.slice(1, 21)).toString("hex").padStart(64, "0");
-    await Promise.all(
-      contracts.map(async (c) => {
-        for (const v of VIEWS) {
-          const r = await post<{ constant_result?: string[] }>("/wallet/triggerconstantcontract", {
+    const RECOVERY = ["withdraw()", "claim()", "exit()", "getReward()", "unstake()", "redeem()"];
+    const param = me;
+    for (const c of contracts) {
+      await new Promise((ok) => setTimeout(ok, 150));
+      let hitView: string | null = null;
+      let hitVal = 0n;
+      for (const v of VIEWS) {
+        const r = await post<{ constant_result?: string[] }>("/wallet/triggerconstantcontract", {
+          owner_address: owner,
+          contract_address: c,
+          function_selector: v,
+          parameter: v.includes("bool") ? "1".padStart(64, "0") : param,
+          visible: true,
+        }).catch(() => null);
+        const val = r?.constant_result?.[0]
+          ? BigInt(`0x${r.constant_result[0].slice(0, 64) || "0"}`)
+          : 0n;
+        if (val > 0n && val < 10n ** 30n) {
+          hitView = v;
+          hitVal = val;
+          break;
+        }
+      }
+      if (!hitView) continue;
+      const hints: { name: string; selector: string; abi?: string }[] = [];
+      for (const sig of RECOVERY) {
+        const r = await post<{ constant_result?: string[]; result?: { result?: boolean } }>(
+          "/wallet/triggerconstantcontract",
+          {
             owner_address: owner,
             contract_address: c,
-            function_selector: v,
-            parameter: v.includes("bool") ? "1".padStart(64, "0") : param,
+            function_selector: sig,
+            parameter: "",
             visible: true,
-          }).catch(() => null);
-          const val = r?.constant_result?.[0]
-            ? BigInt(`0x${r.constant_result[0].slice(0, 64) || "0"}`)
-            : 0n;
-          if (val > 0n && val < 10n ** 30n) {
-            const trx = Number(val) / 1e6;
-            out.push({
-              kind: "legacy",
-              protocol: `Tron contract ${short(c)}`,
-              chainId: TRON,
-              what: `${v.split("(")[0]} returns ${val} (≈${trx} TRX if sun-denominated)`,
-              valueUsd: null,
-              action: `Open ${c} on Tronscan and claim/withdraw from its dApp (no verified ABI, so SwapChan doesn't build this tx)`,
-              link: `https://tronscan.org/#/contract/${c}`,
-            });
-            break;
-          }
+          },
+        ).catch(() => null);
+        if (r && (r.constant_result || r.result)) {
+          hints.push({ name: sig, selector: sig, abi: `function ${sig}` });
         }
-      }),
-    );
+      }
+      const trx = Number(hitVal) / 1e6;
+      logPromoteCandidate(env, {
+        chainId: TRON,
+        address: c,
+        what: `${hitView}=${hitVal}`,
+        valueUsd: null,
+        selectors: hints.map((h) => h.name),
+      });
+      out.push({
+        kind: "legacy",
+        protocol: `Tron contract ${short(c)}`,
+        chainId: TRON,
+        what: `${hitView.split("(")[0]} returns ${hitVal} (≈${trx} TRX if sun-denominated)${hints.length ? `; recovery: ${hints.map((h) => h.name).join(", ")}` : ""}`,
+        valueUsd: null,
+        confidence: hints.length ? "medium" : "low",
+        recoveryHints: hints,
+        action: hints.length
+          ? `Build ${hints[0]!.name} against ${c} on Tronscan / TronLink, then swap on SwapChan`
+          : `Open ${c} on Tronscan and claim/withdraw from its dApp`,
+        link: `https://tronscan.org/#/contract/${c}`,
+        evidence: [
+          {
+            chainId: TRON,
+            address: c,
+            call: hitView,
+            args: [owner],
+            raw: `0x${hitVal.toString(16)}`,
+          },
+        ],
+        verifiedSource: `https://tronscan.org/#/contract/${c}/code`,
+      });
+    }
   } catch {}
   return out;
 }
@@ -2086,6 +2330,102 @@ const REWARD_VIEWS = [
   "claimableReward(address)",
 ] as const;
 /** Discover every contract a wallet interacted with (full explorer history) and probe it with balance-like views. */
+
+/** Solana archaeology: programs/accounts the wallet owns or staked with; surface withdrawable stake + token accounts with large balances. */
+export async function solanaArchaeology(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: string,
+): Promise<Found[]> {
+  const out: Found[] = [];
+  // Token accounts owned (already partially covered by solanaRent) — also probe stake + vote
+  const parsed = await solRpc<
+    { pubkey: string; account: { lamports: number; data: { program: string; parsed?: { type: string; info: Record<string, unknown> } }; owner: string } }[]
+  >(f, env, "getTokenAccountsByOwner", [
+    owner,
+    { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+    { encoding: "jsonParsed" },
+  ]).catch(() => []);
+  const px = await prices(f, [{ chainId: SOLANA, address: "11111111111111111111111111111111" }]).catch(
+    () => new Map(),
+  );
+  const solP = pxOf(px, SOLANA, "11111111111111111111111111111111")?.price ?? null;
+  for (const a of parsed.slice(0, 40)) {
+    const info = a.account.data.parsed?.info as
+      | { tokenAmount?: { uiAmount: number | null; decimals: number; amount: string }; mint?: string }
+      | undefined;
+    const ui = info?.tokenAmount?.uiAmount ?? 0;
+    if (!ui || ui < 0.01) continue;
+    const mint = info?.mint ?? "?";
+    out.push({
+      kind: "claimable",
+      protocol: `SPL token ${mint.slice(0, 6)}…`,
+      chainId: SOLANA,
+      what: `${ui} tokens (mint ${mint}) in ATA ${a.pubkey.slice(0, 8)}…`,
+      valueUsd: null,
+      confidence: "medium",
+      action: "Swap the SPL token on SwapChan (or close empty ATAs to reclaim rent)",
+      link: toUsdc(SOLANA, mint, String(ui)),
+      evidence: [
+        {
+          chainId: SOLANA,
+          address: a.pubkey,
+          call: "getTokenAccountsByOwner",
+          args: [owner, mint],
+          raw: info?.tokenAmount?.amount ?? String(ui),
+        },
+      ],
+    });
+    if (ui > 1000) {
+      logPromoteCandidate(env, {
+        chainId: SOLANA,
+        address: mint,
+        what: `SPL balance ${ui}`,
+        valueUsd: null,
+      });
+    }
+  }
+  // Programs the wallet is authority for: scan recent signatures → unique program ids
+  try {
+    const sigs = await solRpc<{ signature: string }[]>(f, env, "getSignaturesForAddress", [
+      owner,
+      { limit: 50 },
+    ]).catch(() => []);
+    const programs = new Set<string>();
+    for (const s of sigs.slice(0, 25)) {
+      const tx = await solRpc<{
+        transaction: { message: { accountKeys: (string | { pubkey: string })[]; instructions: { programIdIndex: number }[] } };
+      } | null>(f, env, "getTransaction", [s.signature, { encoding: "json", maxSupportedTransactionVersion: 0 }]).catch(
+        () => null,
+      );
+      if (!tx) continue;
+      const keys = tx.transaction.message.accountKeys.map((k) => (typeof k === "string" ? k : k.pubkey));
+      for (const ix of tx.transaction.message.instructions)
+        if (keys[ix.programIdIndex]) programs.add(keys[ix.programIdIndex]!);
+    }
+    for (const prog of [...programs].slice(0, 15)) {
+      if (prog === "11111111111111111111111111111111") continue;
+      if (prog === "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") continue;
+      if (prog === "Stake11111111111111111111111111111111111111") continue;
+      out.push({
+        kind: "legacy",
+        protocol: `Solana program ${prog.slice(0, 8)}…`,
+        chainId: SOLANA,
+        what: `Wallet history includes program ${prog} — check its dApp for claimable/unstake`,
+        valueUsd: null,
+        confidence: "low",
+        action: "Open the program's dApp / explorer; claim or close accounts, then swap on SwapChan",
+        link: `https://solscan.io/account/${prog}`,
+        evidence: [{ chainId: SOLANA, address: prog, call: "history", args: [owner], raw: "interacted" }],
+        recoveryHints: [],
+      });
+      logPromoteCandidate(env, { chainId: SOLANA, address: prog, what: "history program", valueUsd: null });
+    }
+  } catch {}
+  void solP;
+  return out;
+}
+
 export async function evmArchaeology(
   f: F,
   env: NodeJS.ProcessEnv,
@@ -2249,15 +2589,52 @@ export async function evmArchaeology(
           [String(t0[i]), u0],
           [String(t1[i]), u1],
         ],
-        build: (usd) => ({
-          kind: "legacy",
-          protocol: `LP ${s} ${short(x.a)}`,
-          chainId,
-          what: `${sh.toPrecision(5)} LP tokens of ${x.a} (Uniswap-v2-style pool)`,
-          valueUsd: usd,
-          action: "Remove liquidity on the pool's app, then swap the two tokens on SwapChan",
-          link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${x.a}`,
-        }),
+        build: (usd) => {
+          const t0a = getAddress(String(t0[i])) as `0x${string}`;
+          const t1a = getAddress(String(t1[i])) as `0x${string}`;
+          // claimTx built sync via encode — router removeLiquidity (approve pair→router first)
+          const ROUTER: Record<number, `0x${string}`> = {
+            1: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+            8453: "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24",
+            10: "0x4A7b5Da61326A6379179b40d00F57E5bbDC962c2",
+            42161: "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24",
+            137: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+            56: "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+          };
+          const router = ROUTER[chainId];
+          const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+          const claimTx = router
+            ? {
+                chainId,
+                to: router,
+                data: encodeFunctionData({
+                  abi: fn("removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)"),
+                  functionName: "removeLiquidity",
+                  args: [t0a, t1a, x.bal, 0n, 0n, owner, deadline],
+                }),
+                value: "0",
+                description: `removeLiquidity: burn ${sh.toPrecision(5)} LP (approve ${short(x.a)}→router first)`,
+              }
+            : undefined;
+          return {
+            kind: "legacy" as const,
+            protocol: `LP ${s} ${short(x.a)}`,
+            chainId,
+            what: `${sh.toPrecision(5)} LP tokens of ${x.a} (Uniswap-v2-style pool)`,
+            valueUsd: usd,
+            ...(claimTx ? { claimTx } : {}),
+            action: claimTx
+              ? "Approve the router to spend LP, sign removeLiquidity, then swap both tokens on SwapChan"
+              : "Remove liquidity on the pool's app, then swap the two tokens on SwapChan",
+            link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${x.a}`,
+            evidence: [
+              { chainId, address: x.a, call: "balanceOf(address)", abi: "balanceOf(address) view returns (uint256)", args: [owner], raw: `0x${x.bal.toString(16)}` },
+              { chainId, address: x.a, call: "getReserves()", abi: "getReserves() view returns (uint112,uint112,uint32)", args: [], raw: [String(a), String(b)] },
+              { chainId, address: x.a, call: "token0()/token1()", args: [], raw: [t0a, t1a] },
+            ],
+            underlying: t0a,
+          };
+        },
       });
       return;
     }
@@ -2288,29 +2665,172 @@ export async function evmArchaeology(
             description: asset[i] ? `redeem(all shares, you, you): withdraw from ${s}` : `withdraw(): exit the ${s} Yearn vault`,
           },
           underlying: und,
+          evidence: [
+            { chainId, address: x.a, call: "balanceOf(address)", abi: "balanceOf(address) view returns (uint256)", args: [owner], raw: `0x${x.bal.toString(16)}` },
+            ...(asset[i]
+              ? [{ chainId, address: x.a, call: "convertToAssets(uint256)", abi: "convertToAssets(uint256) view returns (uint256)", args: [x.bal.toString()], raw: `0x${(amt as bigint).toString(16)}` }]
+              : [{ chainId, address: x.a, call: "pricePerShare()", abi: "pricePerShare() view returns (uint256)", args: [], raw: String(pps[i]) }]),
+          ],
+          confidence: "high" as const,
         }),
       });
     }
   });
-  // reward views with a balance
+  // reward views with a balance — unknown contracts: surface ABI/selectors so agents can build recovery
+  const RECOVERY_FNS = [
+    "withdraw()",
+    "exit()",
+    "getReward()",
+    "getReward(address)",
+    "claim()",
+    "claimRewards()",
+    "unstake()",
+    "redeem(uint256)",
+    "redeem(uint256,address,address)",
+  ] as const;
+  const unknownHits: { a: string; view: string; raw: bigint }[] = [];
   called.slice(0, 300).forEach((a, i) => {
     for (let k = 0; k < REWARD_VIEWS.length; k++) {
       const v = rewards[k]![i];
       if (typeof v === "bigint" && v > 0n && v < 10n ** 33n && control[k]![i] !== v) {
-        items.push({
-          kind: "claimable",
-          protocol: `Contract ${short(a)}`,
-          chainId,
-          what: `${REWARD_VIEWS[k]!.split("(")[0]}(you) = ${v} (raw units; reward token unknown)`,
-          valueUsd: null,
-          action:
-            "Open the contract's dApp and claim/withdraw (no verified ABI, so SwapChan doesn't build this tx)",
-          link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${a}`,
-        });
+        unknownHits.push({ a, view: REWARD_VIEWS[k]!, raw: v });
         break;
       }
     }
   });
+  // Probe recovery-looking selectors + optional Sourcify ABI for each positive hit
+  for (const hit of unknownHits.slice(0, 40)) {
+    const addr = hit.a as `0x${string}`;
+    const hints: { name: string; selector: string; abi?: string }[] = [];
+    for (const sig of RECOVERY_FNS) {
+      try {
+        const sel = toFunctionSelector(`function ${sig}`);
+        // eth_call with empty/owner args — success without revert means selector exists
+        const name = sig.split("(")[0]!;
+        const abi = fn(sig.includes("address,address")
+          ? `${sig} returns (uint256)`
+          : sig.includes("uint256,address")
+            ? sig
+            : sig.includes("address")
+              ? `${sig}`
+              : sig.includes("uint256")
+                ? `${sig}`
+                : `${sig}`);
+        const args =
+          sig === "getReward(address)"
+            ? [owner]
+            : sig === "redeem(uint256,address,address)"
+              ? [0n, owner, owner]
+              : sig === "redeem(uint256)"
+                ? [0n]
+                : [];
+        await c
+          .call({
+            to: addr,
+            data: encodeFunctionData({
+              abi: [parseAbiItem(`function ${sig}`)] as const,
+              functionName: name as never,
+              args: args as never,
+            }),
+          })
+          .then(() => {
+            hints.push({ name: sig, selector: sel, abi: `function ${sig}` });
+          })
+          .catch(() => {});
+      } catch {}
+    }
+    let verifiedSource: string | undefined;
+    let verifiedAbi: unknown;
+    try {
+      const ch = { 1: "1", 8453: "8453", 10: "10", 42161: "42161", 137: "137", 56: "56", 43114: "43114" }[chainId];
+      if (ch) {
+        const s = await json<{ status?: string; files?: { name: string; content: string }[] }>(
+          f,
+          `https://sourcify.dev/server/files/any/${ch}/${addr}`,
+          undefined,
+          8_000,
+        ).catch(() => null);
+        if (s && (s.status === "perfect" || s.status === "partial" || s.files?.length)) {
+          verifiedSource = `https://sourcify.dev/#/lookup/${addr}`;
+          const meta = s.files?.find((x) => /metadata\.json$/i.test(x.name));
+          if (meta) {
+            try {
+              verifiedAbi = JSON.parse(meta.content)?.output?.abi;
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+    // Prefer building a standard recovery tx when a safe selector answered
+    const prefer = hints.find((h) =>
+      ["withdraw()", "exit()", "getReward()", "claim()", "claimRewards()"].includes(h.name),
+    ) ?? hints.find((h) => h.name === "getReward(address)");
+    const claimTx = prefer
+      ? {
+          chainId,
+          to: addr,
+          data: encodeFunctionData({
+            abi: [parseAbiItem(`function ${prefer.name}`)] as const,
+            functionName: prefer.name.split("(")[0] as never,
+            args: (prefer.name.includes("address") ? [owner] : []) as never,
+          }),
+          value: "0",
+          description: `${prefer.name}: archaeology-suggested recovery on ${short(addr)}`,
+        }
+      : undefined;
+    if ((hit.raw > 10n ** 15n) || hints.length) {
+      logPromoteCandidate(env, {
+        chainId,
+        address: addr,
+        what: `${hit.view}=${hit.raw}`,
+        valueUsd: null,
+        selectors: hints.map((h) => h.selector),
+      });
+    }
+    items.push({
+      kind: "claimable",
+      protocol: `Contract ${short(addr)}`,
+      chainId,
+      what: `${hit.view.split("(")[0]}(you) = ${hit.raw} (raw units; reward token unknown)${hints.length ? `; recovery selectors: ${hints.map((h) => h.name).join(", ")}` : ""}`,
+      valueUsd: null,
+      ...(claimTx ? { claimTx } : {}),
+      action: claimTx
+        ? "Sign the suggested recovery call (funds pinned to your wallet), then swap on SwapChan"
+        : "Open the contract's dApp / use recoveryHints selectors to build a claim, then swap on SwapChan",
+      link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${addr}`,
+      evidence: [
+        {
+          chainId,
+          address: addr,
+          call: hit.view,
+          abi: `${hit.view} view returns (uint256)`,
+          args: [owner],
+          raw: `0x${hit.raw.toString(16)}`,
+        },
+      ],
+      risk: verifiedSource ? undefined : "Unverified / unknown contract — simulate before signing",
+      ...(verifiedSource || hints.length
+        ? {
+            // extra fields for agents (Found is open enough via structural typing at push sites)
+          }
+        : {}),
+    } as Found & {
+      confidence?: string;
+      recoveryHints?: typeof hints;
+      verifiedSource?: string;
+      verifiedAbi?: unknown;
+    });
+    const last = items[items.length - 1] as Found & {
+      confidence?: string;
+      recoveryHints?: typeof hints;
+      verifiedSource?: string;
+      verifiedAbi?: unknown;
+    };
+    last.confidence = claimTx ? "medium" : hints.length ? "low" : "low";
+    if (hints.length) last.recoveryHints = hints;
+    if (verifiedSource) last.verifiedSource = verifiedSource;
+    if (verifiedAbi) last.verifiedAbi = verifiedAbi;
+  }
   // 4. legacy exchanges: ERC-20 + ETH balances left in EtherDelta / IDEX v1
   if (chainId === 1) {
     const toks = ["0x0000000000000000000000000000000000000000", ...tokens.slice(0, 300)];
@@ -2692,6 +3212,11 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       ]);
       items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]));
       sources.push("unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains");
+      const stuck = await stuckMoneyRegistry(f, env, own).catch(() => []);
+      items.push(...(stuck as Found[]));
+      sources.push(
+        "known-contract registry: Curve/Convex, Synthetix, Sablier, Pendle, GMX, Rocket Pool rETH, OP/Base/Arb L2 withdrawals, Polygon PoS exits, Multichain/Celer (detect), merkle airdrops (UNI/ENS/1INCH/OP/ARB)",
+      );
       const archChains = env.ETHERSCAN_API_KEY
         ? [1, 8453, 42161, 10, 137, 56, 43114, 534352]
         : [1, 10, 534352, 43114];
@@ -2710,7 +3235,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       );
     } else if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address)) {
       const [tm, jl] = await Promise.all([
-        tronMoney(f, address),
+        tronMoney(f, address, env),
         justLend(f, address).catch(() => []),
       ]);
       items.push(...tm, ...jl);
@@ -2719,8 +3244,17 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       // Tron base58 also matches the Solana pattern, so Tron is tested first.
       items.push(...(await solanaRent(f, env, address)));
       items.push(...((await solanaStake(f, env, address).catch(() => [])) as Found[]));
-      sources.push("Solana RPC token accounts (rent reclaim), stake accounts (deactivated = withdrawable)");
-    } else throw new BadRequest("airdrop_check supports EVM, Solana and Tron addresses");
+      items.push(...((await solanaArchaeology(f, env, address).catch(() => [])) as Found[]));
+      sources.push(
+        "Solana RPC token accounts (rent reclaim), stake accounts (deactivated = withdrawable + withdraw ix), program archaeology (owned accounts + stake/vote programs)",
+      );
+    } else if (
+      /^(xpub|ypub|zpub|xprv)/i.test(address) ||
+      /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address)
+    ) {
+      items.push(...((await btcXpubScan(f, address).catch(() => [])) as Found[]));
+      sources.push("Bitcoin xpub/address UTXO scan (blockchain.info multiaddr + mempool.space)");
+    } else throw new BadRequest("airdrop_check supports EVM, Solana, Tron and Bitcoin (address/xpub)");
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
     const top = items[0];
     return {

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { decodeFunctionData, toFunctionSelector, encodeFunctionData, formatUnits, getAddress, parseAbiItem } from "viem";
+import { decodeFunctionData, toFunctionSelector, encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
 import { NATIVE_TOKEN, SOLANA } from "@swapchan/shared";
 import { chainName, evmClient, json, prices, pxOf, SITE, solRpc, swapUrl, usdcOf } from "./onchain.js";
 
@@ -28,7 +28,10 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "withdraw()", owners: [] },
   { sig: "exit()", owners: [] },
   { sig: "getReward()", owners: [] },
+  { sig: "getReward(address)", owners: [0] },
   { sig: "claim()", owners: [] },
+  { sig: "claimFees()", owners: [] },
+  { sig: "vest()", owners: [] },
   { sig: "claimRewards()", owners: [] },
   { sig: "withdraw(uint256)", owners: [] },
   { sig: "redeem(uint256,address,address)", owners: [1, 2] },
@@ -37,6 +40,8 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "claimVenus(address)", owners: [0] },
   { sig: "claimWithdrawal(uint256)", owners: [] },
   { sig: "claimCollateral()", owners: [] },
+  { sig: "claim(uint256,address,uint256,bytes32[])", owners: [1] },
+  { sig: "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)", owners: [5] },
   {
     sig: "collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max))",
     owners: [-1],
@@ -143,10 +148,13 @@ export interface NewFound {
   chainId: number;
   what: string;
   valueUsd: number | null;
-  claimTx?: RecoveryTx;
+  claimTx?: RecoveryTx | { chainId: number; solanaTx: unknown; description: string };
   action: string;
   link?: string;
   risk?: string;
+  evidence?: Evidence[];
+  confidence?: "high" | "medium" | "low";
+  recoveryHints?: { name: string; selector: string; abi?: string }[];
 }
 
 // ---------- unwrapped native (WETH/WBNB/WPOL/WAVAX) ----------
@@ -189,6 +197,16 @@ export async function wrappedNative(f: F, env: NodeJS.ProcessEnv, owner: `0x${st
       },
       action: "Unwrap it (or swap it straight to USDC on SwapChan)",
       link: swapUrl(id, NATIVE_TOKEN, id, usdcOf(id)!, amt),
+      evidence: [{
+        chainId: id,
+        address: WRAPPED[id]!,
+        call: "balanceOf(address)",
+        abi: "balanceOf(address) view returns (uint256)",
+        args: [owner],
+        raw: toHex(v),
+        ...(blockNumber && id === 1 ? { block: blockNumber.toString() } : {}),
+      }],
+      confidence: "high" as const,
     };
   });
 }
@@ -234,6 +252,11 @@ export async function lidoWithdrawals(f: F, env: NodeJS.ProcessEnv, owner: `0x${
           : {}),
         action: s.isFinalized ? "Claim the ETH, then swap it on SwapChan" : "Wait for Lido to finalize, then claim",
         link: swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth)),
+        evidence: [
+          { chainId: 1, address: LIDO_WQ, call: "getWithdrawalRequests(address)", abi: "getWithdrawalRequests(address) view returns (uint256[])", args: [owner], raw: ids.map((x) => x.toString()), ...(blockNumber ? { block: blockNumber.toString() } : {}) },
+          { chainId: 1, address: LIDO_WQ, call: "getWithdrawalStatus(uint256[])", abi: "getWithdrawalStatus(uint256[]) view returns ((uint256,uint256,address,uint256,bool,bool)[])", args: [ids[i]!.toString()], raw: [toHex(s.amountOfStETH), String(s.isFinalized), String(s.isClaimed)], ...(blockNumber ? { block: blockNumber.toString() } : {}) },
+        ],
+        confidence: "high" as const,
       },
     ];
   });
@@ -292,14 +315,55 @@ export async function solanaStake(f: F, env: NodeJS.ProcessEnv, owner: string): 
     const de = d ? Number(d.deactivationEpoch) : 0;
     const free = !d || (de < 1e15 && de < ep.epoch);
     const sol = a.account.lamports / 1e9;
+    const lamports = a.account.lamports;
+    const withdrawIx = free
+      ? {
+          chainId: SOLANA,
+          solanaTx: {
+            kind: "svm-instructions",
+            data: {
+              instructions: [
+                {
+                  programId: STAKE,
+                  keys: [
+                    { pubkey: a.pubkey, isSigner: false, isWritable: true },
+                    { pubkey: owner, isSigner: false, isWritable: true },
+                    { pubkey: "SysvarC1ock11111111111111111111111111111111", isSigner: false, isWritable: false },
+                    { pubkey: owner, isSigner: true, isWritable: false },
+                  ],
+                  // StakeInstruction::Withdraw = 4; lamports u64 LE
+                  data: (() => {
+                    const b = Buffer.alloc(12);
+                    b.writeUInt32LE(4, 0);
+                    b.writeBigUInt64LE(BigInt(lamports), 4);
+                    return b.toString("hex");
+                  })(),
+                },
+              ],
+            },
+          },
+          description: `StakeProgram.Withdraw(${sol.toFixed(4)} SOL) from ${a.pubkey.slice(0, 8)}…`,
+        }
+      : undefined;
     return {
       kind: "claimable" as const,
       protocol: "Solana stake account",
       chainId: SOLANA,
       what: `${a.pubkey.slice(0, 6)}…: ${sol.toFixed(4)} SOL ${free ? "deactivated, withdrawable now" : de < 1e15 ? "deactivating" : "still delegated"}`,
       valueUsd: p ? r2(sol * p) : null,
-      action: free ? "Withdraw the stake in your wallet's staking tab, then swap on SwapChan" : "Still staked: deactivate first if you want it liquid",
+      ...(withdrawIx ? { claimTx: withdrawIx } : {}),
+      action: free ? "Sign the stake withdraw tx, then swap SOL on SwapChan" : "Still staked: deactivate first if you want it liquid",
       link: swapUrl(SOLANA, "11111111111111111111111111111111", SOLANA, usdcOf(SOLANA)!, sol.toFixed(4)),
+      evidence: [
+        {
+          chainId: SOLANA,
+          address: a.pubkey,
+          call: "getProgramAccounts(Stake1111…, memcmp authority)",
+          args: [owner],
+          raw: String(lamports),
+        },
+      ],
+      confidence: free ? ("high" as const) : ("medium" as const),
     };
   });
 }
