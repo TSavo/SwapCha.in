@@ -3359,7 +3359,35 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     const items: Found[] = [];
     const sources: string[] = [];
     let archaeology: Record<string, unknown> | undefined;
+    const timings: Record<string, number> = {};
+    const notChecked: string[] = [];
+    const SOURCE_MS = Number(env.FIND_SOURCE_TIMEOUT_MS ?? 12_000);
+    // every source runs in parallel under its own deadline; a slow one becomes a "not checked" line instead of blocking
+    const timed = <T,>(n: string, p: Promise<T>, empty: T, ms = SOURCE_MS): Promise<T> => {
+      const t0 = Date.now();
+      let to: ReturnType<typeof setTimeout> | undefined;
+      return Promise.race([
+        p.then(
+          (v) => ((timings[n] = Date.now() - t0), v),
+          (e) => {
+            timings[n] = Date.now() - t0;
+            notChecked.push(`${n}: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`);
+            return empty;
+          },
+        ),
+        new Promise<T>((res) => {
+          to = setTimeout(() => {
+            timings[n] = ms;
+            notChecked.push(`${n}: not checked (timed out after ${ms / 1000}s)`);
+            res(empty);
+          }, ms);
+        }),
+      ]).finally(() => clearTimeout(to));
+    };
     if (vm === "evm") {
+      const own = getAddress(address);
+      const merklP = (async () => {
+        const mi: Found[] = [];
       const ids = [1, 8453, 42161, 10, 137, 56, 43114, 59144, 534352];
       const rs = await Promise.all(
         ids.map((id) =>
@@ -3386,7 +3414,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           const un = BigInt(w.amount) - BigInt(w.claimed);
           if (un <= 0n) continue;
           const amt = Number(formatUnits(un, w.token.decimals));
-          items.push({
+          mi.push({
             kind: "claimable",
             protocol: "Merkl rewards",
             chainId: r.chain.id,
@@ -3396,46 +3424,39 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
             link: toUsdc(r.chain.id, getAddress(w.token.address), String(amt)),
           });
         }
-      sources.push("Merkl API (incentive rewards on 9 EVM chains)");
-      const eth = await prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]);
-      items.push(
-        ...(await legacyEth(
-          env,
-          getAddress(address),
-          pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null,
-        ).catch(() => [])),
+        return mi;
+      })();
+      const legacyP = prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]).then((eth) =>
+        legacyEth(env, own, pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null),
       );
-      sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
-      const own = getAddress(address);
-      const [wn, lido, safes, vaults, aaveS, eigen, beacon] = await Promise.all([
-        wrappedNative(f, env, own).catch(() => []),
-        lidoWithdrawals(f, env, own).catch(() => []),
-        ownedSafes(f, env, own).catch(() => []),
-        vaultPositions(f, env, own).catch(() => []),
-        aaveSupplied(f, env, own).catch(() => []),
-        eigenLayer(f, env, own).catch(() => []),
-        beaconValidators(f, own).catch(() => []),
+      const archChains = env.ETHERSCAN_API_KEY
+        ? [1, 8453, 42161, 10, 137, 56, 43114, 534352]
+        : [1, 10, 534352, 43114];
+      const noArch = { items: [] as Found[], stats: { error: "not checked (timeout)" } as Record<string, number | string> };
+      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, stuck, ...arch] = await Promise.all([
+        timed("Merkl", merklP, [] as Found[]),
+        timed("legacy contracts", legacyP, [] as Found[]),
+        timed("wrapped native", wrappedNative(f, env, own), []),
+        timed("Lido queue", lidoWithdrawals(f, env, own), []),
+        timed("Safes", ownedSafes(f, env, own), []),
+        timed("vaults", vaultPositions(f, env, own), []),
+        timed("Aave/Spark", aaveSupplied(f, env, own), []),
+        timed("EigenLayer", eigenLayer(f, env, own), []),
+        timed("beacon validators", beaconValidators(f, own), []),
+        timed("contract registry", stuckMoneyRegistry(f, env, own), []),
+        ...archChains.map((id) => timed(`history ${chainName(id)}`, evmArchaeology(f, env, id, own), noArch, Number(env.FIND_ARCH_TIMEOUT_MS ?? 15_000))),
       ]);
+      items.push(...(merklR as Found[]), ...(legacyR as Found[]));
+      sources.push("Merkl API (incentive rewards on 9 EVM chains)");
+      sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
       items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]), ...(eigen as Found[]), ...(beacon as Found[]));
       sources.push("vault registry: Yearn v2/v3, Beefy, Morpho, sDAI/sUSDS/sfrxETH/scrvUSD/sUSDe on 7 EVM chains");
       sources.push(
         "unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains",
       );
-      const stuck = await stuckMoneyRegistry(f, env, own).catch(() => []);
       items.push(...(stuck as Found[]));
       sources.push(
         "known-contract registry: Curve/Convex, Synthetix, Sablier, Pendle, GMX, Rocket Pool rETH, OP/Base/Arb L2 withdrawals, Polygon PoS exits, Multichain/Celer (detect), merkle airdrops (UNI/ENS/1INCH/OP/ARB)",
-      );
-      const archChains = env.ETHERSCAN_API_KEY
-        ? [1, 8453, 42161, 10, 137, 56, 43114, 534352]
-        : [1, 10, 534352, 43114];
-      const arch = await Promise.all(
-        archChains.map((id) =>
-          evmArchaeology(f, env, id, getAddress(address)).catch((e) => ({
-            items: [] as Found[],
-            stats: { error: (e as Error).message.slice(0, 80) } as Record<string, number | string>,
-          })),
-        ),
       );
       // a vault already reported by the vault registry is not repeated by the history scan
       const vaultKeys = new Set(
@@ -3479,6 +3500,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     } else
       throw new BadRequest("airdrop_check supports EVM, Solana, Tron and Bitcoin (address/xpub)");
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
+    if (Object.keys(timings).length) console.log(JSON.stringify({ evt: "find_money_timings", ms: timings }));
     const top = items[0];
     return {
       address,
@@ -3488,6 +3510,8 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       items,
       sources,
       ...(archaeology ? { archaeology } : {}),
+      ...(notChecked.length ? { notChecked } : {}),
+      ...(Object.keys(timings).length ? { timingsMs: timings } : {}),
       coverage:
         "Covered: Merkl incentive rewards (EVM); legacy Ethereum contracts (PoWH3D, Fomo3D, EtherDelta ETH+ERC-20, IDEX v1, Liquity surplus); contract archaeology over the wallet's full history on Ethereum/Optimism/Scroll/Avalanche (all 8 EVM chains with ETHERSCAN_API_KEY): generic reward views, ERC-4626/Yearn vaults, v2 LPs, Uniswap v3 fees, NFTs held; Tron voting rewards/unfreezes/dividend contracts/JustLend; Solana rent in empty token accounts. NOT covered: one-off project airdrops (Jupiter, ENS, UNI, LayerZero, etc.) because no free unified source exists.",
       next: top?.link
@@ -4406,27 +4430,31 @@ export async function findMoney(
     const items: Item[] = [];
     const errors: string[] = [];
     const notChecked: string[] = [];
+    const fmMs: Record<string, number> = {};
+    const STAGE_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000);
     const run = async <T>(n: string, p: () => Promise<T>) => {
+      const t0 = Date.now();
+      let to: ReturnType<typeof setTimeout> | undefined;
       try {
-        return await p();
+        return await Promise.race([
+          p(),
+          new Promise<never>((_, rej) => {
+            to = setTimeout(() => rej(new Error(`timed out after ${STAGE_MS / 1000}s`)), STAGE_MS);
+          }),
+        ]);
       } catch (e) {
-        errors.push(`${n}: ${(e as Error).message.slice(0, 120)}`);
+        const msg = (e as Error).message.slice(0, 120);
+        if (msg.startsWith("timed out")) notChecked.push(`${n}: not checked (${msg})`);
+        else errors.push(`${n}: ${msg}`);
         return null;
+      } finally {
+        clearTimeout(to);
+        fmMs[n] = Date.now() - t0;
       }
     };
-    const bal = (await run("balances", () => walletBalances(f, env, address))) as {
-      totalUsd: number;
-      holdings: {
-        chainId: number;
-        address: string;
-        symbol: string;
-        balance: string;
-        priceUsd: number | null;
-        valueUsd: number | null;
-      }[];
-    } | null;
-    const H = bal?.holdings ?? [];
-    const [air, lend, appr, pools, gasNow] = await Promise.all([
+    const balP = run("balances", () => walletBalances(f, env, address));
+    const [balR, air, lend, appr, pools, gasNow] = await Promise.all([
+      balP,
       run("claimables", () => airdropCheck(f, env, address)),
       vm === "evm"
         ? run("lending", async () => {
@@ -4451,6 +4479,20 @@ export async function findMoney(
       run("yields", () => yields(f, { stablecoinOnly: true, minTvlUsd: 10_000_000, limit: 50 })),
       run("gas", () => gas(f, env)),
     ]);
+    const bal = balR as {
+      totalUsd: number;
+      holdings: {
+        chainId: number;
+        address: string;
+        symbol: string;
+        balance: string;
+        priceUsd: number | null;
+        valueUsd: number | null;
+      }[];
+    } | null;
+    const H = bal?.holdings ?? [];
+    for (const n of (air as { notChecked?: string[] } | null)?.notChecked ?? []) notChecked.push(n);
+    console.log(JSON.stringify({ evt: "find_money_stages", ms: fmMs, sources: (air as { timingsMs?: unknown } | null)?.timingsMs }));
     for (const it of (air as { items?: Found[] } | null)?.items ?? [])
       items.push({
         category:
