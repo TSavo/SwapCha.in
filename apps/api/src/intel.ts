@@ -3371,7 +3371,20 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           })),
         ),
       );
-      for (const a of arch) items.push(...a.items);
+      // a vault already reported by the vault registry is not repeated by the history scan
+      const vaultKeys = new Set(
+        (vaults as Found[]).map((v) => `${v.chainId}:${String((v.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase()}`),
+      );
+      for (const a of arch)
+        items.push(
+          ...a.items.filter(
+            (x) =>
+              !(
+                x.protocol.startsWith("Vault ") &&
+                vaultKeys.has(`${x.chainId}:${String((x.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase()}`)
+              ),
+          ),
+        );
       archaeology = Object.fromEntries(arch.map((a, i) => [chainName(archChains[i]!), a.stats]));
       sources.push(
         "contract archaeology: full explorer history → every contract called/token received, probed with balanceOf/earned/dividendsOf/claimable/pendingRewards, ERC-4626 & Yearn vault shares, Uniswap-v2 LP shares, Uniswap v3 positions + simulated collect() fees, EtherDelta/IDEX ERC-20 balances, NFTs still held",
