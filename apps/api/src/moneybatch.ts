@@ -128,7 +128,18 @@ const usd = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export function view(job: Job) {
-  const entries = job.inputs.map((a) => ({ ...a, ...job.results[a.input]! }));
+  const seen = new Map<string, string>();
+  const entries = job.inputs.map((a) => {
+    const e = { ...a, ...job.results[a.input]! } as typeof a & Job["results"][string] & { duplicateOf?: string };
+    const key = e.result?.address?.toLowerCase();
+    if (key) {
+      const first = seen.get(key);
+      if (first) e.duplicateOf = first;
+      else seen.set(key, a.input);
+    }
+    return e;
+  });
+  const unique = entries.filter((e) => !e.duplicateOf);
   const done = entries.filter((e) => e.status === "done" || e.status === "error").length;
   const progress = {
     done,
@@ -149,8 +160,9 @@ export function view(job: Job) {
         }
       : {}),
     ...(e.error ? { error: e.error } : {}),
+    ...(e.duplicateOf ? { duplicateOf: e.duplicateOf, note: "same wallet as another input; counted once" } : {}),
   }));
-  const items = entries
+  const items = unique
     .flatMap((e) =>
       (e.result?.items ?? []).map((i) => ({
         wallet: e.result?.name ?? e.result?.address ?? e.input,
@@ -187,12 +199,12 @@ export function view(job: Job) {
         url: i.shortUrl ?? i.swapUrl,
       })),
     phase3_swap: wallets
-      .filter((w) => w.swapAll)
+      .filter((w) => w.swapAll && !w.duplicateOf)
       .map((w) => ({ wallet: w.address ?? w.input, ...w.swapAll })),
   };
   const lines = [
     finished
-      ? `I scanned ${entries.length} wallet${entries.length > 1 ? "s" : ""} and found about ${usd(totalEstUsd)} for you${exact ? ` (${usd(exact)} of it exact, on-chain)` : ""}${atRiskUsd ? `, plus ${usd(atRiskUsd)} exposed to risky approvals/tokens to protect` : ""}.`
+      ? `I scanned ${unique.length} wallet${unique.length > 1 ? "s" : ""} and found about ${usd(totalEstUsd)} for you${exact ? ` (${usd(exact)} of it exact, on-chain)` : ""}${atRiskUsd ? `, plus ${usd(atRiskUsd)} exposed to risky approvals/tokens to protect` : ""}.`
       : `Scanning ${progress.done}/${progress.total} wallets so far: about ${usd(totalEstUsd)} found.`,
     ...money
       .slice(0, 10)

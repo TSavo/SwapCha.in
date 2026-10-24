@@ -42,3 +42,18 @@ describe("find_money batch", () => {
     expect(v.summary).toContain("short: https://swapchan.com/s/1 | full: https://swapchan.com/recover?x");
   });
 });
+
+describe("batch dedupe", () => {
+  it("counts a name and its resolved address once", async () => {
+    const { startBatch, batchStatus } = await import("./moneybatch");
+    const find = async (a: string) => ({
+      address: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+      items: [{ title: "x", estUsd: 10, estimateKind: "exact" }],
+    });
+    const s = startBatch(find as never, "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 vitalik.eth");
+    await new Promise((r) => setTimeout(r, 20));
+    const v = batchStatus(s.jobId);
+    expect(v.totalEstUsd).toBe(10);
+    expect(v.wallets[1]!.duplicateOf).toBeTruthy();
+  });
+});
