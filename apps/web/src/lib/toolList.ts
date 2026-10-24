@@ -51,6 +51,14 @@ export const TOOLS: ToolInfo[] = [
     prompt: "What can the owner of USDT on Ethereum do?",
   },
   {
+    href: "/read-chain",
+    name: "Chain state reader",
+    mcp: "read_chain",
+    emoji: "📖",
+    blurb: "Balances, contract calls, storage, logs and historical reads on EVM, Solana, Tron and Bitcoin. Read-only.",
+    prompt: "Use read_chain to check vitalik.eth's WETH balance at block 18000000.",
+  },
+  {
     href: "/airdrops",
     name: "Airdrop & unclaimed checker",
     mcp: "airdrop_check",

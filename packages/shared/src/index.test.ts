@@ -74,3 +74,16 @@ describe("tokenList logos", () => {
     expect(missing.map((t) => `${t.chainId}:${t.symbol}`)).toEqual([]);
   });
 });
+
+import { CATALOG, playbook, playbookInstructions, WORKFLOWS } from "./playbook.js";
+describe("playbook", () => {
+  it("covers every workflow and the sign loop", () => {
+    const full = playbook(undefined, true);
+    expect(Object.keys(full.workflows)).toEqual(Object.keys(WORKFLOWS));
+    const fm = JSON.stringify(playbook("find-money"));
+    for (const t of ["find_money_batch", "read_chain", "verify_tx", "broadcast_tx", "tx_status", "build_swap_tx", "recovery_guide"]) expect(fm).toContain(t);
+    expect(playbook("nope")).toHaveProperty("error");
+    expect(CATALOG.some((c) => c.tool === "read_chain")).toBe(true);
+    expect(playbookInstructions()).toContain("swapchan_playbook");
+  });
+});

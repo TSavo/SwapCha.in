@@ -131,6 +131,10 @@ describe("swapchan mcp over streamable http", () => {
         "tx_status",
         "signing_guide",
         "recovery_guide",
+        "read_chain",
+        "find_money_batch",
+        "find_money_status",
+        "swapchan_playbook",
       ].sort(),
     );
     await c.close();

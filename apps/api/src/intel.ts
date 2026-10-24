@@ -40,6 +40,9 @@ import {
 } from "./onchain.js";
 import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 import { recoveryGuide } from "./keyrecovery.js";
+import { readChain, READ_OPS } from "./readchain.js";
+import { batchStatus, startBatch } from "./moneybatch.js";
+import { playbook } from "@swapchan/shared";
 import { type Evidence, lidoWithdrawals, ownedSafes, recoveryFlow, solanaStake, wrappedNative } from "./recover.js";
 import { cached, tokenRisk } from "./scanner.js";
 
@@ -4114,6 +4117,27 @@ export function intelRoutes(
     ),
   );
   app.get("/gas/history", (c) => run(c, () => gasHistory(f, env, db, c.req.query("chainId") ?? 1)));
+  app.post("/read-chain", (c) =>
+    run(c, async () => {
+      const b = z
+        .object({ chainId: z.union([z.number(), z.string()]), op: z.enum(READ_OPS) })
+        .passthrough()
+        .parse(await c.req.json());
+      return readChain(f, env, b as never, { contract: (id, a) => contractReader(f, env, id, a) });
+    }),
+  );
+  app.post("/money/batch", (c) =>
+    run(c, async () => {
+      const b = z
+        .object({ addresses: z.union([z.string().max(20_000), z.array(z.string().max(200)).max(200)]) })
+        .parse(await c.req.json());
+      return startBatch((a) => findMoney(f, env, linksDb, a) as never, b.addresses);
+    }),
+  );
+  app.get("/money/batch/:id", (c) => run(c, async () => batchStatus(c.req.param("id"))));
+  app.get("/playbook", (c) =>
+    run(c, async () => playbook(c.req.query("workflow"), c.req.query("full") === "true")),
+  );
   app.get("/money", (c) =>
     run(c, () => findMoney(f, env, linksDb, need(c.req.query("address"), "address"))),
   );

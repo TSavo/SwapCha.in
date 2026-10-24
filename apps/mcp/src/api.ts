@@ -209,6 +209,15 @@ export class SwapChanApi {
   findMoney(address: string): Promise<Rec> {
     return this.rec(`/onchain/money?${qs({ address })}`, undefined, 90_000);
   }
+  readChain(body: Rec): Promise<Rec> {
+    return this.rec("/onchain/read-chain", { method: "POST", body: JSON.stringify(body) }, 60_000);
+  }
+  findMoneyBatch(addresses: string | string[]): Promise<Rec> {
+    return this.rec("/onchain/money/batch", { method: "POST", body: JSON.stringify({ addresses }) }, 30_000);
+  }
+  findMoneyStatus(jobId: string): Promise<Rec> {
+    return this.rec(`/onchain/money/batch/${encodeURIComponent(jobId)}`);
+  }
   verifyTx(body: Rec): Promise<Rec> {
     return this.rec("/onchain/verify-tx", { method: "POST", body: JSON.stringify(body) }, 60_000);
   }
