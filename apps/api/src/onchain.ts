@@ -605,7 +605,7 @@ const APPROVAL_EXPLORER: Record<number, string[]> = {
 /** Chains the free Etherscan v2 tier serves (OP, Base, BSC, Avalanche are paid-only; Scroll unsupported). */
 export const ETHERSCAN_FREE = new Set([1, 137, 42161, 59144]);
 /** Public RPCs that answer a full-range topic-filtered eth_getLogs. */
-const FULL_RANGE_LOG_RPC: Record<number, string> = { 534352: "https://rpc.scroll.io" };
+const FULL_RANGE_LOG_RPC: Record<number, string> = { 534352: "https://rpc.scroll.io", 10: "https://mainnet.optimism.io" };
 type SpenderInfo = {
   contract_name?: string | null;
   tag?: string | null;
@@ -742,6 +742,9 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
         return Array.isArray(r.result) ? r.result : null;
       },
     });
+  // fastest, most reliable first: full-range RPC, then keyed Etherscan, then public explorers
+  const srcRank = (n: string) => (n.startsWith("RPC") ? 0 : n.startsWith("Etherscan") ? 1 : 2);
+  logSources.sort((a, b) => srcRank(a.name) - srcRank(b.name));
   for (const src of logSources) {
     const logs = await cached(`apl:${src.name}:${chainId}:${o}`, 120_000, src.get).catch(
       () => null,
