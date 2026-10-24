@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { recoveryGuide, RECOVERY_BRANCHES, KEY_WARNINGS } from "./keyrecovery.js";
+import { KEY_WARNINGS, RECOVERY_BRANCHES, recoveryGuide } from "./keyrecovery.js";
 
 describe("recovery_guide", () => {
   it("full playbook includes every branch, warnings and derivation paths", () => {
@@ -7,7 +7,9 @@ describe("recovery_guide", () => {
     expect(g.warnings).toEqual(KEY_WARNINGS);
     expect(g.situations).toHaveLength(RECOVERY_BRANCHES.length);
     expect(g.derivationPaths!.length).toBeGreaterThan(5);
-    expect(g.situations.some((b: { code?: string }) => (b.code ?? "").includes("bip39"))).toBe(true);
+    expect(g.situations.some((b: { code?: string }) => (b.code ?? "").includes("bip39"))).toBe(
+      true,
+    );
   });
   it("situation filters to one branch", () => {
     const g = recoveryGuide("presale");

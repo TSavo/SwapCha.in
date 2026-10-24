@@ -11,17 +11,13 @@ import {
   createPublicClient,
   encodeFunctionData,
   getAddress,
-  http,
-  parseAbiItem,
   type Hex,
+  http,
   type PublicClient,
+  parseAbiItem,
 } from "viem";
-import { mainnet, optimism, base, arbitrum } from "viem/chains";
-import {
-  buildProveWithdrawal,
-  getWithdrawals,
-  getWithdrawalStatus,
-} from "viem/op-stack";
+import { arbitrum, base, mainnet, optimism } from "viem/chains";
+import { buildProveWithdrawal, getWithdrawalStatus, getWithdrawals } from "viem/op-stack";
 
 type F = typeof fetch;
 
@@ -80,7 +76,8 @@ export async function buildOpStackWithdrawalTxs(
   try {
     const receipt = await l2.getTransactionReceipt({ hash: l2TxHash });
     const withdrawals = getWithdrawals(receipt);
-    if (!withdrawals.length) return { status: "no-withdrawal", error: "no MessagePassed in receipt" };
+    if (!withdrawals.length)
+      return { status: "no-withdrawal", error: "no MessagePassed in receipt" };
     const withdrawal = withdrawals[0]!;
     // getWithdrawalStatus needs L1 portal + L2 client extended — use low-level path
     const status = await (getWithdrawalStatus as Function)(l1, {
@@ -127,7 +124,9 @@ export async function buildOpStackWithdrawalTxs(
                 targetChain: l2.chain as never,
                 limit: 5,
               });
-              const g = Array.isArray(games) ? games[0] : (games as { games?: unknown[] })?.games?.[0];
+              const g = Array.isArray(games)
+                ? games[0]
+                : (games as { games?: unknown[] })?.games?.[0];
               if (g) gameOrOutput = { game: g };
             } catch {}
           }
@@ -147,23 +146,29 @@ export async function buildOpStackWithdrawalTxs(
         const l2Block = await l2.getBlock({ blockNumber: receipt.blockNumber });
         let built: unknown;
         try {
-          built = await buildProveWithdrawal(l1 as never, {
-            withdrawal,
-            game: gameOrOutput.game,
-            output: gameOrOutput.output,
-            account: "0x0000000000000000000000000000000000000001" as never,
-            targetChain: l2.chain as never,
-          } as never);
+          built = await buildProveWithdrawal(
+            l1 as never,
+            {
+              withdrawal,
+              game: gameOrOutput.game,
+              output: gameOrOutput.output,
+              account: "0x0000000000000000000000000000000000000001" as never,
+              targetChain: l2.chain as never,
+            } as never,
+          );
         } catch (be) {
           // Retry with explicit l2Timestamp alignment
-          built = await buildProveWithdrawal(l1 as never, {
-            withdrawal,
-            game: gameOrOutput.game,
-            output: gameOrOutput.output,
-            account: "0x0000000000000000000000000000000000000001" as never,
-            targetChain: l2.chain as never,
-            l2Timestamp: l2Block.timestamp,
-          } as never);
+          built = await buildProveWithdrawal(
+            l1 as never,
+            {
+              withdrawal,
+              game: gameOrOutput.game,
+              output: gameOrOutput.output,
+              account: "0x0000000000000000000000000000000000000001" as never,
+              targetChain: l2.chain as never,
+              l2Timestamp: l2Block.timestamp,
+            } as never,
+          );
           void be;
         }
         // encode proveWithdrawalTransaction
@@ -209,7 +214,9 @@ export async function buildOpStackWithdrawalTxs(
           .getWithdrawalHashStorageSlot;
         const getGame2 = (op as { getGame?: Function }).getGame;
         if (getWithdrawalHashStorageSlot) {
-          const slot = getWithdrawalHashStorageSlot({ withdrawalHash: withdrawal.withdrawalHash }) as Hex;
+          const slot = getWithdrawalHashStorageSlot({
+            withdrawalHash: withdrawal.withdrawalHash,
+          }) as Hex;
           const proof = await l2.getProof({
             address: L2_TO_L1,
             storageKeys: [slot],
@@ -394,16 +401,14 @@ export async function findRecentOpWithdrawal(
   owner: `0x${string}`,
 ): Promise<Hex | null> {
   const api =
-    l2ChainId === 10
-      ? "https://api-optimistic.etherscan.io/api"
-      : "https://api.basescan.org/api";
+    l2ChainId === 10 ? "https://api-optimistic.etherscan.io/api" : "https://api.basescan.org/api";
   const key =
     l2ChainId === 10
-      ? env.OPTIMISM_ETHERSCAN_KEY ?? env.ETHERSCAN_KEY ?? ""
-      : env.BASESCAN_KEY ?? env.ETHERSCAN_KEY ?? "";
+      ? (env.OPTIMISM_ETHERSCAN_KEY ?? env.ETHERSCAN_KEY ?? "")
+      : (env.BASESCAN_KEY ?? env.ETHERSCAN_KEY ?? "");
   try {
     const url = `${api}?module=account&action=txlist&address=${owner}&sort=desc&page=1&offset=100${key ? `&apikey=${key}` : ""}`;
-    const r = await f(url, { signal: AbortSignal.timeout(15_000) }).then((x) => x.json()) as {
+    const r = (await f(url, { signal: AbortSignal.timeout(15_000) }).then((x) => x.json())) as {
       result?: { to: string; hash: string; isError: string; input: string }[];
     };
     const hit = (Array.isArray(r.result) ? r.result : []).find(

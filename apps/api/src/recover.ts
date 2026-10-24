@@ -1,7 +1,25 @@
 import type { DatabaseSync } from "node:sqlite";
-import { decodeFunctionData, toFunctionSelector, encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
 import { NATIVE_TOKEN, SOLANA } from "@swapchan/shared";
-import { chainName, evmClient, json, prices, pxOf, SITE, solRpc, swapUrl, usdcOf } from "./onchain.js";
+import {
+  decodeFunctionData,
+  encodeFunctionData,
+  formatUnits,
+  getAddress,
+  parseAbiItem,
+  toFunctionSelector,
+  toHex,
+} from "viem";
+import {
+  chainName,
+  evmClient,
+  json,
+  prices,
+  pxOf,
+  SITE,
+  solRpc,
+  swapUrl,
+  usdcOf,
+} from "./onchain.js";
 
 /**
  * Guided recovery: every stuck-money finding becomes
@@ -81,7 +99,14 @@ export function recoverUrl(tx: RecoveryTx, title: string, next?: string) {
   return `${SITE}/recover?${q}`;
 }
 
-export type Step = { step: number; kind: "recover" | "swap"; label: string; url: string; shortUrl: string | null; tx?: RecoveryTx };
+export type Step = {
+  step: number;
+  kind: "recover" | "swap";
+  label: string;
+  url: string;
+  shortUrl: string | null;
+  tx?: RecoveryTx;
+};
 /** Build the guided flow. Every finding ends in a swap-to-USDC step. */
 export interface Evidence {
   chainId: number;
@@ -94,23 +119,48 @@ export interface Evidence {
 }
 
 const EXPLORERS: Record<number, string> = {
-  1: "https://etherscan.io", 8453: "https://basescan.org", 10: "https://optimistic.etherscan.io",
-  42161: "https://arbiscan.io", 137: "https://polygonscan.com", 56: "https://bscscan.com", 43114: "https://snowtrace.io",
+  1: "https://etherscan.io",
+  8453: "https://basescan.org",
+  10: "https://optimistic.etherscan.io",
+  42161: "https://arbiscan.io",
+  137: "https://polygonscan.com",
+  56: "https://bscscan.com",
+  43114: "https://snowtrace.io",
 };
 
 /** Machine-readable recovery package: everything an agent needs to verify and act without our UI. */
-export function recoveryInfo(owner: string, it: { claimTx?: unknown; evidence?: Evidence[]; estUsd?: number | null; swapUrl: string }) {
+export function recoveryInfo(
+  owner: string,
+  it: { claimTx?: unknown; evidence?: Evidence[]; estUsd?: number | null; swapUrl: string },
+) {
   const tx = it.claimTx as RecoveryTx | undefined;
   if (!tx || !("data" in (tx as object))) return undefined;
   const sel = tx.data.slice(0, 10).toLowerCase();
   const m = STANDARD_RECOVERY.find((r) => toFunctionSelector(`function ${r.sig}`) === sel);
   const ex = EXPLORERS[tx.chainId];
   return {
-    contract: { chainId: tx.chainId, chain: chainName(tx.chainId), address: tx.to, explorer: ex ? `${ex}/address/${tx.to}` : undefined, verifiedSource: ex ? `${ex}/address/${tx.to}#code` : undefined },
+    contract: {
+      chainId: tx.chainId,
+      chain: chainName(tx.chainId),
+      address: tx.to,
+      explorer: ex ? `${ex}/address/${tx.to}` : undefined,
+      verifiedSource: ex ? `${ex}/address/${tx.to}#code` : undefined,
+    },
     detection: it.evidence ?? [],
-    interface: { reads: [...new Set((it.evidence ?? []).map((e) => e.abi).filter(Boolean))], recovery: m ? `function ${m.sig}` : undefined },
-    value: { estUsd: it.estUsd ?? null, pricingSource: "DefiLlama coins API (coins.llama.fi), spot at scan time" },
-    recoveryTx: { ...tx, unsigned: true, verified: verifyRecovery(tx, owner).verified, payee: owner },
+    interface: {
+      reads: [...new Set((it.evidence ?? []).map((e) => e.abi).filter(Boolean))],
+      recovery: m ? `function ${m.sig}` : undefined,
+    },
+    value: {
+      estUsd: it.estUsd ?? null,
+      pricingSource: "DefiLlama coins API (coins.llama.fi), spot at scan time",
+    },
+    recoveryTx: {
+      ...tx,
+      unsigned: true,
+      verified: verifyRecovery(tx, owner).verified,
+      payee: owner,
+    },
     swapUrl: it.swapUrl,
     trust: "Unsigned. SwapChan never signs, never holds keys or funds; your wallet signs.",
   };
@@ -128,9 +178,22 @@ export function recoveryFlow(
   let rurl: string | undefined;
   if (tx && "data" in (tx as object) && verifyRecovery(tx, owner).verified) {
     rurl = recoverUrl(tx, it.title, it.swapUrl);
-    steps.push({ step: 1, kind: "recover", label: `Sign: ${tx.description}`, url: rurl, shortUrl: s(rurl), tx });
+    steps.push({
+      step: 1,
+      kind: "recover",
+      label: `Sign: ${tx.description}`,
+      url: rurl,
+      shortUrl: s(rurl),
+      tx,
+    });
   } else if (it.protocolUrl)
-    steps.push({ step: 1, kind: "recover", label: "Claim/withdraw on the protocol's app", url: it.protocolUrl, shortUrl: null });
+    steps.push({
+      step: 1,
+      kind: "recover",
+      label: "Claim/withdraw on the protocol's app",
+      url: it.protocolUrl,
+      shortUrl: null,
+    });
   steps.push({
     step: steps.length + 1,
     kind: "swap",
@@ -167,18 +230,32 @@ export const WRAPPED: Record<number, `0x${string}`> = {
   56: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
   43114: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
 };
-export async function wrappedNative(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}`, blockNumber?: bigint): Promise<NewFound[]> {
+export async function wrappedNative(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: `0x${string}`,
+  blockNumber?: bigint,
+): Promise<NewFound[]> {
   const ids = Object.keys(WRAPPED).map(Number);
   const bals = await Promise.all(
     ids.map((id) =>
       evmClient(id, env)
-        .readContract({ address: WRAPPED[id]!, abi: fn("balanceOf(address) view returns (uint256)"), functionName: "balanceOf", args: [owner], ...(blockNumber && id === 1 ? { blockNumber } : {}) })
+        .readContract({
+          address: WRAPPED[id]!,
+          abi: fn("balanceOf(address) view returns (uint256)"),
+          functionName: "balanceOf",
+          args: [owner],
+          ...(blockNumber && id === 1 ? { blockNumber } : {}),
+        })
         .catch(() => 0n),
     ),
   );
   const hits = ids.map((id, i) => ({ id, v: bals[i] as bigint })).filter((x) => x.v > 10n ** 12n);
   if (!hits.length) return [];
-  const px = await prices(f, hits.map((h) => ({ chainId: h.id, address: NATIVE_TOKEN }))).catch(() => new Map());
+  const px = await prices(
+    f,
+    hits.map((h) => ({ chainId: h.id, address: NATIVE_TOKEN })),
+  ).catch(() => new Map());
   return hits.map(({ id, v }) => {
     const amt = formatUnits(v, 18);
     const p = pxOf(px, id, NATIVE_TOKEN)?.price ?? null;
@@ -191,21 +268,27 @@ export async function wrappedNative(f: F, env: NodeJS.ProcessEnv, owner: `0x${st
       claimTx: {
         chainId: id,
         to: WRAPPED[id]!,
-        data: encodeFunctionData({ abi: fn("withdraw(uint256)"), functionName: "withdraw", args: [v] }),
+        data: encodeFunctionData({
+          abi: fn("withdraw(uint256)"),
+          functionName: "withdraw",
+          args: [v],
+        }),
         value: "0",
         description: "withdraw(amount): unwrap to native gas token",
       },
       action: "Unwrap it (or swap it straight to USDC on SwapChan)",
       link: swapUrl(id, NATIVE_TOKEN, id, usdcOf(id)!, amt),
-      evidence: [{
-        chainId: id,
-        address: WRAPPED[id]!,
-        call: "balanceOf(address)",
-        abi: "balanceOf(address) view returns (uint256)",
-        args: [owner],
-        raw: toHex(v),
-        ...(blockNumber && id === 1 ? { block: blockNumber.toString() } : {}),
-      }],
+      evidence: [
+        {
+          chainId: id,
+          address: WRAPPED[id]!,
+          call: "balanceOf(address)",
+          abi: "balanceOf(address) view returns (uint256)",
+          args: [owner],
+          raw: toHex(v),
+          ...(blockNumber && id === 1 ? { block: blockNumber.toString() } : {}),
+        },
+      ],
       confidence: "high" as const,
     };
   });
@@ -213,16 +296,29 @@ export async function wrappedNative(f: F, env: NodeJS.ProcessEnv, owner: `0x${st
 
 // ---------- Lido withdrawal queue (unstake finalised, not claimed) ----------
 export const LIDO_WQ = "0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1" as const;
-export async function lidoWithdrawals(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}`, blockNumber?: bigint): Promise<NewFound[]> {
+export async function lidoWithdrawals(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: `0x${string}`,
+  blockNumber?: bigint,
+): Promise<NewFound[]> {
   const c = evmClient(1, env);
   const bt = blockNumber ? { blockNumber } : {};
   const ids = (await c
-    .readContract({ address: LIDO_WQ, abi: fn("getWithdrawalRequests(address) view returns (uint256[])"), functionName: "getWithdrawalRequests", args: [owner], ...bt })
+    .readContract({
+      address: LIDO_WQ,
+      abi: fn("getWithdrawalRequests(address) view returns (uint256[])"),
+      functionName: "getWithdrawalRequests",
+      args: [owner],
+      ...bt,
+    })
     .catch(() => [])) as readonly bigint[];
   if (!ids.length) return [];
   const st = (await c.readContract({
     address: LIDO_WQ,
-    abi: fn("getWithdrawalStatus(uint256[]) view returns ((uint256 amountOfStETH,uint256 amountOfShares,address owner,uint256 timestamp,bool isFinalized,bool isClaimed)[])"),
+    abi: fn(
+      "getWithdrawalStatus(uint256[]) view returns ((uint256 amountOfStETH,uint256 amountOfShares,address owner,uint256 timestamp,bool isFinalized,bool isClaimed)[])",
+    ),
     functionName: "getWithdrawalStatus",
     args: [[...ids].slice(0, 50)],
     ...bt,
@@ -244,17 +340,39 @@ export async function lidoWithdrawals(f: F, env: NodeJS.ProcessEnv, owner: `0x${
               claimTx: {
                 chainId: 1,
                 to: LIDO_WQ,
-                data: encodeFunctionData({ abi: fn("claimWithdrawal(uint256)"), functionName: "claimWithdrawal", args: [ids[i]!] }),
+                data: encodeFunctionData({
+                  abi: fn("claimWithdrawal(uint256)"),
+                  functionName: "claimWithdrawal",
+                  args: [ids[i]!],
+                }),
                 value: "0",
                 description: `claimWithdrawal(${ids[i]}): claim your unstaked ETH from Lido`,
               },
             }
           : {}),
-        action: s.isFinalized ? "Claim the ETH, then swap it on SwapChan" : "Wait for Lido to finalize, then claim",
+        action: s.isFinalized
+          ? "Claim the ETH, then swap it on SwapChan"
+          : "Wait for Lido to finalize, then claim",
         link: swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth)),
         evidence: [
-          { chainId: 1, address: LIDO_WQ, call: "getWithdrawalRequests(address)", abi: "getWithdrawalRequests(address) view returns (uint256[])", args: [owner], raw: ids.map((x) => x.toString()), ...(blockNumber ? { block: blockNumber.toString() } : {}) },
-          { chainId: 1, address: LIDO_WQ, call: "getWithdrawalStatus(uint256[])", abi: "getWithdrawalStatus(uint256[]) view returns ((uint256,uint256,address,uint256,bool,bool)[])", args: [ids[i]!.toString()], raw: [toHex(s.amountOfStETH), String(s.isFinalized), String(s.isClaimed)], ...(blockNumber ? { block: blockNumber.toString() } : {}) },
+          {
+            chainId: 1,
+            address: LIDO_WQ,
+            call: "getWithdrawalRequests(address)",
+            abi: "getWithdrawalRequests(address) view returns (uint256[])",
+            args: [owner],
+            raw: ids.map((x) => x.toString()),
+            ...(blockNumber ? { block: blockNumber.toString() } : {}),
+          },
+          {
+            chainId: 1,
+            address: LIDO_WQ,
+            call: "getWithdrawalStatus(uint256[])",
+            abi: "getWithdrawalStatus(uint256[]) view returns ((uint256,uint256,address,uint256,bool,bool)[])",
+            args: [ids[i]!.toString()],
+            raw: [toHex(s.amountOfStETH), String(s.isFinalized), String(s.isClaimed)],
+            ...(blockNumber ? { block: blockNumber.toString() } : {}),
+          },
         ],
         confidence: "high" as const,
       },
@@ -271,15 +389,33 @@ const SAFE_TX: Record<number, string> = {
   137: "polygon",
   56: "bsc",
 };
-const SAFE_PREFIX: Record<number, string> = { 1: "eth", 8453: "base", 42161: "arb1", 10: "oeth", 137: "matic", 56: "bnb" };
-export async function ownedSafes(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}`): Promise<NewFound[]> {
+const SAFE_PREFIX: Record<number, string> = {
+  1: "eth",
+  8453: "base",
+  42161: "arb1",
+  10: "oeth",
+  137: "matic",
+  56: "bnb",
+};
+export async function ownedSafes(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: `0x${string}`,
+): Promise<NewFound[]> {
   const out: NewFound[] = [];
   await Promise.all(
     Object.entries(SAFE_TX).map(async ([id, net]) => {
       const chainId = Number(id);
-      const r = await json<{ safes: string[] }>(f, `https://safe-transaction-${net}.safe.global/api/v1/owners/${owner}/safes/`, undefined, 10_000).catch(() => ({ safes: [] }));
+      const r = await json<{ safes: string[] }>(
+        f,
+        `https://safe-transaction-${net}.safe.global/api/v1/owners/${owner}/safes/`,
+        undefined,
+        10_000,
+      ).catch(() => ({ safes: [] }));
       for (const s of (r.safes ?? []).slice(0, 5)) {
-        const wei = await evmClient(chainId, env).getBalance({ address: getAddress(s) }).catch(() => 0n);
+        const wei = await evmClient(chainId, env)
+          .getBalance({ address: getAddress(s) })
+          .catch(() => 0n);
         const px = await prices(f, [{ chainId, address: NATIVE_TOKEN }]).catch(() => new Map());
         const amt = Number(formatUnits(wei, 18));
         out.push({
@@ -287,7 +423,9 @@ export async function ownedSafes(f: F, env: NodeJS.ProcessEnv, owner: `0x${strin
           protocol: `Gnosis Safe ${s.slice(0, 6)}…${s.slice(-4)} on ${chainName(chainId)}`,
           chainId,
           what: `You're an owner of this Safe; it holds ${amt.toPrecision(5)} native${amt ? "" : " (check its tokens too)"}`,
-          valueUsd: pxOf(px, chainId, NATIVE_TOKEN)?.price ? r2(amt * pxOf(px, chainId, NATIVE_TOKEN)!.price) : null,
+          valueUsd: pxOf(px, chainId, NATIVE_TOKEN)?.price
+            ? r2(amt * pxOf(px, chainId, NATIVE_TOKEN)!.price)
+            : null,
           action: "Open the Safe, move funds to your wallet, then swap on SwapChan",
           link: `https://app.safe.global/home?safe=${SAFE_PREFIX[chainId]}:${s}`,
         });
@@ -299,16 +437,34 @@ export async function ownedSafes(f: F, env: NodeJS.ProcessEnv, owner: `0x${strin
 
 // ---------- Solana stake accounts (deactivated = withdrawable) ----------
 const STAKE = "Stake11111111111111111111111111111111111111";
-export async function solanaStake(f: F, env: NodeJS.ProcessEnv, owner: string): Promise<NewFound[]> {
+export async function solanaStake(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: string,
+): Promise<NewFound[]> {
   const [accts, ep] = await Promise.all([
-    solRpc<{ pubkey: string; account: { lamports: number; data: { parsed: { info: { stake?: { delegation: { deactivationEpoch: string; stake: string } } } } } } }[]>(
-      f, env, "getProgramAccounts",
-      [STAKE, { encoding: "jsonParsed", filters: [{ memcmp: { offset: 44, bytes: owner } }] }],
-    ).catch(() => []),
+    solRpc<
+      {
+        pubkey: string;
+        account: {
+          lamports: number;
+          data: {
+            parsed: {
+              info: { stake?: { delegation: { deactivationEpoch: string; stake: string } } };
+            };
+          };
+        };
+      }[]
+    >(f, env, "getProgramAccounts", [
+      STAKE,
+      { encoding: "jsonParsed", filters: [{ memcmp: { offset: 44, bytes: owner } }] },
+    ]).catch(() => []),
     solRpc<{ epoch: number }>(f, env, "getEpochInfo", []).catch(() => ({ epoch: 0 })),
   ]);
   if (!accts.length) return [];
-  const px = await prices(f, [{ chainId: SOLANA, address: "11111111111111111111111111111111" }]).catch(() => new Map());
+  const px = await prices(f, [
+    { chainId: SOLANA, address: "11111111111111111111111111111111" },
+  ]).catch(() => new Map());
   const p = pxOf(px, SOLANA, "11111111111111111111111111111111")?.price ?? null;
   return accts.map((a) => {
     const d = a.account.data.parsed.info.stake?.delegation;
@@ -328,7 +484,11 @@ export async function solanaStake(f: F, env: NodeJS.ProcessEnv, owner: string): 
                   keys: [
                     { pubkey: a.pubkey, isSigner: false, isWritable: true },
                     { pubkey: owner, isSigner: false, isWritable: true },
-                    { pubkey: "SysvarC1ock11111111111111111111111111111111", isSigner: false, isWritable: false },
+                    {
+                      pubkey: "SysvarC1ock11111111111111111111111111111111",
+                      isSigner: false,
+                      isWritable: false,
+                    },
                     { pubkey: owner, isSigner: true, isWritable: false },
                   ],
                   // StakeInstruction::Withdraw = 4; lamports u64 LE
@@ -352,8 +512,16 @@ export async function solanaStake(f: F, env: NodeJS.ProcessEnv, owner: string): 
       what: `${a.pubkey.slice(0, 6)}…: ${sol.toFixed(4)} SOL ${free ? "deactivated, withdrawable now" : de < 1e15 ? "deactivating" : "still delegated"}`,
       valueUsd: p ? r2(sol * p) : null,
       ...(withdrawIx ? { claimTx: withdrawIx } : {}),
-      action: free ? "Sign the stake withdraw tx, then swap SOL on SwapChan" : "Still staked: deactivate first if you want it liquid",
-      link: swapUrl(SOLANA, "11111111111111111111111111111111", SOLANA, usdcOf(SOLANA)!, sol.toFixed(4)),
+      action: free
+        ? "Sign the stake withdraw tx, then swap SOL on SwapChan"
+        : "Still staked: deactivate first if you want it liquid",
+      link: swapUrl(
+        SOLANA,
+        "11111111111111111111111111111111",
+        SOLANA,
+        usdcOf(SOLANA)!,
+        sol.toFixed(4),
+      ),
       evidence: [
         {
           chainId: SOLANA,

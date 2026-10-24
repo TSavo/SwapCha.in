@@ -5,6 +5,9 @@
  * Read-only: it only calls findMoney per address. Never accepts or stores secrets.
  */
 import { randomUUID } from "node:crypto";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { BadRequest } from "./onchain.js";
 
 type Money = Record<string, unknown> & {
@@ -33,7 +36,7 @@ interface Job {
   id: string;
   createdAt: number;
   status: Status;
-  inputs: { input: string; kind: string }[];
+  inputs: { input: string; kind: string; label?: string }[];
   results: Record<
     string,
     { status: "pending" | "running" | "done" | "error"; result?: Money; error?: string }
@@ -41,7 +44,7 @@ interface Job {
 }
 const JOBS = new Map<string, Job>();
 const TTL = 6 * 3600_000;
-const MAX = 50;
+const MAX = 500;
 
 const SECRET_HINT =
   /\b(?:[a-z]{3,8}\s+){11,23}[a-z]{3,8}\b|^(?:0x)?[0-9a-f]{64}$|^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$|^xprv/i;
@@ -57,26 +60,58 @@ export function classify(s: string): string | null {
   return null;
 }
 
-export function parseAddresses(input: string | string[]) {
-  const raw = Array.isArray(input) ? input.join("\n") : input;
-  if (SECRET_HINT.test(raw.trim()))
+type AddrIn = string | { address: string; label?: string | undefined };
+
+/**
+ * Accepts pasted text, a list of strings, or a list of {address, label}. In text, any non-address words on
+ * the same line as exactly one address become that address's label ("MetaMask #3: 0xabc…", "0xabc… ledger m/44'/60'/2'/0/0").
+ */
+export function parseAddresses(input: string | AddrIn[]) {
+  const objs = Array.isArray(input) ? input.filter((x) => typeof x === "object") : [];
+  const raw = Array.isArray(input)
+    ? input.filter((x): x is string => typeof x === "string").join("\n")
+    : input;
+  const checkText = Array.isArray(input)
+    ? input.map((x) => (typeof x === "string" ? x : x.address)).join("\n")
+    : input;
+  if (SECRET_HINT.test(checkText.trim()))
     throw new BadRequest(
       "That looks like a recovery phrase or private key. Never paste those anywhere: SwapChan only needs PUBLIC addresses. Derive addresses locally with recovery_guide.",
     );
   const seen = new Set<string>();
-  const out: { input: string; kind: string }[] = [];
+  const out: { input: string; kind: string; label?: string }[] = [];
   const ignored: string[] = [];
-  for (const t of raw
-    .split(/[\s,;]+/)
-    .map((x) => x.trim().replace(/^["'`(<]+|["'`)>.]+$/g, ""))
-    .filter(Boolean)) {
+  const clean = (x: string) => x.trim().replace(/^["'`(<]+|["'`)>.,;:]+$/g, "");
+  const add = (t: string, k: string, label?: string) => {
+    const key = k.startsWith("evm") ? t.toLowerCase() : t;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ input: t, kind: k, ...(label ? { label: label.slice(0, 80) } : {}) });
+  };
+  for (const o of objs) {
+    const t = clean(o.address);
     const k = classify(t);
-    const key = k?.startsWith("evm") ? t.toLowerCase() : t;
-    if (!k) ignored.push(t);
-    else if (!seen.has(key)) {
-      seen.add(key);
-      out.push({ input: t, kind: k });
-    }
+    if (k) add(t, k, o.label?.trim() || undefined);
+    else ignored.push(o.address);
+  }
+  for (const line of raw.split(/\r?\n/)) {
+    const toks = line
+      .split(/[\s,;|\t]+/)
+      .map(clean)
+      .filter(Boolean);
+    const hits = toks.map((t) => [t, classify(t)] as const).filter(([, k]) => k);
+    if (hits.length === 1) {
+      const label = line
+        .replace(hits[0]![0], " ")
+        .replace(/[\s,;|:=\-–—]+/g, " ")
+        .trim();
+      add(hits[0]![0], hits[0]![1]!, label || undefined);
+    } else
+      for (const t of toks) {
+        const k = classify(t);
+        if (k) add(t, k);
+        else ignored.push(t);
+      }
   }
   if (!out.length)
     throw new BadRequest(
@@ -86,23 +121,50 @@ export function parseAddresses(input: string | string[]) {
   return { addresses: out, ignored };
 }
 
+// ---- durable job store ($SWAPCHAN_DATA_DIR/batches.db). Jobs survive restarts; unfinished ones resume. ----
+let DB: DatabaseSync | null = null;
+function save(job: Job) {
+  DB?.prepare(
+    "INSERT OR REPLACE INTO batches (id, created_at, status, inputs, results) VALUES (?, ?, ?, ?, ?)",
+  ).run(job.id, job.createdAt, job.status, JSON.stringify(job.inputs), JSON.stringify(job.results));
+}
+/** Open the store, load jobs younger than TTL and resume any that were interrupted. */
+export function initBatchStore(file: string | null, find: FindOne) {
+  if (!file) return 0;
+  if (file !== ":memory:") mkdirSync(path.dirname(file), { recursive: true });
+  DB = new DatabaseSync(file);
+  DB.exec(`CREATE TABLE IF NOT EXISTS batches (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL,
+    status TEXT NOT NULL, inputs TEXT NOT NULL, results TEXT NOT NULL)`);
+  DB.prepare("DELETE FROM batches WHERE created_at < ?").run(Date.now() - TTL);
+  let resumed = 0;
+  for (const r of DB.prepare("SELECT * FROM batches").all() as Record<string, string | number>[]) {
+    const job: Job = {
+      id: String(r.id),
+      createdAt: Number(r.created_at),
+      status: r.status as Status,
+      inputs: JSON.parse(String(r.inputs)),
+      results: JSON.parse(String(r.results)),
+    };
+    JOBS.set(job.id, job);
+    if (job.status !== "done") {
+      for (const v of Object.values(job.results)) if (v.status === "running") v.status = "pending";
+      run(find, job);
+      resumed++;
+    }
+  }
+  return resumed;
+}
+
 function gc() {
   const now = Date.now();
   for (const [k, j] of JOBS) if (now - j.createdAt > TTL) JOBS.delete(k);
+  DB?.prepare("DELETE FROM batches WHERE created_at < ?").run(now - TTL);
 }
 
-export function startBatch(find: FindOne, input: string | string[], concurrency = 4) {
-  gc();
-  const { addresses, ignored } = parseAddresses(input);
-  const job: Job = {
-    id: randomUUID(),
-    createdAt: Date.now(),
-    status: "running",
-    inputs: addresses,
-    results: Object.fromEntries(addresses.map((a) => [a.input, { status: "pending" as const }])),
-  };
-  JOBS.set(job.id, job);
-  const queue = [...addresses];
+function run(find: FindOne, job: Job, concurrency = 4) {
+  job.status = "running";
+  save(job);
+  const queue = job.inputs.filter((a) => job.results[a.input]?.status === "pending");
   const worker = async () => {
     for (let a = queue.shift(); a; a = queue.shift()) {
       const slot = job.results[a.input]!;
@@ -114,13 +176,29 @@ export function startBatch(find: FindOne, input: string | string[], concurrency 
         slot.status = "error";
         slot.error = (e as Error).message.slice(0, 200);
       }
+      save(job);
     }
   };
-  void Promise.all(Array.from({ length: Math.min(concurrency, addresses.length) }, worker)).then(
-    () => {
-      job.status = "done";
-    },
-  );
+  void Promise.all(
+    Array.from({ length: Math.max(1, Math.min(concurrency, queue.length)) }, worker),
+  ).then(() => {
+    job.status = "done";
+    save(job);
+  });
+}
+
+export function startBatch(find: FindOne, input: string | AddrIn[], concurrency = 4) {
+  gc();
+  const { addresses, ignored } = parseAddresses(input);
+  const job: Job = {
+    id: randomUUID(),
+    createdAt: Date.now(),
+    status: "running",
+    inputs: addresses,
+    results: Object.fromEntries(addresses.map((a) => [a.input, { status: "pending" as const }])),
+  };
+  JOBS.set(job.id, job);
+  run(find, job, concurrency);
   return { ignored, ...view(job) };
 }
 
@@ -130,7 +208,8 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export function view(job: Job) {
   const seen = new Map<string, string>();
   const entries = job.inputs.map((a) => {
-    const e = { ...a, ...job.results[a.input]! } as typeof a & Job["results"][string] & { duplicateOf?: string };
+    const e = { ...a, ...job.results[a.input]! } as typeof a &
+      Job["results"][string] & { duplicateOf?: string };
     const key = e.result?.address?.toLowerCase();
     if (key) {
       const first = seen.get(key);
@@ -148,6 +227,7 @@ export function view(job: Job) {
   };
   const wallets = entries.map((e) => ({
     input: e.input,
+    ...(e.label ? { label: e.label } : {}),
     kind: e.kind,
     status: e.status,
     ...(e.result
@@ -160,12 +240,15 @@ export function view(job: Job) {
         }
       : {}),
     ...(e.error ? { error: e.error } : {}),
-    ...(e.duplicateOf ? { duplicateOf: e.duplicateOf, note: "same wallet as another input; counted once" } : {}),
+    ...(e.duplicateOf
+      ? { duplicateOf: e.duplicateOf, note: "same wallet as another input; counted once" }
+      : {}),
   }));
   const items = unique
     .flatMap((e) =>
       (e.result?.items ?? []).map((i) => ({
         wallet: e.result?.name ?? e.result?.address ?? e.input,
+        ...(e.label ? { walletLabel: e.label } : {}),
         ...i,
       })),
     )
@@ -236,6 +319,6 @@ export function view(job: Job) {
 
 export function batchStatus(id: string) {
   const j = JOBS.get(id);
-  if (!j) throw new BadRequest("unknown or expired jobId (jobs live 6h)");
+  if (!j) throw new BadRequest("unknown or expired jobId (jobs live 6h and survive restarts)");
   return view(j);
 }

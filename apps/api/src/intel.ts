@@ -1,6 +1,15 @@
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
-import { BITCOIN, NATIVE_TOKEN, NON_EVM, SOLANA, TRON, tokenList, vmOf } from "@swapchan/shared";
+import {
+  BITCOIN,
+  NATIVE_TOKEN,
+  NON_EVM,
+  playbook,
+  SOLANA,
+  TRON,
+  tokenList,
+  vmOf,
+} from "@swapchan/shared";
 import { Hono } from "hono";
 import {
   encodeFunctionData,
@@ -13,6 +22,8 @@ import {
 } from "viem";
 import { z } from "zod";
 import { EVM_ROUTERS } from "./guard/allowlist.js";
+import { recoveryGuide } from "./keyrecovery.js";
+import { batchStatus, initBatchStore, startBatch } from "./moneybatch.js";
 import {
   ALL_IDS,
   approvals,
@@ -38,18 +49,18 @@ import {
   walletBalances,
   yields,
 } from "./onchain.js";
-import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
-import { recoveryGuide } from "./keyrecovery.js";
-import { readChain, READ_OPS } from "./readchain.js";
-import { batchStatus, startBatch } from "./moneybatch.js";
-import { playbook } from "@swapchan/shared";
-import { type Evidence, lidoWithdrawals, ownedSafes, recoveryFlow, solanaStake, wrappedNative } from "./recover.js";
+import { READ_OPS, readChain } from "./readchain.js";
 import {
-  btcXpubScan,
-  logPromoteCandidate,
-  stuckMoneyRegistry,
-} from "./stuck.js";
+  type Evidence,
+  lidoWithdrawals,
+  ownedSafes,
+  recoveryFlow,
+  solanaStake,
+  wrappedNative,
+} from "./recover.js";
 import { cached, tokenRisk } from "./scanner.js";
+import { btcXpubScan, logPromoteCandidate, stuckMoneyRegistry } from "./stuck.js";
+import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 
 /**
  * Free "DeFi toolbox" readers (v0.3): simulate, wallet history/PnL, pools, whales, contract reader,
@@ -1446,13 +1457,24 @@ export async function legacyEth(
   const reads: Evidence[] = [];
   const c = {
     readContract: async (a: Parameters<typeof c0.readContract>[0]) => {
-      const raw = await c0.readContract({ ...a, ...(block ? { blockNumber: block } : {}) } as never);
-      const f = (a.abi as readonly { name?: string; inputs?: { type: string }[]; outputs?: { type: string }[] }[]).find((x) => x.name === a.functionName);
+      const raw = await c0.readContract({
+        ...a,
+        ...(block ? { blockNumber: block } : {}),
+      } as never);
+      const f = (
+        a.abi as readonly {
+          name?: string;
+          inputs?: { type: string }[];
+          outputs?: { type: string }[];
+        }[]
+      ).find((x) => x.name === a.functionName);
       reads.push({
         chainId: 1,
         address: a.address ?? "",
         call: `${a.functionName}(${(f?.inputs ?? []).map((i) => i.type).join(",")})`,
-        abi: f ? `function ${a.functionName}(${(f.inputs ?? []).map((i) => i.type).join(",")}) view returns (${(f.outputs ?? []).map((o) => o.type).join(",")})` : undefined,
+        abi: f
+          ? `function ${a.functionName}(${(f.inputs ?? []).map((i) => i.type).join(",")}) view returns (${(f.outputs ?? []).map((o) => o.type).join(",")})`
+          : undefined,
         args: (a.args ?? []).map(String),
         raw: Array.isArray(raw) ? raw.map(String) : String(raw),
         block: block?.toString(),
@@ -1511,31 +1533,32 @@ export async function legacyEth(
     const sellValue = sellValue0 as bigint;
     // dust P3D with no dividends (worth < 0.0001 ETH) is not money: skip it
     const eth = Number(formatUnits(p3dDiv + sellValue, 18));
-    if (p3dDiv > 0n || sellValue > 10n ** 14n) out.push({
-      kind: "legacy",
-      protocol: "PoWH3D (P3D)",
-      chainId: 1,
-      what: `${formatUnits(p3dBal, 18)} P3D (≈${formatUnits(sellValue, 18)} ETH if sold) + ${formatUnits(p3dDiv, 18)} ETH dividends`,
-      valueUsd: usd(eth),
-      // exit() only when the tokens are worth selling; dust balances (e.g. 1e-14 P3D) just withdraw dividends
-      claimTx:
-        sellValue > 10n ** 14n
-          ? claim(
-              1,
-              P3D,
-              encodeFunctionData({ abi: fn("exit()"), functionName: "exit" }),
-              "exit(): sell all P3D and withdraw dividends",
-            )
-          : claim(
-              1,
-              P3D,
-              encodeFunctionData({ abi: fn("withdraw()"), functionName: "withdraw" }),
-              "withdraw(): claim P3D dividends",
-            ),
-      action: "Withdraw from PoWH3D, then swap the ETH on SwapChan",
-      link: swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth)),
-      risk: "Legacy unaudited contract. P3D exit pays a 10% exit fee to other holders.",
-    });
+    if (p3dDiv > 0n || sellValue > 10n ** 14n)
+      out.push({
+        kind: "legacy",
+        protocol: "PoWH3D (P3D)",
+        chainId: 1,
+        what: `${formatUnits(p3dBal, 18)} P3D (≈${formatUnits(sellValue, 18)} ETH if sold) + ${formatUnits(p3dDiv, 18)} ETH dividends`,
+        valueUsd: usd(eth),
+        // exit() only when the tokens are worth selling; dust balances (e.g. 1e-14 P3D) just withdraw dividends
+        claimTx:
+          sellValue > 10n ** 14n
+            ? claim(
+                1,
+                P3D,
+                encodeFunctionData({ abi: fn("exit()"), functionName: "exit" }),
+                "exit(): sell all P3D and withdraw dividends",
+              )
+            : claim(
+                1,
+                P3D,
+                encodeFunctionData({ abi: fn("withdraw()"), functionName: "withdraw" }),
+                "withdraw(): claim P3D dividends",
+              ),
+        action: "Withdraw from PoWH3D, then swap the ETH on SwapChan",
+        link: swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth)),
+        risk: "Legacy unaudited contract. P3D exit pays a 10% exit fee to other holders.",
+      });
   }
   if (pid > 0n) {
     const v = await c
@@ -1873,7 +1896,11 @@ async function lending(
             claimTx: {
               chainId: ct.chainId,
               to: ct.addr,
-              data: encodeFunctionData({ abi: fn(`${ct.accrued === "compAccrued" ? "claimComp" : "claimVenus"}(address)`), functionName: ct.accrued === "compAccrued" ? "claimComp" : "claimVenus", args: [owner] }),
+              data: encodeFunctionData({
+                abi: fn(`${ct.accrued === "compAccrued" ? "claimComp" : "claimVenus"}(address)`),
+                functionName: ct.accrued === "compAccrued" ? "claimComp" : "claimVenus",
+                args: [owner],
+              }),
               value: "0",
               description: `${ct.accrued === "compAccrued" ? "claimComp" : "claimVenus"}(you): claim ${ct.rewardSym}`,
             },
@@ -1891,7 +1918,11 @@ type TronAcct = {
   unfrozenV2?: { unfreeze_amount: number; unfreeze_expire_time: number }[];
   frozen?: { frozen_balance: number; expire_time: number }[];
 };
-async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.env): Promise<Found[]> {
+async function tronMoney(
+  f: F,
+  owner: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<Found[]> {
   const out: Found[] = [];
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (env.TRONGRID_API_KEY) headers["TRON-PRO-API-KEY"] = env.TRONGRID_API_KEY;
@@ -1916,7 +1947,10 @@ async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.e
     frozenV2?: { type?: string; amount?: number }[];
     delegated_frozenV2_balance_for_bandwidth?: number;
     delegated_frozenV2_balance_for_energy?: number;
-    account_resource?: { delegated_frozenV2_balance_for_bandwidth?: number; delegated_frozenV2_balance_for_energy?: number };
+    account_resource?: {
+      delegated_frozenV2_balance_for_bandwidth?: number;
+      delegated_frozenV2_balance_for_energy?: number;
+    };
     assetV2?: { key: string; value: number }[];
     trc20?: Record<string, string>[];
   };
@@ -1951,7 +1985,13 @@ async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.e
       action: "Claim TRX voting rewards, then swap on SwapChan",
       link: toUsdc(TRON, nativeOf(TRON), String(reward)),
       evidence: [
-        { chainId: TRON, address: owner, call: "getReward", args: [owner], raw: String(rew.reward ?? 0) },
+        {
+          chainId: TRON,
+          address: owner,
+          call: "getReward",
+          args: [owner],
+          raw: String(rew.reward ?? 0),
+        },
       ],
     });
   }
@@ -1995,8 +2035,7 @@ async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.e
     });
   }
   // Stake 2.0 still frozen
-  const frozen2 =
-    (acct.frozenV2 ?? []).reduce((s, x) => s + (x.amount ?? 0), 0) / 1e6;
+  const frozen2 = (acct.frozenV2 ?? []).reduce((s, x) => s + (x.amount ?? 0), 0) / 1e6;
   if (frozen2 > 0)
     out.push({
       kind: "tron",
@@ -2069,7 +2108,12 @@ async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.e
     });
 
   // Known Tron tokens: WTRX, JST, USDJ, sTRX, stUSDT, SUN
-  const KNOWN: { addr: string; name: string; dec: number; kind: "unwrap" | "stable" | "stake" | "farm" }[] = [
+  const KNOWN: {
+    addr: string;
+    name: string;
+    dec: number;
+    kind: "unwrap" | "stable" | "stake" | "farm";
+  }[] = [
     { addr: "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", name: "WTRX", dec: 6, kind: "unwrap" },
     { addr: "TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9", name: "JST", dec: 18, kind: "farm" },
     { addr: "TMwFHYXLJaRUPeW6421aqXL4ZEzPRFGkGT", name: "USDJ", dec: 18, kind: "stable" },
@@ -2125,7 +2169,7 @@ async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.e
             raw: `0x${bal.toString(16)}`,
           },
         ],
-        ...await (async () => {
+        ...(await (async () => {
           if (k.kind !== "unwrap") return {};
           const tronTx = await post("/wallet/triggersmartcontract", {
             owner_address: owner,
@@ -2144,7 +2188,7 @@ async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.e
               description: `WTRX.withdraw(${amt})`,
             },
           };
-        })(),
+        })()),
       });
     } catch {}
   }
@@ -2161,7 +2205,9 @@ async function tronMoney(f: F, owner: string, env: NodeJS.ProcessEnv = process.e
       confidence: "low",
       action: "Check Tronscan for the asset; swap or transfer if still listed",
       link: `https://tronscan.org/#/token/${a.key}`,
-      evidence: [{ chainId: TRON, address: owner, call: "assetV2", args: [a.key], raw: String(a.value) }],
+      evidence: [
+        { chainId: TRON, address: owner, call: "assetV2", args: [a.key], raw: String(a.value) },
+      ],
     });
   }
 
@@ -2340,19 +2386,29 @@ export async function solanaArchaeology(
   const out: Found[] = [];
   // Token accounts owned (already partially covered by solanaRent) — also probe stake + vote
   const parsed = await solRpc<
-    { pubkey: string; account: { lamports: number; data: { program: string; parsed?: { type: string; info: Record<string, unknown> } }; owner: string } }[]
+    {
+      pubkey: string;
+      account: {
+        lamports: number;
+        data: { program: string; parsed?: { type: string; info: Record<string, unknown> } };
+        owner: string;
+      };
+    }[]
   >(f, env, "getTokenAccountsByOwner", [
     owner,
     { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
     { encoding: "jsonParsed" },
   ]).catch(() => []);
-  const px = await prices(f, [{ chainId: SOLANA, address: "11111111111111111111111111111111" }]).catch(
-    () => new Map(),
-  );
+  const px = await prices(f, [
+    { chainId: SOLANA, address: "11111111111111111111111111111111" },
+  ]).catch(() => new Map());
   const solP = pxOf(px, SOLANA, "11111111111111111111111111111111")?.price ?? null;
   for (const a of parsed.slice(0, 40)) {
     const info = a.account.data.parsed?.info as
-      | { tokenAmount?: { uiAmount: number | null; decimals: number; amount: string }; mint?: string }
+      | {
+          tokenAmount?: { uiAmount: number | null; decimals: number; amount: string };
+          mint?: string;
+        }
       | undefined;
     const ui = info?.tokenAmount?.uiAmount ?? 0;
     if (!ui || ui < 0.01) continue;
@@ -2394,12 +2450,20 @@ export async function solanaArchaeology(
     const programs = new Set<string>();
     for (const s of sigs.slice(0, 25)) {
       const tx = await solRpc<{
-        transaction: { message: { accountKeys: (string | { pubkey: string })[]; instructions: { programIdIndex: number }[] } };
-      } | null>(f, env, "getTransaction", [s.signature, { encoding: "json", maxSupportedTransactionVersion: 0 }]).catch(
-        () => null,
-      );
+        transaction: {
+          message: {
+            accountKeys: (string | { pubkey: string })[];
+            instructions: { programIdIndex: number }[];
+          };
+        };
+      } | null>(f, env, "getTransaction", [
+        s.signature,
+        { encoding: "json", maxSupportedTransactionVersion: 0 },
+      ]).catch(() => null);
       if (!tx) continue;
-      const keys = tx.transaction.message.accountKeys.map((k) => (typeof k === "string" ? k : k.pubkey));
+      const keys = tx.transaction.message.accountKeys.map((k) =>
+        typeof k === "string" ? k : k.pubkey,
+      );
       for (const ix of tx.transaction.message.instructions)
         if (keys[ix.programIdIndex]) programs.add(keys[ix.programIdIndex]!);
     }
@@ -2414,12 +2478,20 @@ export async function solanaArchaeology(
         what: `Wallet history includes program ${prog} — check its dApp for claimable/unstake`,
         valueUsd: null,
         confidence: "low",
-        action: "Open the program's dApp / explorer; claim or close accounts, then swap on SwapChan",
+        action:
+          "Open the program's dApp / explorer; claim or close accounts, then swap on SwapChan",
         link: `https://solscan.io/account/${prog}`,
-        evidence: [{ chainId: SOLANA, address: prog, call: "history", args: [owner], raw: "interacted" }],
+        evidence: [
+          { chainId: SOLANA, address: prog, call: "history", args: [owner], raw: "interacted" },
+        ],
         recoveryHints: [],
       });
-      logPromoteCandidate(env, { chainId: SOLANA, address: prog, what: "history program", valueUsd: null });
+      logPromoteCandidate(env, {
+        chainId: SOLANA,
+        address: prog,
+        what: "history program",
+        valueUsd: null,
+      });
     }
   } catch {}
   void solP;
@@ -2608,7 +2680,9 @@ export async function evmArchaeology(
                 chainId,
                 to: router,
                 data: encodeFunctionData({
-                  abi: fn("removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)"),
+                  abi: fn(
+                    "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)",
+                  ),
                   functionName: "removeLiquidity",
                   args: [t0a, t1a, x.bal, 0n, 0n, owner, deadline],
                 }),
@@ -2628,8 +2702,22 @@ export async function evmArchaeology(
               : "Remove liquidity on the pool's app, then swap the two tokens on SwapChan",
             link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${x.a}`,
             evidence: [
-              { chainId, address: x.a, call: "balanceOf(address)", abi: "balanceOf(address) view returns (uint256)", args: [owner], raw: `0x${x.bal.toString(16)}` },
-              { chainId, address: x.a, call: "getReserves()", abi: "getReserves() view returns (uint112,uint112,uint32)", args: [], raw: [String(a), String(b)] },
+              {
+                chainId,
+                address: x.a,
+                call: "balanceOf(address)",
+                abi: "balanceOf(address) view returns (uint256)",
+                args: [owner],
+                raw: `0x${x.bal.toString(16)}`,
+              },
+              {
+                chainId,
+                address: x.a,
+                call: "getReserves()",
+                abi: "getReserves() view returns (uint112,uint112,uint32)",
+                args: [],
+                raw: [String(a), String(b)],
+              },
               { chainId, address: x.a, call: "token0()/token1()", args: [], raw: [t0a, t1a] },
             ],
             underlying: t0a,
@@ -2659,17 +2747,48 @@ export async function evmArchaeology(
             chainId,
             to: x.a,
             data: asset[i]
-              ? encodeFunctionData({ abi: fn("redeem(uint256,address,address)"), functionName: "redeem", args: [x.bal, owner, owner] })
+              ? encodeFunctionData({
+                  abi: fn("redeem(uint256,address,address)"),
+                  functionName: "redeem",
+                  args: [x.bal, owner, owner],
+                })
               : encodeFunctionData({ abi: fn("withdraw()"), functionName: "withdraw" }),
             value: "0",
-            description: asset[i] ? `redeem(all shares, you, you): withdraw from ${s}` : `withdraw(): exit the ${s} Yearn vault`,
+            description: asset[i]
+              ? `redeem(all shares, you, you): withdraw from ${s}`
+              : `withdraw(): exit the ${s} Yearn vault`,
           },
           underlying: und,
           evidence: [
-            { chainId, address: x.a, call: "balanceOf(address)", abi: "balanceOf(address) view returns (uint256)", args: [owner], raw: `0x${x.bal.toString(16)}` },
+            {
+              chainId,
+              address: x.a,
+              call: "balanceOf(address)",
+              abi: "balanceOf(address) view returns (uint256)",
+              args: [owner],
+              raw: `0x${x.bal.toString(16)}`,
+            },
             ...(asset[i]
-              ? [{ chainId, address: x.a, call: "convertToAssets(uint256)", abi: "convertToAssets(uint256) view returns (uint256)", args: [x.bal.toString()], raw: `0x${(amt as bigint).toString(16)}` }]
-              : [{ chainId, address: x.a, call: "pricePerShare()", abi: "pricePerShare() view returns (uint256)", args: [], raw: String(pps[i]) }]),
+              ? [
+                  {
+                    chainId,
+                    address: x.a,
+                    call: "convertToAssets(uint256)",
+                    abi: "convertToAssets(uint256) view returns (uint256)",
+                    args: [x.bal.toString()],
+                    raw: `0x${(amt as bigint).toString(16)}`,
+                  },
+                ]
+              : [
+                  {
+                    chainId,
+                    address: x.a,
+                    call: "pricePerShare()",
+                    abi: "pricePerShare() view returns (uint256)",
+                    args: [],
+                    raw: String(pps[i]),
+                  },
+                ]),
           ],
           confidence: "high" as const,
         }),
@@ -2707,15 +2826,17 @@ export async function evmArchaeology(
         const sel = toFunctionSelector(`function ${sig}`);
         // eth_call with empty/owner args — success without revert means selector exists
         const name = sig.split("(")[0]!;
-        const abi = fn(sig.includes("address,address")
-          ? `${sig} returns (uint256)`
-          : sig.includes("uint256,address")
-            ? sig
-            : sig.includes("address")
-              ? `${sig}`
-              : sig.includes("uint256")
+        const abi = fn(
+          sig.includes("address,address")
+            ? `${sig} returns (uint256)`
+            : sig.includes("uint256,address")
+              ? sig
+              : sig.includes("address")
                 ? `${sig}`
-                : `${sig}`);
+                : sig.includes("uint256")
+                  ? `${sig}`
+                  : `${sig}`,
+        );
         const args =
           sig === "getReward(address)"
             ? [owner]
@@ -2742,7 +2863,15 @@ export async function evmArchaeology(
     let verifiedSource: string | undefined;
     let verifiedAbi: unknown;
     try {
-      const ch = { 1: "1", 8453: "8453", 10: "10", 42161: "42161", 137: "137", 56: "56", 43114: "43114" }[chainId];
+      const ch = {
+        1: "1",
+        8453: "8453",
+        10: "10",
+        42161: "42161",
+        137: "137",
+        56: "56",
+        43114: "43114",
+      }[chainId];
       if (ch) {
         const s = await json<{ status?: string; files?: { name: string; content: string }[] }>(
           f,
@@ -2762,9 +2891,10 @@ export async function evmArchaeology(
       }
     } catch {}
     // Prefer building a standard recovery tx when a safe selector answered
-    const prefer = hints.find((h) =>
-      ["withdraw()", "exit()", "getReward()", "claim()", "claimRewards()"].includes(h.name),
-    ) ?? hints.find((h) => h.name === "getReward(address)");
+    const prefer =
+      hints.find((h) =>
+        ["withdraw()", "exit()", "getReward()", "claim()", "claimRewards()"].includes(h.name),
+      ) ?? hints.find((h) => h.name === "getReward(address)");
     const claimTx = prefer
       ? {
           chainId,
@@ -2778,7 +2908,7 @@ export async function evmArchaeology(
           description: `${prefer.name}: archaeology-suggested recovery on ${short(addr)}`,
         }
       : undefined;
-    if ((hit.raw > 10n ** 15n) || hints.length) {
+    if (hit.raw > 10n ** 15n || hints.length) {
       logPromoteCandidate(env, {
         chainId,
         address: addr,
@@ -2866,7 +2996,11 @@ export async function evmArchaeology(
                   claimTx: {
                     chainId: 1,
                     to: e.addr,
-                    data: encodeFunctionData({ abi: fn("withdrawToken(address,uint256)"), functionName: "withdrawToken", args: [tok as `0x${string}`, v] }),
+                    data: encodeFunctionData({
+                      abi: fn("withdrawToken(address,uint256)"),
+                      functionName: "withdrawToken",
+                      args: [tok as `0x${string}`, v],
+                    }),
                     value: "0",
                     description: "withdrawToken(token, amount): pull it out of EtherDelta",
                   },
@@ -2956,9 +3090,13 @@ export async function evmArchaeology(
               chainId,
               to: npm,
               data: encodeFunctionData({
-                abi: fn("collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max)) returns (uint256,uint256)"),
+                abi: fn(
+                  "collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max)) returns (uint256,uint256)",
+                ),
                 functionName: "collect",
-                args: [{ tokenId: id, recipient: owner, amount0Max: MAX_U128, amount1Max: MAX_U128 }],
+                args: [
+                  { tokenId: id, recipient: owner, amount0Max: MAX_U128, amount1Max: MAX_U128 },
+                ],
               }),
               value: "0",
               description: `collect(#${id}): send uncollected fees to you`,
@@ -3211,7 +3349,9 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         ownedSafes(f, env, own).catch(() => []),
       ]);
       items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]));
-      sources.push("unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains");
+      sources.push(
+        "unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains",
+      );
       const stuck = await stuckMoneyRegistry(f, env, own).catch(() => []);
       items.push(...(stuck as Found[]));
       sources.push(
@@ -3254,7 +3394,8 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     ) {
       items.push(...((await btcXpubScan(f, address).catch(() => [])) as Found[]));
       sources.push("Bitcoin xpub/address UTXO scan (blockchain.info multiaddr + mempool.space)");
-    } else throw new BadRequest("airdrop_check supports EVM, Solana, Tron and Bitcoin (address/xpub)");
+    } else
+      throw new BadRequest("airdrop_check supports EVM, Solana, Tron and Bitcoin (address/xpub)");
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
     const top = items[0];
     return {
@@ -4456,16 +4597,29 @@ export async function findMoney(
     });
     // guided recovery: step 1 sign the claim/withdraw/unstake on swapchan.com/recover, step 2 swap to USDC
     for (const it of items) {
-      if (it.estimateKind === "protected" || it.category === "Cheaper gas" || it.category === "Idle stablecoins") continue;
+      if (
+        it.estimateKind === "protected" ||
+        it.category === "Cheaper gas" ||
+        it.category === "Idle stablecoins"
+      )
+        continue;
       Object.assign(it, recoveryFlow(db, shorten, address, it as never));
     }
     // "swap all of it": one batch link over every recoverable finding's swap step
     const swapAll = db
       ? await (async () => {
           const rows = items
-            .filter((i) => i.estimateKind !== "protected" && i.swapUrl.startsWith(`${SITE}/?`) && (i.estUsd ?? 0) >= 1)
+            .filter(
+              (i) =>
+                i.estimateKind !== "protected" &&
+                i.swapUrl.startsWith(`${SITE}/?`) &&
+                (i.estUsd ?? 0) >= 1,
+            )
             .map((i) => new URL(i.swapUrl).searchParams)
-            .filter((q) => q.get("fromToken") && q.get("toToken") && q.get("fromToken") !== q.get("toToken"))
+            .filter(
+              (q) =>
+                q.get("fromToken") && q.get("toToken") && q.get("fromToken") !== q.get("toToken"),
+            )
             .slice(0, 20)
             .map((q) => ({
               fromChain: Number(q.get("fromChain")),
@@ -4488,8 +4642,17 @@ export async function findMoney(
       ...(name ? { name } : {}),
       portfolioUsd: bal?.totalUsd ?? null,
       opportunities: items.length,
-      ...(swapAll ? { swapAll: { label: "Swap all of it to USDC (one guided batch)", url: swapAll.url, shortUrl: swapAll.shortUrl } } : {}),
-      trust: "Trustless: SwapChan never signs, never holds keys or funds, and cannot move money. Every recoveryTx is unsigned; your own wallet signs it.",
+      ...(swapAll
+        ? {
+            swapAll: {
+              label: "Swap all of it to USDC (one guided batch)",
+              url: swapAll.url,
+              shortUrl: swapAll.shortUrl,
+            },
+          }
+        : {}),
+      trust:
+        "Trustless: SwapChan never signs, never holds keys or funds, and cannot move money. Every recoveryTx is unsigned; your own wallet signs it.",
       flow: "Each item has steps: [1] sign the recovery tx on swapchan.com/recover (claim/withdraw/unstake/unwrap; built only when every recipient argument is your own wallet), [2] swap to USDC. swapAll batches every swap step.",
       totalEstUsd: total,
       atRiskUsd: protectedUsd,
@@ -4563,7 +4726,16 @@ export function intelRoutes(
   const TxBody = z.object({
     chainId: z.union([z.number(), z.string()]),
     tx: z.union([z.string().max(200_000), z.record(z.string(), z.unknown())]),
-    expected: z.object({ to: z.string(), recipient: z.string(), maxValue: z.string(), minOut: z.string(), quotedOut: z.string() }).partial().optional(),
+    expected: z
+      .object({
+        to: z.string(),
+        recipient: z.string(),
+        maxValue: z.string(),
+        minOut: z.string(),
+        quotedOut: z.string(),
+      })
+      .partial()
+      .optional(),
     private: z.boolean().optional(),
     strict: z.boolean().optional(),
   });
@@ -4576,16 +4748,30 @@ export function intelRoutes(
   app.post("/broadcast", (c) =>
     run(c, async () => {
       const b = TxBody.parse(await c.req.json());
-      return broadcastTx(f, env, { chainId: chainOf(b.chainId), tx: b.tx as never, ...(b.private ? { private: true } : {}), ...(b.strict ? { strict: true } : {}) });
+      return broadcastTx(f, env, {
+        chainId: chainOf(b.chainId),
+        tx: b.tx as never,
+        ...(b.private ? { private: true } : {}),
+        ...(b.strict ? { strict: true } : {}),
+      });
     }),
   );
   app.get("/tx-status", (c) =>
-    run(c, () => txStatus(f, env, chainOf(need(c.req.query("chainId"), "chainId")), need(c.req.query("hash"), "hash"))),
+    run(c, () =>
+      txStatus(
+        f,
+        env,
+        chainOf(need(c.req.query("chainId"), "chainId")),
+        need(c.req.query("hash"), "hash"),
+      ),
+    ),
   );
   app.get("/signing-guide", (c) =>
     run(c, async () =>
       signingGuide(
-        (["evm", "solana", "tron"].includes(c.req.query("chain") ?? "") ? c.req.query("chain") : "evm") as never,
+        (["evm", "solana", "tron"].includes(c.req.query("chain") ?? "")
+          ? c.req.query("chain")
+          : "evm") as never,
         c.req.query("situation") ?? "full",
       ),
     ),
@@ -4660,12 +4846,33 @@ export function intelRoutes(
       return readChain(f, env, b as never, { contract: (id, a) => contractReader(f, env, id, a) });
     }),
   );
+  const findOne = (a: string) => findMoney(f, env, linksDb, a) as never;
+  if (!env.VITEST) {
+    const resumed = initBatchStore(
+      env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/batches.db` : null,
+      findOne,
+    );
+    if (resumed)
+      console.log(`find_money_batch: resumed ${resumed} interrupted job(s) from batches.db`);
+  }
   app.post("/money/batch", (c) =>
     run(c, async () => {
       const b = z
-        .object({ addresses: z.union([z.string().max(20_000), z.array(z.string().max(200)).max(200)]) })
+        .object({
+          addresses: z.union([
+            z.string().max(100_000),
+            z
+              .array(
+                z.union([
+                  z.string().max(300),
+                  z.object({ address: z.string().max(200), label: z.string().max(120).optional() }),
+                ]),
+              )
+              .max(500),
+          ]),
+        })
         .parse(await c.req.json());
-      return startBatch((a) => findMoney(f, env, linksDb, a) as never, b.addresses);
+      return startBatch(findOne, b.addresses);
     }),
   );
   app.get("/money/batch/:id", (c) => run(c, async () => batchStatus(c.req.param("id"))));
@@ -4696,7 +4903,9 @@ export function migrateStrayLinks(from: DatabaseSync, to: DatabaseSync) {
   to.exec(
     `CREATE TABLE IF NOT EXISTS link_collisions (id TEXT NOT NULL, url TEXT NOT NULL, created INTEGER NOT NULL, source TEXT NOT NULL, recorded INTEGER NOT NULL, PRIMARY KEY (id, url));`,
   );
-  const ins = to.prepare("INSERT OR IGNORE INTO links (n, id, url, created, clicks) VALUES (?, ?, ?, ?, ?)");
+  const ins = to.prepare(
+    "INSERT OR IGNORE INTO links (n, id, url, created, clicks) VALUES (?, ?, ?, ?, ?)",
+  );
   const held = to.prepare("SELECT url FROM links WHERE id = ?");
   const col = to.prepare(
     "INSERT OR IGNORE INTO link_collisions (id, url, created, source, recorded) VALUES (?, ?, ?, 'watches.db', ?)",

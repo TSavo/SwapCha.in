@@ -86,7 +86,8 @@ describe("claim allowlist", () => {
 describe("stray short links migrate", () => {
   it("keeps ids, never reissues one, existing ids win", async () => {
     const { migrateStrayLinks } = await import("./intel.js");
-    const a = db(), b = db();
+    const a = db(),
+      b = db();
     shorten(a, "https://swapchan.com/?a=1"); // n=1 in links.db
     shorten(b, "https://swapchan.com/?b=1"); // n=1 collides
     const s2 = shorten(b, "https://swapchan.com/?b=2"); // n=2

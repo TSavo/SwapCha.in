@@ -5,12 +5,12 @@ import {
   isAnyAddress,
   isVmAddress,
   NATIVE_TOKEN,
+  playbook,
+  playbookInstructions,
   type Quote,
   type QuoteRequest,
   type Token,
   toBaseUnits,
-  playbook,
-  playbookInstructions,
   vmOf,
 } from "@swapchan/shared";
 import {
@@ -315,7 +315,11 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
   const PLAYBOOK_REF =
     " How to combine this with the other tools: swapchan_playbook (workflows: find-money, best-swap, rebalance, revoke-approvals, bridge-stuck, token-safety, recover-old-wallet).";
   const register = server.registerTool.bind(server);
-  (server as { registerTool: unknown }).registerTool = ((name: string, conf: { description?: string }, cb: unknown) =>
+  (server as { registerTool: unknown }).registerTool = ((
+    name: string,
+    conf: { description?: string },
+    cb: unknown,
+  ) =>
     register(
       name as never,
       { ...conf, description: `${conf.description ?? ""}${PLAYBOOK_REF}` } as never,
@@ -1868,12 +1872,9 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     .string()
     .optional()
     .describe(
-      'Recovery branch: full | seed-phrase | missing-word | passphrase | keystore | presale | electrum | wallet-dat | blockchain-info | hardware | raw-key | password-hints. Default full returns every branch in-context.',
+      "Recovery branch: full | seed-phrase | missing-word | passphrase | keystore | presale | electrum | wallet-dat | blockchain-info | hardware | raw-key | password-hints. Default full returns every branch in-context.",
     );
-  const txObj = z.union([
-    z.string().max(200_000),
-    z.record(z.string(), z.unknown()),
-  ]);
+  const txObj = z.union([z.string().max(200_000), z.record(z.string(), z.unknown())]);
   const expectedObj = z
     .object({
       to: z.string().optional(),
@@ -1897,8 +1898,16 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
       annotations: ro,
     },
     safe(
-      async (a: { chainId: number | string; tx: unknown; expected?: Record<string, unknown> | undefined }) =>
-        api.verifyTx({ chainId: a.chainId, tx: a.tx, ...(a.expected ? { expected: a.expected } : {}) }),
+      async (a: {
+        chainId: number | string;
+        tx: unknown;
+        expected?: Record<string, unknown> | undefined;
+      }) =>
+        api.verifyTx({
+          chainId: a.chainId,
+          tx: a.tx,
+          ...(a.expected ? { expected: a.expected } : {}),
+        }),
       (_a, r) => ({ says: String(r.summary ?? r.verdict ?? "verified") }),
     ),
   );
@@ -1912,12 +1921,20 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
         chainId: chainArg,
         tx: txObj.describe("Already-signed tx bytes / JSON"),
         private: z.boolean().optional().describe("Ethereum: submit via Flashbots Protect"),
-        strict: z.boolean().optional().describe("Refuse to broadcast when verify_tx verdict is danger"),
+        strict: z
+          .boolean()
+          .optional()
+          .describe("Refuse to broadcast when verify_tx verdict is danger"),
       }),
       annotations: { readOnlyHint: false, openWorldHint: true, idempotentHint: false },
     },
     safe(
-      async (a: { chainId: number | string; tx: unknown; private?: boolean | undefined; strict?: boolean | undefined }) =>
+      async (a: {
+        chainId: number | string;
+        tx: unknown;
+        private?: boolean | undefined;
+        strict?: boolean | undefined;
+      }) =>
         api.broadcastTx({
           chainId: a.chainId,
           tx: a.tx,
@@ -1959,8 +1976,10 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
       annotations: ro,
     },
     safe(
-      async (a: { chain?: "evm" | "solana" | "tron" | undefined; situation?: string | undefined }) =>
-        api.signingGuide(a.chain, a.situation ?? "full"),
+      async (a: {
+        chain?: "evm" | "solana" | "tron" | undefined;
+        situation?: string | undefined;
+      }) => api.signingGuide(a.chain, a.situation ?? "full"),
       (_a, r) => ({ says: String((r as Record<string, unknown>).principle ?? "signing guide") }),
     ),
   );
@@ -1979,11 +1998,28 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     ),
   );
 
-
   const readOps = z.enum([
-    "balance", "token_balance", "call", "storage", "code", "logs", "block", "tx", "receipt", "nonce", "contract",
-    "sol_account", "sol_program_accounts", "sol_token_accounts", "sol_signatures",
-    "tron_account", "tron_resources", "tron_call", "btc_utxos", "btc_address", "btc_tx",
+    "balance",
+    "token_balance",
+    "call",
+    "storage",
+    "code",
+    "logs",
+    "block",
+    "tx",
+    "receipt",
+    "nonce",
+    "contract",
+    "sol_account",
+    "sol_program_accounts",
+    "sol_token_accounts",
+    "sol_signatures",
+    "tron_account",
+    "tron_resources",
+    "tron_call",
+    "btc_utxos",
+    "btc_address",
+    "btc_tx",
   ]);
   server.registerTool(
     "read_chain",
@@ -2001,7 +2037,10 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
         args: z.array(z.unknown()).max(20).optional(),
         slot: z.string().max(80).optional(),
         event: z.string().max(500).optional(),
-        topics: z.array(z.union([z.string(), z.null()])).max(4).optional(),
+        topics: z
+          .array(z.union([z.string(), z.null()]))
+          .max(4)
+          .optional(),
         fromBlock: z.union([z.number(), z.string()]).optional(),
         toBlock: z.union([z.number(), z.string()]).optional(),
         blockTag: z.union([z.number(), z.string()]).optional(),
@@ -2028,14 +2067,24 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "find_money_batch",
     {
       title: "Find money across many wallets (paste a list)",
-      description: `Paste a list of PUBLIC addresses (any mix: EVM 0x…, ENS/Basenames, .sol, Solana, Tron, Bitcoin; commas/newlines/whatever) and SwapChan auto-detects each chain (EVM addresses are scanned on every EVM chain) and runs find_money on all of them in the background. Returns a jobId immediately; poll find_money_status every ~15s (a big list can take several minutes). Final result: aggregated totalEstUsd across wallets, ranked items tagged by wallet, a 'summary' to relay to the user VERBATIM (short + full links), and one 'Recover and swap all' plan (phase1_recover, phase2_protect, phase3_swap). Refuses anything that looks like a seed phrase or private key. ${DISPLAY}`,
+      description: `Paste a list of PUBLIC addresses (any mix: EVM 0x…, ENS/Basenames, .sol, Solana, Tron, Bitcoin; commas/newlines/whatever) and SwapChan auto-detects each chain (EVM addresses are scanned on every EVM chain) and runs find_money on all of them in the background. Returns a jobId immediately; poll find_money_status every ~15s (a big list can take several minutes; jobs are stored durably and survive server restarts for 6h). Labels you pass come back on each wallet and item (walletLabel). Final result: aggregated totalEstUsd across wallets, ranked items tagged by wallet, a 'summary' to relay to the user VERBATIM (short + full links), and one 'Recover and swap all' plan (phase1_recover, phase2_protect, phase3_swap). Refuses anything that looks like a seed phrase or private key. ${DISPLAY}`,
       inputSchema: z.object({
-        addresses: z.union([z.string().max(20_000), z.array(z.string().max(200)).max(200)]).describe("Up to 50 public addresses/names, as a list or pasted text"),
+        addresses: z
+          .union([
+            z.string().max(100_000),
+            z
+              .array(z.union([z.string().max(300), z.record(z.string(), z.string().max(200))]))
+              .max(500),
+          ])
+          .describe(
+            "Up to 500 public addresses/names: pasted text (one per line; other words on the line become its label, e.g. \"MetaMask m/44'/60'/0'/0/3 0xabc…\"), a list of strings, or a list of {address, label}. Send EVERY address you derived from a phrase (gap limit 20 per path, 50+ for heavy users), not just the first.",
+          ),
       }),
       annotations: ro,
     },
     safe(
-      async (a: { addresses: string | string[] }) => api.findMoneyBatch(a.addresses),
+      async (a: { addresses: string | (string | Record<string, string>)[] }) =>
+        api.findMoneyBatch(a.addresses as never),
       (_a, r) => ({
         says: `Scanning ${String((r.progress as { total?: number } | undefined)?.total ?? "")} wallets. Poll find_money_status with jobId ${String(r.jobId)}~`,
       }),
@@ -2068,10 +2117,14 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
       annotations: ro,
     },
     async (a: { workflow?: string | undefined; full?: boolean | undefined }) => ({
-      content: [{ type: "text" as const, text: JSON.stringify(playbook(a.workflow, a.full ?? false), null, 2) }],
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(playbook(a.workflow, a.full ?? false), null, 2),
+        },
+      ],
     }),
   );
-
 
   return server;
 }

@@ -11,7 +11,11 @@ const EVIL = "0x000000000000000000000000000000000000dEaD";
 describe("verifyRecovery (only pays the owner)", () => {
   it("accepts redeem to self, rejects redeem to anyone else", () => {
     const d = (r: string) =>
-      encodeFunctionData({ abi: fn("redeem(uint256,address,address)"), functionName: "redeem", args: [5n, r as `0x${string}`, ME] });
+      encodeFunctionData({
+        abi: fn("redeem(uint256,address,address)"),
+        functionName: "redeem",
+        args: [5n, r as `0x${string}`, ME],
+      });
     expect(verifyRecovery({ to: EVIL, data: d(ME), value: "0" }, ME).verified).toBe(true);
     expect(verifyRecovery({ to: EVIL, data: d(EVIL), value: "0" }, ME).verified).toBe(false);
   });
@@ -20,7 +24,9 @@ describe("verifyRecovery (only pays the owner)", () => {
     expect(verifyRecovery({ to: EVIL, data: "0xa9059cbb", value: "0" }, ME).verified).toBe(false);
     const c = (r: string) =>
       encodeFunctionData({
-        abi: fn("collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max))"),
+        abi: fn(
+          "collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max))",
+        ),
         functionName: "collect",
         args: [{ tokenId: 1n, recipient: r as `0x${string}`, amount0Max: 1n, amount1Max: 1n }],
       });
@@ -31,7 +37,11 @@ describe("verifyRecovery (only pays the owner)", () => {
     const db = new DatabaseSync(":memory:");
     initLinksDb(db);
     const tx = { chainId: 1, to: EVIL, data: "0x3ccfd60b", value: "0", description: "withdraw()" };
-    const f = recoveryFlow(db, shorten, ME, { title: "P3D", claimTx: tx, swapUrl: "https://swapchan.com/?fromChain=1" });
+    const f = recoveryFlow(db, shorten, ME, {
+      title: "P3D",
+      claimTx: tx,
+      swapUrl: "https://swapchan.com/?fromChain=1",
+    });
     expect(f.steps.map((s) => s.kind)).toEqual(["recover", "swap"]);
     expect(f.steps[0]!.url).toBe(recoverUrl(tx, "P3D", "https://swapchan.com/?fromChain=1"));
     expect(f.steps.every((s) => s.shortUrl?.startsWith("https://swapchan.com/s/"))).toBe(true);
@@ -58,10 +68,14 @@ describe.runIf(ARCHIVE)("historical recoveries (archive fixtures)", () => {
     const p = r.find((x) => x.protocol === "Fomo3D Long")!;
     expect(p.what).toContain("0.016835620814466767 ETH");
     expect((p.claimTx as { data: string; to: string }).data).toBe("0x3ccfd60b");
-    expect((p.claimTx as { to: string }).to.toLowerCase()).toBe("0xa62142888aba8370742be823c1782d17a0389da1");
+    expect((p.claimTx as { to: string }).to.toLowerCase()).toBe(
+      "0xa62142888aba8370742be823c1782d17a0389da1",
+    );
   }, 60_000);
   it("nothing left after the recoveries (no false positives today)", async () => {
     const r = await legacyEth(env, ME, 1, 26095800n);
-    expect(r.filter((x) => x.protocol === "PoWH3D (P3D)" || x.protocol === "Fomo3D Long")).toEqual([]);
+    expect(r.filter((x) => x.protocol === "PoWH3D (P3D)" || x.protocol === "Fomo3D Long")).toEqual(
+      [],
+    );
   }, 60_000);
 });

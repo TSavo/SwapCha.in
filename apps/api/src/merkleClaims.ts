@@ -4,12 +4,13 @@
  * UNI uses Uniswap's public chunked drop (mrkl-drop-data-chunks); others use
  * published claim maps when available.
  */
-import { encodeFunctionData, formatUnits, getAddress, parseAbiItem } from "viem";
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
+
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { prices, pxOf, swapUrl, usdcOf, json, evmClient } from "./onchain.js";
-import type { StuckFound } from "./stuck.js";
+import { encodeFunctionData, formatUnits, getAddress, parseAbiItem } from "viem";
+import { evmClient, json, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 import type { Evidence } from "./recover.js";
+import type { StuckFound } from "./stuck.js";
 
 type F = typeof fetch;
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -61,9 +62,12 @@ async function cachedJson<T>(
 }
 
 /** UNI: mapping.json maps chunkStart → chunkEnd; chunk file is chunks/<chunkStart>.json */
-async function uniLookup(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}`): Promise<ClaimRow | null> {
-  const base =
-    "https://raw.githubusercontent.com/Uniswap/mrkl-drop-data-chunks/main/chunks";
+async function uniLookup(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: `0x${string}`,
+): Promise<ClaimRow | null> {
+  const base = "https://raw.githubusercontent.com/Uniswap/mrkl-drop-data-chunks/main/chunks";
   const mapping = await cachedJson<Record<string, string>>(
     f,
     env,

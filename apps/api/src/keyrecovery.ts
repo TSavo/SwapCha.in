@@ -15,7 +15,11 @@ export const KEY_WARNINGS = [
 ];
 
 export const DERIVATION_PATHS = [
-  { wallet: "MetaMask, Trust, Exodus, Trezor, Rabby (EVM)", chain: "evm", path: "m/44'/60'/0'/0/{i}" },
+  {
+    wallet: "MetaMask, Trust, Exodus, Trezor, Rabby (EVM)",
+    chain: "evm",
+    path: "m/44'/60'/0'/0/{i}",
+  },
   { wallet: "Ledger Live (EVM)", chain: "evm", path: "m/44'/60'/{i}'/0/0" },
   { wallet: "Ledger legacy / MEW / MyCrypto (EVM)", chain: "evm", path: "m/44'/60'/0'/{i}" },
   { wallet: "Phantom, Solflare, Backpack (Solana)", chain: "solana", path: "m/44'/501'/{i}'/0'" },
@@ -338,7 +342,9 @@ const DECISION_TREE = [
 export function recoveryGuide(situation: Situation | string = "full") {
   const s = (situation || "full").toLowerCase();
   const branches =
-    s === "full" ? RECOVERY_BRANCHES : RECOVERY_BRANCHES.filter((b) => b.id === s || b.id.startsWith(s));
+    s === "full"
+      ? RECOVERY_BRANCHES
+      : RECOVERY_BRANCHES.filter((b) => b.id === s || b.id.startsWith(s));
   if (!branches.length) {
     return {
       error: `unknown situation "${situation}"`,
