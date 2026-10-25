@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { base58check, bech32 } from "@scure/base";
 import { Transaction } from "bitcoinjs-lib";
-import { btConvertFrom, btDetect, btParams, btSweep, btVersion } from "./blocktools.js";
 import type { NewFound } from "./recover.js";
 
 type F = typeof fetch;
@@ -414,28 +413,6 @@ export const COINS = {
 } satisfies Record<string, CoinRow>;
 export type Coin = keyof typeof COINS;
 const ROWS = Object.entries(COINS) as [Coin, CoinRow][];
-/** The TypeScript literals above, before blocktools overrides them (parity tests compare the two). */
-export const TS_ROWS: Record<string, CoinRow> = structuredClone(COINS);
-/**
- * blocktools' chainParams() is the source of truth for address/tx parameters: version bytes, HRP, decimals,
- * FORKID and whether its sweep builder supports the tx format. SwapChan keeps only what blocktools does not
- * own (explorer adapters, prices, fee defaults, wallet names, notes). GRS is not in blocktools and stays TS.
- */
-export const BT_PARAMS = btParams();
-export const BLOCKTOOLS_VERSION = btVersion();
-if (BT_PARAMS)
-  for (const [k, c] of ROWS) {
-    const p = BT_PARAMS.get(k);
-    if (!p) continue;
-    if (p.p2pkh && p.p2sh) {
-      c.p2pkh = p.p2pkh;
-      c.p2sh = p.p2sh;
-    }
-    c.hrp = p.hrp;
-    c.decimals = p.decimals;
-    c.forkid = p.forkid !== null;
-    c.sweep = c.sweep && p.sweep_build;
-  }
 
 type Decoded = { kind: "p2pkh" | "p2sh" | "p2wpkh" | "p2wsh"; hash: Uint8Array };
 const P2SH_ANY = new Set([5, 23, 50, 22]);
@@ -476,14 +453,6 @@ export function decodeFor(addr: string, coin: Coin): Decoded | null {
 }
 /** Same key/script, encoded for another coin (null when that coin has no such address type or needs a Groestl checksum). */
 export function convert(addr: string, coin: Coin): string | null {
-  if (BT_PARAMS?.get(coin)?.verified && BT_PARAMS.has("btc")) {
-    const btc = btConvertFrom("btc", addr, coin);
-    if (btc) return btc;
-  }
-  return convertTs(addr, coin);
-}
-/** TypeScript conversion (GRS/ZEC, non-BTC sources, and the fallback when the WASM is unavailable). */
-export function convertTs(addr: string, coin: Coin): string | null {
   const d = decodeAny(addr);
   if (!d) return null;
   const c: CoinRow = COINS[coin];
@@ -514,13 +483,12 @@ const GRS_RE = /^(F[1-9A-HJ-NP-Za-km-z]{33}|grs1[02-9ac-hj-np-z]{38,58})$/;
 export function coinsOf(addr: string): Coin[] {
   if (/^(bitcoincash:)?[qp][a-z0-9]{41}$/.test(addr)) return ["bch"];
   if (GRS_RE.test(addr)) return ["grs"];
-  const bt = btDetect(addr);
   const out: Coin[] = [];
   for (const [k, c] of ROWS)
     if (
       c.native &&
       c.checksum !== "groestl" &&
-      (bt && BT_PARAMS?.get(k)?.verified ? bt.includes(k) : decodeFor(addr, k)) &&
+      decodeFor(addr, k) &&
       !(c.p2pkh.length === 1 && [0, 5].includes(b58raw0(addr)))
     )
       out.push(k);
@@ -892,39 +860,7 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
   if (!utxos.length) throw new Error("no UTXOs on this address");
   const take = utxos.slice(0, 200);
   const total = take.reduce((s, u) => s + BigInt(u.value), 0n);
-  const rate = feeRate ?? c.feeRate;
-  const bt = btSweep(
-    coin,
-    take.map((u) => ({ txid: u.txid, vout: u.vout, amount: u.value, address: from })),
-    to,
-    rate,
-  );
-  if (bt) {
-    if (BigInt(bt.amount) <= 546n) throw new Error("balance does not cover the fee");
-    return {
-      coin,
-      from,
-      to,
-      unsignedTx: bt.unsigned_tx,
-      psbt: bt.psbt,
-      txFormat: bt.tx_format,
-      builtBy: `blocktools ${BLOCKTOOLS_VERSION}`,
-      fee: String(bt.fee),
-      amount: String(bt.amount),
-      inputs: take.map((u) => ({
-        txid: u.txid,
-        vout: u.vout,
-        value: u.value,
-        scriptPubKey: script(fromD).toString("hex"),
-      })),
-      signing: SIGN_GUIDE(coin),
-      note:
-        utxos.length > take.length
-          ? `first ${take.length} of ${utxos.length} UTXOs; run again after this confirms`
-          : undefined,
-    };
-  }
-  const fee = BigInt(Math.ceil(rate * (148 * take.length + 34 + 10)));
+  const fee = BigInt(Math.ceil((feeRate ?? c.feeRate) * (148 * take.length + 34 + 10)));
   if (total <= fee + 546n) throw new Error("balance does not cover the fee");
   const tx = new Transaction();
   tx.version = coin === "btg" || coin === "bch" ? 2 : 1;
