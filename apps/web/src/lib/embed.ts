@@ -101,10 +101,27 @@ export type HostEvent = "ready" | "quote" | "swap_submitted" | "swap_completed" 
 /** postMessage to the host page: {source:"swapchan", type, ...data}. */
 export function emit(type: HostEvent, data: Record<string, unknown> = {}): void {
   if (!current || typeof window === "undefined" || window.parent === window) return;
+  const target = hostOrigin(window);
+  if (!target) return; // unknown embedder: send nothing rather than broadcast to "*"
   window.parent.postMessage(
     { source: "swapchan", type, partner: current.partner ?? null, ...data },
-    "*",
+    target,
   );
+}
+
+/** Origin of the page embedding us (ancestorOrigins, else the initial referrer). Null if unknown. */
+export function hostOrigin(w: {
+  location: { ancestorOrigins?: { length: number; [i: number]: string } };
+  document: { referrer: string };
+}): string | null {
+  const a = w.location.ancestorOrigins;
+  const cand = a && a.length > 0 ? a[0] : w.document.referrer;
+  try {
+    const o = new URL(cand ?? "").origin;
+    return o && o !== "null" ? o : null;
+  } catch {
+    return null;
+  }
 }
 
 /** GA event -> host event, plus revenue-share attribution for submitted swaps. */

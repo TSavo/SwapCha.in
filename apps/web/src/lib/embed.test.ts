@@ -54,3 +54,20 @@ describe("affiliate refs", () => {
     expect(nextRef(undefined, old, 1001 + REF_TTL_MS)).toBeNull();
   });
 });
+
+import { hostOrigin } from "./embed";
+
+describe("hostOrigin (postMessage target, not '*')", () => {
+  it("uses ancestorOrigins, then referrer, else null", () => {
+    expect(
+      hostOrigin({
+        location: { ancestorOrigins: { length: 1, 0: "https://host.example" } },
+        document: { referrer: "" },
+      }),
+    ).toBe("https://host.example");
+    expect(hostOrigin({ location: {}, document: { referrer: "https://a.example/page?x=1" } })).toBe(
+      "https://a.example",
+    );
+    expect(hostOrigin({ location: {}, document: { referrer: "" } })).toBeNull();
+  });
+});
