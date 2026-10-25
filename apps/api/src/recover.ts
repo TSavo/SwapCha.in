@@ -239,6 +239,13 @@ export function recoveryFlow(
     rurl = `${SITE}/recover?${q}`;
     steps.push({ step: 1, kind: "recover", label: `Sign: ${(it.claimTx as { description?: string }).description ?? spec.endpoint} (TronLink)`, url: rurl, shortUrl: s(rurl) } as Step);
   }
+  const sw = (it as { sweep?: Sweep }).sweep;
+  if (sw && !rurl) {
+    rurl = sweepUrl(sw, it.title);
+    steps.push({ step: 1, kind: "recover", label: `Build the unsigned ${sw.sym} sweep to your own ${sw.sym} address, then sign it offline`, url: rurl, shortUrl: s(rurl) } as Step);
+    // SwapChan has no route for these coins yet: no fake swap link
+    if (!it.swapUrl || /fromChain=(0|61|10001|513100)&/.test(it.swapUrl)) return { steps, recoverUrl: rurl, swapUrl: undefined } as never;
+  }
   // No buildable, verified tx -> no "Get it back" step. Never send people to an external portal
   // as a recovery step; the protocol link stays informational (protocolUrl) only.
   steps.push({
@@ -265,6 +272,12 @@ export interface NewFound {
   evidence?: Evidence[];
   confidence?: "high" | "medium" | "low";
   recoveryHints?: { name: string; selector: string; abi?: string }[];
+  /** Non-EVM / fork-chain balance: /recover?sweep= builds the unsigned sweep in the browser. */
+  sweep?: Sweep;
+}
+export type Sweep = { kind: "utxo" | "fork"; coin: string; from: string; sym: string };
+export function sweepUrl(sw: Sweep, title: string) {
+  return `${SITE}/recover?${new URLSearchParams({ sweep: sw.kind, coin: sw.coin, from: sw.from, sym: sw.sym, title: title.slice(0, 140) })}`;
 }
 
 // ---------- unwrapped native (WETH/WBNB/WPOL/WAVAX) ----------

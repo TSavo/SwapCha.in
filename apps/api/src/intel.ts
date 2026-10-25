@@ -1440,6 +1440,7 @@ export interface Found {
   recoveryHints?: { name: string; selector: string; abi?: string }[];
   verifiedSource?: string;
   verifiedAbi?: unknown;
+  sweep?: import("./recover.js").Sweep;
 }
 const fn = (s: string) => [parseAbiItem(`function ${s}`)] as const;
 // Curated legacy Ethereum contracts (addresses verified on-chain by code presence at call time).
@@ -4613,6 +4614,7 @@ export async function findMoney(
           ? { protocolUrl: it.link }
           : {}),
         ...(it.claimTx ? { claimTx: it.claimTx } : {}),
+        ...(it.sweep ? { sweep: it.sweep } : {}),
         ...(it.evidence?.length ? { evidence: it.evidence } : {}),
       });
     for (const it of (lend as Found[] | null) ?? [])

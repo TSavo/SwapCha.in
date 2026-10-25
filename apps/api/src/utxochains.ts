@@ -109,6 +109,7 @@ export async function utxoScan(f: F, address: string): Promise<{ items: NewFound
         valueUsd: p ? Math.round(amt * p * 100) / 100 : null,
         action: `Build an unsigned sweep with /onchain/utxo-sweep?coin=${coin}&from=${a}&to=<your ${c.sym} address>, then sign it offline. ${SIGN_GUIDE(coin)}`,
         confidence: "high",
+        sweep: { kind: "utxo", coin, from: a, sym: c.sym },
         evidence: [{ chainId: 0, address: a, call: `blockbook ${coin} address balance`, args: [], raw: sats.toString() }],
       } as NewFound);
     } catch { notChecked.push(`${c.name}: explorer unavailable (not checked)`); }

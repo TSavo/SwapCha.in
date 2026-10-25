@@ -42,6 +42,7 @@ export async function ethForkScan(f: F, owner: string): Promise<{ items: NewFoun
         valueUsd: p ? Math.round(amt * p * 100) / 100 : null,
         action: `Build the unsigned transfer with /onchain/fork-sweep?chain=${k}&from=<this address>&to=<your ${c.sym} destination>, then sign it in your wallet on chainId ${c.chainId}. ${FORK_SIGN_GUIDE(k)}`,
         confidence: "high",
+        sweep: { kind: "fork", coin: k, from: owner, sym: c.sym },
         evidence: [{ chainId: c.chainId, address: owner, call: "eth_getBalance", args: [], raw: wei.toString() }],
       } as NewFound);
     } catch { notChecked.push(`${c.name}: no working public RPC (not checked)`); }

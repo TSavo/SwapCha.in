@@ -4,6 +4,7 @@ import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
 import { Recover } from "@/components/tools/Recover";
 import { TronRecover, type TronSpec } from "@/components/tools/TronRecover";
+import { SweepRecover } from "@/components/tools/SweepRecover";
 
 export const metadata: Metadata = {
   title: "Recover an old crypto wallet (seed, keystore, presale) | SwapChan",
@@ -31,6 +32,12 @@ export default async function Page({
         </main>
       );
   }
+  if ((q.sweep === "utxo" || q.sweep === "fork") && q.coin?.match(/^[a-z]{2,10}$/) && q.from?.match(/^[A-Za-z0-9:]{20,100}$/))
+    return (
+      <main className="flex min-h-screen flex-col items-center px-4 py-10 text-white">
+        <SweepRecover kind={q.sweep} coin={q.coin} from={q.from} sym={(q.sym ?? q.coin).slice(0, 8)} title={q.title ?? "Sweep coins"} />
+      </main>
+    );
   const ok = q.to?.match(/^0x[0-9a-fA-F]{40}$/) && q.data?.match(/^0x[0-9a-fA-F]*$/);
   if (ok) {
     return (

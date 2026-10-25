@@ -75,3 +75,13 @@ describe("legacy: Fomo3D not-claimable + IronHands queue", () => {
     expect(verifyClaimTx({ to: IRONHANDS, data: "0x63bd1d4a", value: "1" }).verified).toBe(false);
   });
 });
+
+import { recoveryFlow } from "./recover";
+describe("sweep items get a /recover sweep page, never an external link", () => {
+  it("utxo item: recover step to swapchan.com/recover?sweep=utxo, no fake swap link", () => {
+    const r = recoveryFlow(null, null, "x", { title: "Dogecoin: 1 DOGE", swapUrl: "https://swapchan.com/?fromChain=0&toChain=0", sweep: { kind: "utxo", coin: "doge", from: "DAddr", sym: "DOGE" } } as never) as { steps: { kind: string; url: string }[]; recoverUrl: string; swapUrl?: string };
+    expect(r.recoverUrl).toMatch(/^https:\/\/swapchan\.com\/recover\?sweep=utxo&coin=doge&from=DAddr/);
+    expect(r.steps.map((s) => s.kind)).toEqual(["recover"]);
+    expect(r.swapUrl).toBeUndefined();
+  });
+});
