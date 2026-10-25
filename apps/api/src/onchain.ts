@@ -800,6 +800,12 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
     throw new Error(
       `approvals not checked on ${chainName(chainId)}: no free approval source for this chain answered`,
     );
+  // curated well-known spenders override index metadata (GoPlus has tagged Permit2 as an unverified EOA)
+  const known = Object.fromEntries(Object.entries(spendersFor(chainId)).map(([a, n]) => [a.toLowerCase(), n]));
+  for (const p of pairs.values()) {
+    const n = known[p.spender.toLowerCase()];
+    if (n) p.info = { contract_name: n, is_contract: 1, is_open_source: 1 };
+  }
   const list = [...pairs.values()].slice(0, 300);
   const c = evmClient(chainId, env);
   const res = await c.multicall({
