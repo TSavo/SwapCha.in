@@ -6,3 +6,4 @@ dist
 .env.local
 *.tsbuildinfo
 deploy/.last-deploy.log
+.merkle-cache/
