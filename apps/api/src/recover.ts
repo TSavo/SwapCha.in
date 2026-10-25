@@ -295,7 +295,8 @@ export function recoveryFlow(
   const sw = (it as { sweep?: Sweep }).sweep;
   if (sw && !rurl) {
     rurl = sweepUrl(sw, it.title);
-    steps.push({ step: 1, kind: "recover", label: `Build the unsigned ${sw.sym} sweep to your own ${sw.sym} address, then sign it offline`, url: rurl, shortUrl: s(rurl) } as Step);
+    const label = sw.kind === "utxo" ? `Build the unsigned ${sw.sym} sweep to your own ${sw.sym} address, then sign it offline` : `Get it back: sign the ${sw.sym} transfer to your connected wallet`;
+    steps.push({ step: 1, kind: "recover", label, url: rurl, shortUrl: s(rurl) } as Step);
     // SwapChan has no route for these coins yet: no fake swap link
     const fc = Number(/fromChain=(\d+)&/.exec(it.swapUrl ?? "")?.[1] ?? "0");
     if (!it.swapUrl || !(fc in SUPPORTED_CHAINS)) return { steps, recoverUrl: rurl, swapUrl: rurl } as never;

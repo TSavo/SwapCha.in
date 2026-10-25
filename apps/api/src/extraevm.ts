@@ -1,13 +1,14 @@
 /**
- * Extra EVM chains SwapChan cannot route yet (zkSync Era, Gnosis, Mantle, Celo, Blast, Berachain, Sonic,
+ * Extra EVM chains SwapChan has no swap route for yet (zkSync Era, Gnosis, Mantle, Celo, Blast, Berachain, Sonic,
  * Unichain, Fantom, Monad, Katana, HyperEVM). Free public RPCs only. For each chain: native balance, ERC-20
  * balances over the free LI.FI token list (curated list on Blast; none on Fantom), and known-spender approvals
- * on held tokens. Recovery is an unsigned transfer built by /onchain/evm-sweep; nothing is signed here.
+ * on held tokens. Recovery: swapchan.com/recover builds the unsigned transfer back to the connected wallet; nothing is signed here.
  */
 import { createPublicClient, http, fallback, erc20Abi, getAddress, isAddress, encodeFunctionData, formatUnits, type Chain } from "viem";
 import { zksync, gnosis, mantle, celo, blast, berachain, sonic, unichain, fantom, monad, katana, hyperEvm } from "viem/chains";
 import type { NewFound } from "./recover.js";
 import { coinPrices } from "./utxochains.js";
+import { addChainParams, verifySweepTx } from "./sweepverify.js";
 import { knownSpenderAllowances, KNOWN_ONLY_NOTE } from "./knownspenders.js";
 
 type F = typeof fetch;
@@ -104,9 +105,9 @@ function found(k: string, x: X, own: string, b: { sym: string; amt: number; usd:
   const n = x.chain.name;
   return {
     kind: "claimable", protocol: `${n} wallet`, chainId: x.chain.id,
-    what: `${b.amt.toPrecision(6)} ${b.sym} at your address on ${n} (exact balance; USD estimate). SwapChan cannot route ${n} yet.`,
+    what: `${b.amt.toPrecision(6)} ${b.sym} at your address on ${n} (exact balance; USD estimate).`,
     valueUsd: b.usd === null ? null : Math.round(b.usd * 100) / 100,
-    action: `Build the unsigned transfer with /onchain/evm-sweep?chain=${k}${b.token ? `&token=${b.token}` : ""}&from=<this address>&to=<your destination>, then sign it in your own wallet on chainId ${x.chain.id}, or bridge it to a SwapChan chain.`,
+    action: `Get it back: open the swapchan.com/recover step, connect this wallet and sign the ${b.sym} transfer back to it. The page adds ${n} (chainId ${x.chain.id}) to your wallet if needed and only lets you sign an EIP-155 transaction with that chainId that pays your own address.`,
     confidence: "high",
     sweep: { kind: "evm", coin: k, from: own, sym: b.sym, ...(b.token ? { token: b.token } : {}) },
     evidence: [{ chainId: x.chain.id, address: b.token ?? own, call: b.call, args: b.token ? [own] : [], raw: b.raw.toString() }],
@@ -136,5 +137,6 @@ export async function evmSweep(f: F, k: string, from: string, to: string, token?
     if (value <= 0n) throw new Error("balance does not cover gas");
     tx = { from: fr, to: tt, value: value.toString(), gas: g.toString(), gasPrice: gasPrice.toString(), nonce, chainId: x.chain.id, type: "legacy" };
   }
-  return { chain: k, chainId: x.chain.id, tx, signing: `Sign this EIP-155 transaction (chainId ${x.chain.id}, ${x.chain.name}) in your own wallet; add the network if needed. Never paste a seed or private key into a website.`, note: "Gas is an estimate from the public RPC; your wallet may re-estimate it before signing." };
+  const addChain = addChainParams(x.chain.id, x.chain.name, x.chain.nativeCurrency, x.rpc, x.chain.blockExplorers?.default.url);
+  return { chain: k, chainId: x.chain.id, tx, addChain, verified: verifySweepTx(tx, fr, x.chain.id, token), signing: `Sign this EIP-155 transaction (chainId ${x.chain.id}, ${x.chain.name}) in your own wallet; add the network if needed. Never paste a seed or private key into a website.`, note: "Gas is an estimate from the public RPC; your wallet may re-estimate it before signing." };
 }

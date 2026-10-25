@@ -1,6 +1,7 @@
 import { getAddress, isAddress } from "viem";
 import type { NewFound } from "./recover.js";
 import { coinPrices } from "./utxochains.js";
+import { addChainParams, verifySweepTx } from "./sweepverify.js";
 
 type F = typeof fetch;
 /** Ethereum forks that copied every ETH balance at the fork block (2016 ETC, 2022 ETHW/EtherFair). */
@@ -40,7 +41,7 @@ export async function ethForkScan(f: F, owner: string): Promise<{ items: NewFoun
         kind: "claimable", protocol: `${c.name} (fork coins)`, chainId: c.chainId,
         what: `${amt} ${c.sym} at your address on ${c.name} — ${c.fork} (exact balance; USD estimate)`,
         valueUsd: p ? Math.round(amt * p * 100) / 100 : null,
-        action: `Build the unsigned transfer with /onchain/fork-sweep?chain=${k}&from=<this address>&to=<your ${c.sym} destination>, then sign it in your wallet on chainId ${c.chainId}. ${FORK_SIGN_GUIDE(k)}`,
+        action: `Get it back: open the swapchan.com/recover step, connect this wallet and sign the ${c.sym} transfer back to it. The page adds ${c.name} (chainId ${c.chainId}) to your wallet and only lets you sign an EIP-155 transaction with that chainId that pays your own address.`,
         confidence: "high",
         sweep: { kind: "fork", coin: k, from: owner, sym: c.sym },
         evidence: [{ chainId: c.chainId, address: owner, call: "eth_getBalance", args: [], raw: wei.toString() }],
@@ -65,5 +66,7 @@ export async function forkSweep(f: F, k: EthFork, from: string, to: string) {
     chain: k, chainId: ETH_FORKS[k].chainId,
     tx: { from: getAddress(from), to: getAddress(to), value: value.toString(), gas: "21000", gasPrice: gasPrice.toString(), nonce: BigInt(nonce).toString(), chainId: ETH_FORKS[k].chainId, type: "legacy" },
     signing: FORK_SIGN_GUIDE(k),
+    addChain: addChainParams(ETH_FORKS[k].chainId, ETH_FORKS[k].name, { name: ETH_FORKS[k].sym, symbol: ETH_FORKS[k].sym, decimals: 18 }, ETH_FORKS[k].rpc),
+    verified: verifySweepTx({ from: getAddress(from), to: getAddress(to), value: value.toString(), chainId: ETH_FORKS[k].chainId }, from, ETH_FORKS[k].chainId),
   };
 }

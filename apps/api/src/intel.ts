@@ -4670,6 +4670,29 @@ export async function batchLink(
 }
 
 // ---------- find_money ----------
+/** Coin balances (fork chains, extra EVM chains, old UTXO coins) under this are not worth a transfer. */
+export const DUST_USD = 0.5;
+export const DUST_CATEGORY = "Dust (not worth moving)";
+type DustLike = { title: string; estUsd: number | null; estimateKind: string; sweep?: unknown };
+export const isSweepDust = (i: DustLike) =>
+  !!i.sweep && i.estUsd !== null && i.estUsd < DUST_USD && (i.estimateKind === "exact" || i.estimateKind === "estimate");
+export function dustNote(dust: DustLike[]) {
+  const amt = (t: string) => {
+    const m = /^(.*?)(?: \(fork coins\)| wallet)?: (\S+ \S+) at your address/.exec(t);
+    return m ? `${m[2]} (${m[1]})` : t.slice(0, 80);
+  };
+  const sum = Math.round(dust.reduce((s, d) => s + (d.estUsd ?? 0), 0) * 100) / 100;
+  return {
+    category: DUST_CATEGORY,
+    title: `Dust, not worth moving: ${dust.map((d) => amt(d.title)).join(", ")}`,
+    estUsd: sum,
+    estimateKind: "estimate" as const,
+    detail: `Each is worth under $${DUST_USD.toFixed(2)}.`,
+    action: "",
+    swapUrl: SITE,
+  };
+}
+
 export async function findMoney(
   f: F,
   env: NodeJS.ProcessEnv,
@@ -5014,6 +5037,14 @@ export async function findMoney(
         action: "Bridge once to an L2 and trade there",
         swapUrl: swapUrl(1, NATIVE_TOKEN, 8453, NATIVE_TOKEN),
       });
+    // coin balances worth less than moving them: one plain "dust" note, no numbered items, no instructions
+    {
+      const dust = items.filter((i) => isSweepDust(i));
+      if (dust.length) {
+        for (const d of dust) items.splice(items.indexOf(d), 1);
+        items.push(dustNote(dust));
+      }
+    }
     const order = (i: Item) =>
       (i.category.startsWith("At-risk") ? 1e12 : 0) +
       (i.estUsd ?? 0) * (i.estimateKind === "estimate" ? 0.5 : 1);
@@ -5034,6 +5065,7 @@ export async function findMoney(
         it.estimateKind === "protected" ||
         it.estimateKind === "lead" ||
         it.category === "Cheaper gas" ||
+        it.category === DUST_CATEGORY ||
         it.category === "Idle stablecoins" ||
         /: Not claimable/.test(it.title)
       )
