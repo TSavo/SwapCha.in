@@ -1,3 +1,4 @@
+import { tronSpec, verifyTronSpec, encodeSpec } from "./tronrecover.js";
 import { verifySafe } from "./safe.js";
 import { PENDLE_ROUTER } from "./pendle.js";
 import { verifyV4 } from "./lpv4.js";
@@ -229,6 +230,13 @@ export function recoveryFlow(
       shortUrl: s(rurl),
       tx,
     });
+  }
+  const tt = (it.claimTx as { tronTx?: unknown; description?: string } | undefined)?.tronTx;
+  const spec = tt ? tronSpec(tt) : null;
+  if (spec && verifyTronSpec(spec, owner)) {
+    const q = new URLSearchParams({ tron: encodeSpec(spec), title: it.title.slice(0, 140), next: it.swapUrl });
+    rurl = `${SITE}/recover?${q}`;
+    steps.push({ step: 1, kind: "recover", label: `Sign: ${(it.claimTx as { description?: string }).description ?? spec.endpoint} (TronLink)`, url: rurl, shortUrl: s(rurl) } as Step);
   }
   // No buildable, verified tx -> no "Get it back" step. Never send people to an external portal
   // as a recovery step; the protocol link stays informational (protocolUrl) only.

@@ -90,7 +90,7 @@ export async function tronExtras(f: F, env: NodeJS.ProcessEnv, owner: string, ac
   })());
   // TRC-20 balances (sTRX, jTokens)
   jobs.push((async () => {
-    const v1a = await json<{ data?: { trc20?: Record<string, string>[] }[] }>(f, `${TG}/v1/accounts/${owner}`, { headers }).catch(() => ({ data: [] }));
+    const v1a = await tronV1Account(f, owner, headers);
     const bal = new Map<string, bigint>();
     for (const o of v1a.data?.[0]?.trc20 ?? []) for (const [k, v] of Object.entries(o)) bal.set(k, BigInt(v));
     const tasks: Promise<void>[] = [];
@@ -134,4 +134,9 @@ export async function tronExtras(f: F, env: NodeJS.ProcessEnv, owner: string, ac
   })());
   await Promise.all(jobs);
   return out;
+}
+
+/** /v1/accounts (TRC-20 balances in one call), shared by tronMoney and tronExtras. */
+export function tronV1Account(f: F, owner: string, headers: Record<string, string>) {
+  return cached(`tg:v1:${owner}`, 30_000, () => json<{ data?: { trc20?: Record<string, string>[] }[] }>(f, `https://api.trongrid.io/v1/accounts/${owner}`, { headers })).catch(() => ({ data: [] as { trc20?: Record<string, string>[] }[] }));
 }

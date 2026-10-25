@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
 import { Recover } from "@/components/tools/Recover";
+import { TronRecover, type TronSpec } from "@/components/tools/TronRecover";
 
 export const metadata: Metadata = {
   title: "Recover an old crypto wallet (seed, keystore, presale) | SwapChan",
@@ -17,6 +18,19 @@ export default async function Page({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const q = await searchParams;
+  const next = q.next?.startsWith("https://swapchan.com/") || q.next?.startsWith("/") ? q.next : undefined;
+  if (q.tron) {
+    let spec: TronSpec | null = null;
+    try {
+      spec = JSON.parse(Buffer.from(q.tron, "base64url").toString()) as TronSpec;
+    } catch {}
+    if (spec?.endpoint && spec.body)
+      return (
+        <main className="flex min-h-screen flex-col items-center px-4 py-10 text-white">
+          <TronRecover spec={spec} title={q.title ?? "Recover TRX"} {...(next ? { next } : {})} />
+        </main>
+      );
+  }
   const ok = q.to?.match(/^0x[0-9a-fA-F]{40}$/) && q.data?.match(/^0x[0-9a-fA-F]*$/);
   if (ok) {
     return (

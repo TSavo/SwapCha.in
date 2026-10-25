@@ -5,7 +5,7 @@ import { lstQueues } from "./lst.js";
 import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
 import { maturedPendle } from "./pendle.js";
-import { tronExtras } from "./tron2.js";
+import { tronExtras, tronV1Account } from "./tron2.js";
 import { stakedLp, sushiChef } from "./gauges.js";
 import { vaultPositions } from "./vaults.js";
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
@@ -1940,7 +1940,7 @@ type TronAcct = {
   unfrozenV2?: { unfreeze_amount: number; unfreeze_expire_time: number }[];
   frozen?: { frozen_balance: number; expire_time: number }[];
 };
-async function tronMoney(
+export async function tronMoney(
   f: F,
   owner: string,
   env: NodeJS.ProcessEnv = process.env,
@@ -2087,19 +2087,13 @@ async function tronMoney(
   ];
   const hex = (await import("./onchain.js")).b58decode(owner);
   const me = Buffer.from(hex.slice(1, 21)).toString("hex").padStart(64, "0");
+  const v1 = await tronV1Account(f, owner, env.TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": env.TRONGRID_API_KEY } : {});
+  const tb = new Map<string, bigint>();
+  for (const o of v1.data?.[0]?.trc20 ?? []) for (const [a, v] of Object.entries(o)) tb.set(a, BigInt(v));
+  void me;
   for (const k of KNOWN) {
     try {
-      await new Promise((ok) => setTimeout(ok, 200));
-      const r = await post<{ constant_result?: string[] }>("/wallet/triggerconstantcontract", {
-        owner_address: owner,
-        contract_address: k.addr,
-        function_selector: "balanceOf(address)",
-        parameter: me,
-        visible: true,
-      });
-      const raw = r.constant_result?.[0];
-      if (!raw) continue;
-      const bal = BigInt(`0x${raw.slice(0, 64) || "0"}`);
+      const bal = tb.get(k.addr) ?? 0n;
       if (bal <= 0n) continue;
       const amt = Number(bal) / 10 ** k.dec;
       if (amt < 0.01) continue;
