@@ -306,6 +306,60 @@ describe("simulation", () => {
       simulation: { ok: true, gasUsed: "50000" },
     });
   });
+  it("/build pins the payout to the taker (audit: foreign recipient was called verified)", async () => {
+    const OTHER = "0x2222222222222222222222222222222222222222";
+    const tx = {
+      chainId: 1,
+      to: "0x111111125421ca6dc452d289314280a0f8842a65",
+      data: `0x01${OTHER.slice(2)}`,
+      value: "0",
+    } as const;
+    const base = {
+      id: "p:1",
+      provider: "1inch",
+      request: req,
+      toAmount: "1",
+      toAmountMin: "1",
+      gasUsd: 0,
+      feeUsd: 0,
+      netUsd: 1,
+      etaSeconds: 1,
+      steps: [],
+      approvalAddress: null,
+      expiresAt: 0,
+    };
+    const p = {
+      name: "1inch",
+      enabled: () => true,
+      supports: () => true,
+      quote: async (r: QuoteRequest) => ({ ...base, tx: r.taker ? tx : null }),
+    };
+    const app = createApp([p], { pricer: null, env: {} });
+    await app.request(
+      `/quotes?fromChainId=1&toChainId=1&fromToken=${USDC}&toToken=${LINK}&amount=1&recipient=${OTHER}`,
+    );
+    const post = (b: Record<string, unknown>) =>
+      app.request("/build", {
+        method: "POST",
+        body: JSON.stringify({ quoteId: "p:1", taker: TAKER, ...b }),
+        headers: { "content-type": "application/json" },
+      });
+    // Foreign recipient without opt-in: refused.
+    const r1 = await post({ recipient: OTHER });
+    expect(r1.status).toBe(400);
+    expect(await r1.json()).toMatchObject({ verified: false });
+    // No recipient in the body: the quote's recipient is NOT inherited; payout = taker, and this
+    // payload (which pays OTHER) no longer verifies.
+    const r2 = await post({});
+    expect(r2.status).toBe(502);
+    // Explicit opt-in: built, and flagged as paying someone else.
+    const r3 = await post({ recipient: OTHER, allowForeignRecipient: true });
+    expect(await r3.json()).toMatchObject({
+      verified: true,
+      payoutTo: OTHER,
+      recipientIsTaker: false,
+    });
+  });
 });
 
 describe("pricing", () => {

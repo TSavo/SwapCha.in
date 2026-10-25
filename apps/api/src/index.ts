@@ -264,18 +264,27 @@ export function createApp(
     app.route("/onchain", onchainRoutes(opts.scannerFetch ?? fetch, env, watchDb, bestOut));
   }
   app.post("/build", async (c) => {
-    const { quoteId, taker } = z
-      .object({ quoteId: z.string(), taker: Address, recipient: Address.optional() })
+    const body = z
+      .object({
+        quoteId: z.string(),
+        taker: Address,
+        recipient: Address.optional(),
+        allowForeignRecipient: z.boolean().optional(),
+      })
       .parse(await c.req.json());
+    const { quoteId, taker } = body;
     const q = cache.get(quoteId);
     const p = q && providers.find((x) => x.name === q.provider);
     if (!q || !p) return c.json({ error: "unknown or expired quote" }, 404);
-    const { recipient } = (await c.req.json().catch(() => ({}))) as { recipient?: string };
+    const pin = payoutFor(q.request, taker, body.recipient, body.allowForeignRecipient === true);
+    if ("error" in pin) return c.json({ error: pin.error, verified: false }, 400);
+    const recipient = pin.recipient;
     const req = {
       ...q.request,
       taker,
       ...(recipient ? { recipient: recipient as `0x${string}` } : {}),
     };
+    if (!recipient) delete (req as { recipient?: string }).recipient;
     // Build the requested route; if its payload fails verification, fall back to the next
     // best route from the same /quotes call. Nothing unverified is ever returned.
     const order = [
@@ -294,6 +303,8 @@ export function createApp(
         taker,
         ...(recipient ? { recipient: recipient as `0x${string}` } : {}),
       };
+      // Payout is pinned: never inherit a recipient from the cached quote.
+      if (!recipient) delete (creq as { recipient?: string }).recipient;
       let out: BuildResponse | null;
       try {
         out = await buildOne(prov, creq);
@@ -321,6 +332,8 @@ export function createApp(
           verification: v,
           quoteId: cand.id,
           provider: cand.provider,
+          payoutTo: recipient ?? taker,
+          recipientIsTaker: !recipient || recipient.toLowerCase() === taker.toLowerCase(),
           ...(first ? { fallbackFrom: first } : {}),
         }),
       );
@@ -370,4 +383,29 @@ export function createApp(
     return c.json(await p.status(req, AbortSignal.timeout(8000)));
   });
   return app;
+}
+
+/**
+ * Pin the swap payout (audit finding: /build accepted a foreign recipient and called it verified).
+ * Same-VM: payout goes to the taker unless the caller names another recipient AND sets
+ * allowForeignRecipient. Cross-VM: a recipient is required (body, else the quote's own one).
+ */
+export function payoutFor(
+  qreq: { fromChainId: number; toChainId: number; recipient?: string | undefined },
+  taker: string,
+  recipient: string | undefined,
+  allowForeign: boolean,
+): { recipient: string | undefined } | { error: string } {
+  const cross = vmOf(qreq.fromChainId) !== vmOf(qreq.toChainId);
+  if (cross) {
+    const r = recipient ?? qreq.recipient;
+    return r ? { recipient: r } : { error: "cross-VM route: pass recipient" };
+  }
+  if (!recipient || recipient.toLowerCase() === taker.toLowerCase()) return { recipient: undefined };
+  if (!allowForeign)
+    return {
+      error:
+        "recipient differs from taker: the payout would go to another wallet. Pass allowForeignRecipient: true only if the user named this recipient.",
+    };
+  return { recipient };
 }

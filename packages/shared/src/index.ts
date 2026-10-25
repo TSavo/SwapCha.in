@@ -220,6 +220,10 @@ export const BuildResponse = TxRequest.extend({
     .optional(),
   quoteId: z.string().optional(),
   provider: z.string().optional(),
+  /** Where the swap output is paid (recipient, else the taker). */
+  payoutTo: z.string().optional(),
+  /** False when the output goes to a wallet other than the signer. */
+  recipientIsTaker: z.boolean().optional(),
 });
 export type BuildResponse = z.infer<typeof BuildResponse>;
 

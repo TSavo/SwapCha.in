@@ -101,10 +101,20 @@ export class SwapChanApi {
   quotes(r: QuoteRequest & { partner?: string | undefined }): Promise<QuotesResponse> {
     return this.req(QuotesResponse, `/quotes?${qs(r)}`);
   }
-  build(quoteId: string, taker: string, recipient?: string): Promise<BuildResponse> {
+  build(
+    quoteId: string,
+    taker: string,
+    recipient?: string,
+    allowForeignRecipient?: boolean,
+  ): Promise<BuildResponse> {
     return this.req(BuildResponse, "/build", {
       method: "POST",
-      body: JSON.stringify({ quoteId, taker, ...(recipient ? { recipient } : {}) }),
+      body: JSON.stringify({
+        quoteId,
+        taker,
+        ...(recipient ? { recipient } : {}),
+        ...(allowForeignRecipient ? { allowForeignRecipient: true } : {}),
+      }),
     });
   }
   /** CoW limit order: typed data to sign (our partnerFee in appData), market reference. */

@@ -500,6 +500,12 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           .describe(
             "Reuse a quoteId from get_quote/compare_routes (still re-quotes if it expired)",
           ),
+        allowForeignRecipient: z
+          .boolean()
+          .optional()
+          .describe(
+            "Same-chain only: set true to pay out to `recipient` when it is not the taker. Off by default; the payout is pinned to the taker and a different recipient is refused.",
+          ),
       }),
       annotations: { readOnlyHint: true, openWorldHint: true, destructiveHint: false },
     },
@@ -509,6 +515,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           taker: string;
           provider?: string | undefined;
           quoteId?: string | undefined;
+          allowForeignRecipient?: boolean | undefined;
         },
       ) => {
         // Indicative quotes (no taker) are cheaper on provider rate limits; /build re-quotes with the taker.
@@ -533,7 +540,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           throw new UserError(
             "cross-VM route: pass recipient (the receiving address on the destination chain)",
           );
-        const built = await api.build(pick.id, a.taker, a.recipient);
+        const built = await api.build(pick.id, a.taker, a.recipient, a.allowForeignRecipient);
         // Server-side payload guard (router allowlist, recipient, minOut, approvals). Fail closed.
         if (built.verified === false)
           throw new UserError("API payload failed SwapChan verification; refusing to return it");
@@ -541,6 +548,12 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           verified: built.verified ?? null,
           verification: built.verification ?? null,
           ...(built.fallbackFrom ? { fallbackFrom: built.fallbackFrom } : {}),
+          ...(built.payoutTo ? { payoutTo: built.payoutTo } : {}),
+          ...(built.recipientIsTaker === false
+            ? {
+                payoutWarning: `Output goes to ${built.payoutTo}, NOT the signing wallet ${a.taker}. Confirm with the user before signing.`,
+              }
+            : {}),
         };
         if (built.execution === "nonevm" && built.nonEvmTx) {
           const how: Record<string, string> = {
@@ -577,6 +590,8 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           fallbackFrom: _fb,
           quoteId: _qid,
           provider: _prov,
+          payoutTo: _pt,
+          recipientIsTaker: _rit,
           ...tx
         } = built;
 
@@ -1886,8 +1901,15 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
       maxValue: z.string().optional(),
       minOut: z.string().optional(),
       quotedOut: z.string().optional(),
+      outToken: z
+        .string()
+        .optional()
+        .describe("Token whose simulated receipt must be >= minOut (default: largest receipt)"),
     })
-    .optional();
+    .optional()
+    .describe(
+      "expected.recipient and expected.minOut are checked against the simulated outcome (pass tx.from); if they cannot be checked, the verdict is danger.",
+    );
 
   server.registerTool(
     "verify_tx",
