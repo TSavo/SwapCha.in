@@ -893,6 +893,8 @@ export async function utxoScan(
   return { items, notChecked };
 }
 
+export const BT_ONLY_SWEEP = new Set<string>(["dash", "dgb", "rvn", "vtc", "via", "qtum", "mona", "bsv", "grs"]);
+
 /** Unsigned legacy-format sweep of every UTXO on `from` to `to` (one output, fee = feeRate x size estimate). Only coins with `sweep`. */
 export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeRate?: number) {
   const c: CoinRow = COINS[coin];
@@ -904,9 +906,15 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
   if (!fromD) throw new Error(`from must be a ${c.sym} address`);
   const utxos = await coinUtxos(f, coin, from);
   if (!utxos.length) throw new Error("no UTXOs on this address");
-  const take = utxos.slice(0, 200);
-  const total = take.reduce((s, u) => s + BigInt(u.value), 0n);
   const rate = feeRate ?? c.feeRate;
+  // largest first, skipping UTXOs where the input's own fee would exceed 5% of its value (dust farms on VIA/DGB
+  // hold thousands); blocktools rejects a sweep whose fee is over 5% of the output (high_fee_pct)
+  const economic = [...utxos]
+    .sort((a, b) => (BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0))
+    .filter((u) => BigInt(u.value) >= BigInt(Math.ceil(rate * 148 * 20)));
+  if (!economic.length) throw new Error("every UTXO on this address is too small to spend economically (its fee would be over 5% of its value)");
+  const take = economic.slice(0, 200);
+  const total = take.reduce((s, u) => s + BigInt(u.value), 0n);
   const bt = btSweep(
     coin,
     take.map((u) => ({ txid: u.txid, vout: u.vout, amount: u.value, address: from })),
@@ -914,6 +922,9 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     rate,
   );
   if (!bt && c.checksum === "groestl") throw new Error(c.txNote!);
+  // these coins are offered only as a blocktools-built, decode+verify-checked sweep; no unverified TS fallback
+  if (!bt && BT_ONLY_SWEEP.has(coin))
+    throw new Error(`blocktools is unavailable, so SwapChan will not offer an unverified ${c.sym} sweep; try again later`);
   if (bt) {
     if (BigInt(bt.amount) <= 546n) throw new Error("balance does not cover the fee");
     // decode + verify the built PSBT before offering it: inputs are ours, every output pays `to`, fee as built
@@ -921,13 +932,36 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     const d = btDecode(bt.psbt, coin);
     const sum = d?.find((l) => l.role === "summary");
     const outs = d?.filter((l) => l.role === "output") ?? [];
-    // "unsigned" is expected; "high_fee_rate" is the coin's own fee row (RVN/DGB use high sat/vB) and the fee is capped by max_fee
-    const okWarn = new Set(["unsigned", "high_fee_rate"]);
+    // "unsigned" is expected. blocktools' high_fee (>1,000,000 base units) and high_fee_rate (>500/vB) are BTC-scale
+    // thresholds; cheap coins (DGB/RVN/QTUM/MONA) trip them at normal fees. Accept those two only when the fee also
+    // passes an independent TS cap (row fee rate x legacy size estimate x 1.25) and blocktools did not flag high_fee_pct.
+    const feeCap = BigInt(Math.ceil(rate * (148 * take.length + 34 + 10) * 1.25));
+    const okWarn = new Set(["unsigned", "high_fee_rate", "high_fee"]);
     const verifiedOk =
+      BigInt(bt.fee) <= feeCap &&
       !!v &&
+      !v.warnings.includes("high_fee_pct") &&
       (v.ok ||
         (v.failures.every((x) => x === "has_warnings") && v.warnings.every((x) => okWarn.has(x))));
+    // independent second decode (bitcoinjs, not blocktools): same inputs in order, one output paying `to` the built amount
+    let tsOk = false;
+    try {
+      const t = Transaction.fromHex(bt.unsigned_tx);
+      tsOk =
+        t.ins.length === take.length &&
+        t.ins.every(
+          (i, n) =>
+            Buffer.from(i.hash).reverse().toString("hex") === take[n]!.txid && i.index === take[n]!.vout,
+        ) &&
+        t.outs.length === 1 &&
+        Buffer.from(t.outs[0]!.script).equals(script(toD)) &&
+        String(t.outs[0]!.value) === String(bt.amount) &&
+        total - BigInt(bt.amount) === BigInt(bt.fee);
+    } catch {
+      tsOk = false;
+    }
     if (
+      !tsOk ||
       !verifiedOk ||
       !sum ||
       sum.inputs !== take.length ||
@@ -957,7 +991,7 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
       signing: SIGN_GUIDE(coin),
       note:
         utxos.length > take.length
-          ? `first ${take.length} of ${utxos.length} UTXOs; run again after this confirms`
+          ? `largest ${take.length} of ${utxos.length} UTXOs${economic.length < utxos.length ? ` (${utxos.length - economic.length} too small to spend economically skipped)` : ""}; run again after this confirms`
           : undefined,
     };
   }
@@ -983,7 +1017,7 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     signing: SIGN_GUIDE(coin),
     note:
       utxos.length > take.length
-        ? `first ${take.length} of ${utxos.length} UTXOs; run again after this confirms`
+        ? `largest ${take.length} of ${utxos.length} UTXOs; run again after this confirms`
         : undefined,
   };
 }

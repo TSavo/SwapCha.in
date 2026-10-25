@@ -134,8 +134,32 @@ describe("old coins: unsigned sweeps", () => {
       expect(Buffer.from(tx.ins[0]!.hash).reverse().toString("hex")).toBe("ab".repeat(32));
       expect(Buffer.from(tx.outs[0]!.script).equals(outputScript(a, k))).toBe(true);
       expect(BigInt(tx.outs[0]!.value) + BigInt(s.fee)).toBe(100000000n);
+      // built by blocktools and checked by its decodeTx+verifyTx before being offered (no unverified TS fallback)
+      expect((s as { builtBy?: string }).builtBy).toMatch(/^blocktools /);
+      expect((s as { verified?: { by: string } }).verified?.by).toBe("blocktools decodeTx+verifyTx");
+      expect((s as { txFormat?: string }).txFormat).toBe(k === "bsv" ? "forkid" : "legacy");
     });
   }
+  it("dgb: many inputs at the row fee rate trip blocktools' BTC-scale high_fee but pass the TS fee cap", async () => {
+    const many = Array.from({ length: 150 }, (_, n) => ({ txid: n.toString(16).padStart(64, "0"), vout: 0, value: "50000000" }));
+    const f = (async () => json(many)) as unknown as typeof fetch;
+    const a = convert(BTC, "dgb")!;
+    const s = (await utxoSweep(f, "dgb", a, a)) as { fee: string; verified?: { warnings: string[] } };
+    expect(BigInt(s.fee)).toBeGreaterThan(1_000_000n);
+    expect(s.verified?.warnings).toContain("high_fee");
+  });
+  it("skips UTXOs too small to spend economically, largest first", async () => {
+    const mixed = [
+      { txid: "01".repeat(32), vout: 0, value: "20000" },
+      { txid: "02".repeat(32), vout: 0, value: "90000000" },
+    ];
+    const f = (async () => json(mixed)) as unknown as typeof fetch;
+    const a = convert(BTC, "via")!;
+    const s = await utxoSweep(f, "via", a, a);
+    expect(s.inputs.map((i) => i.txid)).toEqual(["02".repeat(32)]);
+    const dust = (async () => json([mixed[0]])) as unknown as typeof fetch;
+    await expect(utxoSweep(dust, "via", a, a)).rejects.toThrow(/too small to spend/);
+  });
   it("refuses PoS / Zcash / Groestl / unverified formats", async () => {
     for (const k of ["ppc", "rdd", "zec", "xpm", "clam"] as Coin[])
       await expect(utxoSweep(fetch, k, "x", "y")).rejects.toThrow(/does not build/);
