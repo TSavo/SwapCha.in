@@ -2056,7 +2056,7 @@ export async function tronMoney(
       ],
     });
   }
-  out.push(...((await tronExtras(f, env, owner, acct as never, trxPx, async (a) => pxOf(await prices(f, [{ chainId: TRON, address: a }]), TRON, a)).catch(() => [])) as Found[]));
+  out.push(...((await tronExtras(f, env, owner, acct as never, trxPx, async (a) => pxOf(await prices(f, [{ chainId: TRON, address: a }]), TRON, a)).catch((e) => { if (process.env.DEBUG_TRON) console.error("tronExtras", e); return []; })) as Found[]));
   const v1Locked =
     (acct.frozen ?? [])
       .filter((x) => x.expire_time > now)
@@ -3428,11 +3428,8 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         "contract archaeology: full explorer history → every contract called/token received, probed with balanceOf/earned/dividendsOf/claimable/pendingRewards, ERC-4626 & Yearn vault shares, Uniswap-v2 LP shares, Uniswap v3 positions + simulated collect() fees, EtherDelta/IDEX ERC-20 balances, NFTs still held",
       );
     } else if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address)) {
-      const [tm, jl] = await Promise.all([
-        tronMoney(f, address, env),
-        justLend(f, address).catch(() => []),
-      ]);
-      items.push(...tm, ...jl);
+      // JustLend supply is covered (with a redeem tx) by tronExtras inside tronMoney
+      items.push(...(await tronMoney(f, address, env)));
       sources.push("TronGrid (rewards, unfreezes, contract probes, JustLend supplied jTokens)");
     } else if (vm === "svm") {
       // Tron base58 also matches the Solana pattern, so Tron is tested first.

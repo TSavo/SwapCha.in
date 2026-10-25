@@ -29,8 +29,11 @@ export async function tronExtras(f: F, env: NodeJS.ProcessEnv, owner: string, ac
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (env.TRONGRID_API_KEY) headers["TRON-PRO-API-KEY"] = env.TRONGRID_API_KEY;
   const post = async <T,>(path: string, b: unknown, attempt = 0): Promise<T> => {
-    try { return await json<T>(f, `${TG}${path}`, { method: "POST", headers, body: JSON.stringify({ ...(b as object), visible: true }) }); }
-    catch (e) { if (attempt >= 2) throw e; await new Promise((ok) => setTimeout(ok, 700 * (attempt + 1))); return post(path, b, attempt + 1); }
+    // free nodes: PublicNode first (generous limits), keyless TronGrid as the fallback (attempts 1, 3)
+    const base = attempt % 2 === 0 ? "https://tron-rpc.publicnode.com" : TG;
+    if (base === TG) await tgSlot(env.TRONGRID_API_KEY ? 20 : 120);
+    try { return await json<T>(f, `${base}${path}`, { method: "POST", headers: base === TG ? headers : { "content-type": "application/json" }, body: JSON.stringify({ ...(b as object), visible: true }) }); }
+    catch (e) { if (attempt >= 3) throw e; await new Promise((ok) => setTimeout(ok, 600 * (attempt + 1))); return post(path, b, attempt + 1); }
   };
   const tx = async (path: string, b: unknown, description: string) => {
     const t = await post<{ Error?: string; transaction?: unknown; result?: { result?: boolean } }>(path, b).catch(() => null);
@@ -130,13 +133,22 @@ export async function tronExtras(f: F, env: NodeJS.ProcessEnv, owner: string, ac
         });
       })());
     }
-    await Promise.all(tasks);
+    await Promise.allSettled(tasks);
   })());
-  await Promise.all(jobs);
+  await Promise.allSettled(jobs);
   return out;
 }
 
 /** /v1/accounts (TRC-20 balances in one call), shared by tronMoney and tronExtras. */
 export function tronV1Account(f: F, owner: string, headers: Record<string, string>) {
   return cached(`tg:v1:${owner}`, 30_000, () => json<{ data?: { trc20?: Record<string, string>[] }[] }>(f, `https://api.trongrid.io/v1/accounts/${owner}`, { headers })).catch(() => ({ data: [] as { trc20?: Record<string, string>[] }[] }));
+}
+
+/** Keyless TronGrid allows only a few requests a second: space our calls out process-wide. */
+let tgNext = 0;
+function tgSlot(gapMs: number) {
+  const now = Date.now();
+  const at = Math.max(now, tgNext);
+  tgNext = at + gapMs;
+  return at > now ? new Promise((ok) => setTimeout(ok, at - now)) : Promise.resolve();
 }
