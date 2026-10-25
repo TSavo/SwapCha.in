@@ -186,7 +186,13 @@ const ROWS: Row[] = [
     "Public RPC + LI.FI token lists; unsigned EVM sweep",
     "New",
   ],
-  ["Monero", "XMR", "Recognised addresses", "View-key scanning is not supported", "Not yet"],
+  [
+    "Monero",
+    "XMR",
+    "Recognised addresses",
+    "View-key scanning is not supported",
+    "Not yet",
+  ],
   [
     "Unknown contract archaeology",
     "Every supported chain",
