@@ -1,11 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { bigJson, btDetect } from "./blocktools.js";
 import { recognisedOnly } from "./ledgers.js";
 import {
   COINS,
   type Coin,
+  cashToLegacy,
   coinsOf,
   convert,
+  GRS_XPUB_PACE,
   outputScript,
   parseZecV5,
   utxoSources,
@@ -125,6 +127,7 @@ describe("XPM / AUR / TRC sweeps on measured rates", () => {
 });
 
 describe("Groestlcoin xpub and grs1p", () => {
+  beforeEach(() => Object.assign(GRS_XPUB_PACE, { gapMs: 0, backoffMs: 1 }));
   it("a Groestl-checksum xpub is GRS; the sha256d twin is not", () => {
     expect(coinsOf(GRS_TPUB)).toEqual(["grs"]);
     expect(coinsOf(SHA_TPUB)).toEqual([]);
@@ -133,6 +136,28 @@ describe("Groestlcoin xpub and grs1p", () => {
     expect(btDetect(GRS1P)).toEqual(["grs"]);
     expect(coinsOf(GRS1P)).toEqual(["grs"]);
     await expect(utxoSweep(fetch, "grs", GRS1P, GRS1P)).rejects.toThrow(/taproot/);
+  });
+  it("xpub scan is paced: 429s are retried, never more than 2 in flight", async () => {
+    Object.assign(GRS_XPUB_PACE, { gapMs: 0, backoffMs: 1 });
+    let inFlight = 0,
+      peak = 0,
+      calls = 0;
+    const f = (async () => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 2));
+      inFlight--;
+      return ++calls % 3 === 0 ? new Response("", { status: 429 }) : json({ balance: "0" });
+    }) as unknown as typeof fetch;
+    const { sources } = utxoSources(f, GRS_TPUB);
+    expect(sources[0]!.ms).toBe(30_000);
+    expect(await sources[0]!.run()).toEqual([]);
+    expect(peak).toBeLessThanOrEqual(2);
+    expect(calls).toBeGreaterThan(45);
+    const always429 = (async () => new Response("", { status: 429 })) as unknown as typeof fetch;
+    await expect(utxoSources(always429, GRS_TPUB).sources[0]!.run()).rejects.toThrow(
+      /45 of 45 xpub addresses unanswered/,
+    );
   });
   it("xpub scan checks 45 derived addresses and offers no sweep for taproot", async () => {
     const seen: string[] = [];
@@ -154,5 +179,29 @@ describe("Monero: public classify only", () => {
   it("recognised, no balance source", () => {
     expect(btDetect(XMR)).toEqual(["xmr"]);
     expect(recognisedOnly(XMR)).toEqual(["xmr"]);
+  });
+});
+
+describe("BCH CashAddr destination", () => {
+  // CashAddr spec test vectors (bitcoincashorg/spec cashaddr.md)
+  it("decodes to legacy with checksum", () => {
+    expect(cashToLegacy("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a")).toBe(
+      "1BpEi6DfDAUFd7GtittLSdBeYJvcoaVggu",
+    );
+    expect(cashToLegacy("ppm2qsznhks23z7629mms6s4cwef74vcwvn0h829pq")).toBe(
+      "3CWFddi6m4ndiGyKqzYvsFYagqDLPVMTzC",
+    );
+    expect(cashToLegacy("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6b")).toBeNull();
+  });
+  it("sweep accepts a cashaddr to and from", async () => {
+    const f = (async () =>
+      json([{ txid: "ab".repeat(32), vout: 0, value: "100000000" }])) as unknown as typeof fetch;
+    const s = await utxoSweep(
+      f,
+      "bch",
+      "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a",
+      "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a",
+    );
+    expect(s.to).toBe("1BpEi6DfDAUFd7GtittLSdBeYJvcoaVggu");
   });
 });

@@ -38,7 +38,8 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
   with inputs) is tolerated under the TS cap (row rate x legacy size x 1.25; ZEC also ZIP-317 x 1.25); high_fee_pct never.
   ZEC: blocktools' v5 tx is re-parsed by SwapChan's own parseZecV5 and its branch id must equal the explorer's
   chaintip+nextblock consensus id; immature coinbase UTXOs (<100 conf) are skipped. Amounts above 2^53 (RDD) are now
-  passed to and read from blocktools exactly (bigJson). UTXOs are taken largest first; inputs whose own fee
+  passed to and read from blocktools exactly (bigJson). BCH sweeps accept CashAddr (bitcoincash:q/p...) for from/to;
+  SwapChan decodes it itself (checksum verified) to the legacy form the builder uses. UTXOs are taken largest first; inputs whose own fee
   would be over 5% of their value are skipped. Live-built 2026-10-24 ~21:40 PDT from real funded addresses (scripts/live-sweeps.ts).
 - Old coins, balance (+ UTXO list with the cryptoid key): XPM, CLAM, NVC, AUR, WDC, QRK, BLK via cryptoid; TRC via Insight
   (balance + UTXOs measured 2026-10-24). Cryptoid's `{"addresses":[]}` for a never-seen address is now a measured zero
@@ -66,7 +67,8 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
       NVC balances via cryptoid were reported 100x high (key API is always 1e8 units); fixed.
     - Done 2026-10-25: TRC (15, CHAINS.md 14.8 over 14 txs), AUR (103, blocktools-measured 102.8), ZEC transparent t1 only
       (untested: broadcast, v6 / NU7, t3/P2SH, shielded). GRS xpub (Groestl-checksum; receive 0-9 + change 0-4, P2PKH/
-      P2WPKH/P2TR, 45 Blockbook lookups) and grs1p detection; taproot spend refused. Monero: classify only (balance needs
+      P2WPKH/P2TR, 45 Blockbook lookups, paced: 2 in flight, 200 ms apart, 429 retried twice, own 30 s deadline; any
+      address still unanswered makes the source "not checked") and grs1p detection; taproot spend refused. Monero: classify only (balance needs
       the private view key, which SwapChan never takes).
     - Still off: XPM (blocktools buildUnsignedSweep caps fee_rate at 2000; measured rate is 100312 sat/B). QRK: tx_format
       "unknown". WDC: blocktools row unverified.

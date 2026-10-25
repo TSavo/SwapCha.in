@@ -559,6 +559,35 @@ export function outputScript(addr: string, coin?: Coin): Buffer {
   if (!d) throw new Error("unrecognised address");
   return script(d);
 }
+/** BCH CashAddr (bitcoincash:q.../p..., prefix optional) -> legacy base58, checksum verified; null otherwise. */
+export function cashToLegacy(addr: string): string | null {
+  const CS = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+  const a = addr.toLowerCase();
+  if (addr !== a && addr !== addr.toUpperCase()) return null;
+  const body = a.replace(/^bitcoincash:/, "");
+  if (!/^[qp][02-9ac-hj-np-z]{41}$/.test(body)) return null;
+  const v = [...body].map((ch) => CS.indexOf(ch));
+  const G = [0x98f2bc8e61n, 0x79b76d99e2n, 0xf33e5fb3c4n, 0xae2eabe2a8n, 0x1e4f43e470n];
+  let c = 1n;
+  for (const d of [..."bitcoincash"].map((x) => x.charCodeAt(0) & 31).concat([0], v)) {
+    const c0 = c >> 35n;
+    c = ((c & 0x07ffffffffn) << 5n) ^ BigInt(d);
+    for (let i = 0; i < 5; i++) if ((c0 >> BigInt(i)) & 1n) c ^= G[i]!;
+  }
+  if ((c ^ 1n) !== 0n) return null;
+  let acc = 0, bits = 0;
+  const out: number[] = [];
+  for (const d of v.slice(0, -8)) {
+    acc = (acc << 5) | d;
+    bits += 5;
+    while (bits >= 8) {
+      bits -= 8;
+      out.push((acc >> bits) & 255);
+    }
+  }
+  if (out.length !== 21 || (out[0] !== 0 && out[0] !== 8)) return null;
+  return b58.encode(Uint8Array.from([out[0] === 0 ? 0 : 5, ...out.slice(1)]));
+}
 const GRS_RE = /^(F[1-9A-HJ-NP-Za-km-z]{33}|grs1[02-9ac-hj-np-z]{38,58})$/;
 /**
  * Every coin a native (non-BTC) address could belong to. Version bytes collide (DGB/DOGE 30, VIA/VTC 71,
@@ -866,6 +895,8 @@ export type UtxoSource = {
   name: string;
   coin: Coin;
   address: string;
+  /** own deadline when the source is slower by design (paced lookups); callers default to their usual one */
+  ms?: number;
   run: () => Promise<NewFound[]>;
 };
 /**
@@ -952,6 +983,8 @@ export function utxoSources(
 }
 
 /** Receive 0-9 and change 0-4 for P2PKH, P2WPKH and P2TR, derived by blocktools; balances from Groestlcoin Blockbook. */
+export const GRS_XPUB_PACE = { conc: 2, gapMs: 200, retries: 2, backoffMs: 1500, ms: 30_000 };
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 export const GRS_XPUB_SCAN = { branches: [0, 1], receive: 10, change: 5, kinds: ["p2pkh", "p2wpkh", "p2tr"] };
 function grsXpubSource(
   f: F,
@@ -967,13 +1000,44 @@ function grsXpubSource(
     return i! < (br === 0 ? receive : change);
   });
   return {
+    ms: GRS_XPUB_PACE.ms,
     name: `${c.name} xpub balance`,
     coin: "grs",
     address: xpub,
     run: async () => {
-      const bal: bigint[] = [];
-      for (let i = 0; i < rows.length; i += 8)
-        bal.push(...(await Promise.all(rows.slice(i, i + 8).map((r) => coinBalance(f, "grs", r.address, env)))));
+      // paced: the GRS Blockbook answers 429 to bursts (seen 2026-10-25 with 8 parallel). At most GRS_XPUB_PACE.conc
+      // in flight, starts spaced by gapMs, a 429 retried after backoff; anything still failing makes the whole source "not checked".
+      const { conc, gapMs, retries, backoffMs } = GRS_XPUB_PACE;
+      const bal: bigint[] = new Array(rows.length);
+      let next = 0, failed = 0, lastErr = "";
+      let start = Promise.resolve();
+      const one = async (i: number) => {
+        for (let t = 0; ; t++) {
+          try {
+            bal[i] = await coinBalance(f, "grs", rows[i]!.address, env);
+            return;
+          } catch (e) {
+            lastErr = String((e as Error).message);
+            if (t >= retries || !/429/.test(lastErr)) {
+              failed++;
+              return;
+            }
+            await sleep(backoffMs * (t + 1));
+          }
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(conc, rows.length) }, async () => {
+          while (next < rows.length) {
+            const i = next++;
+            const s = start.then(() => sleep(gapMs));
+            start = s;
+            await s;
+            await one(i);
+          }
+        }),
+      );
+      if (failed) throw new Error(`${failed} of ${rows.length} xpub addresses unanswered: ${lastErr.slice(0, 40)}`);
       const p = await prices().catch(() => ({}) as Record<string, number>);
       const out: NewFound[] = [];
       rows.forEach((r, i) => {
@@ -1017,7 +1081,8 @@ export async function utxoScan(
         const r = await Promise.race([
           s.run(),
           new Promise<never>((_, rej) => {
-            to = setTimeout(() => rej(new Error(`timed out after ${ms / 1000}s`)), ms);
+            const m = s.ms ?? ms;
+            to = setTimeout(() => rej(new Error(`timed out after ${m / 1000}s`)), m);
           }),
         ]);
         items.push(...r);
@@ -1171,6 +1236,11 @@ async function zecBranch(f: F): Promise<{ chaintip: string; nextblock: string }>
 
 /** Unsigned legacy-format sweep of every UTXO on `from` to `to` (one output, fee = feeRate x size estimate). Only coins with `sweep`. */
 export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeRate?: number) {
+  // BCH: accept CashAddr for either side; the builder and both decoders work on the legacy form (same hash)
+  if (coin === "bch") {
+    from = cashToLegacy(from) ?? from;
+    to = cashToLegacy(to) ?? to;
+  }
   const c: CoinRow = COINS[coin];
   if (!c.sweep || (c.checksum === "groestl" && !BT_PARAMS?.get(coin)?.sweep_build))
     throw new Error(c.txNote ?? `SwapChan does not build ${c.sym} transactions yet`);

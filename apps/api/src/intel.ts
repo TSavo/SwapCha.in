@@ -3633,7 +3633,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       // one timed source per candidate coin (version bytes collide, e.g. DGB/DOGE, VIA/VTC)
       const u = utxoSources(f, address, env);
       notChecked.push(...u.notChecked);
-      const rs = await Promise.all(u.sources.map((s) => timed(s.name, s.run(), [] as unknown[])));
+      const rs = await Promise.all(u.sources.map((s) => timed(s.name, s.run(), [] as unknown[], s.ms)));
       for (const r of rs) items.push(...(r as Found[]));
       sources.push(`public explorers (Blockbook/Insight/qtum.info/WhatsOnChain/cryptoid) for ${u.sources.map((s) => COINS[s.coin].sym).join(", ")}`);
     } else if (isXrpAddress(address)) {
@@ -3705,7 +3705,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           : (() => {
               // every same-key coin is its own timed source, all in parallel with the BTC scan
               const u = utxoSources(f, address, env);
-              return Promise.all(u.sources.map((s) => timed(s.name, s.run(), [] as unknown[]))).then((rs) => ({ items: rs.flat(), notChecked: u.notChecked }));
+              return Promise.all(u.sources.map((s) => timed(s.name, s.run(), [] as unknown[], s.ms))).then((rs) => ({ items: rs.flat(), notChecked: u.notChecked }));
             })(),
       ]);
       items.push(...(bx as Found[]), ...(fork.items as Found[]));
