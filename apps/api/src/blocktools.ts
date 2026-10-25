@@ -18,6 +18,8 @@ type Wasm = {
     chainId: number | null | undefined,
     maxFee: string,
     allowWarnings: boolean,
+    /** 8dfbe68: nonzero ETH value beside ERC-20 transfer calldata fails (eth_value_with_token_call) unless true */
+    allowValueWithToken?: boolean | null,
   ): string;
   convertAddress(addr: string, to: string): string;
   convertAddressFrom(from: string, addr: string, to: string): string;
