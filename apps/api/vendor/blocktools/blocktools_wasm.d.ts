@@ -21,6 +21,11 @@ export function explainPlan(args: string[]): string;
  */
 export function decodeTx(input: string, chain: string): string;
 /**
+ * Novacoin: raw tx hex from api.novaco.in `/gettransaction/<txid>` decoded JSON (nTime layout).
+ * Throws unless reverse(sha256d(raw)) equals `expected_txid` and the JSON `txid`.
+ */
+export function serializeNvcTxFromJson(json: string, expected_txid: string): string;
+/**
  * Plain-text summary of a transaction (what tx-decode --text prints).
  */
 export function describeTx(input: string, chain: string): string;

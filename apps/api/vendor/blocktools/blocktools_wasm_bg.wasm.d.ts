@@ -6,6 +6,7 @@ export const listChains: () => [number, number];
 export const addressesFromXpub: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number, number];
 export const explainPlan: (a: number, b: number) => [number, number, number, number];
 export const decodeTx: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const serializeNvcTxFromJson: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const describeTx: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const verifyTx: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => [number, number, number, number];
 export const version: () => [number, number];

@@ -64,6 +64,7 @@ type Wasm = {
     rbf?: boolean | null,
   ): string;
   tronTxId(rawDataHex: string): string;
+  serializeNvcTxFromJson(json: string, expectedTxid: string): string;
   verifyRecovery(txJson: string, owner: string, nowS: number): string;
   verifySweepTx(txJson: string, owner: string, chainId: number, token: string): string;
   tronDecodeTx(hex: string): string;
