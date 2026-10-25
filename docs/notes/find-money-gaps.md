@@ -56,8 +56,15 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
 11. dYdX v3 L1 exit, Perp v1, Synthetix perps margin; Drift, Mango v3: missing.
 12. Off-chain claims (FTX, Celsius, Mt.Gox): not on-chain; info only.
 13. Old coins with balance but no sweep yet:
-    - PoS-timestamp format (PPC, NVC, BLK, CLAM, RDD): blocked on blocktools pos-ntime sweep_build.
-    - ZEC transparent: blocked on blocktools zcash-v5 tx build. QRK: blocktools tx_format "unknown". WDC: blocktools row unverified.
+    - Done: PPC, NVC, CLAM, RDD sweep via blocktools buildUnsignedSweepAt (pos-ntime, unsigned tx + nTime + prevouts, no
+      PSBT; checked by verifyTx/decodeTx on the envelope plus SwapChan's own parsePosTx). BLK sweeps as legacy. Fee rates:
+      PPC 11 and RDD 110 units/B (measured from real txs); NVC 6, CLAM 53, BLK 53 (node min fee per started kB).
+      NVC balances via cryptoid were reported 100x high (key API is always 1e8 units); fixed.
+    - ZEC transparent: held. blocktools has zec verified in chainParams but keeps it out of supportedChains (needs an
+      independent v5 KAT per its DESIGN.md). QRK: blocktools tx_format "unknown". WDC: blocktools row unverified.
     - XPM, AUR, TRC: blocktools marks legacy sweep_build, but SwapChan has no measured relay fee rate for them (cryptoid
       txinfo is not available on the key tier), so the sweep stays off until a fee rate is measured.
     - NMC, POT, MEC, ANC: no public explorer; "not checked".
+14. Stellar: G-addresses (blocktools detectAddress "xlm") read from Horizon: spendable XLM = balance - (2 + subentries
+    + sponsoring - sponsored) x base reserve - selling liabilities; other assets are leads. No sweep tx built; claimable
+    balances, LP shares and offers not listed yet.

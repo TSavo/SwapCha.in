@@ -10,11 +10,26 @@ type Wasm = {
   chainParams(): string;
   detectAddress(addr: string): string;
   decodeTx(input: string, chain: string): string;
-  verifyTx(input: string, chain: string, expectTo: string[], change: string[], chainId: number | null | undefined, maxFee: string, allowWarnings: boolean): string;
+  verifyTx(
+    input: string,
+    chain: string,
+    expectTo: string[],
+    change: string[],
+    chainId: number | null | undefined,
+    maxFee: string,
+    allowWarnings: boolean,
+  ): string;
   convertAddress(addr: string, to: string): string;
   convertAddressFrom(from: string, addr: string, to: string): string;
   addressValidate(chain: string, addr: string): string;
   buildUnsignedSweep(chain: string, utxos: string, to: string, feeRate: number): string;
+  buildUnsignedSweepAt(
+    chain: string,
+    utxos: string,
+    to: string,
+    feeRate: number,
+    time: number,
+  ): string;
   decodeTx(input: string, chain: string): string;
 };
 export type BtParams = {
@@ -71,8 +86,14 @@ export const btConvertFrom = (from: string, addr: string, to: string) =>
 export type BtSweep = {
   chain: string;
   tx_format: string;
-  psbt: string;
+  /** absent for pos-ntime (no PSBT exists for that format) */
+  psbt?: string;
   unsigned_tx: string;
+  /** pos-ntime: the tx timestamp and the prevouts verifyTx/decodeTx need for amounts */
+  time?: number;
+  pos_prevouts?: { amount: number; script: string }[];
+  /** the raw JSON line blocktools returned (decode/verify input for pos-ntime) */
+  envelope?: string;
   inputs: unknown[];
   amount: string | number;
   fee: string | number;
@@ -83,14 +104,28 @@ export function btSweep(
   utxos: { txid: string; vout: number; amount: number | string; address: string }[],
   to: string,
   feeRate: number,
+  /** unix seconds; when set, builds with buildUnsignedSweepAt (required by pos-ntime chains ppc/nvc/clam/rdd) */
+  time?: number,
 ): BtSweep | null {
   const w = blocktools();
   if (!w) return null;
   const lines = utxos.map((u) => JSON.stringify({ ...u, amount: Number(u.amount) })).join("\n");
-  return JSON.parse(w.buildUnsignedSweep(chain, lines, to, feeRate)) as BtSweep;
+  const raw =
+    time === undefined
+      ? w.buildUnsignedSweep(chain, lines, to, feeRate)
+      : w.buildUnsignedSweepAt(chain, lines, to, feeRate, time);
+  return { ...(JSON.parse(raw) as BtSweep), envelope: raw };
 }
 
-export type BtDecoded = { role: string; fee?: number; inputs?: number; outputs?: number; txid?: string; address?: string; amount?: number }[];
+export type BtDecoded = {
+  role: string;
+  fee?: number;
+  inputs?: number;
+  outputs?: number;
+  txid?: string;
+  address?: string;
+  amount?: number;
+}[];
 /** decodeTx lines (summary, inputs, outputs) for a built tx/PSBT. Throws on a decode error. */
 export function btDecode(tx: string, chain: string): BtDecoded | null {
   const w = blocktools();
@@ -100,5 +135,9 @@ export function btDecode(tx: string, chain: string): BtDecoded | null {
 export function btVerify(tx: string, chain: string, to: string, maxFee: string) {
   const w = blocktools();
   if (!w) return null;
-  return JSON.parse(w.verifyTx(tx, chain, [to], [], undefined, maxFee, false)) as { ok: boolean; failures: string[]; warnings: string[] };
+  return JSON.parse(w.verifyTx(tx, chain, [to], [], undefined, maxFee, false)) as {
+    ok: boolean;
+    failures: string[];
+    warnings: string[];
+  };
 }

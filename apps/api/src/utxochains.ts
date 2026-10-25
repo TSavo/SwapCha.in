@@ -1,8 +1,16 @@
 import { createHash } from "node:crypto";
-import { base58check, bech32 } from "@scure/base";
+import { base58, base58check, bech32 } from "@scure/base";
 import { Transaction } from "bitcoinjs-lib";
-import { btConvertFrom, btDecode, btDetect, btParams, btSweep, btValidate, btVerify, btVersion } from "./blocktools.js";
-import { base58 } from "@scure/base";
+import {
+  btConvertFrom,
+  btDecode,
+  btDetect,
+  btParams,
+  btSweep,
+  btValidate,
+  btVerify,
+  btVersion,
+} from "./blocktools.js";
 import type { NewFound } from "./recover.js";
 
 type F = typeof fetch;
@@ -42,8 +50,15 @@ const cid = (t: string) => ({
   type: "cryptoid" as const,
   urls: [`https://chainz.cryptoid.info/${t}`],
 });
-const POS =
-  "Uses the PoS transaction format (nTime field); SwapChan does not build this transaction yet. Import the key into";
+/** cryptoid's keyed API reports every amount in 1e8 units, whatever the coin's decimals (NVC/PPC use 6). */
+export function cidUnits(v: number | string, decimals: number): bigint {
+  const n = BigInt(v);
+  const k = 10n ** BigInt(8 - decimals);
+  if (n % k !== 0n) throw new Error("cryptoid: amount below the coin's precision");
+  return n / k;
+}
+const POS_SIGN =
+  "Uses the PoS transaction format (nTime field); SwapChan builds it only through blocktools and checks it with two independent decoders. There is no PSBT for this format: sign the raw tx offline in";
 const row = (
   r: Partial<CoinRow> & Pick<CoinRow, "name" | "sym" | "p2pkh" | "p2sh" | "cg" | "wallet">,
 ): CoinRow => ({
@@ -271,7 +286,10 @@ export const COINS = {
     paprika: "rdd-reddcoin",
     wallet: "Reddcoin Core",
     src: bb("https://blockbook.reddcoin.com"),
-    txNote: `${POS} Reddcoin Core to move it.`,
+    // measured 2026-10-24: Reddcoin mainnet txs pay 100 sat/B (blockbook.reddcoin.com, blocks 6665400-6666390)
+    feeRate: 110,
+    sweep: true,
+    txNote: `${POS_SIGN} Reddcoin Core.`,
   }),
   ppc: row({
     name: "Peercoin",
@@ -284,7 +302,10 @@ export const COINS = {
     decimals: 6,
     wallet: "Peercoin Core",
     src: bb("https://blockbook.peercoin.net"),
-    txNote: `${POS} Peercoin Core to move it.`,
+    // measured 2026-10-24: Peercoin mainnet txs pay 10 units/B (0.01 PPC/kB), blockbook.peercoin.net
+    feeRate: 11,
+    sweep: true,
+    txNote: `${POS_SIGN} Peercoin Core.`,
   }),
   zec: row({
     name: "Zcash (transparent)",
@@ -331,7 +352,10 @@ export const COINS = {
     paprika: "clam-clams",
     wallet: "Clam Core",
     src: cid("clam"),
-    txNote: `${POS} Clam Core to move it.`,
+    // Clam Core GetMinFee: MIN_TX_FEE 10000 sat per started kB; 53/B covers that for any tx of 190+ bytes
+    feeRate: 53,
+    sweep: true,
+    txNote: `${POS_SIGN} Clam Core.`,
   }),
   nvc: row({
     name: "Novacoin",
@@ -343,7 +367,10 @@ export const COINS = {
     decimals: 6,
     wallet: "Novacoin Core",
     src: cid("nvc"),
-    txNote: `${POS} Novacoin Core to move it.`,
+    // Novacoin GetMinFee: MIN_TX_FEE = CENT/10 = 1000 units per started kB (6 decimals); 6/B covers it for 190+ bytes
+    feeRate: 6,
+    sweep: true,
+    txNote: `${POS_SIGN} Novacoin Core.`,
   }),
   blk: row({
     name: "Blackcoin",
@@ -354,7 +381,11 @@ export const COINS = {
     paprika: "blk-blackcoin",
     wallet: "Blackcoin More",
     src: cid("blk"),
-    txNote: `${POS} Blackcoin More to move it.`,
+    // BLK is the plain Bitcoin layout (no nTime). Measured mainnet fees: 10000 sat per started kB; 53/B covers it
+    feeRate: 53,
+    sweep: true,
+    txNote:
+      "Blackcoin sweeps are built and checked by blocktools; sign them offline in Blackcoin More.",
   }),
   wdc: row({
     name: "Worldcoin (WDC)",
@@ -527,7 +558,8 @@ const GRS_RE = /^(F[1-9A-HJ-NP-Za-km-z]{33}|grs1[02-9ac-hj-np-z]{38,58})$/;
 export function coinsOf(addr: string): Coin[] {
   if (/^(bitcoincash:)?[qp][a-z0-9]{41}$/.test(addr)) return ["bch"];
   const bt = btDetect(addr);
-  if (bt && BT_PARAMS?.get("grs")?.verified ? bt.includes("grs") : GRS_RE.test(addr)) return ["grs"];
+  if (bt && BT_PARAMS?.get("grs")?.verified ? bt.includes("grs") : GRS_RE.test(addr))
+    return ["grs"];
   const out: Coin[] = [];
   for (const [k, c] of ROWS)
     if (
@@ -609,7 +641,7 @@ async function cryptoidBalance(
     if (!Array.isArray(j.addresses)) throw new Error("cryptoid: bad answer");
     // cryptoid answers {"addresses":[]} for an address it has never seen on chain: that is a measured zero, not an error
     const e = j.addresses.find((x) => x.address === a);
-    v = e ? BigInt(e.final_balance) : 0n;
+    v = e ? cidUnits(e.final_balance, c.decimals) : 0n;
   } else {
     const r = await f(`${base}/api.dws?q=getbalance&a=${encodeURIComponent(a)}`, {
       headers: UA,
@@ -741,12 +773,22 @@ export async function coinUtxos(
       );
       if (!r.ok) throw new Error(`cryptoid ${r.status}`);
       const j = (await r.json()) as {
-        unspent_outputs?: { tx_hash: string; tx_ouput_n: number; value: number | string; addr?: string; confirmations?: number }[];
+        unspent_outputs?: {
+          tx_hash: string;
+          tx_ouput_n: number;
+          value: number | string;
+          addr?: string;
+          confirmations?: number;
+        }[];
       };
       if (!Array.isArray(j.unspent_outputs)) throw new Error("cryptoid: bad answer");
       return j.unspent_outputs
         .filter((x) => !x.addr || x.addr === a)
-        .map((x) => ({ txid: x.tx_hash, vout: x.tx_ouput_n, value: String(x.value) }));
+        .map((x) => ({
+          txid: x.tx_hash,
+          vout: x.tx_ouput_n,
+          value: String(cidUnits(x.value, c.decimals)),
+        }));
     }
     default:
       throw new Error(`${c.sym}: no UTXO source`);
@@ -755,6 +797,7 @@ export async function coinUtxos(
 
 const PAPRIKA: Record<string, string> = {
   ripple: "xrp-xrp",
+  stellar: "xlm-stellar",
   "ethereum-classic": "etc-ethereum-classic",
   ...Object.fromEntries(ROWS.filter(([, c]) => c.paprika).map(([, c]) => [c.cg, c.paprika!])),
 };
@@ -917,7 +960,77 @@ export async function utxoScan(
   return { items, notChecked };
 }
 
-export const BT_ONLY_SWEEP = new Set<string>(["dash", "dgb", "rvn", "vtc", "via", "qtum", "mona", "bsv", "grs"]);
+export const BT_ONLY_SWEEP = new Set<string>([
+  "dash",
+  "dgb",
+  "rvn",
+  "vtc",
+  "via",
+  "qtum",
+  "mona",
+  "bsv",
+  "grs",
+  "ppc",
+  "nvc",
+  "clam",
+  "rdd",
+  "blk",
+]);
+/** Proof-of-stake nTime chains: built with buildUnsignedSweepAt, no PSBT. */
+export const POS_NTIME = new Set<string>(["ppc", "nvc", "clam", "rdd"]);
+
+/**
+ * Independent (non-blocktools) parse of a pos-ntime tx: PPC/NVC/CLAM v1 carry u32 nTime after the version; RDD v2 after
+ * the locktime; CLAM v2+ appends a varstr after the locktime. Returns null on any malformation or trailing bytes.
+ */
+export function parsePosTx(coin: string, hex: string) {
+  const b = Buffer.from(hex, "hex");
+  if (b.toString("hex") !== hex.toLowerCase()) return null;
+  let p = 0;
+  const take = (n: number) => {
+    if (p + n > b.length) throw new Error("short");
+    const s = b.subarray(p, p + n);
+    p += n;
+    return s;
+  };
+  const vi = () => {
+    const x = take(1)[0]!;
+    if (x < 0xfd) return x;
+    if (x === 0xfd) return take(2).readUInt16LE();
+    if (x === 0xfe) return take(4).readUInt32LE();
+    throw new Error("varint");
+  };
+  try {
+    const version = take(4).readInt32LE();
+    const afterVersion = coin === "ppc" || coin === "nvc" || coin === "clam";
+    const afterLock = coin === "rdd" && version > 1;
+    if (!afterVersion && coin !== "rdd") return null;
+    let time = afterVersion ? take(4).readUInt32LE() : 0;
+    const nIn = vi();
+    if (!nIn) return null;
+    const ins: { txid: string; vout: number; script: Buffer }[] = [];
+    for (let i = 0; i < nIn; i++) {
+      const txid = Buffer.from(take(32)).reverse().toString("hex");
+      const vout = take(4).readUInt32LE();
+      const script = Buffer.from(take(vi()));
+      take(4);
+      ins.push({ txid, vout, script });
+    }
+    const nOut = vi();
+    const outs: { value: bigint; script: Buffer }[] = [];
+    for (let i = 0; i < nOut; i++) {
+      const value = take(8).readBigUInt64LE();
+      outs.push({ value, script: Buffer.from(take(vi())) });
+    }
+    take(4);
+    if (afterLock) time = take(4).readUInt32LE();
+    if (coin === "clam" && version > 1) take(vi());
+    if (p !== b.length) return null;
+    return { version, time, ins, outs };
+  } catch {
+    return null;
+  }
+}
 
 /** Unsigned legacy-format sweep of every UTXO on `from` to `to` (one output, fee = feeRate x size estimate). Only coins with `sweep`. */
 export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeRate?: number) {
@@ -934,26 +1047,39 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
   // largest first, skipping UTXOs where the input's own fee would exceed 5% of its value (dust farms on VIA/DGB
   // hold thousands); blocktools rejects a sweep whose fee is over 5% of the output (high_fee_pct)
   const economic = [...utxos]
-    .sort((a, b) => (BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0))
+    .sort((a, b) =>
+      BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0,
+    )
     .filter((u) => BigInt(u.value) >= BigInt(Math.ceil(rate * 148 * 20)));
-  if (!economic.length) throw new Error("every UTXO on this address is too small to spend economically (its fee would be over 5% of its value)");
+  if (!economic.length)
+    throw new Error(
+      "every UTXO on this address is too small to spend economically (its fee would be over 5% of its value)",
+    );
   const take = economic.slice(0, 200);
   const total = take.reduce((s, u) => s + BigInt(u.value), 0n);
+  const pos = POS_NTIME.has(coin);
+  const txTime = pos ? Math.floor(Date.now() / 1000) : undefined;
   const bt = btSweep(
     coin,
     take.map((u) => ({ txid: u.txid, vout: u.vout, amount: u.value, address: from })),
     to,
     rate,
+    txTime,
   );
   if (!bt && c.checksum === "groestl") throw new Error(c.txNote!);
   // these coins are offered only as a blocktools-built, decode+verify-checked sweep; no unverified TS fallback
   if (!bt && BT_ONLY_SWEEP.has(coin))
-    throw new Error(`blocktools is unavailable, so SwapChan will not offer an unverified ${c.sym} sweep; try again later`);
+    throw new Error(
+      `blocktools is unavailable, so SwapChan will not offer an unverified ${c.sym} sweep; try again later`,
+    );
   if (bt) {
     if (BigInt(bt.amount) <= 546n) throw new Error("balance does not cover the fee");
     // decode + verify the built PSBT before offering it: inputs are ours, every output pays `to`, fee as built
-    const v = btVerify(bt.psbt, coin, to, String(bt.fee));
-    const d = btDecode(bt.psbt, coin);
+    // pos-ntime has no PSBT: blocktools checks its JSON envelope (unsigned tx + pos_prevouts carrying the amounts)
+    const checkInput = pos ? bt.envelope : bt.psbt;
+    if (!checkInput) throw new Error(`built ${c.sym} sweep has nothing to verify; not offered`);
+    const v = btVerify(checkInput, coin, to, String(bt.fee));
+    const d = btDecode(checkInput, coin);
     const sum = d?.find((l) => l.role === "summary");
     const outs = d?.filter((l) => l.role === "output") ?? [];
     // "unsigned" is expected. blocktools' high_fee (>1,000,000 base units) and high_fee_rate (>500/vB) are BTC-scale
@@ -970,17 +1096,41 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     // independent second decode (bitcoinjs, not blocktools): same inputs in order, one output paying `to` the built amount
     let tsOk = false;
     try {
-      const t = Transaction.fromHex(bt.unsigned_tx);
-      tsOk =
-        t.ins.length === take.length &&
-        t.ins.every(
-          (i, n) =>
-            Buffer.from(i.hash).reverse().toString("hex") === take[n]!.txid && i.index === take[n]!.vout,
-        ) &&
-        t.outs.length === 1 &&
-        Buffer.from(t.outs[0]!.script).equals(script(toD)) &&
-        String(t.outs[0]!.value) === String(bt.amount) &&
-        total - BigInt(bt.amount) === BigInt(bt.fee);
+      if (pos) {
+        const t = parsePosTx(coin, bt.unsigned_tx);
+        const prev = bt.pos_prevouts ?? [];
+        tsOk =
+          !!t &&
+          t.time === txTime &&
+          bt.time === txTime &&
+          t.ins.length === take.length &&
+          t.ins.every(
+            (i, n) => i.txid === take[n]!.txid && i.vout === take[n]!.vout && i.script.length === 0,
+          ) &&
+          prev.length === take.length &&
+          prev.every(
+            (x, n) =>
+              String(x.amount) === String(take[n]!.value) &&
+              x.script === script(fromD).toString("hex"),
+          ) &&
+          t.outs.length === 1 &&
+          t.outs[0]!.script.equals(script(toD)) &&
+          String(t.outs[0]!.value) === String(bt.amount) &&
+          total - BigInt(bt.amount) === BigInt(bt.fee);
+      } else {
+        const t = Transaction.fromHex(bt.unsigned_tx);
+        tsOk =
+          t.ins.length === take.length &&
+          t.ins.every(
+            (i, n) =>
+              Buffer.from(i.hash).reverse().toString("hex") === take[n]!.txid &&
+              i.index === take[n]!.vout,
+          ) &&
+          t.outs.length === 1 &&
+          Buffer.from(t.outs[0]!.script).equals(script(toD)) &&
+          String(t.outs[0]!.value) === String(bt.amount) &&
+          total - BigInt(bt.amount) === BigInt(bt.fee);
+      }
     } catch {
       tsOk = false;
     }
@@ -994,7 +1144,9 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
       outs[0]!.address !== to ||
       String(outs[0]!.amount) !== String(bt.amount)
     )
-      throw new Error(`built ${c.sym} sweep failed verification (${[...(v?.failures ?? []), ...(v?.warnings ?? [])].join(", ") || "decode mismatch"}); not offered`);
+      throw new Error(
+        `built ${c.sym} sweep failed verification (${[...(v?.failures ?? []), ...(v?.warnings ?? [])].join(", ") || "decode mismatch"}); not offered`,
+      );
     return {
       coin,
       from,
@@ -1002,6 +1154,7 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
       unsignedTx: bt.unsigned_tx,
       psbt: bt.psbt,
       txFormat: bt.tx_format,
+      ...(pos ? { txTime: txTime!, posPrevouts: bt.pos_prevouts } : {}),
       builtBy: `blocktools ${BLOCKTOOLS_VERSION}`,
       verified: { by: "blocktools decodeTx+verifyTx", txid: sum.txid, warnings: v!.warnings },
       fee: String(bt.fee),

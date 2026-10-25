@@ -4,15 +4,15 @@ import { describe, expect, it } from "vitest";
 import {
   COINS,
   type Coin,
+  coinBalance,
   coinsOf,
+  coinUtxos,
   convert,
   decodeFor,
   outputScript,
   resetCryptoid,
   utxoScan,
   utxoSweep,
-  coinUtxos,
-  coinBalance,
 } from "./utxochains.js";
 
 const BTC = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
@@ -48,7 +48,7 @@ describe("old coins: data-driven rows", () => {
     const r = await utxoScan(f, convert(BTC, "ppc")!, {});
     const ppc = r.items.find((i) => (i as { what: string }).what.includes("PPC"))!;
     expect((ppc as { what: string }).what).toMatch(/^2\.5 PPC/);
-    expect((ppc as { sweep?: unknown }).sweep).toBeUndefined();
+    expect((ppc as { sweep?: unknown }).sweep).toMatchObject({ kind: "utxo", coin: "ppc" });
   });
   it("BTC scan: no-source coins are listed as not checked; slow coins time out on their own line", async () => {
     const f = (async (u: string) => {
@@ -95,7 +95,8 @@ describe("old coins: GRS sweep via blocktools (Groestl checksum, single-SHA-256 
     const from = "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX";
     const to = convert(BTC, "grs")!;
     expect(to.startsWith("F")).toBe(true);
-    const f = (async () => json([{ txid: "cd".repeat(32), vout: 0, value: "250000000" }])) as unknown as typeof fetch;
+    const f = (async () =>
+      json([{ txid: "cd".repeat(32), vout: 0, value: "250000000" }])) as unknown as typeof fetch;
     const s = await utxoSweep(f, "grs", from, to, 2);
     expect(s.txFormat).toBe("legacy-sha256");
     expect(s.builtBy).toMatch(/^blocktools /);
@@ -106,13 +107,19 @@ describe("old coins: GRS sweep via blocktools (Groestl checksum, single-SHA-256 
     expect(Buffer.from(tx.outs[0]!.script).equals(outputScript(to, "grs"))).toBe(true);
     expect(BigInt(tx.outs[0]!.value) + BigInt(s.fee)).toBe(250000000n);
     // GRS txid = single SHA-256 (not BTC's double): bitcoinjs' getId() must differ, ours must match
-    const single = createHash("sha256").update(Buffer.from(s.unsignedTx, "hex")).digest().reverse().toString("hex");
+    const single = createHash("sha256")
+      .update(Buffer.from(s.unsignedTx, "hex"))
+      .digest()
+      .reverse()
+      .toString("hex");
     expect((s as { verified?: { txid?: string } }).verified?.txid).toBe(single);
     expect(single).not.toBe(tx.getId());
   });
   it("rejects a non-GRS destination", async () => {
     const f = (async () => json([])) as unknown as typeof fetch;
-    await expect(utxoSweep(f, "grs", "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX", BTC)).rejects.toThrow(/GRS address/);
+    await expect(utxoSweep(f, "grs", "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX", BTC)).rejects.toThrow(
+      /GRS address/,
+    );
   });
 });
 describe("old coins: unsigned sweeps", () => {
@@ -138,15 +145,24 @@ describe("old coins: unsigned sweeps", () => {
       expect(BigInt(tx.outs[0]!.value) + BigInt(s.fee)).toBe(100000000n);
       // built by blocktools and checked by its decodeTx+verifyTx before being offered (no unverified TS fallback)
       expect((s as { builtBy?: string }).builtBy).toMatch(/^blocktools /);
-      expect((s as { verified?: { by: string } }).verified?.by).toBe("blocktools decodeTx+verifyTx");
+      expect((s as { verified?: { by: string } }).verified?.by).toBe(
+        "blocktools decodeTx+verifyTx",
+      );
       expect((s as { txFormat?: string }).txFormat).toBe(k === "bsv" ? "forkid" : "legacy");
     });
   }
   it("dgb: many inputs at the row fee rate trip blocktools' BTC-scale high_fee but pass the TS fee cap", async () => {
-    const many = Array.from({ length: 150 }, (_, n) => ({ txid: n.toString(16).padStart(64, "0"), vout: 0, value: "50000000" }));
+    const many = Array.from({ length: 150 }, (_, n) => ({
+      txid: n.toString(16).padStart(64, "0"),
+      vout: 0,
+      value: "50000000",
+    }));
     const f = (async () => json(many)) as unknown as typeof fetch;
     const a = convert(BTC, "dgb")!;
-    const s = (await utxoSweep(f, "dgb", a, a)) as { fee: string; verified?: { warnings: string[] } };
+    const s = (await utxoSweep(f, "dgb", a, a)) as {
+      fee: string;
+      verified?: { warnings: string[] };
+    };
     expect(BigInt(s.fee)).toBeGreaterThan(1_000_000n);
     expect(s.verified?.warnings).toContain("high_fee");
   });
@@ -163,7 +179,7 @@ describe("old coins: unsigned sweeps", () => {
     await expect(utxoSweep(dust, "via", a, a)).rejects.toThrow(/too small to spend/);
   });
   it("refuses PoS / Zcash / Groestl / unverified formats", async () => {
-    for (const k of ["ppc", "rdd", "zec", "xpm", "clam"] as Coin[])
+    for (const k of ["zec", "xpm", "aur", "trc"] as Coin[])
       await expect(utxoSweep(fetch, k, "x", "y")).rejects.toThrow(/does not build/);
   });
 });
@@ -175,16 +191,41 @@ describe("old coins: cryptoid UTXO lists (keyed)", () => {
     const f = (async (u: string) => {
       seen.push(u);
       return json({
-        unspent_outputs: [{ tx_hash: "ef".repeat(32), tx_ouput_n: 3, value: 741860555779, confirmations: 9, addr: A }],
+        unspent_outputs: [
+          {
+            tx_hash: "ef".repeat(32),
+            tx_ouput_n: 3,
+            value: 741860555700,
+            confirmations: 9,
+            addr: A,
+          },
+        ],
       });
     }) as unknown as typeof fetch;
     for (const k of ["xpm", "clam", "nvc", "aur", "wdc", "qrk"] as Coin[]) {
       resetCryptoid();
       const u = await coinUtxos(f, k, A, { CRYPTOID_API_KEY: "k" });
-      expect(u).toEqual([{ txid: "ef".repeat(32), vout: 3, value: "741860555779" }]);
+      // cryptoid reports 1e8 units for every coin; NVC has 6 decimals
+      expect(u).toEqual([
+        { txid: "ef".repeat(32), vout: 3, value: k === "nvc" ? "7418605557" : "741860555700" },
+      ]);
     }
     expect(seen.every((u) => u.includes("q=unspent"))).toBe(true);
     await expect(coinUtxos(f, "xpm", A, {})).rejects.toThrow(/cryptoid key/);
+  });
+  it("NVC (6 decimals): cryptoid's 1e8-unit balance is scaled, and a sub-precision amount is refused", async () => {
+    resetCryptoid();
+    const f = (async () =>
+      json({
+        addresses: [{ address: A, final_balance: 40596540108600 }],
+      })) as unknown as typeof fetch;
+    expect(await coinBalance(f, "nvc", A, { CRYPTOID_API_KEY: "k" })).toBe(405965401086n);
+    resetCryptoid();
+    const odd = (async () =>
+      json({ addresses: [{ address: A, final_balance: 123 }] })) as unknown as typeof fetch;
+    await expect(coinBalance(odd, "nvc", A, { CRYPTOID_API_KEY: "k" })).rejects.toThrow(
+      /precision/,
+    );
   });
   it("an address cryptoid has never seen is a measured zero, not 'no answer'", async () => {
     resetCryptoid();
@@ -192,6 +233,77 @@ describe("old coins: cryptoid UTXO lists (keyed)", () => {
     expect(await coinBalance(f, "xpm", A, { CRYPTOID_API_KEY: "k" })).toBe(0n);
     resetCryptoid();
     const bad = (async () => json({ error: "x" })) as unknown as typeof fetch;
-    await expect(coinBalance(bad, "xpm", A, { CRYPTOID_API_KEY: "k" })).rejects.toThrow(/bad answer/);
+    await expect(coinBalance(bad, "xpm", A, { CRYPTOID_API_KEY: "k" })).rejects.toThrow(
+      /bad answer/,
+    );
+  });
+});
+
+describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
+  const cidCoins = new Set(["nvc", "clam", "blk"]);
+  for (const k of ["ppc", "nvc", "clam", "rdd", "blk"] as Coin[]) {
+    it(`${k}: blocktools-built, verified by blocktools and the independent TS parser`, async () => {
+      resetCryptoid();
+      const prev = process.env.CRYPTOID_API_KEY;
+      process.env.CRYPTOID_API_KEY = "k";
+      try {
+        const f = (async () =>
+          json(
+            cidCoins.has(k)
+              ? {
+                  unspent_outputs: [
+                    {
+                      tx_hash: "ab".repeat(32),
+                      tx_ouput_n: 1,
+                      value: 1000000000,
+                      confirmations: 99,
+                    },
+                  ],
+                }
+              : [
+                  {
+                    txid: "ab".repeat(32),
+                    vout: 1,
+                    value: COINS[k].decimals === 6 ? "10000000" : "1000000000",
+                  },
+                ],
+          )) as unknown as typeof fetch;
+        const a = convert(BTC, k)!;
+        const s = (await utxoSweep(f, k, a, a)) as Awaited<ReturnType<typeof utxoSweep>> & {
+          txFormat?: string;
+          txTime?: number;
+          builtBy?: string;
+          verified?: { by: string };
+        };
+        expect(s.builtBy).toMatch(/^blocktools /);
+        expect(s.verified?.by).toBe("blocktools decodeTx+verifyTx");
+        expect(s.txFormat).toBe(k === "blk" ? "legacy" : "pos-ntime");
+        const total = COINS[k].decimals === 6 ? 10000000n : 1000000000n;
+        expect(BigInt(s.amount) + BigInt(s.fee)).toBe(total);
+        if (k !== "blk") {
+          const { parsePosTx } = await import("./utxochains.js");
+          const t = parsePosTx(k, s.unsignedTx)!;
+          expect(t.time).toBe(s.txTime);
+          expect(t.outs[0]!.script.equals(outputScript(a, k))).toBe(true);
+          expect(t.version).toBe(k === "rdd" ? 2 : 1);
+        } else {
+          expect(Transaction.fromHex(s.unsignedTx).outs.length).toBe(1);
+        }
+      } finally {
+        if (prev === undefined) delete process.env.CRYPTOID_API_KEY;
+        else process.env.CRYPTOID_API_KEY = prev;
+      }
+    });
+  }
+  it("parsePosTx rejects trailing bytes and a wrong layout", async () => {
+    const { parsePosTx } = await import("./utxochains.js");
+    const f = (async () =>
+      json([{ txid: "ab".repeat(32), vout: 1, value: "10000000" }])) as unknown as typeof fetch;
+    const a = convert(BTC, "ppc")!;
+    const s = await utxoSweep(f, "ppc", a, a);
+    expect(parsePosTx("ppc", s.unsignedTx)).not.toBeNull();
+    expect(parsePosTx("ppc", s.unsignedTx + "00")).toBeNull();
+    expect(parsePosTx("rdd", s.unsignedTx)).toBeNull();
+    expect(parsePosTx("btc", s.unsignedTx)).toBeNull();
   });
 });

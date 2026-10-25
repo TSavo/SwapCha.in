@@ -14,7 +14,7 @@ import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
 import { ensDeeds } from "./ensdeed.js";
 import { coinOf, decodeAny, utxoSources, utxoSweep, COINS, type Coin } from "./utxochains.js";
-import { isXrpAddress, signumAddress, signumScan, xrpScan } from "./ledgers.js";
+import { isXlmAddress, isXrpAddress, signumAddress, signumScan, xlmScan, xrpScan } from "./ledgers.js";
 import { extraEvmScan, evmSweep } from "./extraevm.js";
 import { blockscoutAbi, bytecodeSelectors, resolveSelectors, recoveryCandidates } from "./abiprobe.js";
 import { ethForkScan, forkSweep, ETH_FORKS, type EthFork } from "./ethforks.js";
@@ -3640,6 +3640,11 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       items.push(...(r.items as Found[]));
       notChecked.push(...r.notChecked);
       sources.push("XRP Ledger public nodes (xrplcluster.com, ripple.com): balance, reserve, AccountDelete eligibility");
+    } else if (isXlmAddress(address)) {
+      const r = await timed("Stellar", xlmScan(f, address), { items: [], notChecked: [] });
+      items.push(...(r.items as Found[]));
+      notChecked.push(...r.notChecked);
+      sources.push("Stellar Horizon (horizon.stellar.org): XLM balance minus base reserve, other assets as leads");
     } else if (signumAddress(address)) {
       const r = await timed("Signum", signumScan(f, address), { items: [], notChecked: [] });
       items.push(...(r.items as Found[]));
@@ -4669,7 +4674,7 @@ export async function findMoney(
         fmMs[n] = Date.now() - t0;
       }
     };
-    const ledgerOnly = isXrpAddress(address) || !!signumAddress(address);
+    const ledgerOnly = isXrpAddress(address) || isXlmAddress(address) || !!signumAddress(address);
     const balP = ledgerOnly ? Promise.resolve(null) : run("balances", () => walletBalances(f, env, address));
     // tail work gets its own deadline too, so the total is the slowest stage, not stage + tail
     const cap = async <T,>(n: string, p: Promise<T>, empty: T, ms: number): Promise<T> => {

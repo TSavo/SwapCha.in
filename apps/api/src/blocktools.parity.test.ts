@@ -104,7 +104,9 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
           const btcRaw = base58.decode(a);
           const raw = base58.decode(g!);
           expect(raw[0], a).toBe(36);
-          expect(Buffer.from(raw.slice(1, 21)).equals(Buffer.from(btcRaw.slice(1, 21))), a).toBe(true);
+          expect(Buffer.from(raw.slice(1, 21)).equals(Buffer.from(btcRaw.slice(1, 21))), a).toBe(
+            true,
+          );
           continue;
         }
         expect(btConvertFrom("btc", a, k), `${a} -> ${k}`).toBe(convertTs(a, k));
@@ -115,7 +117,9 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
     expect(sweepers.sort()).toEqual(
       [
         "bch",
+        "blk",
         "bsv",
+        "clam",
         "btg",
         "dash",
         "dgb",
@@ -124,7 +128,10 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         "grs",
         "ltc",
         "mona",
+        "nvc",
+        "ppc",
         "qtum",
+        "rdd",
         "rvn",
         "via",
         "vtc",
@@ -163,12 +170,23 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         0.05,
       );
       expect(BigInt(tx.outs[0]!.value) + BigInt(r.fee)).toBe(150_002_500n);
-      expect(r.tx_format).toBe(COINS[k].forkid ? "forkid" : k === "grs" ? "legacy-sha256" : "legacy");
+      expect(r.tx_format).toBe(
+        COINS[k].forkid ? "forkid" : k === "grs" ? "legacy-sha256" : "legacy",
+      );
     }
   });
   it("blocktools refuses the formats SwapChan refuses", () => {
-    for (const k of ["ppc", "rdd", "nvc", "clam", "blk", "zec", "qrk"] as Coin[]) {
+    for (const k of ["zec", "qrk"] as Coin[]) {
       expect(COINS[k].sweep).toBe(false);
+      expect(
+        () => btSweep(k, [{ txid: "aa".repeat(32), vout: 0, amount: 1e8, address: "x" }], "x", 10),
+        k,
+      ).toThrow();
+    }
+  });
+  it("PoS-nTime coins refuse the plain (no-nTime) builder", () => {
+    for (const k of ["ppc", "rdd", "nvc", "clam"] as Coin[]) {
+      expect(COINS[k].sweep).toBe(true);
       expect(
         () => btSweep(k, [{ txid: "aa".repeat(32), vout: 0, amount: 1e8, address: "x" }], "x", 10),
         k,

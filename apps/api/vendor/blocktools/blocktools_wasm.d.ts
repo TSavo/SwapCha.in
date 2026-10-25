@@ -60,9 +60,16 @@ export function detectAddressInfo(addr: string): string;
 export function addressesFromXpub(xpub_str: string, chain: string, kinds: string[], branches: Uint32Array, indices: Uint32Array): string;
 /**
  * Unsigned sweep of all `utxos` (JSON lines {txid,vout,amount,address[,prev_tx]}) to `to`:
- * JSON {chain,tx_format,psbt,unsigned_tx,inputs,amount,fee}. Legacy and forkid formats only.
+ * JSON {chain,tx_format,psbt,unsigned_tx,inputs,amount,fee}. Legacy, legacy-sha256 and forkid
+ * formats; pos-ntime chains need `buildUnsignedSweepAt` (a tx timestamp).
  */
 export function buildUnsignedSweep(chain: string, utxos: string, to: string, fee_rate: number): string;
+/**
+ * As `buildUnsignedSweep` with tx timestamp `time` (unix seconds). For pos-ntime chains
+ * (ppc/nvc/clam/rdd) returns {chain,tx_format:"pos-ntime",unsigned_tx,time,pos_prevouts,inputs,amount,fee}
+ * (no PSBT exists for that format); other chains ignore `time`.
+ */
+export function buildUnsignedSweepAt(chain: string, utxos: string, to: string, fee_rate: number, time: number): string;
 /**
  * tx-verify: JSON {ok, failures, warnings}. `max_fee` is a decimal string (sats or wei) or "".
  */

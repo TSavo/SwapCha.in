@@ -4,6 +4,7 @@ export const memory: WebAssembly.Memory;
 export const addressValidate: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const addressesFromXpub: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number, number];
 export const buildUnsignedSweep: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
+export const buildUnsignedSweepAt: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number, number];
 export const chainParams: () => [number, number];
 export const checkTx: (a: number, b: number) => [number, number];
 export const convertAddress: (a: number, b: number, c: number, d: number) => [number, number, number, number];

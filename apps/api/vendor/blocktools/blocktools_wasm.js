@@ -470,7 +470,8 @@ module.exports.addressesFromXpub = function(xpub_str, chain, kinds, branches, in
 
 /**
  * Unsigned sweep of all `utxos` (JSON lines {txid,vout,amount,address[,prev_tx]}) to `to`:
- * JSON {chain,tx_format,psbt,unsigned_tx,inputs,amount,fee}. Legacy and forkid formats only.
+ * JSON {chain,tx_format,psbt,unsigned_tx,inputs,amount,fee}. Legacy, legacy-sha256 and forkid
+ * formats; pos-ntime chains need `buildUnsignedSweepAt` (a tx timestamp).
  * @param {string} chain
  * @param {string} utxos
  * @param {string} to
@@ -488,6 +489,42 @@ module.exports.buildUnsignedSweep = function(chain, utxos, to, fee_rate) {
         const ptr2 = passStringToWasm0(to, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len2 = WASM_VECTOR_LEN;
         const ret = wasm.buildUnsignedSweep(ptr0, len0, ptr1, len1, ptr2, len2, fee_rate);
+        var ptr4 = ret[0];
+        var len4 = ret[1];
+        if (ret[3]) {
+            ptr4 = 0; len4 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred5_0 = ptr4;
+        deferred5_1 = len4;
+        return getStringFromWasm0(ptr4, len4);
+    } finally {
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+    }
+};
+
+/**
+ * As `buildUnsignedSweep` with tx timestamp `time` (unix seconds). For pos-ntime chains
+ * (ppc/nvc/clam/rdd) returns {chain,tx_format:"pos-ntime",unsigned_tx,time,pos_prevouts,inputs,amount,fee}
+ * (no PSBT exists for that format); other chains ignore `time`.
+ * @param {string} chain
+ * @param {string} utxos
+ * @param {string} to
+ * @param {number} fee_rate
+ * @param {number} time
+ * @returns {string}
+ */
+module.exports.buildUnsignedSweepAt = function(chain, utxos, to, fee_rate, time) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const ptr0 = passStringToWasm0(chain, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(utxos, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(to, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.buildUnsignedSweepAt(ptr0, len0, ptr1, len1, ptr2, len2, fee_rate, time);
         var ptr4 = ret[0];
         var len4 = ret[1];
         if (ret[3]) {
