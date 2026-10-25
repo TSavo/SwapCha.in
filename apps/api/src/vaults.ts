@@ -1,3 +1,4 @@
+import { callMany, SEL } from "./balscan.js";
 import { encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
 import { evmClient, json, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
@@ -161,11 +162,7 @@ export async function vaultPositions(
   const hits: { v: VaultRef; bal: bigint; under: string; amt: bigint; dec: number; udec: number; sym: string; exact: boolean; now?: bigint; nowShares?: bigint }[] = [];
   await Promise.all(
     [...byChain].map(async ([chainId, vs]) => {
-      const bals = await mc(
-        chainId,
-        env,
-        vs.map((v) => ({ address: v.address, abi: fn("balanceOf(address) view returns (uint256)"), functionName: "balanceOf", args: [owner] })),
-      ).catch(() => []);
+      const bals = await callMany(chainId, env, vs.map((v) => v.address), SEL.balanceOf, owner).catch(() => [] as (bigint | null)[]);
       const held = vs
         .map((v, i) => ({ v, bal: bals[i] as bigint | null }))
         .filter((x): x is { v: VaultRef; bal: bigint } => typeof x.bal === "bigint" && x.bal > 0n);

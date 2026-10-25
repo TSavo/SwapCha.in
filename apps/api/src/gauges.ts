@@ -1,5 +1,6 @@
 import { encodeFunctionData, formatUnits, parseAbiItem } from "viem";
 import { evmClient, prices, pxOf } from "./onchain.js";
+import { callMany, SEL } from "./balscan.js";
 import { cached } from "./scanner.js";
 import type { NewFound } from "./recover.js";
 
@@ -50,7 +51,7 @@ export async function stakedLp(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}
   for (const g of gauges) byChain.set(g.chainId, [...(byChain.get(g.chainId) ?? []), g]);
   await Promise.all([
     ...[...byChain].map(async ([chainId, gs]) => {
-      const r = await evmClient(chainId, env).multicall({ allowFailure: true, batchSize: 4096, contracts: gs.map((g) => ({ address: g.gauge as `0x${string}`, abi: [BAL], functionName: "balanceOf", args: [owner] })) as never[] }).catch(() => []);
+      const r = (await callMany(chainId, env, gs.map((g) => g.gauge), SEL.balanceOf, owner)).map((v) => (v === null ? { status: "failure" } : { status: "success", result: v }));
       r.forEach((x, i) => {
         const bal = x.status === "success" ? (x.result as bigint) : 0n;
         if (bal < 1_000_000_000n) return; // dust
@@ -69,9 +70,10 @@ export async function stakedLp(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}
     }),
     ...BOOSTERS.map(async (b) => {
       const pools = await boosterPools(env, b).catch(() => []);
-      const c = evmClient(b.chainId, env);
-      const r = await c.multicall({ allowFailure: true, batchSize: 4096, contracts: pools.flatMap((p) => [{ address: p.rewards, abi: [BAL], functionName: "balanceOf", args: [owner] }, { address: p.rewards, abi: [EARNED], functionName: "earned", args: [owner] }]) as never[] }).catch(() => []);
-      const hits = pools.map((p, i) => ({ p, bal: r[2 * i]?.status === "success" ? (r[2 * i]!.result as unknown as bigint) : 0n, earned: r[2 * i + 1]?.status === "success" ? (r[2 * i + 1]!.result as unknown as bigint) : 0n })).filter((h) => h.bal >= 1_000_000_000n);
+      const bals = await callMany(b.chainId, env, pools.map((p) => p.rewards), SEL.balanceOf, owner);
+      const held = pools.map((p, i) => ({ p, bal: bals[i] ?? 0n })).filter((h) => h.bal >= 1_000_000_000n);
+      const earned = held.length ? await callMany(b.chainId, env, held.map((h) => h.p.rewards), SEL.earned, owner) : [];
+      const hits = held.map((h, i) => ({ ...h, earned: earned[i] ?? 0n }));
       if (!hits.length) return;
       const px = await prices(f, [...hits.map((h) => ({ chainId: b.chainId, address: h.p.lp })), { chainId: b.chainId, address: b.reward.addr }]).catch(() => new Map());
       const rp = pxOf(px, b.chainId, b.reward.addr)?.price ?? null;

@@ -91,16 +91,23 @@ export function health(now = Date.now()) {
   const win = recent.filter((s) => now - s.at < 10 * 60_000);
   const last = win.slice(-5);
   const massTimeouts = last.length >= 5 && last.every((s) => s.checks > 0 && s.timeouts / s.checks >= 0.5);
+  // windowed: aggregate source-timeout rate over the last 5 min (>= 8 scans). Catches the steady
+  // ~45%-per-scan starvation mode that never trips the per-scan 50% rule.
+  const w5 = recent.filter((s) => now - s.at < 5 * 60_000 && s.checks > 0);
+  const tr = w5.reduce((a, s) => a + s.timeouts, 0) / Math.max(1, w5.reduce((a, s) => a + s.checks, 0));
+  const timeoutRate = Math.round(tr * 100);
+  const highRate = w5.length >= 8 && tr >= 0.3;
   const h = getHeapStatistics();
   const heapPct = Math.round((100 * h.used_heap_size) / h.heap_size_limit);
   const lagMs = Math.round(lag.percentile(99) / 1e6);
   lag.reset();
   const reasons = [
     ...(massTimeouts ? ["last 5 scans: >=50% of sources timed out"] : []),
+    ...(highRate ? [`5-min source timeout rate ${timeoutRate}% over ${w5.length} scans`] : []),
     ...(heapPct >= 85 ? [`heap ${heapPct}% of limit`] : []),
     ...(lagMs >= 2000 ? [`event-loop p99 lag ${lagMs} ms`] : []),
   ];
-  return { ok: reasons.length === 0, reasons, heapPct, lagMs, scans10m: win.length, lastScans: last.map((s) => ({ ms: s.ms, timeouts: s.timeouts, checks: s.checks })) };
+  return { ok: reasons.length === 0, reasons, timeoutRate, scans5m: w5.length, heapPct, lagMs, scans10m: win.length, lastScans: last.map((s) => ({ ms: s.ms, timeouts: s.timeouts, checks: s.checks })) };
 }
 
 /** Exit (so `restart: unless-stopped` brings up a clean process) when unhealthy for `failsToExit` checks in a row. */
