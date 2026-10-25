@@ -1,14 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import {
-  adaScan,
-  blake2b,
-  decodeAccountInfo,
-  dotScan,
-  ss58PublicKey,
-  systemAccountKey,
-  tonScan,
-} from "./ledgers2.js";
+import { blocktools, btDotStorageKey, btSs58Decode } from "./blocktools.js";
+import { adaScan, decodeAccountInfo, dotScan, tonScan } from "./ledgers2.js";
 
 const TON = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N";
 const ADA =
@@ -114,13 +107,14 @@ describe("Cardano (Koios)", () => {
 describe("Polkadot", () => {
   it("blake2b matches node's blake2b512; SS58 + System.Account key + SCALE decode", () => {
     const d = new Uint8Array(200).map((_, i) => i);
-    expect(Buffer.from(blake2b(d, 64)).equals(createHash("blake2b512").update(d).digest())).toBe(
-      true,
+    const w = blocktools() as unknown as { blake2b(h: string, n: number, p: string): string };
+    expect(w.blake2b(Buffer.from(d).toString("hex"), 64, "")).toBe(
+      createHash("blake2b512").update(d).digest("hex"),
     );
-    expect(systemAccountKey(ss58PublicKey(DOT))).toBe(
+    expect(btDotStorageKey(btSs58Decode(DOT).account)).toBe(
       "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da95ecffd7b6c0f78751baa9d281e0bfa3a6d6f646c70792f74727372790000000000000000000000000000000000000000",
     );
-    expect(() => ss58PublicKey("13UVJyLnbVp9RBZYFwFGyDvVd1y27Tt8tkntv6Q7JVPhFsTC")).toThrow();
+    expect(() => btSs58Decode("13UVJyLnbVp9RBZYFwFGyDvVd1y27Tt8tkntv6Q7JVPhFsTC")).toThrow();
     expect(decodeAccountInfo(accountInfo(5n, 6n, 7n))).toEqual({
       free: 5n,
       reserved: 6n,

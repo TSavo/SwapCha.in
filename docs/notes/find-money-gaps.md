@@ -95,7 +95,7 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
     rewards_available = Unclaimed rewards, other addresses on the same stake key and the 2 ADA key deposit = leads.
     Only one keyless Koios endpoint exists (no fallback). Only addr1 (Shelley) is recognised; stake1/Byron are not.
     DOT: Asset Hub (where balances live since the 2025-11-04 migration; ED 0.01 DOT) and relay chain (ED 1 DOT), each
-    Parity public sidecar balance-info, fallback public RPC state_getStorage System.Account (own blake2b + SCALE
+    Parity public sidecar balance-info, fallback public RPC state_getStorage System.Account (blocktools WASM SS58 + storage key + SCALE
     decode). Spendable = free - max(frozen - reserved, 0); frozen/reserved = lead. The Asset Hub sidecar was down
     (500, WebSocket not connected) on 2026-10-24, so Asset Hub currently answers via RPC. Subscan needs a key (403).
     Not checked: DOT nomination-pool membership and pending staking rewards, parachain balances.

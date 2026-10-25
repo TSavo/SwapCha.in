@@ -31,6 +31,12 @@ type Wasm = {
     time: number,
   ): string;
   decodeTx(input: string, chain: string): string;
+  blake2b(dataHex: string, outLen: number, personal: string): string;
+  twox128(text: string): string;
+  ss58Encode(accountHex: string, prefix: number): string;
+  ss58Decode(addr: string): string;
+  polkadotAccountStorageKey(account: string): string;
+  decodeAccountInfo(hex: string): string;
   addressesFromXpub(
     xpub: string,
     chain: string,
@@ -218,4 +224,32 @@ export function btXpubAddresses(
   } catch {
     return null;
   }
+}
+
+/** Polkadot helpers (blocktools 000a71a). Fail closed: throw when the WASM is unavailable, no TS fallback. */
+const need = (): Wasm => {
+  const w = blocktools();
+  if (!w) throw new Error("blocktools unavailable");
+  return w;
+};
+/** SS58 (any prefix) -> { prefix, account: 32-byte hex }. Throws on bad base58/checksum/length. */
+export const btSs58Decode = (addr: string) =>
+  JSON.parse(need().ss58Decode(addr)) as { prefix: number; account: string };
+/** System.Account storage key (0x-prefixed) for an SS58 address or 32-byte hex account. */
+export const btDotStorageKey = (account: string) =>
+  `0x${need().polkadotAccountStorageKey(account).replace(/^0x/, "")}`;
+/** SCALE AccountInfo -> balances as bigint. */
+export function btDecodeAccountInfo(hex: string): {
+  free: bigint;
+  reserved: bigint;
+  frozen: bigint;
+} {
+  const j = JSON.parse(need().decodeAccountInfo(hex.replace(/^0x/, ""))) as {
+    data: { free: string; reserved: string; frozen: string };
+  };
+  return {
+    free: BigInt(j.data.free),
+    reserved: BigInt(j.data.reserved),
+    frozen: BigInt(j.data.frozen),
+  };
 }
