@@ -8,6 +8,7 @@ import { ensDeeds } from "./ensdeed.js";
 import { coinOf, decodeAny, utxoScan, utxoSweep, COINS, type Coin } from "./utxochains.js";
 import { isXrpAddress, signumAddress, signumScan, xrpScan } from "./ledgers.js";
 import { extraEvmScan, evmSweep } from "./extraevm.js";
+import { blockscoutAbi, bytecodeSelectors, resolveSelectors, recoveryCandidates } from "./abiprobe.js";
 import { ethForkScan, forkSweep, ETH_FORKS, type EthFork } from "./ethforks.js";
 import { maturedPendle } from "./pendle.js";
 import { tronExtras, tronV1Account } from "./tron2.js";
@@ -2329,7 +2330,7 @@ export async function tronMoney(
         }
       }
       if (!hitView) continue;
-      const hints: { name: string; selector: string; abi?: string }[] = [];
+      const hints: { name: string; selector: string; abi?: string; source?: string }[] = [];
       for (const sig of RECOVERY) {
         const r = await post<{ constant_result?: string[]; result?: { result?: boolean } }>(
           "/wallet/triggerconstantcontract",
@@ -2953,11 +2954,35 @@ export async function evmArchaeology(
         }
       }
     } catch {}
+    // Blockscout verified ABI, else bytecode selectors via openchain/4byte (names are guesses)
+    let guessed = false;
+    if (!verifiedAbi) {
+      const bs = await blockscoutAbi(f, chainId, addr);
+      if (bs) { verifiedAbi = bs; verifiedSource ??= `blockscout:${chainId}:${addr}`; }
+    }
+    try {
+      let names: string[] = [];
+      if (!verifiedAbi) {
+        const code = await c.getCode({ address: addr }).catch(() => undefined);
+        const sels = code ? bytecodeSelectors(code) : [];
+        const res = await resolveSelectors(f, sels);
+        names = Object.values(res).flat();
+        guessed = true;
+      }
+      const have = new Set(hints.map((h) => h.name));
+      for (const sig of recoveryCandidates(names, verifiedAbi as unknown[] | undefined).filter((x) => !have.has(x)).slice(0, 8)) {
+        try {
+          const it = parseAbiItem(`function ${sig}`) as never;
+          await c.call({ account: owner, to: addr, data: encodeFunctionData({ abi: [it], args: sig.includes("address") ? [owner] : [] } as never) });
+          hints.push({ name: sig, selector: toFunctionSelector(`function ${sig}`), abi: `function ${sig}`, ...(guessed ? { source: "signature database guess (openchain/4byte), simulated OK" } : { source: "verified ABI, simulated OK" }) } as (typeof hints)[number]);
+        } catch {}
+      }
+    } catch {}
     // Prefer building a standard recovery tx when a safe selector answered
     const prefer =
       hints.find((h) =>
         ["withdraw()", "exit()", "getReward()", "claim()", "claimRewards()"].includes(h.name),
-      ) ?? hints.find((h) => h.name === "getReward(address)");
+      ) ?? hints.find((h) => h.name === "getReward(address)") ?? (guessed ? undefined : hints[0]);
     const claimTx = prefer
       ? {
           chainId,
@@ -3045,7 +3070,8 @@ export async function evmArchaeology(
       } catch {}
     }
     items.push({
-      kind: "claimable",
+      // only exact (P3D-style native dividends) is claimable; raw reward views are leads
+      kind: p3d ? "claimable" : "lead",
       protocol: `Contract ${short(addr)}`,
       chainId,
       ...(p3d ? { estimateKind: "exact" } : {}),
