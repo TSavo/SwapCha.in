@@ -137,6 +137,14 @@ export class SwapChanApi {
   scan(kind: "new" | "trending" | "movers", q: Record<string, unknown>): Promise<ScanResponse> {
     return this.req(ScanResponse, `/scanner/${kind}?${qs(q)}`);
   }
+  /** Pure developer tool (blocktools wasm) on public input: POST /tools/:fn. */
+  devTool(fn: string, input: Record<string, unknown>): Promise<Rec> {
+    return this.rec(`/tools/${encodeURIComponent(fn)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  }
   private rec(path: string, init?: RequestInit, timeoutMs?: number): Promise<Rec> {
     return this.req(z.record(z.string(), z.unknown()), path, init, timeoutMs);
   }

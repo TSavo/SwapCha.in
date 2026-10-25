@@ -76,6 +76,14 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
       res.end(JSON.stringify(b));
     };
     const q = u.searchParams;
+    if (req.method === "POST" && u.pathname.startsWith("/tools/")) {
+      let raw = "";
+      for await (const c of req) raw += c;
+      const tool = u.pathname.slice(7);
+      if (tool === "detect-address")
+        return send(400, { ok: false, tool, error_code: "unrecognized", error: "unrecognized" });
+      return send(200, { ok: true, tool, result: { echo: JSON.parse(raw || "{}") } });
+    }
     switch (u.pathname) {
       case "/chains":
         return send(

@@ -135,6 +135,11 @@ describe("swapchan mcp over streamable http", () => {
         "find_money_batch",
         "find_money_status",
         "swapchan_playbook",
+        "address_tool",
+        "xpub_addresses",
+        "solana_address",
+        "substrate_tool",
+        "chain_params",
       ].sort(),
     );
     await c.close();
@@ -367,6 +372,59 @@ describe("swapchan mcp over streamable http", () => {
     );
     expect(k.level).toBe("high");
     expect(k.swapchanSays).toMatch(/red flags/);
+    await c.close();
+  });
+
+  it("developer tools are read-only, offline, credit blocktools without a URL, take no secrets", async () => {
+    const c = await connect();
+    const { tools } = await c.listTools();
+    const dev = tools.filter((t) =>
+      [
+        "address_tool",
+        "xpub_addresses",
+        "solana_address",
+        "substrate_tool",
+        "chain_params",
+      ].includes(t.name),
+    );
+    expect(dev).toHaveLength(5);
+    for (const t of dev) {
+      expect(t.annotations?.readOnlyHint).toBe(true);
+      expect(t.annotations?.destructiveHint).toBe(false);
+      expect(t.annotations?.openWorldHint).toBe(false);
+      expect(t.description).toMatch(/powered by blocktools/);
+      expect(t.description).not.toMatch(/https?:|blocktools\.\w/);
+      const fields = Object.keys((t.inputSchema as { properties?: object }).properties ?? {});
+      for (const f of fields)
+        expect(f).not.toMatch(/priv|secret|seed$|mnemonic|wif|password|passphrase|keystore|xprv/i);
+    }
+    // no signing / key / recovery tools exposed under the dev family
+    expect(tools.some((t) => /sign_tx|derive_key|xprv|mnemonic|keystore/.test(t.name))).toBe(false);
+    await c.close();
+  });
+
+  it("developer tools call POST /tools/<fn> with the mapped sub-op and refuse xprv locally", async () => {
+    const c = await connect();
+    const r = data(
+      await c.callTool({
+        name: "substrate_tool",
+        arguments: { op: "ss58_convert", address: "5Grw", prefix: 0 },
+      }),
+    );
+    expect(r.result.echo).toEqual({ op: "convert", address: "5Grw", prefix: 0 });
+    expect(mock.calls).toContain("POST /tools/ss58");
+    const x = await c.callTool({
+      name: "xpub_addresses",
+      arguments: { chain: "btc", xpub: `xprv${"A".repeat(107)}` },
+    });
+    expect(x.isError).toBe(true);
+    expect(mock.calls.some((k) => k === "POST /tools/xpub-addresses")).toBe(false);
+    const bad = await c.callTool({
+      name: "address_tool",
+      arguments: { op: "detect", address: "zzz" },
+    });
+    expect(bad.isError).toBe(true);
+    expect(text(bad)).toMatch(/unrecognized/);
     await c.close();
   });
 });

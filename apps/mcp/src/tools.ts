@@ -2152,5 +2152,165 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     }),
   );
 
+  // ---- Developer tools (blocktools wasm via the API). Read-only, public input only:
+  // never keys, seeds, signing or recovery (that lives in blocktools, not here).
+  const OFFLINE = "Pure, offline computation powered by blocktools; nothing is fetched or stored.";
+  const devAnn = {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+  };
+  const NO_PRV = /\b[xtyzuvYZUV]prv[1-9A-HJ-NP-Za-km-z]{20,}/;
+  const pub = (max: number) =>
+    z
+      .string()
+      .max(max)
+      .refine((v) => !NO_PRV.test(v), "Private keys are refused; pass public data only.");
+  const strip = (a: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(a).filter(([k, v]) => k !== "op" && v !== undefined));
+  // op -> [api tool, sub-op passed through as `op`]
+  const dev = (map: Record<string, [string, string?]>) =>
+    safe(async (a: Record<string, unknown>) => {
+      const hit = map[String(a.op ?? "")];
+      if (!hit) throw new Error("unknown op");
+      const body = strip(a);
+      if (hit[1]) body.op = hit[1];
+      return api.devTool(hit[0], body);
+    });
+
+  server.registerTool(
+    "address_tool",
+    {
+      title: "Address detect / validate / convert / script (dev tool)",
+      description: `Work with public crypto addresses: op=detect (which chains/formats an address fits), validate (address + chain), convert (address to another chain's format, e.g. BTC→LTC), cashaddr_to_legacy / cashaddr_to_cashaddr / cashaddr_decode (Bitcoin Cash; prefix for to_cashaddr), to_script (address+chain → scriptPubKey hex), from_script (script hex+chain → address), base58_encode (hex data) / base58_decode (base58 data). convert accepts optional from chain. ${OFFLINE}`,
+      inputSchema: z.object({
+        op: z.enum([
+          "detect",
+          "validate",
+          "convert",
+          "cashaddr_to_legacy",
+          "cashaddr_to_cashaddr",
+          "cashaddr_decode",
+          "to_script",
+          "from_script",
+          "base58_encode",
+          "base58_decode",
+        ]),
+        address: pub(200).optional(),
+        chain: z.string().max(16).optional(),
+        to: z.string().max(16).optional(),
+        from: z.string().max(16).optional(),
+        script: z.string().max(400).optional(),
+        data: z.string().max(1024).optional(),
+        prefix: z.string().max(24).optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({
+      detect: ["detect-address"],
+      validate: ["validate-address"],
+      convert: ["convert-address"],
+      cashaddr_to_legacy: ["cashaddr", "to_legacy"],
+      cashaddr_to_cashaddr: ["cashaddr", "to_cashaddr"],
+      cashaddr_decode: ["cashaddr", "decode"],
+      to_script: ["address-script", "to_script"],
+      from_script: ["address-script", "from_script"],
+      base58_encode: ["base58", "encode"],
+      base58_decode: ["base58", "decode"],
+    }),
+  );
+
+  server.registerTool(
+    "xpub_addresses",
+    {
+      title: "Derive receive/change addresses from an xpub (dev tool)",
+      description: `List public addresses from an extended PUBLIC key (xpub/ypub/zpub/tpub…): chain (e.g. btc, ltc), kind (p2pkh | p2wpkh | p2sh-p2wpkh | p2tr), branch 0=receive 1=change, start, count ≤ 20. Private keys (xprv etc.) and seed phrases are refused. ${OFFLINE}`,
+      inputSchema: z.object({
+        xpub: pub(200),
+        chain: z.string().max(16),
+        kind: z.enum(["p2pkh", "p2wpkh", "p2sh-p2wpkh", "p2tr"]).optional(),
+        branch: z.number().int().min(0).max(1).optional(),
+        start: z.number().int().min(0).max(1_000_000).optional(),
+        count: z.number().int().min(1).max(20).optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({ "": ["xpub-addresses"] }),
+  );
+
+  server.registerTool(
+    "solana_address",
+    {
+      title: "Solana PDA / ATA / on-curve / Anchor discriminator (dev tool)",
+      description: `Solana address math: op=pda (program + seeds as hex strings → program-derived address and bump), ata (owner + mint [+ token_program] → associated token account), on_curve (address → is it an ed25519 point), anchor_discriminator (instruction name, e.g. initialize → 8-byte discriminator). ${OFFLINE}`,
+      inputSchema: z.object({
+        op: z.enum(["pda", "ata", "on_curve", "anchor_discriminator"]),
+        program: z.string().max(64).optional(),
+        seeds: z.array(z.string().max(256)).max(16).optional(),
+        owner: z.string().max(64).optional(),
+        mint: z.string().max(64).optional(),
+        token_program: z.string().max(64).optional(),
+        address: z.string().max(64).optional(),
+        name: z.string().max(200).optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({
+      pda: ["solana-pda"],
+      ata: ["solana-ata"],
+      on_curve: ["solana-on-curve"],
+      anchor_discriminator: ["anchor-discriminator"],
+    }),
+  );
+
+  server.registerTool(
+    "substrate_tool",
+    {
+      title: "Polkadot / Substrate SS58, storage keys, hashes (dev tool)",
+      description: `Substrate helpers: op=ss58_decode (address → account public key hex + network prefix), ss58_encode (account hex + prefix → address), ss58_convert (address + prefix → same account under another network), storage_key (account address → System.Account storage key hex), decode_account_info (SCALE hex → nonce/balances), blake2b (hex data, out_len bytes 1-64, optional personal), twox128 (text). ${OFFLINE}`,
+      inputSchema: z.object({
+        op: z.enum([
+          "ss58_decode",
+          "ss58_encode",
+          "ss58_convert",
+          "storage_key",
+          "decode_account_info",
+          "blake2b",
+          "twox128",
+        ]),
+        address: z.string().max(80).optional(),
+        account: z.string().max(80).optional(),
+        prefix: z.number().int().min(0).max(16383).optional(),
+        hex: z.string().max(402).optional(),
+        data: z.string().max(1024).optional(),
+        out_len: z.number().int().min(1).max(64).optional(),
+        personal: z.string().max(16).optional(),
+        text: z.string().max(256).optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({
+      ss58_decode: ["ss58", "decode"],
+      ss58_encode: ["ss58", "encode"],
+      ss58_convert: ["ss58", "convert"],
+      storage_key: ["polkadot-storage-key"],
+      decode_account_info: ["decode-account-info"],
+      blake2b: ["blake2b"],
+      twox128: ["twox128"],
+    }),
+  );
+
+  server.registerTool(
+    "chain_params",
+    {
+      title: "UTXO chain parameters table (dev tool)",
+      description: `Address/version-byte parameters for the supported UTXO chains (prefixes, bech32 HRP, xpub versions). chain=<ticker> for one, omit for all. ${OFFLINE}`,
+      inputSchema: z.object({ chain: z.string().max(16).optional() }),
+      annotations: devAnn,
+    },
+    dev({ "": ["chain-params"] }),
+  );
+
   return server;
 }

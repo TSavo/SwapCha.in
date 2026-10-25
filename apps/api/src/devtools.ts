@@ -206,7 +206,7 @@ const w = () => blocktools() ?? bad("blocktools_unavailable");
 export function runDevTool(
   fn: string,
   input: unknown,
-): { ok: true; tool: string; result: unknown } | { ok: false; tool: string; error_code: string } {
+): { ok: true; tool: string; result: unknown } | { ok: false; tool: string; error_code: string; error: string } {
   const tool = Object.hasOwn(DEV_TOOLS, fn) ? fn : "unknown";
   try {
     const run = DEV_TOOLS[tool] ?? bad("unknown_tool");
@@ -214,7 +214,9 @@ export function runDevTool(
     refuseSecrets(input);
     return { ok: true, tool, result: run(input as In) };
   } catch (e) {
-    return { ok: false, tool, error_code: errCode(e) };
+    const code = errCode(e);
+    // `error` mirrors error_code so generic API clients (MCP) surface the code
+    return { ok: false, tool, error_code: code, error: code };
   }
 }
 
