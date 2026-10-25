@@ -231,7 +231,7 @@ export function partnerRoutes(
     const input = PartnerSignup.parse(await c.req.json());
     const r = registerPartner(s, input);
     return c.json(
-      { ...r, dashboardUrl: `https://swapchan.com/partners/${r.id}?t=${r.token}` },
+      { ...r, dashboardUrl: `https://swapchan.com/partners/${r.id}#t=${r.token}` },
       201,
     );
   });

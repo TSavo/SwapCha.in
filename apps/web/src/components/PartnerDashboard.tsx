@@ -46,7 +46,15 @@ const chain = (id: number) => SUPPORTED_CHAINS[id as keyof typeof SUPPORTED_CHAI
 
 export function PartnerDashboard({ id }: { id: string }) {
   const [token, setToken] = useState<string | null>(null);
-  useEffect(() => setToken(new URLSearchParams(window.location.search).get("t") ?? ""), []);
+  useEffect(
+    () =>
+      setToken(
+        new URLSearchParams(window.location.hash.slice(1)).get("t") ??
+          new URLSearchParams(window.location.search).get("t") ?? // old ?t= links still work
+          "",
+      ),
+    [],
+  );
   const q = useQuery({
     queryKey: ["partner", id, token],
     enabled: token !== null,

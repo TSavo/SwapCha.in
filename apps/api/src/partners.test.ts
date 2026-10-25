@@ -62,7 +62,7 @@ describe("partners", () => {
   it("registers, attributes quotes and swaps, and shows owed share", async () => {
     const { app, p } = await setup();
     expect(p.id).toMatch(/^moon-project-[0-9a-f]{6}$/);
-    expect(p.dashboardUrl).toContain(`/partners/${p.id}?t=`);
+    expect(p.dashboardUrl).toContain(`/partners/${p.id}#t=`); // fragment: not sent to servers/Referer
     const q = (await (await app.request(qs({ partner: p.id }))).json()) as { quotes: Quote[] };
     const id = q.quotes[0]?.id;
     const sw = await app.request(

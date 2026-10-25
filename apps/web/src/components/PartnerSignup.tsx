@@ -45,7 +45,8 @@ export function PartnerSignup() {
     }
   };
   if (done) {
-    const dash = `/partners/${done.id}?t=${done.token}`;
+    // Token in the fragment: never sent to servers or leaked via Referer/analytics.
+    const dash = `/partners/${done.id}#t=${done.token}`;
     return (
       <div
         className="mt-6 space-y-3 rounded-2xl border-2 border-amber-400 bg-violet-950 p-4"
