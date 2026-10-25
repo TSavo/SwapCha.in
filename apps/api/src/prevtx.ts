@@ -14,7 +14,12 @@ export type PrevSource = {
   // novacoin: api.novaco.in /gettransaction/<txid> (decoded JSON only; blocktools serializes it and checks the hash)
   type: "blockbook" | "insight" | "qtuminfo" | "woc" | "cryptoid" | "iquidus" | "pbcx" | "novacoin";
   urls: string[];
+  /** max concurrent fetches when this source is in the list (default PREV_LIMITS.pool, or POOL_BY_TYPE) */
+  pool?: number;
 };
+
+/** Per-type concurrency: api.novaco.in returned 503 for 21/38 fetches at 8-wide; 3-wide measured clean. */
+export const POOL_BY_TYPE: Partial<Record<PrevSource["type"], number>> = { novacoin: 3 };
 
 export const PREV_LIMITS = {
   pool: 8,
@@ -24,12 +29,45 @@ export const PREV_LIMITS = {
   maxTotalBytes: 8_000_000,
   cacheEntries: 2000,
   wocGapMs: 334,
+  /** retries per source URL for HTTP 503/429 (exponential backoff + full jitter, Retry-After honored) */
+  retries: 4,
+  backoffBaseMs: 500,
+  backoffMaxMs: 8000,
 };
+
+// Per-base cool-down: after a 503/429 every worker holds off that host until this time, so the pool does not
+// keep hammering a throttling explorer while one worker backs off.
+const coolUntil = new Map<string, number>();
+
+/** Retry-After as ms: delta-seconds or HTTP-date; null if absent/unparseable. */
+export function retryAfterMs(v: string | null, now = Date.now()): number | null {
+  if (!v) return null;
+  const t = v.trim();
+  if (/^\d+$/.test(t)) return Number(t) * 1000;
+  const d = Date.parse(t);
+  return Number.isNaN(d) ? null : Math.max(0, d - now);
+}
+
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((res, rej) => {
+    if (signal.aborted) return rej(new Error("deadline"));
+    const id = setTimeout(() => {
+      signal.removeEventListener("abort", on);
+      res();
+    }, ms);
+    const on = () => {
+      clearTimeout(id);
+      rej(new Error("deadline"));
+    };
+    signal.addEventListener("abort", on, { once: true });
+  });
+}
 
 const cache = new Map<string, string>();
 /** test hook */
 export const resetPrevTxCache = () => {
   cache.clear();
+  coolUntil.clear();
   wocNext = 0;
 };
 function remember(k: string, hex: string) {
@@ -115,6 +153,7 @@ async function fetchOne(
   srcs: PrevSource[],
   txid: string,
   signal: AbortSignal,
+  deadlineAt: number,
 ): Promise<string> {
   let last: unknown = "no source";
   for (const [src, base] of srcs.flatMap((s) => s.urls.map((u) => [s, u] as const))) {
@@ -135,10 +174,29 @@ async function fetchOne(
                   : src.type === "novacoin"
                     ? `/gettransaction/${txid}`
                     : `/tx/${txid}/hex`;
-      const r = await f(`${base}${path}`, {
-        headers: UA,
-        signal: AbortSignal.any([signal, AbortSignal.timeout(PREV_LIMITS.perRequestMs)]),
-      });
+      let r: Response;
+      for (let attempt = 0; ; attempt++) {
+        const hold = (coolUntil.get(base) ?? 0) - Date.now();
+        if (hold > 0) {
+          if (Date.now() + hold >= deadlineAt)
+            throw new Error("explorer throttling, no time to retry");
+          await sleep(hold, signal);
+        }
+        r = await f(`${base}${path}`, {
+          headers: UA,
+          signal: AbortSignal.any([signal, AbortSignal.timeout(PREV_LIMITS.perRequestMs)]),
+        });
+        if (r.ok || (r.status !== 503 && r.status !== 429) || attempt >= PREV_LIMITS.retries) break;
+        last = r.status;
+        await r.body?.cancel().catch(() => {});
+        const exp = Math.min(PREV_LIMITS.backoffMaxMs, PREV_LIMITS.backoffBaseMs * 2 ** attempt);
+        const ra = retryAfterMs(r.headers.get("retry-after"));
+        // Retry-After is a floor; otherwise full jitter in [exp/2, exp].
+        const wait = Math.max(ra ?? 0, exp / 2 + Math.random() * (exp / 2));
+        if (Date.now() + wait >= deadlineAt) break; // would blow the overall deadline: give up on this source
+        coolUntil.set(base, Math.max(coolUntil.get(base) ?? 0, Date.now() + wait));
+        await sleep(wait, signal);
+      }
       if (!r.ok) {
         last = r.status;
         continue;
@@ -181,7 +239,8 @@ async function fetchOne(
 }
 
 /**
- * Raw previous txs for `txids` (deduped), each hash-checked. Pool of 8, 7 s per request, 20 s overall,
+ * Raw previous txs for `txids` (deduped), each hash-checked. Pool of 8 (lower per source type), 7 s per
+ * request, 503/429 retried with backoff inside the 20 s overall deadline,
  * 400 KB per tx, 8 MB total. Returns the ones fetched and verified; the caller decides whether enough remain.
  */
 export async function fetchPrevTxs(
@@ -200,6 +259,11 @@ export async function fetchPrevTxs(
     return { got, failed };
   }
   const deadline = AbortSignal.timeout(PREV_LIMITS.deadlineMs);
+  const deadlineAt = Date.now() + PREV_LIMITS.deadlineMs;
+  const pool = Math.min(
+    PREV_LIMITS.pool,
+    ...srcs.map((s) => s.pool ?? POOL_BY_TYPE[s.type] ?? PREV_LIMITS.pool),
+  );
   let total = 0;
   const queue = want.filter((t) => {
     const hit = cache.get(`${coin}:${t}`);
@@ -213,7 +277,7 @@ export async function fetchPrevTxs(
   const worker = async () => {
     for (let t = queue.shift(); t !== undefined; t = queue.shift()) {
       try {
-        let hex = await fetchOne(f, srcs, t, deadline);
+        let hex = await fetchOne(f, srcs, t, deadline, deadlineAt);
         const n = hex.length / 2;
         if (n > PREV_LIMITS.maxTxBytes) throw new Error("previous tx over 400 KB");
         if (total + n > PREV_LIMITS.maxTotalBytes) throw new Error("previous txs over 8 MB total");
@@ -228,6 +292,6 @@ export async function fetchPrevTxs(
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(PREV_LIMITS.pool, queue.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(pool, queue.length) }, worker));
   return { got, failed };
 }

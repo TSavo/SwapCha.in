@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import fx from "./fixtures/blk-prevtx-2src.json" with { type: "json" };
-import { fetchPrevTxs, matchTxid, resetPrevTxCache } from "./prevtx.js";
+import { fetchPrevTxs, matchTxid, PREV_LIMITS, resetPrevTxCache } from "./prevtx.js";
 import { COINS } from "./utxochains.js";
 
 type Tx = { txid: string; iquidus: string; pbcx: { data: { txid: string; hex: string } } };
@@ -33,7 +33,11 @@ const replay =
     throw new Error(`unexpected ${s}`);
   };
 const ids = txs.map((t) => t.txid);
-beforeEach(() => resetPrevTxCache());
+beforeEach(() => {
+  resetPrevTxCache();
+  // pbcx "down" is a 503, which is now retried with backoff; keep the backoff short here.
+  Object.assign(PREV_LIMITS, { backoffBaseMs: 5, backoffMaxMs: 20 });
+});
 
 describe("BLK prev-tx fixtures: both sources byte-identical after normalisation", () => {
   it(`${txs.length} txs, including a segwit coinbase`, () => {
