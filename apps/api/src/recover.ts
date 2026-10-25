@@ -1,3 +1,4 @@
+import { verifySafe } from "./safe.js";
 import { PENDLE_ROUTER } from "./pendle.js";
 import { verifyV4 } from "./lpv4.js";
 import type { DatabaseSync } from "node:sqlite";
@@ -92,6 +93,8 @@ export function verifyRecovery(tx: { to: string; data: string; value: string }, 
   if (BigInt(tx.value || "0") !== 0n) return { verified: false, reason: "non-zero value" } as const;
   if (tx.data.startsWith("0x095ea7b3") && tx.data.slice(10, 74).toLowerCase() === "0".repeat(24) + PENDLE_ROUTER.slice(2))
     return { verified: true, call: "approve(Pendle Router) — approval step only" } as const;
+  const sf = verifySafe(tx.data, owner);
+  if (sf !== null) return sf ? ({ verified: true, call: "Safe execTransaction (every leg pays the owner)" } as const) : ({ verified: false, reason: "Safe tx with a leg that does not pay the owner" } as const);
   const v4 = verifyV4(tx.data, owner);
   if (v4 !== null) return v4 ? ({ verified: true, call: "modifyLiquidities(DECREASE_LIQUIDITY,TAKE_PAIR→owner)" } as const) : ({ verified: false, reason: "v4 actions other than decrease + take-to-owner" } as const);
   // multicall(bytes[]): every inner call must itself be a verified recovery call
@@ -415,60 +418,7 @@ export async function lidoWithdrawals(
   });
 }
 
-// ---------- Gnosis Safes the wallet owns ----------
-const SAFE_TX: Record<number, string> = {
-  1: "mainnet",
-  8453: "base",
-  42161: "arbitrum",
-  10: "optimism",
-  137: "polygon",
-  56: "bsc",
-};
-const SAFE_PREFIX: Record<number, string> = {
-  1: "eth",
-  8453: "base",
-  42161: "arb1",
-  10: "oeth",
-  137: "matic",
-  56: "bnb",
-};
-export async function ownedSafes(
-  f: F,
-  env: NodeJS.ProcessEnv,
-  owner: `0x${string}`,
-): Promise<NewFound[]> {
-  const out: NewFound[] = [];
-  await Promise.all(
-    Object.entries(SAFE_TX).map(async ([id, net]) => {
-      const chainId = Number(id);
-      const r = await json<{ safes: string[] }>(
-        f,
-        `https://safe-transaction-${net}.safe.global/api/v1/owners/${owner}/safes/`,
-        undefined,
-        10_000,
-      ).catch(() => ({ safes: [] }));
-      for (const s of (r.safes ?? []).slice(0, 5)) {
-        const wei = await evmClient(chainId, env)
-          .getBalance({ address: getAddress(s) })
-          .catch(() => 0n);
-        const px = await prices(f, [{ chainId, address: NATIVE_TOKEN }]).catch(() => new Map());
-        const amt = Number(formatUnits(wei, 18));
-        out.push({
-          kind: "claimable",
-          protocol: `Gnosis Safe ${s.slice(0, 6)}…${s.slice(-4)} on ${chainName(chainId)}`,
-          chainId,
-          what: `You're an owner of this Safe; it holds ${amt.toPrecision(5)} native${amt ? "" : " (check its tokens too)"}`,
-          valueUsd: pxOf(px, chainId, NATIVE_TOKEN)?.price
-            ? r2(amt * pxOf(px, chainId, NATIVE_TOKEN)!.price)
-            : null,
-          action: "Open the Safe, move funds to your wallet, then swap on SwapChan",
-          link: `https://app.safe.global/home?safe=${SAFE_PREFIX[chainId]}:${s}`,
-        });
-      }
-    }),
-  );
-  return out;
-}
+export { ownedSafes } from "./safe.js";
 
 // ---------- Solana stake accounts (deactivated = withdrawable) ----------
 const STAKE = "Stake11111111111111111111111111111111111111";
