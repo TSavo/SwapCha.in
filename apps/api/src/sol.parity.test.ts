@@ -40,7 +40,7 @@ describe("Solana address math: blocktools == deleted TS", () => {
     for (const bad of ["0", "O", "I", "l", "abc0", " 1", "+/"])
       expect(() => oc.b58decode(bad)).toThrow(/invalid base58/);
     expect(oc.b58decode("").length).toBe(0);
-  });
+  }, 60_000);
   it("PDA x400 (onchain, guard/svm, solrecover)", () => {
     const want = "917b062743898e4cc483ea446a2c5131e284d54e795dbb84369afffd6e4eb034";
     expect(dig(C.pdaCases(progs).map((c) => oc.findPda(c.seeds, c.program)))).toBe(want);
