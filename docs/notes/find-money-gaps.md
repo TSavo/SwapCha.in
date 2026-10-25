@@ -66,9 +66,11 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
       PPC 11 and RDD 110 units/B (measured from real txs); NVC 6, CLAM 53, BLK 53 (node min fee per started kB).
       NVC balances via cryptoid were reported 100x high (key API is always 1e8 units); fixed.
     - Done 2026-10-25: TRC (15, CHAINS.md 14.8 over 14 txs), AUR (103, blocktools-measured 102.8), ZEC transparent t1 only
-      (untested: broadcast, v6 / NU7, t3/P2SH, shielded). GRS xpub (Groestl-checksum; receive 0-9 + change 0-4, P2PKH/
-      P2WPKH/P2TR, 45 Blockbook lookups, paced: 2 in flight, 200 ms apart, 429 retried twice, own 30 s deadline; any
-      address still unanswered makes the source "not checked") and grs1p detection; taproot spend refused. Monero: classify only (balance needs
+      (untested: broadcast, v6 / NU7, t3/P2SH, shielded). GRS xpub (Groestl-checksum; P2PKH/P2WPKH/P2TR via
+      Blockbook's own xpub lookup with pkh()/wpkh()/tr() descriptors, Blockbook's gap limit, 3 calls one at a time, 429
+      retried twice, own 12 s deadline inside the 17 s stage, else "not checked"; every funded address is re-derived by
+      blocktools addressesFromXpub and a mismatch is refused. The first version (45 per-address lookups) hit 429, and
+      paced it took ~17 s and was cut by the stage deadline) and grs1p detection; taproot spend refused. Monero: classify only (balance needs
       the private view key, which SwapChan never takes).
     - Still off: XPM (blocktools buildUnsignedSweep caps fee_rate at 2000; measured rate is 100312 sat/B). QRK: tx_format
       "unknown". WDC: blocktools row unverified.

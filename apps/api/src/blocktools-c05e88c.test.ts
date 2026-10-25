@@ -127,7 +127,7 @@ describe("XPM / AUR / TRC sweeps on measured rates", () => {
 });
 
 describe("Groestlcoin xpub and grs1p", () => {
-  beforeEach(() => Object.assign(GRS_XPUB_PACE, { gapMs: 0, backoffMs: 1 }));
+  beforeEach(() => Object.assign(GRS_XPUB_PACE, { backoffMs: 1 }));
   it("a Groestl-checksum xpub is GRS; the sha256d twin is not", () => {
     expect(coinsOf(GRS_TPUB)).toEqual(["grs"]);
     expect(coinsOf(SHA_TPUB)).toEqual([]);
@@ -137,41 +137,68 @@ describe("Groestlcoin xpub and grs1p", () => {
     expect(coinsOf(GRS1P)).toEqual(["grs"]);
     await expect(utxoSweep(fetch, "grs", GRS1P, GRS1P)).rejects.toThrow(/taproot/);
   });
-  it("xpub scan is paced: 429s are retried, never more than 2 in flight", async () => {
-    Object.assign(GRS_XPUB_PACE, { gapMs: 0, backoffMs: 1 });
+  it("xpub scan: 3 Blockbook descriptor lookups, one at a time, 429 retried, addresses cross-derived", async () => {
     let inFlight = 0,
-      peak = 0,
-      calls = 0;
-    const f = (async () => {
+      peak = 0;
+    const seen: string[] = [];
+    let first = true;
+    const f = (async (u: string) => {
       inFlight++;
       peak = Math.max(peak, inFlight);
       await new Promise((r) => setTimeout(r, 2));
       inFlight--;
-      return ++calls % 3 === 0 ? new Response("", { status: 429 }) : json({ balance: "0" });
-    }) as unknown as typeof fetch;
-    const { sources } = utxoSources(f, GRS_TPUB);
-    expect(sources[0]!.ms).toBe(30_000);
-    expect(await sources[0]!.run()).toEqual([]);
-    expect(peak).toBeLessThanOrEqual(2);
-    expect(calls).toBeGreaterThan(45);
-    const always429 = (async () => new Response("", { status: 429 })) as unknown as typeof fetch;
-    await expect(utxoSources(always429, GRS_TPUB).sources[0]!.run()).rejects.toThrow(
-      /45 of 45 xpub addresses unanswered/,
-    );
-  });
-  it("xpub scan checks 45 derived addresses and offers no sweep for taproot", async () => {
-    const seen: string[] = [];
-    const f = (async (u: string) => {
-      seen.push(u);
-      if (u.includes("grs1p")) return json({ balance: "100000000" });
-      return json({ balance: "0" });
+      if (first) {
+        first = false;
+        return new Response("", { status: 429 });
+      }
+      seen.push(decodeURIComponent(u));
+      if (u.includes("/xpub/wpkh"))
+        return json({
+          txs: 2,
+          tokens: [
+            {
+              name: "grs1qqzjtnx749rt2xhujvgh7v9q8hxazeeuw2qzjl9",
+              path: "m/0/1",
+              balance: "250000000",
+            },
+          ],
+        });
+      if (u.includes("/xpub/tr"))
+        return json({
+          txs: 1,
+          tokens: [
+            {
+              name: "grs1phev9k0rtns48zae52l0meupz5tsgxrtj4v27l9jn40mrkdcaaknqlnrgk3",
+              path: "m/1/0",
+              balance: "100",
+            },
+          ],
+        });
+      return json({ txs: 0 });
     }) as unknown as typeof fetch;
     const { sources } = utxoSources(f, GRS_TPUB);
     expect(sources).toHaveLength(1);
+    expect(sources[0]!.ms).toBe(12_000);
     const items = (await sources[0]!.run()) as { what: string; sweep?: unknown }[];
-    expect(seen.filter((u) => u.includes("/address/")).length).toBe(45);
-    expect(items).toHaveLength(15);
-    expect(items.every((i) => !i.sweep && /45 addresses checked/.test(i.what))).toBe(true);
+    expect(peak).toBe(1);
+    expect(
+      seen.filter((u) => u.includes("/xpub/")).map((u) => /xpub\/(\w+)\(/.exec(u)![1]),
+    ).toEqual(["pkh", "wpkh", "tr"]);
+    expect(items).toHaveLength(2);
+    expect(items[0]!.sweep).toBeTruthy(); // p2wpkh
+    expect(items[1]!.sweep).toBeFalsy(); // taproot: no sweep
+  });
+  it("xpub scan refuses an explorer address that blocktools does not derive, and 429 forever is not checked", async () => {
+    const bad = (async () =>
+      json({
+        txs: 1,
+        tokens: [
+          { name: "grs1qs5em33g0gktaxxw8fd8mkfsdvvr8rf04h682zq", path: "m/0/1", balance: "5" },
+        ],
+      })) as unknown as typeof fetch;
+    await expect(utxoSources(bad, GRS_TPUB).sources[0]!.run()).rejects.toThrow(/does not match/);
+    const always429 = (async () => new Response("", { status: 429 })) as unknown as typeof fetch;
+    await expect(utxoSources(always429, GRS_TPUB).sources[0]!.run()).rejects.toThrow(/429/);
   });
 });
 

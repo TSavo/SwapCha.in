@@ -983,84 +983,79 @@ export function utxoSources(
 }
 
 /** Receive 0-9 and change 0-4 for P2PKH, P2WPKH and P2TR, derived by blocktools; balances from Groestlcoin Blockbook. */
-export const GRS_XPUB_PACE = { conc: 2, gapMs: 200, retries: 2, backoffMs: 1500, ms: 30_000 };
+/**
+ * GRS xpub: Blockbook's own xpub lookup (one call per script type, descriptors pkh()/wpkh()/tr(); Blockbook walks the
+ * gap limit itself), run one after another with a 429 retry so the explorer never sees a burst (45 paced per-address
+ * lookups hit 429 and took ~17 s on 2026-10-25). Every funded address Blockbook returns is re-derived by blocktools
+ * addressesFromXpub at the same branch/index; a mismatch is refused, not shown.
+ */
+export const GRS_XPUB_PACE = { retries: 2, backoffMs: 1500, ms: 12_000 };
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-export const GRS_XPUB_SCAN = { branches: [0, 1], receive: 10, change: 5, kinds: ["p2pkh", "p2wpkh", "p2tr"] };
+export const GRS_XPUB_DESC = [
+  ["p2pkh", "pkh"],
+  ["p2wpkh", "wpkh"],
+  ["p2tr", "tr"],
+] as const;
+type BbXpub = { txs?: number; tokens?: { name: string; path?: string; balance?: string }[] };
 function grsXpubSource(
   f: F,
   xpub: string,
-  env: NodeJS.ProcessEnv,
+  _env: NodeJS.ProcessEnv,
   prices: () => Promise<Record<string, number>>,
 ): UtxoSource {
   const c = COINS.grs;
-  const { receive, change, kinds } = GRS_XPUB_SCAN;
-  const idx = Array.from({ length: Math.max(receive, change) }, (_, i) => i);
-  const rows = (btXpubAddresses(xpub, "grs", kinds, [0, 1], idx) ?? []).filter((r) => {
-    const [, br, i] = r.path.split("/").map(Number);
-    return i! < (br === 0 ? receive : change);
-  });
+  const get = async (path: string): Promise<BbXpub> => {
+    for (let t = 0; ; t++) {
+      try {
+        return await getJson<BbXpub>(f, c.src!.urls, path, c.sym);
+      } catch (e) {
+        if (t >= GRS_XPUB_PACE.retries || !/429/.test(String((e as Error).message))) throw e;
+        await sleep(GRS_XPUB_PACE.backoffMs * (t + 1));
+      }
+    }
+  };
   return {
     ms: GRS_XPUB_PACE.ms,
     name: `${c.name} xpub balance`,
     coin: "grs",
     address: xpub,
     run: async () => {
-      // paced: the GRS Blockbook answers 429 to bursts (seen 2026-10-25 with 8 parallel). At most GRS_XPUB_PACE.conc
-      // in flight, starts spaced by gapMs, a 429 retried after backoff; anything still failing makes the whole source "not checked".
-      const { conc, gapMs, retries, backoffMs } = GRS_XPUB_PACE;
-      const bal: bigint[] = new Array(rows.length);
-      let next = 0, failed = 0, lastErr = "";
-      let start = Promise.resolve();
-      const one = async (i: number) => {
-        for (let t = 0; ; t++) {
-          try {
-            bal[i] = await coinBalance(f, "grs", rows[i]!.address, env);
-            return;
-          } catch (e) {
-            lastErr = String((e as Error).message);
-            if (t >= retries || !/429/.test(lastErr)) {
-              failed++;
-              return;
-            }
-            await sleep(backoffMs * (t + 1));
-          }
+      const found: { kind: string; path: string; address: string; base: bigint }[] = [];
+      let used = 0;
+      for (const [kind, d] of GRS_XPUB_DESC) {
+        const r = await get(
+          `/api/v2/xpub/${encodeURIComponent(`${d}(${xpub})`)}?details=tokenBalances&tokens=nonzero`,
+        );
+        used += r.txs ?? 0;
+        for (const t of r.tokens ?? []) {
+          const base = BigInt(t.balance ?? "0");
+          if (base <= 0n) continue;
+          const m = /(\d+)\/(\d+)$/.exec(t.path ?? "");
+          const mine = m && btXpubAddresses(xpub, "grs", [kind], [Number(m[1])], [Number(m[2])])?.[0];
+          if (!mine || mine.address !== t.name)
+            throw new Error(`explorer address ${t.name.slice(0, 12)} does not match blocktools derivation`);
+          found.push({ kind, path: mine.path, address: t.name, base });
         }
-      };
-      await Promise.all(
-        Array.from({ length: Math.min(conc, rows.length) }, async () => {
-          while (next < rows.length) {
-            const i = next++;
-            const s = start.then(() => sleep(gapMs));
-            start = s;
-            await s;
-            await one(i);
-          }
-        }),
-      );
-      if (failed) throw new Error(`${failed} of ${rows.length} xpub addresses unanswered: ${lastErr.slice(0, 40)}`);
+      }
       const p = await prices().catch(() => ({}) as Record<string, number>);
-      const out: NewFound[] = [];
-      rows.forEach((r, i) => {
-        const base = bal[i]!;
-        if (base <= 0n) return;
+      return found.map(({ kind, path, address, base }) => {
         const amt = Number(base) / 10 ** c.decimals,
           usd = p[c.cg];
-        const tr = r.kind === "p2tr";
-        out.push({
+        const tr = kind === "p2tr";
+        return {
           kind: "claimable",
           protocol: c.name,
           chainId: 0,
-          what: `${amt} ${c.sym} on ${r.address} (xpub path ${r.path}, ${r.kind}; ${rows.length} addresses checked: receive 0-${receive - 1}, change 0-${change - 1}) (exact balance; USD estimate)`,
+          what: `${amt} ${c.sym} on ${address} (xpub path ${path}, ${kind}; Blockbook xpub scan of P2PKH/P2WPKH/P2TR, ${used} txs, address re-derived by blocktools) (exact balance; USD estimate)`,
           valueUsd: usd ? Math.round(amt * usd * 100) / 100 : null,
           action: tr
             ? "Taproot (grs1p) funds are recognised but SwapChan does not build taproot spends; restore the wallet in Electrum-GRS. Never type a seed or key into a website."
-            : `Build an unsigned sweep with /onchain/utxo-sweep?coin=grs&from=${r.address}&to=<your GRS address>, then sign it offline. ${SIGN_GUIDE("grs")}`,
+            : `Build an unsigned sweep with /onchain/utxo-sweep?coin=grs&from=${address}&to=<your GRS address>, then sign it offline. ${SIGN_GUIDE("grs")}`,
           confidence: "high",
-          ...(tr ? {} : { sweep: { kind: "utxo", coin: "grs", from: r.address, sym: c.sym } }),
-          evidence: [{ chainId: 0, address: r.address, call: `blocktools addressesFromXpub ${r.path} ${r.kind}; ${c.src!.type} grs address balance`, args: [], raw: base.toString() }],
-        } as NewFound);
+          ...(tr ? {} : { sweep: { kind: "utxo", coin: "grs", from: address, sym: c.sym } }),
+          evidence: [{ chainId: 0, address, call: `blockbook xpub ${kind}; blocktools addressesFromXpub ${path}`, args: [], raw: base.toString() }],
+        } as NewFound;
       });
-      return out;
     },
   };
 }
