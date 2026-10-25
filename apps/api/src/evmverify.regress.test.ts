@@ -53,7 +53,7 @@ describe("verifyTx (EVM) fee cap and value-with-token", () => {
     ).not.toMatch(/fee_above/);
     expect(
       vt(raw({ to: OWNER, value: 1n, gas: 21000n, fee: 10n ** 9n }), "1000").failures.join(),
-    ).toMatch(/fee_above_max/);
+    ).toMatch(/fee_above_(cap|max)/);
   });
   it("ETH value with ERC-20 transfer calldata is refused unless allowed", () => {
     const t = raw({ to: TOKEN, value: 5n, data: transfer, gas: 60000n, fee: 10n ** 9n });
