@@ -68,3 +68,7 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
 14. Stellar: G-addresses (blocktools detectAddress "xlm") read from Horizon: spendable XLM = balance - (2 + subentries
     + sponsoring - sponsored) x base reserve - selling liabilities; other assets are leads. No sweep tx built; claimable
     balances, LP shares and offers not listed yet.
+    XLM and XRP spendable amounts are listed as "Spendable balance" (not rewards); Horizon/XRPL nodes appear in sources/checked.
+15. Cosmos Hub (ATOM), Algorand (ALGO), Polkadot (DOT), TON, Cardano (ADA): recognised via blocktools detectAddress (only when
+    every candidate is one of these); balances "not checked" (no source wired). Cheap next steps: Algorand algonode
+    /v2/accounts, Cosmos LCD bank balances; DOT/TON/ADA need an indexer.

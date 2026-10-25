@@ -316,7 +316,7 @@ export function recoveryFlow(
 }
 
 export interface NewFound {
-  kind: "claimable" | "legacy" | "lending" | "solana-rent";
+  kind: "claimable" | "legacy" | "lending" | "solana-rent" | "balance";
   protocol: string;
   chainId: number;
   what: string;

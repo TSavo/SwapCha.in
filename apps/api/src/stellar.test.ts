@@ -43,3 +43,27 @@ describe("Stellar (blocktools detectAddress xlm + Horizon)", () => {
     expect((await xlmScan(down, G)).notChecked[0]).toMatch(/Stellar/);
   });
 });
+
+describe("/onchain/money on a Stellar address", () => {
+  it("lists XLM as a spendable balance (with the reserve note) and reports Horizon in sources/checked", async () => {
+    const { createApp } = await import("./index.js");
+    const f = (async (input: RequestInfo | URL) => {
+      const u = String(input instanceof Request ? input.url : input);
+      if (u.includes("horizon.stellar.org/accounts/"))
+        return json({ subentry_count: 0, balances: [{ asset_type: "native", balance: "10.0000000" }] });
+      if (u.includes("horizon.stellar.org/ledgers"))
+        return json({ _embedded: { records: [{ base_reserve_in_stroops: 5000000, sequence: 1 }] } });
+      return json({}, 404);
+    }) as typeof fetch;
+    const app = createApp([], { env: { FIND_SOURCE_TIMEOUT_MS: "3000" }, scannerFetch: f, pricer: null, simulator: null, seo: null } as never);
+    const res = await app.request(`/onchain/money?address=${G}`);
+    expect(res.status).toBe(200);
+    const b = (await res.json()) as { items: { category: string; title: string }[]; sources: string[]; checked: string[] };
+    const x = b.items.find((i) => i.title.startsWith("Stellar:"))!;
+    expect(x.category).toBe("Spendable balance");
+    expect(x.title).toMatch(/9 XLM spendable .*minus 1 XLM reserve; the reserve stays locked/);
+    expect(b.sources.some((s) => /Stellar Horizon/.test(s))).toBe(true);
+    expect(b.checked.some((s) => /Stellar Horizon/.test(s))).toBe(true);
+    expect(b.checked).not.toContain("wallet balances");
+  }, 20_000);
+});

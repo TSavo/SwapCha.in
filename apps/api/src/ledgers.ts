@@ -98,7 +98,7 @@ export async function xrpScan(
     const items: NewFound[] = [];
     if (spend > 0n)
       items.push({
-        kind: "claimable",
+        kind: "balance",
         protocol: "XRP Ledger",
         chainId: 0,
         what: `${x(spend)} XRP spendable on ${account} (balance ${x(bal)} XRP minus ${x(reserve)} XRP reserve; exact balance, USD estimate)`,
@@ -192,6 +192,21 @@ export async function signumScan(
 }
 
 const HORIZON = ["https://horizon.stellar.org"];
+/**
+ * Chains blocktools can classify (derive/validate only) but SwapChan has no balance source for yet. An address is
+ * routed here only when EVERY detectAddress candidate is one of these, so nothing that already routes elsewhere moves.
+ */
+export const RECOGNISED_ONLY: Record<string, string> = {
+  atom: "Cosmos Hub (ATOM)",
+  algo: "Algorand (ALGO)",
+  dot: "Polkadot (DOT)",
+  ton: "TON",
+  ada: "Cardano (ADA)",
+};
+export function recognisedOnly(a: string): string[] {
+  const c = btDetect(a) ?? [];
+  return c.length && c.every((k) => k in RECOGNISED_ONLY) ? c : [];
+}
 /** Stellar G-address (ed25519 public key StrKey, CRC16-XModem checked) — classified by blocktools' detectAddress. */
 export function isXlmAddress(a: string): boolean {
   if (!/^G[A-Z2-7]{55}$/.test(a)) return false;
@@ -256,10 +271,10 @@ export async function xlmScan(
     const items: NewFound[] = [];
     if (spend > 0n)
       items.push({
-        kind: "claimable",
+        kind: "balance",
         protocol: "Stellar",
         chainId: 0,
-        what: `${x(spend)} XLM spendable on ${account} (balance ${x(bal)} XLM minus ${x(reserve)} XLM reserve${sell ? ` and ${x(sell)} XLM in open offers` : ""}; exact balance, USD estimate)`,
+        what: `${x(spend)} XLM spendable on ${account} (balance ${x(bal)} XLM minus ${x(reserve)} XLM reserve${sell ? ` and ${x(sell)} XLM in open offers` : ""}; the reserve stays locked while the account exists; exact balance, USD estimate)`,
         valueUsd: usd(spend),
         action:
           "Send it from a Stellar wallet you control (Lobstr, Freighter, Ledger). Never type a secret key (S...) or seed into a website. SwapChan never sees keys.",

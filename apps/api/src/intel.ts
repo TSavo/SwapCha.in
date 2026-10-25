@@ -14,7 +14,7 @@ import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
 import { ensDeeds } from "./ensdeed.js";
 import { coinOf, decodeAny, utxoSources, utxoSweep, COINS, type Coin } from "./utxochains.js";
-import { isXlmAddress, isXrpAddress, signumAddress, signumScan, xlmScan, xrpScan } from "./ledgers.js";
+import { isXlmAddress, isXrpAddress, RECOGNISED_ONLY, recognisedOnly, signumAddress, signumScan, xlmScan, xrpScan } from "./ledgers.js";
 import { extraEvmScan, evmSweep } from "./extraevm.js";
 import { blockscoutAbi, bytecodeSelectors, resolveSelectors, recoveryCandidates } from "./abiprobe.js";
 import { ethForkScan, forkSweep, ETH_FORKS, type EthFork } from "./ethforks.js";
@@ -1439,7 +1439,7 @@ export async function contractReader(
 const APPROVAL_CHAINS = [1, 8453, 42161, 56, 43114, 10, 137, 59144, 534352];
 // ---------- 6a. forgotten money: legacy contracts, lending, Tron, Solana rent ----------
 export interface Found {
-  kind: "legacy" | "lending" | "tron" | "solana-rent" | "claimable" | "lead";
+  kind: "legacy" | "lending" | "tron" | "solana-rent" | "claimable" | "balance" | "lead";
   protocol: string;
   chainId: number;
   what: string;
@@ -3645,6 +3645,11 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       items.push(...(r.items as Found[]));
       notChecked.push(...r.notChecked);
       sources.push("Stellar Horizon (horizon.stellar.org): XLM balance minus base reserve, other assets as leads");
+    } else if (recognisedOnly(address).length) {
+      // every candidate is checked (never just the first); none has a balance source yet
+      for (const k of recognisedOnly(address))
+        notChecked.push(`${RECOGNISED_ONLY[k]}: address recognised (blocktools), balance not checked (no source wired yet)`);
+      sources.push(`blocktools detectAddress: ${recognisedOnly(address).map((k) => RECOGNISED_ONLY[k]).join(", ")}`);
     } else if (signumAddress(address)) {
       const r = await timed("Signum", signumScan(f, address), { items: [], notChecked: [] });
       items.push(...(r.items as Found[]));
@@ -4674,7 +4679,7 @@ export async function findMoney(
         fmMs[n] = Date.now() - t0;
       }
     };
-    const ledgerOnly = isXrpAddress(address) || isXlmAddress(address) || !!signumAddress(address);
+    const ledgerOnly = isXrpAddress(address) || isXlmAddress(address) || !!signumAddress(address) || recognisedOnly(address).length > 0;
     const balP = ledgerOnly ? Promise.resolve(null) : run("balances", () => walletBalances(f, env, address));
     // tail work gets its own deadline too, so the total is the slowest stage, not stage + tail
     const cap = async <T,>(n: string, p: Promise<T>, empty: T, ms: number): Promise<T> => {
@@ -4762,6 +4767,7 @@ export async function findMoney(
       }[];
     } | null;
     const H = bal?.holdings ?? [];
+    const airSources = [...new Set((air as { sources?: string[] } | null)?.sources ?? [])];
     for (const n of (air as { notChecked?: string[] } | null)?.notChecked ?? []) notChecked.push(n);
     console.log(JSON.stringify({ evt: "find_money_stages", ms: fmMs, sources: (air as { timingsMs?: unknown } | null)?.timingsMs }));
     for (const it of (air as { items?: Found[] } | null)?.items ?? [])
@@ -4777,7 +4783,9 @@ export async function findMoney(
                   ? "Forgotten money in old contracts"
                   : it.kind === "tron"
                     ? "Tron rewards/unstake"
-                    : "Unclaimed rewards",
+                    : it.kind === "balance"
+                      ? "Spendable balance"
+                      : "Unclaimed rewards",
         title: `${it.protocol}: ${it.what}`,
         estUsd: it.kind === "lead" ? null : it.valueUsd,
         estimateKind: it.kind === "lead" ? "lead" : it.valueUsd === null || /\bestimate\b/i.test(it.what ?? "") ? "estimate" : "exact",
@@ -5051,7 +5059,11 @@ export async function findMoney(
       totals:
         "totalEstUsd = claimable/recoverable/estimated savings; atRiskUsd = value exposed to risky approvals or high-risk tokens (protect it, not new money)",
       items,
-      checked: [
+      // the per-chain scanners' sources (Stellar Horizon, XRPL nodes, explorers...); ledger-only addresses get only these
+      sources: airSources,
+      checked: ledgerOnly
+        ? airSources
+        : [
         "wallet balances",
         "unclaimed rewards (Merkl)",
         "legacy contracts (PoWH3D, Fomo3D, EtherDelta ETH+ERC-20, IDEX v1, Liquity)",
@@ -5070,6 +5082,7 @@ export async function findMoney(
         "gas",
         ...(vm === "svm" && !isTron ? ["Solana rent in empty token accounts"] : []),
         ...(isTron ? ["Tron rewards/unfreezes/dividend contracts/JustLend"] : []),
+        ...airSources,
       ],
       notChecked: [
         ...notChecked,

@@ -1,1 +1,1 @@
-Built from TSavo/blocktools e56d30f (includes 114bb30 PoS-nTime buildUnsignedSweepAt, 2c229d4 zec) (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok).
+Built from TSavo/blocktools 5094ded (includes 114bb30 PoS-nTime buildUnsignedSweepAt, 2c229d4 zec, e56d30f xlm, 79d48ca atom, 1f6da87 algo, cc4c6f4 dot, 78881fd ton, 5094ded ada) (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok).
