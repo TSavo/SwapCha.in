@@ -58,12 +58,43 @@ describe("dev tools (blocktools, public input only)", () => {
         address: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
       }).script,
     ).toBe("76a91462e907b15cbf27d5425399ebf6f0fb50ebb88f1888ac");
+    // Zcash t1 (2-byte version) and uppercase bech32 give the same script as the BTC form of the same hash
+    const P2PKH = "76a91477bff20c60e522dfaa3350c39b030a5d004e839a88ac";
+    expect(
+      ok("address-script", {
+        op: "to_script",
+        chain: "btc",
+        address: "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
+      }).script,
+    ).toBe(P2PKH);
+    expect(
+      ok("address-script", {
+        op: "to_script",
+        chain: "zec",
+        address: "t1UnnMmegrDJFVUW9iVz2CaABWLK2ztsf3X",
+      }).script,
+    ).toBe(P2PKH);
+    expect(ok("address-script", { op: "from_script", chain: "zec", script: P2PKH })).toMatchObject({
+      address: "t1UnnMmegrDJFVUW9iVz2CaABWLK2ztsf3X",
+    });
+    const W = "0014751e76e8199196d454941c45d1b3a323f1433bd6";
+    expect(
+      ok("address-script", {
+        op: "to_script",
+        chain: "btc",
+        address: "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4",
+      }).script,
+    ).toBe(W);
+    expect(
+      ok("address-script", {
+        op: "to_script",
+        chain: "btc",
+        address: "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+      }).script,
+    ).toBe(W);
     expect(
       runDevTool("address-script", { op: "to_script", chain: "zec", address: "t1abc" }),
-    ).toMatchObject({
-      ok: false,
-      error_code: "unsupported_chain:zec",
-    });
+    ).toMatchObject({ ok: false });
   });
 
   it("xpub addresses (BIP32 vector 1, m/0/0)", () => {
@@ -124,6 +155,9 @@ describe("dev tools (blocktools, public input only)", () => {
     );
     expect(ok("twox128", { text: "System" }).hash).toBe("26aa394eea5630e07c48ae0c9558cef7");
     expect(ok("chain-params", {}).count).toBe(41);
+    // web copy: CHAIN_COUNT=41 rows, UTXO_CHAIN_COUNT=30 with version bytes (apps/web/src/lib/devTools.ts)
+    const rows = ok("chain-params", {}).chains as { p2pkh: number[] | null }[];
+    expect(rows.filter((r) => (r.p2pkh?.length ?? 0) > 0).length).toBe(30);
     expect(ok("chain-params", { chain: "btc" })).toMatchObject({ ticker: "BTC" });
   });
 

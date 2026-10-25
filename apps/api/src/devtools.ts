@@ -119,9 +119,7 @@ export const DEV_TOOLS: Record<string, (i: In) => unknown> = {
     if (op === "from_script")
       return json(w().scriptToAddress(chain, unhex(str(i, "script", HEX)))) ?? { address: null };
     const address = str(i, "address");
-    // known blocktools gaps (parity run 2026-10-25): Zcash and all-uppercase bech32 give wrong/no scripts
-    if (chain === "zec") bad("unsupported_chain:zec");
-    if (/^[A-Z]{2,4}1[A-Z0-9]{8,}$/.test(address)) bad("unsupported_uppercase_bech32");
+    // Zcash t-addresses and all-uppercase bech32 are handled by the vendored wasm (blocktools 0b48cd3; tested)
     return { script: w().addressToScript(chain, address) };
   },
   "xpub-addresses": (i) => {
@@ -206,7 +204,9 @@ const w = () => blocktools() ?? bad("blocktools_unavailable");
 export function runDevTool(
   fn: string,
   input: unknown,
-): { ok: true; tool: string; result: unknown } | { ok: false; tool: string; error_code: string; error: string } {
+):
+  | { ok: true; tool: string; result: unknown }
+  | { ok: false; tool: string; error_code: string; error: string } {
   const tool = Object.hasOwn(DEV_TOOLS, fn) ? fn : "unknown";
   try {
     const run = DEV_TOOLS[tool] ?? bad("unknown_tool");
