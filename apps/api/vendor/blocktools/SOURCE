@@ -1,1 +1,1 @@
-blocktools 76f5436 bindings/wasm pkg/node, built with scripts/wasm-check.sh (wasm-check ok). Regenerate: sh scripts/wasm-check.sh in TSavo/blocktools, copy pkg/node here.
+Built from TSavo/blocktools 89bf723 (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok).

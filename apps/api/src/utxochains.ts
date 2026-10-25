@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { base58check, bech32 } from "@scure/base";
 import { Transaction } from "bitcoinjs-lib";
-import { btConvertFrom, btDetect, btParams, btSweep, btVersion } from "./blocktools.js";
+import { btConvertFrom, btDecode, btDetect, btParams, btSweep, btValidate, btVerify, btVersion } from "./blocktools.js";
+import { base58 } from "@scure/base";
 import type { NewFound } from "./recover.js";
 
 type F = typeof fetch;
@@ -255,8 +256,10 @@ export const COINS = {
     wallet: "Electrum-GRS",
     src: bb("https://blockbook.grs.zelcore.io"),
     checksum: "groestl",
+    // Groestl-512 checksum + single-SHA-256 txid/sighash: built and verified only by blocktools (no TS fallback)
+    sweep: true,
     txNote:
-      "Groestlcoin uses Groestl hashing for txids and signatures; SwapChan does not build this transaction yet. Import the key into Electrum-GRS to move it.",
+      "Groestlcoin uses Groestl hashing; SwapChan builds this sweep only through blocktools. Sign it in Electrum-GRS.",
   }),
   rdd: row({
     name: "Reddcoin",
@@ -464,6 +467,16 @@ const eq = (a: Uint8Array, v: number[]) => v.every((x, i) => a[i] === x);
 export function decodeFor(addr: string, coin: Coin): Decoded | null {
   const c: CoinRow = COINS[coin];
   if (coin === "bch") addr = addr.replace(/^bitcoincash:/, "");
+  if (c.checksum === "groestl") {
+    // the Groestl-512 checksum is checked by blocktools; the payload bytes are plain base58
+    const kind = BT_PARAMS?.get(coin)?.verified ? btValidate(coin, addr)?.toLowerCase() : null;
+    if (!kind) return null;
+    if (kind === "p2pkh" || kind === "p2sh") {
+      const raw = base58.decode(addr);
+      return { kind, hash: raw.slice(c.p2pkh.length, c.p2pkh.length + 20) };
+    }
+    return decodeBech(addr, c.hrp ?? undefined);
+  }
   try {
     const raw = b58.decode(addr);
     const n = c.p2pkh.length;
@@ -513,13 +526,13 @@ const GRS_RE = /^(F[1-9A-HJ-NP-Za-km-z]{33}|grs1[02-9ac-hj-np-z]{38,58})$/;
  */
 export function coinsOf(addr: string): Coin[] {
   if (/^(bitcoincash:)?[qp][a-z0-9]{41}$/.test(addr)) return ["bch"];
-  if (GRS_RE.test(addr)) return ["grs"];
   const bt = btDetect(addr);
+  if (bt && BT_PARAMS?.get("grs")?.verified ? bt.includes("grs") : GRS_RE.test(addr)) return ["grs"];
   const out: Coin[] = [];
   for (const [k, c] of ROWS)
     if (
       c.native &&
-      c.checksum !== "groestl" &&
+      k !== "grs" &&
       (bt && BT_PARAMS?.get(k)?.verified ? bt.includes(k) : decodeFor(addr, k)) &&
       !(c.p2pkh.length === 1 && [0, 5].includes(b58raw0(addr)))
     )
@@ -883,7 +896,8 @@ export async function utxoScan(
 /** Unsigned legacy-format sweep of every UTXO on `from` to `to` (one output, fee = feeRate x size estimate). Only coins with `sweep`. */
 export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeRate?: number) {
   const c: CoinRow = COINS[coin];
-  if (!c.sweep) throw new Error(c.txNote ?? `SwapChan does not build ${c.sym} transactions yet`);
+  if (!c.sweep || (c.checksum === "groestl" && !BT_PARAMS?.get(coin)?.sweep_build))
+    throw new Error(c.txNote ?? `SwapChan does not build ${c.sym} transactions yet`);
   const toD = decodeFor(to, coin);
   if (!toD) throw new Error(`to must be a ${c.sym} address`);
   const fromD = decodeFor(from, coin);
@@ -899,8 +913,30 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     to,
     rate,
   );
+  if (!bt && c.checksum === "groestl") throw new Error(c.txNote!);
   if (bt) {
     if (BigInt(bt.amount) <= 546n) throw new Error("balance does not cover the fee");
+    // decode + verify the built PSBT before offering it: inputs are ours, every output pays `to`, fee as built
+    const v = btVerify(bt.psbt, coin, to, String(bt.fee));
+    const d = btDecode(bt.psbt, coin);
+    const sum = d?.find((l) => l.role === "summary");
+    const outs = d?.filter((l) => l.role === "output") ?? [];
+    // "unsigned" is expected; "high_fee_rate" is the coin's own fee row (RVN/DGB use high sat/vB) and the fee is capped by max_fee
+    const okWarn = new Set(["unsigned", "high_fee_rate"]);
+    const verifiedOk =
+      !!v &&
+      (v.ok ||
+        (v.failures.every((x) => x === "has_warnings") && v.warnings.every((x) => okWarn.has(x))));
+    if (
+      !verifiedOk ||
+      !sum ||
+      sum.inputs !== take.length ||
+      String(sum.fee) !== String(bt.fee) ||
+      outs.length !== 1 ||
+      outs[0]!.address !== to ||
+      String(outs[0]!.amount) !== String(bt.amount)
+    )
+      throw new Error(`built ${c.sym} sweep failed verification (${[...(v?.failures ?? []), ...(v?.warnings ?? [])].join(", ") || "decode mismatch"}); not offered`);
     return {
       coin,
       from,
@@ -909,6 +945,7 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
       psbt: bt.psbt,
       txFormat: bt.tx_format,
       builtBy: `blocktools ${BLOCKTOOLS_VERSION}`,
+      verified: { by: "blocktools decodeTx+verifyTx", txid: sum.txid, warnings: v!.warnings },
       fee: String(bt.fee),
       amount: String(bt.amount),
       inputs: take.map((u) => ({

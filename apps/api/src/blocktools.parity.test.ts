@@ -1,3 +1,4 @@
+import { base58 } from "@scure/base";
 import { Transaction } from "bitcoinjs-lib";
 import { describe, expect, it } from "vitest";
 import { blocktools, btConvertFrom, btDetect, btSweep, btValidate } from "./blocktools.js";
@@ -32,7 +33,7 @@ const NATIVE = [
   "PKbuwmUS9NWB6kqiWpfuhUfeBKue39D6XZ", // ppc / mona-p2sh / pot
   "AQrh2cuYbknGUoMG5urXZBVx7qxtbgEcxW", // xpm / aur / anc
   "t1SqwRAAdSig6dE4EBPLonAait219VmkUjP", // zec
-  "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX", // grs (not in blocktools)
+  "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX", // grs (blocktools 89bf723)
 ];
 const live = blocktools() ? describe : describe.skip;
 
@@ -63,7 +64,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         diffs.push(`${k}: TS sweeps but blocktools cannot build ${p.tx_format}`);
     }
     expect(diffs).toEqual([]);
-    expect(ROWS.filter((k) => !BT_PARAMS!.has(k))).toEqual(["grs"]);
+    expect(ROWS.filter((k) => !BT_PARAMS!.has(k))).toEqual([]);
   });
   it("detectAddress agrees with the TS decoder on every candidate", () => {
     for (const a of [...NATIVE, ...BTC]) {
@@ -74,8 +75,8 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
       expect(bt, a).toEqual(ts);
     }
   });
-  it("only GRS, WDC and ANC stay on the TS address code", () => {
-    expect(ROWS.filter((k) => !BT_PARAMS!.get(k)?.verified).sort()).toEqual(["anc", "grs", "wdc"]);
+  it("only WDC and ANC stay on the TS address code", () => {
+    expect(ROWS.filter((k) => !BT_PARAMS!.get(k)?.verified).sort()).toEqual(["anc", "wdc"]);
     expect(coinsOf("AQrh2cuYbknGUoMG5urXZBVx7qxtbgEcxW").sort()).toEqual([
       "anc",
       "aur",
@@ -90,13 +91,24 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
   });
   it("addressValidate agrees with decodeFor", () => {
     for (const a of NATIVE)
-      for (const k of ROWS.filter((r) => r !== "grs" && BT_PARAMS!.get(r)?.verified))
+      for (const k of ROWS.filter((r) => BT_PARAMS!.get(r)?.verified))
         expect(!!btValidate(k, a), `${k} ${a}`).toBe(!!decodeFor(a, k));
   });
   it("convertAddressFrom(btc) == TS convert for every same-key coin", () => {
     for (const a of BTC)
-      for (const k of VER())
+      for (const k of VER()) {
+        if (k === "grs") {
+          // TS cannot encode the Groestl checksum; compare the payload (version 36 + same hash160) instead
+          if (!/^1[1-9A-HJ-NP-Za-km-z]{25,34}$/.test(a)) continue;
+          const g = btConvertFrom("btc", a, k);
+          const btcRaw = base58.decode(a);
+          const raw = base58.decode(g!);
+          expect(raw[0], a).toBe(36);
+          expect(Buffer.from(raw.slice(1, 21)).equals(Buffer.from(btcRaw.slice(1, 21))), a).toBe(true);
+          continue;
+        }
         expect(btConvertFrom("btc", a, k), `${a} -> ${k}`).toBe(convertTs(a, k));
+      }
   });
   it("buildUnsignedSweep spends the same inputs to the same script as the TS builder", () => {
     const sweepers = ROWS.filter((k) => COINS[k].sweep);
@@ -109,6 +121,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         "dgb",
         "doge",
         "ftc",
+        "grs",
         "ltc",
         "mona",
         "qtum",
@@ -128,6 +141,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
       mona: NATIVE[7],
       bsv: BTC[0],
       bch: BTC[0],
+      grs: "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX",
     };
     for (const [k, a] of Object.entries(addr) as [Coin, string][]) {
       const u = [
@@ -149,7 +163,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         0.05,
       );
       expect(BigInt(tx.outs[0]!.value) + BigInt(r.fee)).toBe(150_002_500n);
-      expect(r.tx_format).toBe(COINS[k].forkid ? "forkid" : "legacy");
+      expect(r.tx_format).toBe(COINS[k].forkid ? "forkid" : k === "grs" ? "legacy-sha256" : "legacy");
     }
   });
   it("blocktools refuses the formats SwapChan refuses", () => {

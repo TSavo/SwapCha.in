@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Transaction } from "bitcoinjs-lib";
 import { describe, expect, it } from "vitest";
 import {
@@ -18,10 +19,6 @@ describe("old coins: data-driven rows", () => {
   it("every row round-trips its own p2pkh encoding", () => {
     for (const k of Object.keys(COINS) as Coin[]) {
       const a = convert(BTC, k);
-      if (k === "grs") {
-        expect(a).toBeNull();
-        continue;
-      }
       expect(decodeFor(a!, k)?.kind).toBe("p2pkh");
     }
   });
@@ -91,6 +88,31 @@ describe("old coins: data-driven rows", () => {
     expect(seen.some((u) => u.includes("q=multiaddr"))).toBe(true);
   });
 });
+describe("old coins: GRS sweep via blocktools (Groestl checksum, single-SHA-256 txid)", () => {
+  it("builds, decodes and verifies one output paying the GRS destination", async () => {
+    const from = "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX";
+    const to = convert(BTC, "grs")!;
+    expect(to.startsWith("F")).toBe(true);
+    const f = (async () => json([{ txid: "cd".repeat(32), vout: 0, value: "250000000" }])) as unknown as typeof fetch;
+    const s = await utxoSweep(f, "grs", from, to, 2);
+    expect(s.txFormat).toBe("legacy-sha256");
+    expect(s.builtBy).toMatch(/^blocktools /);
+    const tx = Transaction.fromHex(s.unsignedTx);
+    expect(tx.ins.length).toBe(1);
+    expect(Buffer.from(tx.ins[0]!.hash).reverse().toString("hex")).toBe("cd".repeat(32));
+    expect(tx.outs.length).toBe(1);
+    expect(Buffer.from(tx.outs[0]!.script).equals(outputScript(to, "grs"))).toBe(true);
+    expect(BigInt(tx.outs[0]!.value) + BigInt(s.fee)).toBe(250000000n);
+    // GRS txid = single SHA-256 (not BTC's double): bitcoinjs' getId() must differ, ours must match
+    const single = createHash("sha256").update(Buffer.from(s.unsignedTx, "hex")).digest().reverse().toString("hex");
+    expect((s as { verified?: { txid?: string } }).verified?.txid).toBe(single);
+    expect(single).not.toBe(tx.getId());
+  });
+  it("rejects a non-GRS destination", async () => {
+    const f = (async () => json([])) as unknown as typeof fetch;
+    await expect(utxoSweep(f, "grs", "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX", BTC)).rejects.toThrow(/GRS address/);
+  });
+});
 describe("old coins: unsigned sweeps", () => {
   const utx = [{ txid: "ab".repeat(32), vout: 1, value: "100000000" }];
   for (const k of ["dash", "dgb", "rvn", "vtc", "via", "qtum", "mona", "bsv"] as Coin[]) {
@@ -115,7 +137,7 @@ describe("old coins: unsigned sweeps", () => {
     });
   }
   it("refuses PoS / Zcash / Groestl / unverified formats", async () => {
-    for (const k of ["ppc", "rdd", "zec", "grs", "xpm", "clam"] as Coin[])
+    for (const k of ["ppc", "rdd", "zec", "xpm", "clam"] as Coin[])
       await expect(utxoSweep(fetch, k, "x", "y")).rejects.toThrow(/does not build/);
   });
 });
