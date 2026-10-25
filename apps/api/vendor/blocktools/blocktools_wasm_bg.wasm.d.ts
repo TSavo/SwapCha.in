@@ -21,6 +21,12 @@ export const convertAddressFrom: (a: number, b: number, c: number, d: number, e:
 export const chainParams: () => [number, number];
 export const buildUnsignedSweep: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
 export const buildUnsignedSweepAt: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number, number, number];
+export const blake2b: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+export const twox128: (a: number, b: number) => [number, number];
+export const ss58Encode: (a: number, b: number, c: number) => [number, number, number, number];
+export const ss58Decode: (a: number, b: number) => [number, number, number, number];
+export const polkadotAccountStorageKey: (a: number, b: number) => [number, number, number, number];
+export const decodeAccountInfo: (a: number, b: number) => [number, number, number, number];
 export const rustsecp256k1_v0_10_0_context_create: (a: number) => number;
 export const rustsecp256k1_v0_10_0_context_destroy: (a: number) => void;
 export const rustsecp256k1_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;

@@ -86,3 +86,27 @@ export function buildUnsignedSweep(chain: string, utxos: string, to: string, fee
  * (no PSBT exists for that format); other chains ignore `time`.
  */
 export function buildUnsignedSweepAt(chain: string, utxos: string, to: string, fee_rate: number, time: number): string;
+/**
+ * BLAKE2b of hex `data_hex` with `out_len` bytes (1..64) and a UTF-8 personalization (<= 16 bytes, "" for none). Returns hex.
+ */
+export function blake2b(data_hex: string, out_len: number, personal: string): string;
+/**
+ * Substrate twox_128 of UTF-8 `text`. Returns hex.
+ */
+export function twox128(text: string): string;
+/**
+ * SS58 address from a 32-byte account id (hex) and prefix (0 Polkadot, 2 Kusama, 42 generic; up to 16383).
+ */
+export function ss58Encode(account_hex: string, prefix: number): string;
+/**
+ * JSON {prefix, account} (account id hex) for an SS58 address; throws bad_base58/bad_prefix/bad_length/bad_checksum.
+ */
+export function ss58Decode(addr: string): string;
+/**
+ * System.Account storage key (hex, no 0x) for an SS58 address or a 32-byte account id hex.
+ */
+export function polkadotAccountStorageKey(account: string): string;
+/**
+ * SCALE AccountInfo (80 bytes hex, as returned by state_getStorage) -> JSON {nonce,consumers,providers,sufficients,data:{free,reserved,frozen,flags}}; u128 as decimal strings.
+ */
+export function decodeAccountInfo(hex: string): string;
