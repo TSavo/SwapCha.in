@@ -1,22 +1,16 @@
-/** Plain-language legal text. Bracketed [PLACEHOLDERS] must be filled by the operator before publishing. */
+/** Plain-language legal text for /terms and /privacy. No placeholders remain (legal.test.ts checks). */
 export type LegalSection = { h: string; p: string[] };
 export type LegalDoc = { title: string; updated: string; intro: string; sections: LegalSection[] };
 
-export const LEGAL_PLACEHOLDERS = [
-  "[OPERATOR NAME]",
-  "[CONTACT EMAIL]",
-  "[GOVERNING LAW]",
-  "[VENUE]",
-  "[EFFECTIVE DATE]",
-] as const;
+export const LEGAL_PLACEHOLDERS: readonly string[] = [];
 
 export const FEE_RECIPIENT = "0xeb0eC7a28E4B6B175806E21D9D3afE45792C5c7B";
 
 export const TERMS: LegalDoc = {
   title: "Terms of Use",
-  updated: "[EFFECTIVE DATE]",
+  updated: "October 25, 2026",
   intro:
-    "SwapChan (swapchan.com, api.swapchan.com and mcp.swapchan.com) is a free, trustless toolkit for people and AI agents working with crypto. It is operated by [OPERATOR NAME]. By using it you agree to these terms. If you don't agree, don't use it.",
+    "SwapChan (swapchan.com, api.swapchan.com and mcp.swapchan.com) is a free, trustless toolkit for people and AI agents working with crypto. It is operated by T Savo, doing business as EvilGenius and NefariousPlan.com. By using it you agree to these terms. If you don't agree, don't use it.",
   sections: [
     {
       h: "What SwapChan is",
@@ -78,7 +72,7 @@ export const TERMS: LegalDoc = {
     {
       h: "Limitation of liability",
       p: [
-        "To the fullest extent the law allows, [OPERATOR NAME] is not liable for any loss of funds, tokens, profits or data, or for any indirect, incidental or consequential damages, arising from your use of SwapChan, third-party providers, smart contracts or blockchains.",
+        "To the fullest extent the law allows, T Savo, doing business as EvilGenius and NefariousPlan.com, is not liable for any loss of funds, tokens, profits or data, or for any indirect, incidental or consequential damages, arising from your use of SwapChan, third-party providers, smart contracts or blockchains.",
         "Where liability can't be excluded, it is limited to the fees you paid SwapChan in the 12 months before the claim.",
       ],
     },
@@ -86,8 +80,8 @@ export const TERMS: LegalDoc = {
       h: "Changes and law",
       p: [
         "These terms may change; the date above shows the latest version. Continuing to use SwapChan after a change means you accept it.",
-        "These terms are governed by [GOVERNING LAW]. Disputes go to [VENUE].",
-        "Questions: [CONTACT EMAIL].",
+        "These terms are governed by the laws of the State of California, USA. Disputes go to the state and federal courts located in California.",
+        "Questions: evilgenius@nefariousplan.com",
       ],
     },
   ],
@@ -95,9 +89,9 @@ export const TERMS: LegalDoc = {
 
 export const PRIVACY: LegalDoc = {
   title: "Privacy Policy",
-  updated: "[EFFECTIVE DATE]",
+  updated: "October 25, 2026",
   intro:
-    "SwapChan has no accounts and doesn't ask for your name or email. This page explains what the site, API and MCP server do with the data they do see. It is operated by [OPERATOR NAME].",
+    "SwapChan has no accounts and doesn't ask for your name or email. This page explains what the site, API and MCP server do with the data they do see. It is operated by T Savo, doing business as EvilGenius and NefariousPlan.com.",
   sections: [
     {
       h: "Wallet addresses and public data",
@@ -148,7 +142,7 @@ export const PRIVACY: LegalDoc = {
     {
       h: "Your choices and contact",
       p: [
-        "You can use SwapChan without connecting a wallet, and block analytics without losing features. To ask about or delete data tied to a partner registration, short link or watch, write to [CONTACT EMAIL].",
+        "You can use SwapChan without connecting a wallet, and block analytics without losing features. To ask about or delete data tied to a partner registration, short link or watch, write to evilgenius@nefariousplan.com.",
         "This policy may change; the date above shows the latest version.",
       ],
     },
