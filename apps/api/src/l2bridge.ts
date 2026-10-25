@@ -29,7 +29,7 @@ export const OP_PORTAL: Record<number, `0x${string}`> = {
   8453: "0x49048044D57e1C92A77f79988d21Fa8fAF74E97e", // Base Portal
 };
 
-export const ARB_OUTBOX = "0x0B9857cC5d3EAd1bB9C3b03CE750455928EeBB40" as const;
+export const ARB_OUTBOX = "0x0B9857ae2D4A3DBe74ffE1d7DF045bb7F96E4840" as const;
 export const ARB_NODE_INTERFACE = "0x00000000000000000000000000000000000000C8" as const;
 
 const PUBLIC_RPC: Record<number, string> = {

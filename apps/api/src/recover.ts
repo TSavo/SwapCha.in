@@ -111,6 +111,12 @@ export function verifyRecovery(tx: { to: string; data: string; value: string }, 
     return { verified: true, call: "approve(WithdrawDAO) — TheDAO refund step 1" } as const;
   if (tx.to.toLowerCase() === "0xbf4ed7b27f1d666546e30d74d50d173d20bca754" && tx.data.toLowerCase() === "0x3ccfd60b")
     return { verified: true, call: "WithdrawDAO.withdraw() (pays the caller)" } as const;
+  // Canonical bridge exits: these only execute a message the L2 initiator already committed (target, value, data are
+  // fixed by the proof), so the caller cannot redirect funds; pinned to the Arbitrum Outbox and the OP Portal.
+  if (tx.to.toLowerCase() === "0x0b9857ae2d4a3dbe74ffe1d7df045bb7f96e4840" && tx.data.toLowerCase().startsWith("0x08635a95"))
+    return { verified: true, call: "Arbitrum Outbox.executeTransaction (executes a proven L2→L1 message)" } as const;
+  if (tx.to.toLowerCase() === "0xbeb5fc579115071764c7423a4f75ededa441ec71" && /^0x(4870496f|43ca1c50)/i.test(tx.data))
+    return { verified: true, call: "OptimismPortal prove/finalize (executes a committed L2→L1 withdrawal)" } as const;
   // IronHands payout(): pays the queue head; offered only when find_money saw the owner at the head
   if (tx.data.toLowerCase() === "0x63bd1d4a" && tx.to.toLowerCase() === "0xe58b65d1c0c8e8b2a0e3a3acec633271531084ed")
     return { verified: true, call: "IronHands payout() (zero value; pays the queue head)" } as const;
