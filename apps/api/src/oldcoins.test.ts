@@ -240,7 +240,7 @@ describe("old coins: cryptoid UTXO lists (keyed)", () => {
 });
 
 describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
-  const cidCoins = new Set(["nvc", "clam"]); // cryptoid-only, no raw-tx source: refused
+  const cidCoins = new Set(["clam"]); // cryptoid-only, no raw-tx source: refused
   for (const k of ["ppc", "nvc", "clam", "rdd", "blk"] as Coin[]) {
     it(`${k}: blocktools-built with prev_tx, verified by blocktools and the TS parser (cryptoid coins refused)`, async () => {
       resetCryptoid();
@@ -256,12 +256,12 @@ describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
         );
         const f = withPrev(prevTx, () =>
           json(
-            cidCoins.has(k) || k === "blk"
+            cidCoins.has(k) || k === "blk" || k === "nvc"
               ? {
                   unspent_outputs: [
                     {
-                      // BLK: cryptoid UTXOs, prev txs from the Blackcoin explorers
-                      tx_hash: k === "blk" ? utxos[0]!.txid : "ab".repeat(32),
+                      // BLK: cryptoid UTXOs, prev txs from the Blackcoin explorers; NVC: from api.novaco.in
+                      tx_hash: k === "blk" || k === "nvc" ? utxos[0]!.txid : "ab".repeat(32),
                       tx_ouput_n: 1,
                       value: 1000000000,
                       confirmations: 99,
@@ -282,6 +282,12 @@ describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
           await expect(utxoSweep(f, k, a, a)).rejects.toThrow(
             /sweeping this coin isn't available yet/,
           );
+          return;
+        }
+        // NVC: prev txs come from api.novaco.in as JSON, serialized + hash-checked by blocktools (prevtx.nvc.test.ts);
+        // anything else (here a raw hex answer) is refused, so nothing is built
+        if (k === "nvc") {
+          await expect(utxoSweep(f, k, a, a)).rejects.toThrow(/novacoin json refused/);
           return;
         }
         const s = (await utxoSweep(f, k, a, a)) as Awaited<ReturnType<typeof utxoSweep>> & {

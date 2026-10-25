@@ -399,8 +399,12 @@ export const COINS = {
     src: cid("nvc"),
     // Novacoin GetMinFee: MIN_TX_FEE = CENT/10 = 1000 units per started kB (6 decimals); 6/B covers it for 190+ bytes
     feeRate: 6,
-    sweep: false,
-    txNote: NO_RAWTX("Novacoin Core"),
+    // cryptoid lists the UTXOs; previous txs come from api.novaco.in as decoded JSON, which blocktools
+    // (serializeNvcTxFromJson) turns back into raw bytes and hash-checks against the txid; any mismatch fails closed
+    prev: [{ type: "novacoin", urls: ["https://api.novaco.in"] }],
+    // live unsigned build verified 2026-10-25 (prevtx.nvc.live.test.ts); nothing signed or broadcast
+    sweep: true,
+    txNote: `${POS_SIGN} Novacoin Core.`,
   }),
   blk: row({
     name: "Blackcoin",

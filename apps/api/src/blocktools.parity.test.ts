@@ -128,6 +128,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         "grs",
         "ltc",
         "mona",
+        "nvc",
         "ppc",
         "qtum",
         "rdd",
@@ -200,7 +201,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
   });
   it("PoS-nTime coins refuse the plain (no-nTime) builder", () => {
     for (const k of ["ppc", "rdd", "nvc", "clam"] as Coin[]) {
-      expect(COINS[k].sweep).toBe(k === "ppc" || k === "rdd");
+      expect(COINS[k].sweep).toBe(k === "ppc" || k === "rdd" || k === "nvc");
       expect(
         () => btSweep(k, [{ txid: "aa".repeat(32), vout: 0, amount: 1e8, address: "x" }], "x", 10),
         k,
