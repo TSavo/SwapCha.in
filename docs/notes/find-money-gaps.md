@@ -73,8 +73,14 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
     ALGO: algod /v2/accounts (algonode.cloud, fallback nodely.dev); spendable = amount - min-balance; notes opt-ins and
     rekey (auth-addr). ATOM: LCD bank/delegations/unbonding/rewards (publicnode, cosmos.directory, polkachu, keplr);
     liquid = balance, rewards = claimable, staked/unbonding/other denoms = lead. No sweeps or tx building.
-    Polkadot (DOT), TON, Cardano (ADA): still recognised-only, "not checked". Keyless options (probed 2026-10-24, 200 OK):
-    TON toncenter.com/api/v2/getAddressBalance (rate-limited ~1 rps without key) or tonapi.io/v2/accounts;
-    ADA Koios api.koios.rest address_info / account_info (stake + rewards); DOT Parity public sidecar
-    /accounts/{a}/balance-info (free/reserved/frozen) or rpc.polkadot.io JSON-RPC (needs SCALE decoding).
-    Subscan needs an API key (400 without).
+    TON, Cardano (ADA), Polkadot (DOT): CHECKED too (apps/api/src/ledgers2.ts), same pattern.
+    TON: toncenter getAddressBalance (one call per scan; keyless ~1 req/s, 429 falls to tonapi.io /v2/accounts);
+    frozen accounts are a lead. Jettons and staked/liquid-staked TON are NOT checked.
+    ADA: Koios address_info + account_info; this address = Spendable balance (min-UTXO note for token UTXOs),
+    rewards_available = Unclaimed rewards, other addresses on the same stake key and the 2 ADA key deposit = leads.
+    Only one keyless Koios endpoint exists (no fallback). Only addr1 (Shelley) is recognised; stake1/Byron are not.
+    DOT: Asset Hub (where balances live since the 2025-11-04 migration; ED 0.01 DOT) and relay chain (ED 1 DOT), each
+    Parity public sidecar balance-info, fallback public RPC state_getStorage System.Account (own blake2b + SCALE
+    decode). Spendable = free - max(frozen - reserved, 0); frozen/reserved = lead. The Asset Hub sidecar was down
+    (500, WebSocket not connected) on 2026-10-24, so Asset Hub currently answers via RPC. Subscan needs a key (403).
+    Not checked: DOT nomination-pool membership and pending staking rewards, parachain balances.

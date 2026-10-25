@@ -1,4 +1,4 @@
-/** atom/algo/dot/ton/ada: classified by blocktools, no balance source → "not checked", never routed to Solana/BTC/Tron. */
+/** atom/algo/dot/ton/ada: classified by blocktools, no balance source → own keyless source, never routed to Solana/BTC/Tron. */
 import { describe, expect, it } from "vitest";
 import { createApp } from "./index.js";
 import { recognisedOnly } from "./ledgers.js";
@@ -9,7 +9,10 @@ const A = {
   algo: ["47YPQTIGQEO7T4Y4RWDYWEKV6RTR2UNBQXBABEEGM72ESWDQNCQ52OPASU", "Algorand"],
   dot: ["15rRgsWxz4H5LTnNGcCFsszfXD8oeAFd8QRsR6MbQE2f6XFF", "Polkadot"],
   ton: ["EQCCZtVXlbxxKJbbZti9ESdAkizMyK_CTl0x65osWV1TnF8e", "TON"],
-  ada: ["addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv", "Cardano"],
+  ada: [
+    "addr1qy8ac7qqy0vtulyl7wntmsxc6wex80gvcyjy33qffrhm7sh927ysx5sftuw0dlft05dz3c7revpf7jx0xnlcjz3g69mq4afdhv",
+    "Cardano",
+  ],
 } as const;
 
 describe("recognised-only chains", () => {
@@ -26,25 +29,49 @@ describe("recognised-only chains", () => {
     ])
       expect(recognisedOnly(a), a).toEqual([]);
   });
-  it.each(Object.entries(A))("/onchain/money %s → not checked, only its own source is queried", async (_k, [a, name]) => {
-    const urls: string[] = [];
-    const f = (async (i: RequestInfo | URL, init?: RequestInit) => {
-      urls.push(String(i instanceof Request ? i.url : i) + String(init?.body ?? ""));
-      return new Response("{}", { status: 404 });
-    }) as typeof fetch;
-    const app = createApp([], { env: { FIND_SOURCE_TIMEOUT_MS: "3000" }, scannerFetch: f, pricer: null, simulator: null, seo: null } as never);
-    const res = await app.request(`/onchain/money?address=${a}`);
-    expect(res.status).toBe(200);
-    const b = (await res.json()) as { notChecked: string[]; checked: string[]; items: unknown[] };
-    if (_k === "algo" || _k === "atom") {
-      // wired: its own source is listed; a 404 everywhere is a measured empty account, not "not checked"
-      expect(b.checked.join()).toMatch(_k === "algo" ? /Algorand algod/ : /Cosmos Hub LCD/);
-      expect(b.notChecked.some((n) => n.startsWith(name))).toBe(false);
-      return;
-    }
-    expect(b.notChecked.some((n) => n.startsWith(name) && /not checked/.test(n))).toBe(true);
-    expect(b.checked.join()).toMatch(/blocktools detectAddress/);
-    // only the chain's own source is asked about this address (shared gas/price lookups are not address scans)
-    expect(urls.filter((u) => u.includes(a) && !/algonode|nodely|cosmos|polkachu|keplr|publicnode/.test(u))).toEqual([]);
-  }, 20_000);
+  it.each(Object.entries(A))(
+    "/onchain/money %s → own source only",
+    async (_k, [a, name]) => {
+      const urls: string[] = [];
+      const f = (async (i: RequestInfo | URL, init?: RequestInit) => {
+        urls.push(String(i instanceof Request ? i.url : i) + String(init?.body ?? ""));
+        return new Response("{}", { status: 404 });
+      }) as typeof fetch;
+      const app = createApp([], {
+        env: { FIND_SOURCE_TIMEOUT_MS: "3000" },
+        scannerFetch: f,
+        pricer: null,
+        simulator: null,
+        seo: null,
+      } as never);
+      const res = await app.request(`/onchain/money?address=${a}`);
+      expect(res.status).toBe(200);
+      const b = (await res.json()) as { notChecked: string[]; checked: string[]; items: unknown[] };
+      // every chain is wired: its own source is listed and nothing says "no source wired"
+      const SRC = {
+        algo: /Algorand algod/,
+        atom: /Cosmos Hub LCD/,
+        ton: /TON toncenter/,
+        ada: /Cardano Koios/,
+        dot: /Polkadot Asset Hub/,
+      } as const;
+      expect(b.checked.join()).toMatch(SRC[_k as keyof typeof SRC]);
+      expect(b.notChecked.some((n) => /no source wired/.test(n))).toBe(false);
+      // a 404 is a measured empty account for algod/LCD/tonapi; Koios and sidecar/RPC treat it as unavailable
+      if (_k === "algo" || _k === "atom" || _k === "ton")
+        expect(b.notChecked.some((n) => n.startsWith(name))).toBe(false);
+      else expect(b.notChecked.some((n) => n.startsWith(name) && /not checked/.test(n))).toBe(true);
+      // only the chain's own sources are asked about this address (shared gas/price lookups are not address scans)
+      expect(
+        urls.filter(
+          (u) =>
+            u.includes(a) &&
+            !/algonode|nodely|cosmos|polkachu|keplr|publicnode|toncenter|tonapi|koios|parity-chains/.test(
+              u,
+            ),
+        ),
+      ).toEqual([]);
+    },
+    20_000,
+  );
 });

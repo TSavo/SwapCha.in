@@ -800,6 +800,9 @@ const PAPRIKA: Record<string, string> = {
   stellar: "xlm-stellar",
   algorand: "algo-algorand",
   cosmos: "atom-cosmos",
+  polkadot: "dot-polkadot",
+  "the-open-network": "ton-toncoin",
+  cardano: "ada-cardano",
   "ethereum-classic": "etc-ethereum-classic",
   ...Object.fromEntries(ROWS.filter(([, c]) => c.paprika).map(([, c]) => [c.cg, c.paprika!])),
 };

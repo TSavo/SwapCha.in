@@ -75,6 +75,7 @@ import {
   yields,
 } from "./onchain.js";
 import { ETHERSCAN_FREE } from "./onchain.js";
+import { adaScan, dotScan, tonScan } from "./ledgers2.js";
 import { READ_OPS, readChain } from "./readchain.js";
 import {
   type Evidence,
@@ -3653,6 +3654,15 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         atom: {
           run: () => atomScan(f, address),
           src: "Cosmos Hub LCD (publicnode, cosmos.directory, polkachu, keplr): liquid ATOM, staking rewards, staked, unbonding",
+        },
+        ton: { run: () => tonScan(f, address), src: "TON toncenter getAddressBalance (fallback tonapi.io): TON balance" },
+        ada: {
+          run: () => adaScan(f, address),
+          src: "Cardano Koios (api.koios.rest) address_info + account_info: ADA balance, stake rewards, same-stake-key addresses, key deposit",
+        },
+        dot: {
+          run: () => dotScan(f, address),
+          src: "Polkadot Asset Hub + relay chain: Parity public sidecar balance-info, fallback public RPC System.Account (free/reserved/frozen)",
         },
       };
       const rs = await Promise.all(
