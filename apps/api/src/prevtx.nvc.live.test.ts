@@ -74,4 +74,92 @@ describe.skipIf(!live)("NVC live unsigned sweep build", () => {
       else process.env.CRYPTOID_API_KEY = key;
     }
   });
+
+  // The production failure case: 4QmXuz75... with 38 unspent coinstake (P2PK) outputs. The unspent list is derived
+  // live from api.novaco.in/listtransactionsbyaddress (outputs to the address with no "spent" txid) and served as
+  // cryptoid would; the 38 previous txs are fetched live (3-wide, 503/429 retried) and blocktools builds the sweep.
+  it("builds the 38-input sweep for 4QmXuz75XYsGXR7rFvbWXHbW7T7Hp2LmYK", {
+    timeout: 90_000,
+  }, async () => {
+    const A = "4QmXuz75XYsGXR7rFvbWXHbW7T7Hp2LmYK";
+    const { resetPrevTxCache } = await import("./prevtx.js");
+    const { resetCryptoid, utxoSweep } = await import("./utxochains.js");
+    type Out = {
+      address?: string;
+      value: number;
+      index?: number;
+      spent?: string;
+      scriptPubKey: { hex: string };
+    };
+    const list = (await (
+      await fetch(`https://api.novaco.in/listtransactionsbyaddress/${A}`, {
+        signal: AbortSignal.timeout(30000),
+      })
+    ).json()) as { txid: string; vout: Out[] | Record<string, Out> }[];
+    const utxos = list.flatMap((t) =>
+      Object.entries(t.vout)
+        .filter(([, o]) => o.address === A && !o.spent)
+        .map(([k, o]) => ({
+          txid: t.txid,
+          vout: Number(o.index ?? k),
+          value: BigInt(o.value),
+          script: o.scriptPubKey.hex.toLowerCase(),
+        })),
+    );
+    const total = utxos.reduce((x, u) => x + u.value, 0n);
+    const key = process.env.CRYPTOID_API_KEY;
+    process.env.CRYPTOID_API_KEY = "live-test";
+    resetCryptoid();
+    resetPrevTxCache();
+    const statuses: number[] = [];
+    const f = (async (u: string | URL, init?: RequestInit) => {
+      const s = String(u);
+      if (s.startsWith("https://chainz.cryptoid.info/nvc/api.dws?q=unspent"))
+        return new Response(
+          JSON.stringify({
+            unspent_outputs: utxos.map((x) => ({
+              tx_hash: x.txid,
+              tx_ouput_n: x.vout,
+              value: String(x.value * 100n),
+              ...(process.env.NVC_WITH_SCRIPT ? { script: x.script } : {}),
+              confirmations: 100,
+            })),
+          }),
+        );
+      const r = await fetch(u, init);
+      if (new URL(s).host === "api.novaco.in") statuses.push(r.status);
+      return r;
+    }) as typeof fetch;
+    const t0 = Date.now();
+    try {
+      // All 38 are coinstake P2PK outputs. Production's cryptoid list carries no script, so they pass the own-script
+      // filter, the 38 prev txs are fetched, and blocktools then refuses them ("prev_tx output differs"): fail closed.
+      // This asserts the fetch stage (the 503 failure) is fixed; the build itself is expected to be refused.
+      let s: any = null;
+      let err = "";
+      try {
+        s = await utxoSweep(f, "nvc", A, A);
+      } catch (e) {
+        err = e instanceof Error ? e.message : String(e);
+      }
+      console.log(
+        JSON.stringify({
+          utxos: utxos.length,
+          total: String(total),
+          amount: s?.amount,
+          fee: s?.fee,
+          err,
+          ms: Date.now() - t0,
+          requests: statuses.length,
+          non200: statuses.filter((x) => x !== 200),
+        }),
+      );
+      expect(err).not.toMatch(/could not fetch the previous transactions/);
+      if (s) expect(BigInt(s.amount) + BigInt(s.fee)).toBeLessThanOrEqual(total);
+      else expect(err).toMatch(/P2PK|prev_tx output differs/);
+    } finally {
+      if (key === undefined) delete process.env.CRYPTOID_API_KEY;
+      else process.env.CRYPTOID_API_KEY = key;
+    }
+  });
 });
