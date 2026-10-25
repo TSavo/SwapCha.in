@@ -774,7 +774,8 @@ export async function coinBalance(
       return cryptoidBalance(f, coin, a, env);
   }
 }
-type Utxo = { txid: string; vout: number; value: string };
+/** script: the output's scriptPubKey hex when the source reports it (cryptoid does); used to skip P2PK outputs */
+type Utxo = { txid: string; vout: number; value: string; script?: string };
 /** Spendable UTXOs from the coin's source adapter (immature Qtum stakes excluded). */
 export async function coinUtxos(
   f: F,
@@ -851,6 +852,7 @@ export async function coinUtxos(
           value: number | string;
           addr?: string;
           confirmations?: number;
+          script?: string;
         }[];
       };
       if (!Array.isArray(j.unspent_outputs)) throw new Error("cryptoid: bad answer");
@@ -860,6 +862,7 @@ export async function coinUtxos(
           txid: x.tx_hash,
           vout: x.tx_ouput_n,
           value: String(cidUnits(x.value, c.decimals)),
+          ...(typeof x.script === "string" ? { script: x.script.toLowerCase() } : {}),
         }));
     }
     default:
@@ -1290,8 +1293,21 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
   if (!toD) throw new Error(`to must be a ${c.sym} address`);
   const fromD = decodeFor(from, coin);
   if (!fromD) throw new Error(`from must be a ${c.sym} address`);
-  const utxos = await coinUtxos(f, coin, from);
-  if (!utxos.length) throw new Error("no UTXOs on this address");
+  const all = await coinUtxos(f, coin, from);
+  if (!all.length) throw new Error("no UTXOs on this address");
+  // only outputs paying this address's own script: a P2PK output (same key, pubkey in the prevout) would be
+  // described with the wrong scriptPubKey, and blocktools cannot verify P2PK inputs. QRK fails closed without scripts.
+  const own = script(fromD).toString("hex");
+  if (coin === "qrk" && all.some((u) => u.script === undefined))
+    throw new Error(
+      "the Quark UTXO list has no output scripts, so P2PK outputs cannot be told apart; not built (use Quark Core)",
+    );
+  const utxos = all.filter((u) => u.script === undefined || u.script === own);
+  const notOwn = all.length - utxos.length;
+  if (!utxos.length)
+    throw new Error(
+      `all ${all.length} UTXOs on this address are P2PK or another script type SwapChan cannot verify; use ${c.wallet}`,
+    );
   const rate = feeRate ?? c.feeRate;
   // largest first, skipping UTXOs where the input's own fee would exceed 5% of its value (dust farms on VIA/DGB
   // hold thousands); blocktools rejects a sweep whose fee is over 5% of the output (high_fee_pct)
@@ -1462,9 +1478,14 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
       })),
       signing: SIGN_GUIDE(coin),
       note:
-        utxos.length > take.length
-          ? `largest ${take.length} of ${utxos.length} UTXOs${economic.length < utxos.length ? ` (${utxos.length - economic.length} too small to spend economically skipped)` : ""}; run again after this confirms`
-          : undefined,
+        [
+          utxos.length > take.length
+            ? `largest ${take.length} of ${utxos.length} UTXOs${economic.length < utxos.length ? ` (${utxos.length - economic.length} too small to spend economically skipped)` : ""}; run again after this confirms`
+            : "",
+          notOwn ? `${notOwn} P2PK/other-script UTXOs skipped (move them in ${c.wallet})` : "",
+        ]
+          .filter(Boolean)
+          .join("; ") || undefined,
     };
   }
   const fee = BigInt(Math.ceil(rate * (148 * take.length + 34 + 10)));
@@ -1488,8 +1509,11 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     })),
     signing: SIGN_GUIDE(coin),
     note:
-      utxos.length > take.length
-        ? `largest ${take.length} of ${utxos.length} UTXOs; run again after this confirms`
-        : undefined,
+      [
+        utxos.length > take.length ? `largest ${take.length} of ${utxos.length} UTXOs; run again after this confirms` : "",
+        notOwn ? `${notOwn} P2PK/other-script UTXOs skipped (move them in ${c.wallet})` : "",
+      ]
+        .filter(Boolean)
+        .join("; ") || undefined,
   };
 }

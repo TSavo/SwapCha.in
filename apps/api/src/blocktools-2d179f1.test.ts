@@ -25,7 +25,7 @@ const withKey = async <T>(fn: () => Promise<T>) => {
     else process.env.CRYPTOID_API_KEY = prev;
   }
 };
-const cid = (value: number, n = 1) =>
+const cid = (value: number, n = 1, script?: string) =>
   (async () =>
     json({
       unspent_outputs: Array.from({ length: n }, (_, i) => ({
@@ -33,6 +33,7 @@ const cid = (value: number, n = 1) =>
         tx_ouput_n: 1,
         value,
         confirmations: 9,
+        ...(script ? { script } : {}),
       })),
     })) as unknown as typeof fetch;
 
@@ -57,7 +58,7 @@ describe("QRK and XPM sweeps via blocktools (cryptoid, keyed)", () => {
     resetCryptoid();
     const a = convert(BTC, "qrk")!;
     // 12.5 QRK = 1,250,000,000 in cryptoid's 1e8 units = 1,250,000 QRK units
-    const s = await withKey(() => utxoSweep(cid(1_250_000_000), "qrk", a, a));
+    const s = await withKey(() => utxoSweep(cid(1_250_000_000, 1, outputScript(a, "qrk").toString("hex")), "qrk", a, a));
     expect(BigInt(s.amount) + BigInt(s.fee)).toBe(1_250_000n);
     const tx = Transaction.fromHex(s.unsignedTx);
     expect(tx.ins.length).toBe(1);

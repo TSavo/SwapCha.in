@@ -117,3 +117,12 @@ Measured locally (box, 4 parallel scans of public addresses):
   queue, so more sources hit their deadlines (13-15 timeouts per 4 scans).
 - Still slow: history Optimism (optimism.blockscout.com, ~2.7 s per call, no keyless alternative wired) and history
   Polygon/Arbitrum when the Etherscan key is busy. Not measured on production under load (no load tests there).
+
+### Production results after 6297e74 (2026-10-25, ~2:45 AM PDT, one request each)
+- FTC sweep (feeRate 600): HTTP 200 in 5.2 s, fee 17,787,000, amount 725,119,522,386; built and verified.
+- QRK sweep (QWS31ayUfLjjfykohodFSauzr5rgzZu6oo): HTTP 200 in 4.7 s, fee 1229. Before the P2PK filter below, main did not check output scripts, so a P2PK UTXO could have been included and labelled as P2PKH.
+- GRS xpub: still "not checked (GRS explorer unavailable (403))".
+- find_money (0xd8dA…6045, single scan): HTTP 200 in 15.9 s. Timeouts: history Optimism and history Scroll (15 s each). Slowest stages: claimables 15.1 s, approvals 7.4 s. Optimism bridge withdrawals failed on an RPC error (mainnet.optimism.io). Not comparable to the 23/41 baseline, which was 4 parallel scans; production under parallel load not measured.
+
+### QRK P2PK
+QRK sweeps keep only UTXOs whose cryptoid-reported script equals the address's own P2PKH script; P2PK UTXOs are skipped (noted in the result), and the sweep is refused when cryptoid returns no scripts (blocktools cannot verify P2PK inputs).
