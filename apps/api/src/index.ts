@@ -47,6 +47,7 @@ import { thorchain } from "./providers/thorchain.js";
 import type { Fetch, ProviderAdapter } from "./providers/types.js";
 import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
+import { scheduleSweep, sweepLinks, sweepPartnerSwaps, sweepWatches } from "./retention.js";
 import { health } from "./scanctx.js";
 import { scannerRoutes } from "./scanner.js";
 import { openSeoStore, seoRoutes, startSeoJob } from "./seo.js";
@@ -186,6 +187,8 @@ export function createApp(
           env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/partners.db` : ":memory:",
           Number(env.SWAPCHAN_PARTNER_SHARE_BPS ?? 5000),
         );
+  if (partners && opts.partners === undefined)
+    scheduleSweep(env, () => sweepPartnerSwaps(partners.db));
   const quotePartner = new Map<string, string>();
   if (partners) app.route("/partners", partnerRoutes(partners, cache, quotePartner));
   const quotes = async (query: Record<string, string>) => {
@@ -255,11 +258,15 @@ export function createApp(
           }
         : null;
     };
-    // Permanent short links (never expire, never reused): $SWAPCHAN_DATA_DIR/links.db.
+    // Short links (ids never reused; idle 12 months -> deleted): $SWAPCHAN_DATA_DIR/links.db.
     const linksDb = openWatchDb(
       env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/links.db` : ":memory:",
     );
     migrateStrayLinks(watchDb, linksDb);
+    scheduleSweep(env, () => {
+      sweepLinks(linksDb);
+      sweepWatches(watchDb);
+    });
     app.route("/onchain", intelRoutes(opts.scannerFetch ?? fetch, env, watchDb, quoteFn, linksDb));
     app.route("/links", linkRoutes(opts.scannerFetch ?? fetch, env, linksDb));
     app.route("/onchain", onchainRoutes(opts.scannerFetch ?? fetch, env, watchDb, bestOut));

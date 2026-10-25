@@ -1,4 +1,5 @@
 import { btDetectChains } from "./blocktools.js";
+import { migrateLinksRetention } from "./retention.js";
 import { exitDeadline, minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { sablierStreams } from "./vesting.js";
 import { daoRefunds } from "./refunds.js";
@@ -4537,6 +4538,7 @@ export function initLinksDb(db: DatabaseSync) {
   db.exec(
     `CREATE TABLE IF NOT EXISTS links (n INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE, url TEXT UNIQUE NOT NULL, created INTEGER NOT NULL, clicks INTEGER NOT NULL DEFAULT 0);`,
   );
+  migrateLinksRetention(db);
 }
 const ALLOWED_HOSTS = new Set(["swapchan.com", "www.swapchan.com"]);
 export function shorten(db: DatabaseSync, url: string) {
@@ -4547,12 +4549,15 @@ export function shorten(db: DatabaseSync, url: string) {
   const hit = db.prepare("SELECT id FROM links WHERE url = ?").get(canon) as
     | { id: string }
     | undefined;
-  if (hit && !(isLegacyShortId(hit.id) && linkHoldsWalletData(canon)))
+  if (hit && !(isLegacyShortId(hit.id) && linkHoldsWalletData(canon))) {
+    db.prepare("UPDATE links SET last_click = ? WHERE id = ?").run(Date.now(), hit.id);
     return { id: hit.id, shortUrl: `${SITE}/s/${hit.id}`, url: canon };
+  }
   // New ids are random, never sequential. A legacy sequential id holding wallet data is
   // retired (it stops resolving) and its row gets a fresh random id instead.
   for (let i = 0; i < 8; i++) {
     const id = randomShortId();
+    if (db.prepare("SELECT 1 FROM links_retired WHERE id = ?").get(id)) continue;
     try {
       if (hit) db.prepare("UPDATE links SET id = ? WHERE url = ?").run(id, canon);
       else db.prepare("INSERT INTO links (id, url, created) VALUES (?, ?, ?)").run(id, canon, Date.now());
@@ -4570,7 +4575,8 @@ export function resolveShort(db: DatabaseSync, id: string, count = true) {
   if (!r) return null;
   // Sequential legacy ids that carry a wallet address or recovery calldata are expired.
   if (isLegacyShortId(id) && linkHoldsWalletData(r.url)) return null;
-  if (count) db.prepare("UPDATE links SET clicks = clicks + 1 WHERE id = ?").run(id);
+  if (count)
+    db.prepare("UPDATE links SET clicks = clicks + 1, last_click = ? WHERE id = ?").run(Date.now(), id);
   return {
     id,
     url: r.url,
