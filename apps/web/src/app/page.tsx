@@ -27,7 +27,7 @@ const JSON_LD = {
       applicationCategory: "FinanceApplication",
       operatingSystem: "Any",
       description:
-        "Cross-chain swap and bridge aggregator comparing 0x, CoW, Velora, LI.FI, Across and Relay, plus a free MCP server for AI agents.",
+        "Cross-chain swap and bridge aggregator comparing 0x, CoW, Velora, LI.FI, Across and Relay, a free find-money wallet scan (21 EVM chains, Solana, Tron, Bitcoin, 25+ old coins, XRP, XLM, ADA, DOT, TON and more), plus a free MCP server for AI agents.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     },
   ],
@@ -47,6 +47,10 @@ export default function Home() {
           0x, CoW, Velora, LI.FI, Across and Relay compared at once ·{" "}
           <Link href="/how-it-works" className="underline hover:text-amber-300">
             How it works
+          </Link>{" "}
+          ·{" "}
+          <Link href="/find-money" className="underline hover:text-amber-300">
+            Find forgotten money: EVM, Solana, Tron, Bitcoin, DOGE, LTC, DASH, ZEC and 20+ old coins
           </Link>
         </p>
       </div>

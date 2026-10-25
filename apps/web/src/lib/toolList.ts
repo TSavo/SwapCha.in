@@ -14,7 +14,7 @@ export const TOOLS: ToolInfo[] = [
     mcp: "find_money",
     emoji: "💰",
     blurb:
-      "Forgotten claims, idle stablecoins, risky approvals, dust and lending positions, ranked by dollars.",
+      "Forgotten claims, idle stablecoins, risky approvals, dust and lending positions, ranked by dollars. EVM, Solana, Tron, Bitcoin, 25+ old coins (unsigned sweeps), XRP, XLM, ADA, DOT, TON.",
     prompt: "Here's my wallet vitalik.eth, find me money.",
   },
   {

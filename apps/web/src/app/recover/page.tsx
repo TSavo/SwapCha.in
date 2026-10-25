@@ -121,6 +121,11 @@ export default async function Page({
                 "The original ethereum.org JSON with encseed",
               ],
               [
+                "/find-money",
+                "Old coins on a key you still control",
+                "BCH, BTG, LTC, DOGE, DASH, ZEC t1, QTUM, GRS and 20+ more: unsigned sweep, sign offline in the coin's wallet",
+              ],
+              [
                 "/agents/secure-signing",
                 "Full signing guide (all branches)",
                 "Missing word, passphrase, Electrum, wallet.dat, hardware…",

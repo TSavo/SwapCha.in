@@ -29,6 +29,10 @@ export default function Page() {
         <li>Tron: signed tx JSON</li>
         <li>Bitcoin: raw hex via mempool.space</li>
       </ul>
+      <p className="text-sm text-violet-200">
+        Other coins (LTC, DOGE, BCH, DASH, ZEC and the other old coins find_money can sweep) are not
+        relayed here: sign the unsigned sweep in the coin&apos;s own wallet and send it from there.
+      </p>
       <p>
         API: <code>POST https://api.swapchan.com/onchain/broadcast</code> · status:{" "}
         <code>GET /onchain/tx-status?chainId=&amp;hash=</code>
