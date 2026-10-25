@@ -1,8 +1,12 @@
-import { btSolAnchorDisc, btSolPda } from "./blocktools.js";
 import { base58 } from "@scure/base";
+import { btSolAnchorDisc, btSolPda } from "./blocktools.js";
 
 /** Solana recovery txs the /recover?sol= page will sign: allowlisted programs, owner is the only signer, money goes to owner. */
-export type SolIx = { programId: string; keys: { pubkey: string; isSigner: boolean; isWritable: boolean }[]; data: string };
+export type SolIx = {
+  programId: string;
+  keys: { pubkey: string; isSigner: boolean; isWritable: boolean }[];
+  data: string;
+};
 export type SolSpec = { owner: string; ix: SolIx[] };
 
 export const STAKE_PROGRAM = "Stake11111111111111111111111111111111111111";
@@ -14,8 +18,10 @@ export const SYSTEM = "11111111111111111111111111111111";
 export const anchorDisc = (name: string) => btSolAnchorDisc(name);
 
 /** findProgramAddress via blocktools wasm (fails closed). */
-export const findPda = (seeds: Uint8Array[], program: string): string => btSolPda(seeds, program).address;
-export const marinadeReserve = () => findPda([base58.decode(MARINADE_STATE), new TextEncoder().encode("reserve")], MARINADE);
+export const findPda = (seeds: Uint8Array[], program: string): string =>
+  btSolPda(seeds, program).address;
+export const marinadeReserve = () =>
+  findPda([base58.decode(MARINADE_STATE), new TextEncoder().encode("reserve")], MARINADE);
 
 export function marinadeClaimIx(ticket: string, owner: string): SolIx {
   return {
@@ -39,10 +45,16 @@ export function checkSolSpec(s: SolSpec, owner: string): string | null {
     if (ix.keys.some((k) => k.isSigner && k.pubkey !== owner)) return "extra signer";
     if (ix.programId === STAKE_PROGRAM) {
       if (!ix.data.startsWith("04000000") || ix.data.length !== 24) return "only stake Withdraw";
-      if (ix.keys[1]?.pubkey !== owner || ix.keys[3]?.pubkey !== owner) return "stake withdraw not to owner";
+      if (ix.keys[1]?.pubkey !== owner || ix.keys[3]?.pubkey !== owner)
+        return "stake withdraw not to owner";
     } else if (ix.programId === MARINADE) {
       if (ix.data !== anchorDisc("claim")) return "only Marinade claim";
-      if (ix.keys[0]?.pubkey !== MARINADE_STATE || ix.keys[1]?.pubkey !== marinadeReserve() || ix.keys[3]?.pubkey !== owner) return "Marinade claim not to owner";
+      if (
+        ix.keys[0]?.pubkey !== MARINADE_STATE ||
+        ix.keys[1]?.pubkey !== marinadeReserve() ||
+        ix.keys[3]?.pubkey !== owner
+      )
+        return "Marinade claim not to owner";
     } else return "program not allowlisted";
   }
   return null;

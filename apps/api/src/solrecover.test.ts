@@ -11,8 +11,26 @@ describe("solrecover", () => {
     const ix = marinadeClaimIx("1Qcce1i7ZcGRzXWKEXsFtDnuZPviQBgZd3FCDbnmyMw", me);
     expect(checkSolSpec({ owner: me, ix: [ix] }, me)).toBeNull();
     const other = "11111111111111111111111111111112";
-    expect(checkSolSpec({ owner: me, ix: [marinadeClaimIx("1Qcce1i7ZcGRzXWKEXsFtDnuZPviQBgZd3FCDbnmyMw", other)] }, me)).toMatch(/owner/);
-    expect(checkSolSpec({ owner: me, ix: [{ ...ix, keys: [...ix.keys, { pubkey: other, isSigner: true, isWritable: false }] }] }, me)).toMatch(/signer/);
-    expect(checkSolSpec({ owner: me, ix: [{ ...ix, programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }] }, me)).toMatch(/allowlisted/);
+    expect(
+      checkSolSpec(
+        { owner: me, ix: [marinadeClaimIx("1Qcce1i7ZcGRzXWKEXsFtDnuZPviQBgZd3FCDbnmyMw", other)] },
+        me,
+      ),
+    ).toMatch(/owner/);
+    expect(
+      checkSolSpec(
+        {
+          owner: me,
+          ix: [{ ...ix, keys: [...ix.keys, { pubkey: other, isSigner: true, isWritable: false }] }],
+        },
+        me,
+      ),
+    ).toMatch(/signer/);
+    expect(
+      checkSolSpec(
+        { owner: me, ix: [{ ...ix, programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }] },
+        me,
+      ),
+    ).toMatch(/allowlisted/);
   });
 });

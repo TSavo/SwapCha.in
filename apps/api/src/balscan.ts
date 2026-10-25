@@ -39,23 +39,32 @@ export function decodeAgg3Uint(hex: string, n: number): (bigint | null)[] {
 }
 
 export async function callMany(
-  chainId: number, env: NodeJS.ProcessEnv, targets: readonly string[], sel: string, arg: string,
-  chunk = 800, par = 2,
+  chainId: number,
+  env: NodeJS.ProcessEnv,
+  targets: readonly string[],
+  sel: string,
+  arg: string,
+  chunk = 800,
+  par = 2,
 ): Promise<(bigint | null)[]> {
   const c = evmClient(chainId, env);
   const out: (bigint | null)[] = new Array(targets.length).fill(null);
   const idx: number[] = [];
   for (let i = 0; i < targets.length; i += chunk) idx.push(i);
   let next = 0;
-  await Promise.all(Array.from({ length: Math.min(par, idx.length) }, async () => {
-    while (next < idx.length) {
-      const s = idx[next++]!;
-      const ts = targets.slice(s, s + chunk);
-      try {
-        const r = await c.call({ to: MC3, data: encodeAgg3(ts, sel, arg) });
-        decodeAgg3Uint(r.data ?? "0x", ts.length).forEach((v, j) => (out[s + j] = v));
-      } catch { /* chunk failed: leave nulls */ }
-    }
-  }));
+  await Promise.all(
+    Array.from({ length: Math.min(par, idx.length) }, async () => {
+      while (next < idx.length) {
+        const s = idx[next++]!;
+        const ts = targets.slice(s, s + chunk);
+        try {
+          const r = await c.call({ to: MC3, data: encodeAgg3(ts, sel, arg) });
+          decodeAgg3Uint(r.data ?? "0x", ts.length).forEach((v, j) => (out[s + j] = v));
+        } catch {
+          /* chunk failed: leave nulls */
+        }
+      }
+    }),
+  );
   return out;
 }

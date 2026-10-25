@@ -4,7 +4,7 @@
  * well-known spenders (DEX routers/aggregators, Permit2, bridges, lending pools, NFT conduits).
  * Coverage is "known spenders only": unusual spenders are NOT covered.
  */
-import { getAddress, erc20Abi, type PublicClient } from "viem";
+import { erc20Abi, getAddress, type PublicClient } from "viem";
 
 const ALL: Record<string, string> = {
   "0x000000000022D473030F116dDEE9F6B43aC78BA3": "Uniswap Permit2",
@@ -41,20 +41,36 @@ export const KNOWN_SPENDERS: Record<number, Record<string, string>> = {
   },
 };
 export const spendersFor = (chainId: number) => KNOWN_SPENDERS[chainId] ?? ALL;
-export const KNOWN_ONLY_NOTE = "checked known spenders only (major routers, Permit2, bridges, lending, NFT conduits); unusual spenders are not covered";
+export const KNOWN_ONLY_NOTE =
+  "checked known spenders only (major routers, Permit2, bridges, lending, NFT conduits); unusual spenders are not covered";
 
-export async function knownSpenderAllowances(c: Pick<PublicClient, "multicall">, chainId: number, owner: string, tokens: string[]) {
+export async function knownSpenderAllowances(
+  c: Pick<PublicClient, "multicall">,
+  chainId: number,
+  owner: string,
+  tokens: string[],
+) {
   const sp = Object.entries(spendersFor(chainId));
-  const pairs = tokens.slice(0, 40).flatMap((t) => sp.map(([s, name]) => ({ token: getAddress(t), spender: getAddress(s), name })));
+  const pairs = tokens
+    .slice(0, 40)
+    .flatMap((t) =>
+      sp.map(([s, name]) => ({ token: getAddress(t), spender: getAddress(s), name })),
+    );
   const out: { token: string; spender: string; name: string; allowance: bigint }[] = [];
   for (let i = 0; i < pairs.length; i += 400) {
     const chunk = pairs.slice(i, i + 400);
     const res = await c.multicall({
       allowFailure: true,
-      contracts: chunk.map((p) => ({ address: p.token, abi: erc20Abi, functionName: "allowance", args: [getAddress(owner), p.spender] })) as never[],
+      contracts: chunk.map((p) => ({
+        address: p.token,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [getAddress(owner), p.spender],
+      })) as never[],
     });
     res.forEach((r, j) => {
-      if (r.status === "success" && (r.result as unknown as bigint) > 0n) out.push({ ...chunk[j]!, allowance: r.result as unknown as bigint });
+      if (r.status === "success" && (r.result as unknown as bigint) > 0n)
+        out.push({ ...chunk[j]!, allowance: r.result as unknown as bigint });
     });
   }
   return out;

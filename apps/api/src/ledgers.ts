@@ -295,7 +295,13 @@ export async function xlmScan(
 }
 
 /** GET JSON from the first endpoint that answers (each with its own timeout); 404 → null. */
-async function firstOk<T>(f: F, bases: string[], path: string, label: string, ms = 5000): Promise<T | null> {
+async function firstOk<T>(
+  f: F,
+  bases: string[],
+  path: string,
+  label: string,
+  ms = 5000,
+): Promise<T | null> {
   let last: unknown;
   for (const b of bases) {
     try {
@@ -320,15 +326,19 @@ const usdOf = (p: number | undefined, v: bigint, d: number) =>
 
 export const ALGOD = ["https://mainnet-api.algonode.cloud", "https://mainnet-api.4160.nodely.dev"];
 /** ALGO balance minus the account's minimum balance (exact, from algod); ASAs are only counted. */
-export async function algoScan(f: F, account: string): Promise<{ items: NewFound[]; notChecked: string[] }> {
+export async function algoScan(
+  f: F,
+  account: string,
+): Promise<{ items: NewFound[]; notChecked: string[] }> {
   try {
     const [a, px] = await Promise.all([
-      firstOk<{ amount: number; "min-balance": number; "auth-addr"?: string; "total-assets-opted-in"?: number; assets?: unknown[] }>(
-        f,
-        ALGOD,
-        `/v2/accounts/${account}?exclude=all`,
-        "algod",
-      ),
+      firstOk<{
+        amount: number;
+        "min-balance": number;
+        "auth-addr"?: string;
+        "total-assets-opted-in"?: number;
+        assets?: unknown[];
+      }>(f, ALGOD, `/v2/accounts/${account}?exclude=all`, "algod"),
       coinPrices(f, ["algorand"]),
     ]);
     if (!a || !a.amount) return { items: [], notChecked: [] };
@@ -336,7 +346,15 @@ export async function algoScan(f: F, account: string): Promise<{ items: NewFound
       min = BigInt(a["min-balance"] ?? 100000);
     const spend = bal > min ? bal - min : 0n;
     const asas = a["total-assets-opted-in"] ?? 0;
-    const ev = [{ chainId: 0, address: account, call: "algod /v2/accounts", args: [], raw: `${a.amount} microAlgos, min-balance ${a["min-balance"]}` }];
+    const ev = [
+      {
+        chainId: 0,
+        address: account,
+        call: "algod /v2/accounts",
+        args: [],
+        raw: `${a.amount} microAlgos, min-balance ${a["min-balance"]}`,
+      },
+    ];
     const items: NewFound[] = [];
     if (spend > 0n)
       items.push({
@@ -352,7 +370,10 @@ export async function algoScan(f: F, account: string): Promise<{ items: NewFound
       } as NewFound);
     return { items, notChecked: [] };
   } catch (e) {
-    return { items: [], notChecked: [`Algorand (algod): not checked (${String((e as Error).message).slice(0, 60)})`] };
+    return {
+      items: [],
+      notChecked: [`Algorand (algod): not checked (${String((e as Error).message).slice(0, 60)})`],
+    };
   }
 }
 
@@ -364,13 +385,18 @@ export const COSMOS_LCD = [
 ];
 const uatom = (s: string) => BigInt(s.split(".")[0]!);
 /** Cosmos Hub: liquid ATOM (spendable), staking rewards (claimable), staked and unbonding ATOM (leads, not liquid). */
-export async function atomScan(f: F, account: string): Promise<{ items: NewFound[]; notChecked: string[] }> {
+export async function atomScan(
+  f: F,
+  account: string,
+): Promise<{ items: NewFound[]; notChecked: string[] }> {
   try {
     type Coin = { denom: string; amount: string };
     const q = <T>(p: string) => firstOk<T>(f, COSMOS_LCD, p, "Cosmos LCD");
     const [bank, del, unb, rew, px] = await Promise.all([
       q<{ balances: Coin[] }>(`/cosmos/bank/v1beta1/balances/${account}?pagination.limit=200`),
-      q<{ delegation_responses: { balance: Coin }[] }>(`/cosmos/staking/v1beta1/delegations/${account}`),
+      q<{ delegation_responses: { balance: Coin }[] }>(
+        `/cosmos/staking/v1beta1/delegations/${account}`,
+      ),
       q<{ unbonding_responses: { entries: { balance: string; completion_time: string }[] }[] }>(
         `/cosmos/staking/v1beta1/delegators/${account}/unbonding_delegations`,
       ),
@@ -379,8 +405,13 @@ export async function atomScan(f: F, account: string): Promise<{ items: NewFound
     ]);
     const p = px.cosmos;
     const liquid = uatom(bank?.balances.find((c) => c.denom === "uatom")?.amount ?? "0");
-    const others = (bank?.balances ?? []).filter((c) => c.denom !== "uatom" && c.amount !== "0").length;
-    const staked = (del?.delegation_responses ?? []).reduce((s, d) => s + (d.balance.denom === "uatom" ? uatom(d.balance.amount) : 0n), 0n);
+    const others = (bank?.balances ?? []).filter(
+      (c) => c.denom !== "uatom" && c.amount !== "0",
+    ).length;
+    const staked = (del?.delegation_responses ?? []).reduce(
+      (s, d) => s + (d.balance.denom === "uatom" ? uatom(d.balance.amount) : 0n),
+      0n,
+    );
     const unbE = (unb?.unbonding_responses ?? []).flatMap((u) => u.entries);
     const unbonding = unbE.reduce((s, e) => s + uatom(e.balance), 0n);
     const reward = uatom(rew?.total?.find((c) => c.denom === "uatom")?.amount ?? "0");
@@ -433,9 +464,13 @@ export async function atomScan(f: F, account: string): Promise<{ items: NewFound
         kind: "lead",
         protocol: "Cosmos Hub unbonding",
         chainId: 0,
-        what: `${fmt(unbonding, 6)} ATOM unbonding on ${account}; liquid after ${unbE.map((e) => e.completion_time.slice(0, 10)).sort().at(-1)}`,
+        what: `${fmt(unbonding, 6)} ATOM unbonding on ${account}; liquid after ${unbE
+          .map((e) => e.completion_time.slice(0, 10))
+          .sort()
+          .at(-1)}`,
         valueUsd: null,
-        action: "Nothing to sign: it returns to the liquid balance automatically when unbonding completes.",
+        action:
+          "Nothing to sign: it returns to the liquid balance automatically when unbonding completes.",
         evidence: ev,
       } as unknown as NewFound);
     if (others)
@@ -450,6 +485,9 @@ export async function atomScan(f: F, account: string): Promise<{ items: NewFound
       } as unknown as NewFound);
     return { items, notChecked: [] };
   } catch (e) {
-    return { items: [], notChecked: [`Cosmos Hub (LCD): not checked (${String((e as Error).message).slice(0, 60)})`] };
+    return {
+      items: [],
+      notChecked: [`Cosmos Hub (LCD): not checked (${String((e as Error).message).slice(0, 60)})`],
+    };
   }
 }

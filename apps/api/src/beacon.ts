@@ -1,5 +1,5 @@
-import { decodeFunctionData, parseAbiItem } from "viem";
 import { NATIVE_TOKEN } from "@swapchan/shared";
+import { decodeFunctionData, parseAbiItem } from "viem";
 import { prices, pxOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
 
@@ -11,7 +11,11 @@ import type { NewFound } from "./recover.js";
 type F = typeof fetch;
 export const DEPOSIT = "0x00000000219ab540356cBB839Cbe05303d7705Fa";
 const BEACON = process.env.BEACON_API ?? "https://ethereum-beacon-api.publicnode.com";
-const dep = [parseAbiItem("function deposit(bytes pubkey, bytes withdrawal_credentials, bytes signature, bytes32 deposit_data_root)")] as const;
+const dep = [
+  parseAbiItem(
+    "function deposit(bytes pubkey, bytes withdrawal_credentials, bytes signature, bytes32 deposit_data_root)",
+  ),
+] as const;
 
 export function pubkeyOf(input: string): string | null {
   try {
@@ -26,9 +30,16 @@ export function classify(status: string, creds: string, owner: string) {
   const t = creds.slice(0, 4);
   const toOwner = t !== "0x00" && creds.slice(-40).toLowerCase() === owner.slice(2).toLowerCase();
   if (t === "0x00")
-    return { stuck: true, action: "Withdrawals disabled (0x00 BLS credentials). Sign a BLS-to-execution change with your validator mnemonic (staking-deposit-cli / ethdo) to point it at your wallet; balance then auto-sweeps." };
+    return {
+      stuck: true,
+      action:
+        "Withdrawals disabled (0x00 BLS credentials). Sign a BLS-to-execution change with your validator mnemonic (staking-deposit-cli / ethdo) to point it at your wallet; balance then auto-sweeps.",
+    };
   if (status.startsWith("withdrawal_possible") || status.startsWith("exited"))
-    return { stuck: false, action: `Exited; balance auto-sweeps to 0x${creds.slice(-40)}${toOwner ? " (this wallet)" : ""} — no tx needed.` };
+    return {
+      stuck: false,
+      action: `Exited; balance auto-sweeps to 0x${creds.slice(-40)}${toOwner ? " (this wallet)" : ""} — no tx needed.`,
+    };
   return {
     stuck: false,
     action: toOwner
@@ -41,18 +52,43 @@ export async function beaconValidators(f: F, owner: `0x${string}`): Promise<NewF
   const keys = new Set<string>();
   let q = "";
   for (let page = 0; page < 4; page++) {
-    const r = await f(`https://eth.blockscout.com/api/v2/addresses/${owner}/transactions?filter=from${q}`, { signal: AbortSignal.timeout(6000) });
+    const r = await f(
+      `https://eth.blockscout.com/api/v2/addresses/${owner}/transactions?filter=from${q}`,
+      { signal: AbortSignal.timeout(6000) },
+    );
     if (!r.ok) break;
-    const d = (await r.json()) as { items: { to?: { hash: string } | null; raw_input: string; status: string }[]; next_page_params: Record<string, unknown> | null };
-    for (const t of d.items) if (t.status === "ok" && t.to?.hash.toLowerCase() === DEPOSIT.toLowerCase()) { const k = pubkeyOf(t.raw_input); if (k) keys.add(k); }
+    const d = (await r.json()) as {
+      items: { to?: { hash: string } | null; raw_input: string; status: string }[];
+      next_page_params: Record<string, unknown> | null;
+    };
+    for (const t of d.items)
+      if (t.status === "ok" && t.to?.hash.toLowerCase() === DEPOSIT.toLowerCase()) {
+        const k = pubkeyOf(t.raw_input);
+        if (k) keys.add(k);
+      }
     if (!d.next_page_params) break;
-    q = "&" + new URLSearchParams(Object.entries(d.next_page_params).map(([k, v]) => [k, String(v)])).toString();
+    q =
+      "&" +
+      new URLSearchParams(
+        Object.entries(d.next_page_params).map(([k, v]) => [k, String(v)]),
+      ).toString();
   }
   if (!keys.size) return [];
   const ids = [...keys].slice(0, 100);
-  const r = await f(`${BEACON}/eth/v1/beacon/states/head/validators?id=${ids.join(",")}`, { signal: AbortSignal.timeout(6000) });
+  const r = await f(`${BEACON}/eth/v1/beacon/states/head/validators?id=${ids.join(",")}`, {
+    signal: AbortSignal.timeout(6000),
+  });
   if (!r.ok) return [];
-  const vs = ((await r.json()) as { data: { index: string; balance: string; status: string; validator: { pubkey: string; withdrawal_credentials: string } }[] }).data;
+  const vs = (
+    (await r.json()) as {
+      data: {
+        index: string;
+        balance: string;
+        status: string;
+        validator: { pubkey: string; withdrawal_credentials: string };
+      }[];
+    }
+  ).data;
   const px = await prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]).catch(() => new Map());
   const eth = pxOf(px, 1, NATIVE_TOKEN)?.price ?? null;
   const out: NewFound[] = [];
@@ -69,7 +105,15 @@ export async function beaconValidators(f: F, owner: `0x${string}`): Promise<NewF
       action: c.action,
       link: `https://beaconcha.in/validator/${v.index}`,
       confidence: "high",
-      evidence: [{ chainId: 1, address: BEACON, call: "GET /eth/v1/beacon/states/head/validators", args: [v.validator.pubkey], raw: [v.balance, v.status, v.validator.withdrawal_credentials] }],
+      evidence: [
+        {
+          chainId: 1,
+          address: BEACON,
+          call: "GET /eth/v1/beacon/states/head/validators",
+          args: [v.validator.pubkey],
+          raw: [v.balance, v.status, v.validator.withdrawal_credentials],
+        },
+      ],
     });
   }
   return out;

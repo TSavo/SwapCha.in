@@ -45,18 +45,40 @@ export const DERIVATION_PATHS = [
     path: "m/84'/0'/0'/0/{i}",
   },
   { wallet: "Bitcoin Taproot (bc1p…)", chain: "btc", path: "m/86'/0'/0'/0/{i}" },
-  { wallet: "Litecoin legacy (L…; Electrum-LTC BIP39, Trezor, Ledger, Exodus)", chain: "ltc", path: "m/44'/2'/0'/0/{i}" },
-  { wallet: "Litecoin native SegWit (ltc1q…; Trezor, Ledger, Exodus)", chain: "ltc", path: "m/84'/2'/0'/0/{i}" },
-  { wallet: "Dogecoin (D…; Trezor, Ledger, Exodus, Trust)", chain: "doge", path: "m/44'/3'/0'/0/{i}" },
-  { wallet: "Bitcoin Cash (Electron Cash BIP39, Exodus, Trezor)", chain: "bch", path: "m/44'/145'/0'/0/{i}" },
+  {
+    wallet: "Litecoin legacy (L…; Electrum-LTC BIP39, Trezor, Ledger, Exodus)",
+    chain: "ltc",
+    path: "m/44'/2'/0'/0/{i}",
+  },
+  {
+    wallet: "Litecoin native SegWit (ltc1q…; Trezor, Ledger, Exodus)",
+    chain: "ltc",
+    path: "m/84'/2'/0'/0/{i}",
+  },
+  {
+    wallet: "Dogecoin (D…; Trezor, Ledger, Exodus, Trust)",
+    chain: "doge",
+    path: "m/44'/3'/0'/0/{i}",
+  },
+  {
+    wallet: "Bitcoin Cash (Electron Cash BIP39, Exodus, Trezor)",
+    chain: "bch",
+    path: "m/44'/145'/0'/0/{i}",
+  },
   { wallet: "Bitcoin Gold (Trezor, Ledger)", chain: "btg", path: "m/44'/156'/0'/0/{i}" },
-  { wallet: "Exodus: one BIP39 phrase, account 0 on each coin (BTC m/84'/0'/0', ETH m/44'/60'/0'/0/0, LTC m/84'/2'/0', DOGE m/44'/3'/0', SOL m/44'/501'/0'/0'); use index 0 first, then the GAP", chain: "multi", path: "see the coin rows" },
+  {
+    wallet:
+      "Exodus: one BIP39 phrase, account 0 on each coin (BTC m/84'/0'/0', ETH m/44'/60'/0'/0/0, LTC m/84'/2'/0', DOGE m/44'/3'/0', SOL m/44'/501'/0'/0'); use index 0 first, then the GAP",
+    chain: "multi",
+    path: "see the coin rows",
+  },
 ];
 
 /** Pre-2012 Bitcoin keys were often UNCOMPRESSED (WIF starting with 5; bitaddress.org, early Bitcoin-Qt, blockchain.info). The same key gives a different 1… address in compressed form, and fork/same-key coins (BCH, BTG, LTC, DOGE) follow the same rule. */
 export const UNCOMPRESSED_KEYS = {
   rule: "Derive BOTH the uncompressed and the compressed address of every old key and send both to find_money. A WIF starting with 5 is uncompressed; K or L is compressed. Paper wallets, brainwallets and wallets made before 2012 are usually uncompressed.",
-  offlineCode: "import { secp256k1 } from '@noble/curves/secp256k1'; import * as btc from '@scure/btc-signer'; // offline only\nconst pkU = secp256k1.getPublicKey(priv, false), pkC = secp256k1.getPublicKey(priv, true);\nconsole.log(btc.p2pkh(pkU).address, btc.p2pkh(pkC).address); // both PUBLIC -> find_money",
+  offlineCode:
+    "import { secp256k1 } from '@noble/curves/secp256k1'; import * as btc from '@scure/btc-signer'; // offline only\nconst pkU = secp256k1.getPublicKey(priv, false), pkC = secp256k1.getPublicKey(priv, true);\nconsole.log(btc.p2pkh(pkU).address, btc.p2pkh(pkC).address); // both PUBLIC -> find_money",
 };
 
 /** Offline multi-chain deriver: every path below, GAP addresses each, optional passphrase candidates; prints labeled PUBLIC addresses for find_money_batch. Verified against the public "abandon x11 about" test vectors. */

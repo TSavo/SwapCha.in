@@ -31,8 +31,11 @@ describe("outputScript parity (blocktools wasm)", () => {
   it("zec t1/t3 and all-uppercase bech32 still decode", () => {
     const z = (gold as [string, string, string][]).filter(([k, , w]) => k === "zec" && w !== "ERR");
     expect(z.length).toBeGreaterThan(0);
-    const up = (gold as [string, string, string][]).filter(([, a, w]) => w !== "ERR" && /^[A-Z0-9]+1[A-Z0-9]+$/.test(a));
+    const up = (gold as [string, string, string][]).filter(
+      ([, a, w]) => w !== "ERR" && /^[A-Z0-9]+1[A-Z0-9]+$/.test(a),
+    );
     expect(up.length).toBeGreaterThan(0);
-    for (const [k, a, w] of [...z, ...up]) expect(outputScript(a, k as never).toString("hex")).toBe(w);
+    for (const [k, a, w] of [...z, ...up])
+      expect(outputScript(a, k as never).toString("hex")).toBe(w);
   });
 });

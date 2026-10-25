@@ -29,7 +29,12 @@ const RD_V3 =
 const RD_V2 =
   "getReserveData(address) view returns ((uint256),uint128,uint128,uint128,uint128,uint128,uint40,address,address,address,address,uint8)";
 
-export function aaveWithdrawTx(chainId: number, pool: `0x${string}`, asset: `0x${string}`, owner: `0x${string}`) {
+export function aaveWithdrawTx(
+  chainId: number,
+  pool: `0x${string}`,
+  asset: `0x${string}`,
+  owner: `0x${string}`,
+) {
   return {
     chainId,
     to: pool,
@@ -70,14 +75,20 @@ async function reserves(env: NodeJS.ProcessEnv, p: (typeof AAVE_POOLS)[number]) 
   });
 }
 
-export async function aaveSupplied(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}`): Promise<NewFound[]> {
+export async function aaveSupplied(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: `0x${string}`,
+): Promise<NewFound[]> {
   const out: NewFound[] = [];
   await Promise.all(
     AAVE_POOLS.map(async (p) => {
       const c = evmClient(p.chainId, env);
       const acct = (await c.readContract({
         address: p.pool,
-        abi: fn("getUserAccountData(address) view returns (uint256,uint256,uint256,uint256,uint256,uint256)"),
+        abi: fn(
+          "getUserAccountData(address) view returns (uint256,uint256,uint256,uint256,uint256,uint256)",
+        ),
         functionName: "getUserAccountData",
         args: [owner],
       })) as bigint[];
@@ -86,21 +97,34 @@ export async function aaveSupplied(f: F, env: NodeJS.ProcessEnv, owner: `0x${str
       const bals = await c.multicall({
         allowFailure: true,
         contracts: rs.flatMap((r) => [
-          { address: r.aToken, abi: fn("balanceOf(address) view returns (uint256)"), functionName: "balanceOf", args: [owner] },
-          { address: r.asset, abi: fn("decimals() view returns (uint8)"), functionName: "decimals" },
+          {
+            address: r.aToken,
+            abi: fn("balanceOf(address) view returns (uint256)"),
+            functionName: "balanceOf",
+            args: [owner],
+          },
+          {
+            address: r.asset,
+            abi: fn("decimals() view returns (uint8)"),
+            functionName: "decimals",
+          },
           { address: r.asset, abi: fn("symbol() view returns (string)"), functionName: "symbol" },
         ]) as never,
       });
       const hits = rs
         .map((r, i) => {
-          const g = (k: number) => (bals[i * 3 + k] as { status: string; result?: unknown });
+          const g = (k: number) => bals[i * 3 + k] as { status: string; result?: unknown };
           const b = g(0).status === "success" ? (g(0).result as bigint) : 0n;
           return { ...r, bal: b, dec: Number(g(1).result ?? 18), sym: String(g(2).result ?? "?") };
         })
         .filter((h) => h.bal > 0n);
       if (!hits.length) return;
-      const px = await prices(f, hits.map((h) => ({ chainId: p.chainId, address: h.asset }))).catch(() => new Map());
-      const name = p.pool === "0xC13e21B648A5Ee794902342038FF3aDAB66BE987" ? "Spark" : `Aave ${p.ver}`;
+      const px = await prices(
+        f,
+        hits.map((h) => ({ chainId: p.chainId, address: h.asset })),
+      ).catch(() => new Map());
+      const name =
+        p.pool === "0xC13e21B648A5Ee794902342038FF3aDAB66BE987" ? "Spark" : `Aave ${p.ver}`;
       for (const h of hits) {
         const amt = formatUnits(h.bal, h.dec);
         const pr = pxOf(px, p.chainId, h.asset)?.price ?? null;
@@ -115,7 +139,14 @@ export async function aaveSupplied(f: F, env: NodeJS.ProcessEnv, owner: `0x${str
           action: `Withdraw your ${h.sym}, then swap it on SwapChan`,
           ...(usdc ? { link: swapUrl(p.chainId, h.asset, p.chainId, usdc, amt) } : {}),
           evidence: [
-            { chainId: p.chainId, address: h.aToken, call: "balanceOf(address)", abi: "balanceOf(address) view returns (uint256)", args: [owner], raw: toHex(h.bal) },
+            {
+              chainId: p.chainId,
+              address: h.aToken,
+              call: "balanceOf(address)",
+              abi: "balanceOf(address) view returns (uint256)",
+              args: [owner],
+              raw: toHex(h.bal),
+            },
           ],
           confidence: "high",
         });

@@ -1,28 +1,3 @@
-import { btDetectChains } from "./blocktools.js";
-import { migrateLinksRetention } from "./retention.js";
-import { exitDeadline, minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
-import { sablierStreams } from "./vesting.js";
-import { daoRefunds } from "./refunds.js";
-import { bridgeWithdrawals } from "./bridges.js";
-import { perpsBalances } from "./perps.js";
-import { hedgeyPlans, teamFinanceLocks, uncxLocks, superfluidBalances } from "./locks.js";
-import { marinadeTickets, kaminoObligations } from "./solstake.js";
-import { aaveSupplied } from "./aave.js";
-import { eigenLayer } from "./eigen.js";
-import { beaconValidators } from "./beacon.js";
-import { lstQueues } from "./lst.js";
-import { clPositions } from "./lp.js";
-import { v4Positions } from "./lpv4.js";
-import { ensDeeds } from "./ensdeed.js";
-import { coinOf, decodeAny, utxoSources, utxoSweep, COINS, type Coin } from "./utxochains.js";
-import { algoScan, atomScan, isXlmAddress, isXrpAddress, RECOGNISED_ONLY, recognisedOnly, signumAddress, signumScan, xlmScan, xrpScan } from "./ledgers.js";
-import { extraEvmScan, evmSweep } from "./extraevm.js";
-import { blockscoutAbi, bytecodeSelectors, resolveSelectors, recoveryCandidates } from "./abiprobe.js";
-import { ethForkScan, forkSweep, ETH_FORKS, type EthFork } from "./ethforks.js";
-import { maturedPendle } from "./pendle.js";
-import { tronExtras, tronV1Account } from "./tron2.js";
-import { stakedLp, sushiChef } from "./gauges.js";
-import { vaultPositions } from "./vaults.js";
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
 import {
@@ -46,9 +21,41 @@ import {
   toFunctionSelector,
 } from "viem";
 import { z } from "zod";
+import { aaveSupplied } from "./aave.js";
+import {
+  blockscoutAbi,
+  bytecodeSelectors,
+  recoveryCandidates,
+  resolveSelectors,
+} from "./abiprobe.js";
+import { beaconValidators } from "./beacon.js";
+import { btDetectChains } from "./blocktools.js";
+import { bridgeWithdrawals } from "./bridges.js";
+import { eigenLayer } from "./eigen.js";
+import { ensDeeds } from "./ensdeed.js";
+import { ETH_FORKS, type EthFork, ethForkScan, forkSweep } from "./ethforks.js";
+import { exitDeadline, minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
+import { evmSweep, extraEvmScan } from "./extraevm.js";
+import { stakedLp, sushiChef } from "./gauges.js";
 import { EVM_ROUTERS } from "./guard/allowlist.js";
 import { recoveryGuide } from "./keyrecovery.js";
-import { verifyRecovery } from "./recover.js";
+import {
+  algoScan,
+  atomScan,
+  isXlmAddress,
+  isXrpAddress,
+  RECOGNISED_ONLY,
+  recognisedOnly,
+  signumAddress,
+  signumScan,
+  xlmScan,
+  xrpScan,
+} from "./ledgers.js";
+import { adaScan, dotScan, tonScan } from "./ledgers2.js";
+import { hedgeyPlans, superfluidBalances, teamFinanceLocks, uncxLocks } from "./locks.js";
+import { clPositions } from "./lp.js";
+import { v4Positions } from "./lpv4.js";
+import { lstQueues } from "./lst.js";
 import { batchStatus, initBatchStore, startBatch } from "./moneybatch.js";
 import {
   ALL_IDS,
@@ -56,6 +63,7 @@ import {
   BadRequest,
   chainName,
   chainOf,
+  ETHERSCAN_FREE,
   EVM_IDS,
   EXPLORER,
   evmClient,
@@ -75,8 +83,8 @@ import {
   walletBalances,
   yields,
 } from "./onchain.js";
-import { ETHERSCAN_FREE } from "./onchain.js";
-import { adaScan, dotScan, tonScan } from "./ledgers2.js";
+import { maturedPendle } from "./pendle.js";
+import { perpsBalances } from "./perps.js";
 import { READ_OPS, readChain } from "./readchain.js";
 import {
   type Evidence,
@@ -84,12 +92,25 @@ import {
   ownedSafes,
   recoveryFlow,
   solanaStake,
+  verifyRecovery,
   wrappedNative,
 } from "./recover.js";
-import { cached, tokenRisk } from "./scanner.js";
+import { daoRefunds } from "./refunds.js";
+import { migrateLinksRetention } from "./retention.js";
 import { BusyError, gate, recordScan, withScanScope } from "./scanctx.js";
+import { cached, tokenRisk } from "./scanner.js";
+import { kaminoObligations, marinadeTickets } from "./solstake.js";
+import { tronExtras, tronV1Account } from "./tron2.js";
+import { COINS, type Coin, coinOf, decodeAny, utxoSources, utxoSweep } from "./utxochains.js";
+import { vaultPositions } from "./vaults.js";
+import { sablierStreams } from "./vesting.js";
+
 // at most N full scans at once; the rest queue (and get a 503 after the wait) instead of piling up abandoned work
-const scanGate = gate(Number(process.env.FIND_MAX_CONCURRENT ?? 4), Number(process.env.FIND_QUEUE_WAIT_MS ?? 30_000));
+const scanGate = gate(
+  Number(process.env.FIND_MAX_CONCURRENT ?? 4),
+  Number(process.env.FIND_QUEUE_WAIT_MS ?? 30_000),
+);
+
 import { btcXpubScan, logPromoteCandidate, stuckMoneyRegistry } from "./stuck.js";
 import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 
@@ -157,7 +178,11 @@ async function resolveAddr(f: F, env: NodeJS.ProcessEnv, input: string) {
  *  and XRP addresses also match the base58 charset but decode to 25 bytes (blocktools detectAddress sol = 32-byte key, fails closed); before this check they were
  *  classified "svm" and got Solana/Kamino sources and "Solana rent" lines. */
 export const vmOfAddr = (a: string) =>
-  isAddress(a) ? "evm" : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) && btDetectChains(a).includes("sol") ? "svm" : "other";
+  isAddress(a)
+    ? "evm"
+    : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) && btDetectChains(a).includes("sol")
+      ? "svm"
+      : "other";
 
 // ---------- 1. simulate_swap ----------
 const ROUTERS_BY_CHAIN = (chainId: number) =>
@@ -369,11 +394,15 @@ function explorerApi(chainId: number, env: NodeJS.ProcessEnv) {
   // (measured: half of one scan's ~40 Etherscan calls came back rate-limited); Routescan answered txlist/tokentx 2000 rows in 0.1-0.2 s and the items found were identical
   // (18/18 for one address). Etherscan then Blockscout stay as fallbacks.
   if (chainId === 1)
-    out.push({ name: "Routescan", url: (q) => `https://api.routescan.io/v2/network/mainnet/evm/1/etherscan/api?${q}` });
+    out.push({
+      name: "Routescan",
+      url: (q) => `https://api.routescan.io/v2/network/mainnet/evm/1/etherscan/api?${q}`,
+    });
   if (env.ETHERSCAN_API_KEY && ETHERSCAN_FREE.has(chainId))
     out.push({
       name: "Etherscan v2",
-      url: (q: string) => `https://api.etherscan.io/v2/api?chainid=${chainId}&${q}&apikey=${env.ETHERSCAN_API_KEY}`,
+      url: (q: string) =>
+        `https://api.etherscan.io/v2/api?chainid=${chainId}&${q}&apikey=${env.ETHERSCAN_API_KEY}`,
     });
   const bs: Record<number, string> = {
     1: "https://eth.blockscout.com/api",
@@ -386,7 +415,8 @@ function explorerApi(chainId: number, env: NodeJS.ProcessEnv) {
   };
   // Linea: its Blockscout returns the full history (measured for one address: 341 txs / 86 tokens vs Etherscan v2's
   // 0 / 44) and costs no Etherscan quota, so it goes first there; Etherscan stays the fallback.
-  if (bs[chainId] && chainId === 59144) out.unshift({ name: "Blockscout", url: (q) => `${bs[chainId]}?${q}` });
+  if (bs[chainId] && chainId === 59144)
+    out.unshift({ name: "Blockscout", url: (q) => `${bs[chainId]}?${q}` });
   else if (bs[chainId]) out.push({ name: "Blockscout", url: (q) => `${bs[chainId]}?${q}` });
   if (rs[chainId]) out.push({ name: "Routescan", url: (q) => `${rs[chainId]}?${q}` });
   return out;
@@ -1506,7 +1536,11 @@ export function fomoClaimable(tot: bigint, held: bigint | null, simOk: boolean) 
   return tot > 0n && simOk && (held === null || held >= tot);
 }
 /** IronHands payout(): half the balance goes to the queue head, capped at what the head is owed. */
-export function ironHandsPayNow(owner: string, head: readonly [string, bigint] | null, held: bigint) {
+export function ironHandsPayNow(
+  owner: string,
+  head: readonly [string, bigint] | null,
+  held: bigint,
+) {
   if (!head || head[0].toLowerCase() !== owner.toLowerCase() || held <= 1n) return 0n;
   const half = held - held / 2n;
   return half < head[1] ? half : head[1];
@@ -1650,7 +1684,9 @@ export async function legacyEth(
       // withdraw() pays from the contract's own ETH: if the contract can't cover the vaults, or an
       // eth_call of withdraw() from the owner reverts, signing would pay nothing.
       const [held, sim] = await Promise.all([
-        c0.getBalance({ address: FOMO3D, ...(block ? { blockNumber: block } : {}) }).catch(() => null),
+        c0
+          .getBalance({ address: FOMO3D, ...(block ? { blockNumber: block } : {}) })
+          .catch(() => null),
         c0
           .call({
             account: owner,
@@ -1707,7 +1743,9 @@ export async function legacyEth(
           }),
         )
         .catch(() => null),
-      c0.getBalance({ address: IRONHANDS, ...(block ? { blockNumber: block } : {}) }).catch(() => 0n),
+      c0
+        .getBalance({ address: IRONHANDS, ...(block ? { blockNumber: block } : {}) })
+        .catch(() => 0n),
     ]);
     const h = head as readonly [string, bigint] | null;
     const now = ironHandsPayNow(owner, h, held);
@@ -2184,7 +2222,14 @@ export async function tronMoney(
       ],
     });
   }
-  out.push(...((await tronExtras(f, env, owner, acct as never, trxPx, async (a) => pxOf(await prices(f, [{ chainId: TRON, address: a }]), TRON, a)).catch((e) => { if (process.env.DEBUG_TRON) console.error("tronExtras", e); return []; })) as Found[]));
+  out.push(
+    ...((await tronExtras(f, env, owner, acct as never, trxPx, async (a) =>
+      pxOf(await prices(f, [{ chainId: TRON, address: a }]), TRON, a),
+    ).catch((e) => {
+      if (process.env.DEBUG_TRON) console.error("tronExtras", e);
+      return [];
+    })) as Found[]),
+  );
   const v1Locked =
     (acct.frozen ?? [])
       .filter((x) => x.expire_time > now)
@@ -2216,12 +2261,23 @@ export async function tronMoney(
     { addr: "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7", name: "WIN", dec: 6, kind: "token" },
     { addr: "TAFjULxiVgT4qWk6UZwjqwZXTSaGaqnVp4", name: "BTT", dec: 18, kind: "token" },
   ];
-  const knownPx = await prices(f, KNOWN.filter((k) => k.kind === "token" || k.kind === "farm").map((k) => ({ chainId: TRON, address: k.addr }))).catch(() => new Map());
+  const knownPx = await prices(
+    f,
+    KNOWN.filter((k) => k.kind === "token" || k.kind === "farm").map((k) => ({
+      chainId: TRON,
+      address: k.addr,
+    })),
+  ).catch(() => new Map());
   const hex = (await import("./onchain.js")).b58decode(owner);
   const me = Buffer.from(hex.slice(1, 21)).toString("hex").padStart(64, "0");
-  const v1 = await tronV1Account(f, owner, env.TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": env.TRONGRID_API_KEY } : {});
+  const v1 = await tronV1Account(
+    f,
+    owner,
+    env.TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": env.TRONGRID_API_KEY } : {},
+  );
   const tb = new Map<string, bigint>();
-  for (const o of v1.data?.[0]?.trc20 ?? []) for (const [a, v] of Object.entries(o)) tb.set(a, BigInt(v));
+  for (const o of v1.data?.[0]?.trc20 ?? [])
+    for (const [a, v] of Object.entries(o)) tb.set(a, BigInt(v));
   void me;
   for (const k of KNOWN) {
     try {
@@ -2246,7 +2302,13 @@ export async function tronMoney(
                     ? "(pre-2021 SUN; SUN.io converts old SUN to new SUN)"
                     : "(SUN.io / farm — check claim)"
         }`,
-        valueUsd: k.name === "WTRX" && trxPx ? r2(amt * trxPx) : (() => { const p = pxOf(knownPx, TRON, k.addr)?.price; return p ? r2(amt * p) : null; })(),
+        valueUsd:
+          k.name === "WTRX" && trxPx
+            ? r2(amt * trxPx)
+            : (() => {
+                const p = pxOf(knownPx, TRON, k.addr)?.price;
+                return p ? r2(amt * p) : null;
+              })(),
         confidence: "high",
         action:
           k.kind === "unwrap"
@@ -2640,7 +2702,11 @@ export async function evmArchaeology(
       };
       // the three lists are independent: fetched together (each keeps its own rate-limit retry) instead of one after
       // another
-      const [txs, tt, nt] = await Promise.all([get("txlist", 2000), get("tokentx", 2000), get("tokennfttx", 1000)]);
+      const [txs, tt, nt] = await Promise.all([
+        get("txlist", 2000),
+        get("tokentx", 2000),
+        get("tokennfttx", 1000),
+      ]);
       called = [
         ...new Set(
           txs
@@ -2781,21 +2847,22 @@ export async function evmArchaeology(
           // mins from the live reserves read this scan (u0/u1 = pro-rata share) minus 1%, 20-minute deadline
           const deadline = exitDeadline();
           const quoted = u0 > 0n || u1 > 0n;
-          const claimTx = router && quoted
-            ? {
-                chainId,
-                to: router,
-                data: encodeFunctionData({
-                  abi: fn(
-                    "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)",
-                  ),
-                  functionName: "removeLiquidity",
-                  args: [t0a, t1a, x.bal, minOut(u0), minOut(u1), owner, deadline],
-                }),
-                value: "0",
-                description: `removeLiquidity: burn ${sh.toPrecision(5)} LP (approve ${short(x.a)}→router first)`,
-              }
-            : undefined;
+          const claimTx =
+            router && quoted
+              ? {
+                  chainId,
+                  to: router,
+                  data: encodeFunctionData({
+                    abi: fn(
+                      "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)",
+                    ),
+                    functionName: "removeLiquidity",
+                    args: [t0a, t1a, x.bal, minOut(u0), minOut(u1), owner, deadline],
+                  }),
+                  value: "0",
+                  description: `removeLiquidity: burn ${sh.toPrecision(5)} LP (approve ${short(x.a)}→router first)`,
+                }
+              : undefined;
           return {
             kind: "legacy" as const,
             protocol: `LP ${s} ${short(x.a)}`,
@@ -3003,7 +3070,10 @@ export async function evmArchaeology(
     let guessed = false;
     if (!verifiedAbi) {
       const bs = await blockscoutAbi(f, chainId, addr);
-      if (bs) { verifiedAbi = bs; verifiedSource ??= `blockscout:${chainId}:${addr}`; }
+      if (bs) {
+        verifiedAbi = bs;
+        verifiedSource ??= `blockscout:${chainId}:${addr}`;
+      }
     }
     try {
       let names: string[] = [];
@@ -3015,11 +3085,27 @@ export async function evmArchaeology(
         guessed = true;
       }
       const have = new Set(hints.map((h) => h.name));
-      for (const sig of recoveryCandidates(names, verifiedAbi as unknown[] | undefined).filter((x) => !have.has(x)).slice(0, 8)) {
+      for (const sig of recoveryCandidates(names, verifiedAbi as unknown[] | undefined)
+        .filter((x) => !have.has(x))
+        .slice(0, 8)) {
         try {
           const it = parseAbiItem(`function ${sig}`) as never;
-          await c.call({ account: owner, to: addr, data: encodeFunctionData({ abi: [it], args: sig.includes("address") ? [owner] : [] } as never) });
-          hints.push({ name: sig, selector: toFunctionSelector(`function ${sig}`), abi: `function ${sig}`, ...(guessed ? { source: "signature database guess (openchain/4byte), simulated OK" } : { source: "verified ABI, simulated OK" }) } as (typeof hints)[number]);
+          await c.call({
+            account: owner,
+            to: addr,
+            data: encodeFunctionData({
+              abi: [it],
+              args: sig.includes("address") ? [owner] : [],
+            } as never),
+          });
+          hints.push({
+            name: sig,
+            selector: toFunctionSelector(`function ${sig}`),
+            abi: `function ${sig}`,
+            ...(guessed
+              ? { source: "signature database guess (openchain/4byte), simulated OK" }
+              : { source: "verified ABI, simulated OK" }),
+          } as (typeof hints)[number]);
         } catch {}
       }
     } catch {}
@@ -3027,7 +3113,9 @@ export async function evmArchaeology(
     const prefer =
       hints.find((h) =>
         ["withdraw()", "exit()", "getReward()", "claim()", "claimRewards()"].includes(h.name),
-      ) ?? hints.find((h) => h.name === "getReward(address)") ?? (guessed ? undefined : hints[0]);
+      ) ??
+      hints.find((h) => h.name === "getReward(address)") ??
+      (guessed ? undefined : hints[0]);
     const claimTx = prefer
       ? {
           chainId,
@@ -3500,7 +3588,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     const notChecked: string[] = [];
     const SOURCE_MS = Number(env.FIND_SOURCE_TIMEOUT_MS ?? 12_000);
     // every source runs in parallel under its own deadline; a slow one becomes a "not checked" line instead of blocking
-    const timed = <T,>(n: string, p: Promise<T>, empty: T, ms = SOURCE_MS): Promise<T> => {
+    const timed = <T>(n: string, p: Promise<T>, empty: T, ms = SOURCE_MS): Promise<T> => {
       const t0 = Date.now();
       let to: ReturnType<typeof setTimeout> | undefined;
       return Promise.race([
@@ -3508,7 +3596,9 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           (v) => ((timings[n] = Date.now() - t0), v),
           (e) => {
             timings[n] = Date.now() - t0;
-            notChecked.push(`${n}: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`);
+            notChecked.push(
+              `${n}: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`,
+            );
             return empty;
           },
         ),
@@ -3525,51 +3615,85 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       const own = getAddress(address);
       const merklP = (async () => {
         const mi: Found[] = [];
-      const ids = [1, 8453, 42161, 10, 137, 56, 43114, 59144, 534352];
-      const rs = await Promise.all(
-        ids.map((id) =>
-          json<
-            {
-              chain: { id: number; name: string };
-              rewards: {
-                token: { address: string; symbol: string; decimals: number; price?: number };
-                amount: string;
-                claimed: string;
-                pending?: string;
-              }[];
-            }[]
-          >(
-            f,
-            `https://api.merkl.xyz/v4/users/${address}/rewards?chainId=${id}`,
-            undefined,
-            12_000,
-          ).catch(() => []),
-        ),
-      );
-      for (const r of rs.flat())
-        for (const w of r.rewards ?? []) {
-          const un = BigInt(w.amount) - BigInt(w.claimed);
-          if (un <= 0n) continue;
-          const amt = Number(formatUnits(un, w.token.decimals));
-          mi.push({
-            kind: "claimable",
-            protocol: "Merkl rewards",
-            chainId: r.chain.id,
-            what: `${amt.toPrecision(5)} ${w.token.symbol} unclaimed on ${r.chain.name}`,
-            valueUsd: w.token.price ? r2(amt * w.token.price) : null,
-            action: `Claim on merkl.xyz, then swap ${w.token.symbol} on SwapChan`,
-            link: toUsdc(r.chain.id, getAddress(w.token.address), String(amt)),
-          });
-        }
+        const ids = [1, 8453, 42161, 10, 137, 56, 43114, 59144, 534352];
+        const rs = await Promise.all(
+          ids.map((id) =>
+            json<
+              {
+                chain: { id: number; name: string };
+                rewards: {
+                  token: { address: string; symbol: string; decimals: number; price?: number };
+                  amount: string;
+                  claimed: string;
+                  pending?: string;
+                }[];
+              }[]
+            >(
+              f,
+              `https://api.merkl.xyz/v4/users/${address}/rewards?chainId=${id}`,
+              undefined,
+              12_000,
+            ).catch(() => []),
+          ),
+        );
+        for (const r of rs.flat())
+          for (const w of r.rewards ?? []) {
+            const un = BigInt(w.amount) - BigInt(w.claimed);
+            if (un <= 0n) continue;
+            const amt = Number(formatUnits(un, w.token.decimals));
+            mi.push({
+              kind: "claimable",
+              protocol: "Merkl rewards",
+              chainId: r.chain.id,
+              what: `${amt.toPrecision(5)} ${w.token.symbol} unclaimed on ${r.chain.name}`,
+              valueUsd: w.token.price ? r2(amt * w.token.price) : null,
+              action: `Claim on merkl.xyz, then swap ${w.token.symbol} on SwapChan`,
+              link: toUsdc(r.chain.id, getAddress(w.token.address), String(amt)),
+            });
+          }
         return mi;
       })();
       const legacyP = prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]).then((eth) =>
         legacyEth(env, own, pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null),
       );
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
-      const archChains = env.ETHERSCAN_API_KEY ? [1, 42161, 10, 137, 43114, 534352, 59144] : [1, 10, 534352, 43114, 59144];
-      const noArch = { items: [] as Found[], stats: { error: "not checked (timeout)" } as Record<string, number | string> };
-      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, forkR, xevmR, stuck, sablierR, hedgeyR, teamR, uncxR, sfR, daoR, brR, perpR, ...arch] = await Promise.all([
+      const archChains = env.ETHERSCAN_API_KEY
+        ? [1, 42161, 10, 137, 43114, 534352, 59144]
+        : [1, 10, 534352, 43114, 59144];
+      const noArch = {
+        items: [] as Found[],
+        stats: { error: "not checked (timeout)" } as Record<string, number | string>,
+      };
+      const [
+        merklR,
+        legacyR,
+        wn,
+        lido,
+        safes,
+        vaults,
+        aaveS,
+        eigen,
+        beacon,
+        lstQ,
+        lp,
+        gaugeR,
+        chefR,
+        v4R,
+        pendleR,
+        ensR,
+        forkR,
+        xevmR,
+        stuck,
+        sablierR,
+        hedgeyR,
+        teamR,
+        uncxR,
+        sfR,
+        daoR,
+        brR,
+        perpR,
+        ...arch
+      ] = await Promise.all([
         timed("Merkl", merklP, [] as Found[]),
         timed("legacy contracts", legacyP, [] as Found[]),
         timed("wrapped native", wrappedNative(f, env, own), []),
@@ -3586,50 +3710,132 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         timed("Uniswap v4 positions", v4Positions(f, env, own), []),
         timed("matured Pendle", maturedPendle(f, env, own), []),
         timed("ENS old-registrar deeds", ensDeeds(f, env, own), []),
-        timed("ETH fork chains (ETC, ETHW, EtherFair)", ethForkScan(f, own).then((r) => (notChecked.push(...r.notChecked), r.items)), []),
-        timed("extra EVM chains", extraEvmScan(f, own).then((r) => (notChecked.push(...r.notChecked), r.items)), []),
+        timed(
+          "ETH fork chains (ETC, ETHW, EtherFair)",
+          ethForkScan(f, own).then((r) => (notChecked.push(...r.notChecked), r.items)),
+          [],
+        ),
+        timed(
+          "extra EVM chains",
+          extraEvmScan(f, own).then((r) => (notChecked.push(...r.notChecked), r.items)),
+          [],
+        ),
         timed("contract registry", stuckMoneyRegistry(f, env, own), []),
         timed("Sablier vesting streams", sablierStreams(f, env, own), [] as Found[]),
-        timed("Hedgey vesting/lockup plans", hedgeyPlans(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[]),
+        timed(
+          "Hedgey vesting/lockup plans",
+          hedgeyPlans(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)),
+          [] as Found[],
+        ),
         timed("Team Finance locks", teamFinanceLocks(f, env, own), [] as Found[]),
         timed("UNCX LP locks", uncxLocks(f, env, own), [] as Found[]),
         timed("TheDAO refund", daoRefunds(f, env, own), [] as Found[]),
-        timed("Superfluid balances", superfluidBalances(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[]),
-        timed("canonical bridge withdrawals", bridgeWithdrawals(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[], 14_000),
-        timed("perps balances", perpsBalances(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[], 11_000),
-        ...archChains.map((id) => timed(`history ${chainName(id)}`, evmArchaeology(f, env, id, own), noArch, Number(env.FIND_ARCH_TIMEOUT_MS ?? 15_000))),
+        timed(
+          "Superfluid balances",
+          superfluidBalances(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)),
+          [] as Found[],
+        ),
+        timed(
+          "canonical bridge withdrawals",
+          bridgeWithdrawals(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)),
+          [] as Found[],
+          14_000,
+        ),
+        timed(
+          "perps balances",
+          perpsBalances(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)),
+          [] as Found[],
+          11_000,
+        ),
+        ...archChains.map((id) =>
+          timed(
+            `history ${chainName(id)}`,
+            evmArchaeology(f, env, id, own),
+            noArch,
+            Number(env.FIND_ARCH_TIMEOUT_MS ?? 15_000),
+          ),
+        ),
       ]);
       items.push(...(merklR as Found[]), ...(legacyR as Found[]));
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
-      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]), ...(eigen as Found[]), ...(beacon as Found[]), ...(lstQ as Found[]), ...(lp as Found[]), ...(gaugeR as Found[]), ...(chefR as Found[]), ...(v4R as Found[]), ...(pendleR as Found[]), ...(ensR as Found[]), ...(forkR as Found[]), ...(xevmR as Found[]));
-      sources.push("staked LP: every Curve gauge on 7 chains (Curve gauge list), every Convex and Aura pool, SushiSwap MasterChef v1/v2");
-      sources.push("concentrated-liquidity positions (principal + fees, exact): Uniswap v3 on 7 chains, Sushi v3, PancakeSwap v3");
-      sources.push("withdrawal queues: ether.fi, Frax, Swell, Stader; EigenLayer; beacon validators; Aave/Spark supplied; vault registry: Yearn v2/v3, Beefy, Morpho, sDAI/sUSDS/sfrxETH/scrvUSD/sUSDe on 7 EVM chains");
+      items.push(
+        ...(wn as Found[]),
+        ...(lido as Found[]),
+        ...(safes as Found[]),
+        ...(vaults as Found[]),
+        ...(aaveS as Found[]),
+        ...(eigen as Found[]),
+        ...(beacon as Found[]),
+        ...(lstQ as Found[]),
+        ...(lp as Found[]),
+        ...(gaugeR as Found[]),
+        ...(chefR as Found[]),
+        ...(v4R as Found[]),
+        ...(pendleR as Found[]),
+        ...(ensR as Found[]),
+        ...(forkR as Found[]),
+        ...(xevmR as Found[]),
+      );
+      sources.push(
+        "staked LP: every Curve gauge on 7 chains (Curve gauge list), every Convex and Aura pool, SushiSwap MasterChef v1/v2",
+      );
+      sources.push(
+        "concentrated-liquidity positions (principal + fees, exact): Uniswap v3 on 7 chains, Sushi v3, PancakeSwap v3",
+      );
+      sources.push(
+        "withdrawal queues: ether.fi, Frax, Swell, Stader; EigenLayer; beacon validators; Aave/Spark supplied; vault registry: Yearn v2/v3, Beefy, Morpho, sDAI/sUSDS/sfrxETH/scrvUSD/sUSDe on 7 EVM chains",
+      );
       sources.push(
         "unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains",
       );
-      items.push(...(stuck as Found[]), ...(sablierR as Found[]), ...(hedgeyR as Found[]), ...(teamR as Found[]), ...(uncxR as Found[]), ...(sfR as Found[]), ...(daoR as Found[]), ...(brR as Found[]), ...(perpR as Found[]));
-      sources.push("vesting/locks: Hedgey plans (8 chains), Team Finance, UNCX v2 LP locker, Superfluid Super Tokens (7 chains)");
-      sources.push("bridges: Arbitrum Outbox (unexecuted L2→L1), Optimism Portal (prove/finalize); Base not checked");
-      sources.push("perps: Hyperliquid perp+spot (note only), GMX v2 funding fees + open positions (Arbitrum)");
+      items.push(
+        ...(stuck as Found[]),
+        ...(sablierR as Found[]),
+        ...(hedgeyR as Found[]),
+        ...(teamR as Found[]),
+        ...(uncxR as Found[]),
+        ...(sfR as Found[]),
+        ...(daoR as Found[]),
+        ...(brR as Found[]),
+        ...(perpR as Found[]),
+      );
+      sources.push(
+        "vesting/locks: Hedgey plans (8 chains), Team Finance, UNCX v2 LP locker, Superfluid Super Tokens (7 chains)",
+      );
+      sources.push(
+        "bridges: Arbitrum Outbox (unexecuted L2→L1), Optimism Portal (prove/finalize); Base not checked",
+      );
+      sources.push(
+        "perps: Hyperliquid perp+spot (note only), GMX v2 funding fees + open positions (Arbitrum)",
+      );
       sources.push(
         "known-contract registry: Curve/Convex, Synthetix, Sablier, Pendle, GMX, Rocket Pool rETH, OP/Base/Arb L2 withdrawals, Polygon PoS exits, Multichain/Celer (detect), merkle airdrops (UNI/ENS/1INCH/OP/ARB)",
       );
       // a vault already reported by the vault registry is not repeated by the history scan
       const vaultKeys = new Set(
-        (vaults as Found[]).map((v) => `${v.chainId}:${String((v.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase()}`),
+        (vaults as Found[]).map(
+          (v) =>
+            `${v.chainId}:${String((v.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase()}`,
+        ),
       );
       // a position already reported with principal+fees is not repeated as "fees only"
-      const lpKeys = new Set((lp as Found[]).map((x) => `${x.chainId}:${/#(\d+)/.exec(x.what)?.[1]}`));
+      const lpKeys = new Set(
+        (lp as Found[]).map((x) => `${x.chainId}:${/#(\d+)/.exec(x.what)?.[1]}`),
+      );
       for (const a of arch)
         items.push(
           ...a.items.filter(
             (x) =>
-              !(x.protocol === "Uniswap v3 fees" && lpKeys.has(`${x.chainId}:${/#(\d+)/.exec(x.what)?.[1]}`)) &&
+              !(
+                x.protocol === "Uniswap v3 fees" &&
+                lpKeys.has(`${x.chainId}:${/#(\d+)/.exec(x.what)?.[1]}`)
+              ) &&
               !(
                 x.protocol.startsWith("Vault ") &&
-                vaultKeys.has(`${x.chainId}:${String((x.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase()}`)
+                vaultKeys.has(
+                  `${x.chainId}:${String((x.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase()}`,
+                )
               ),
           ),
         );
@@ -3641,29 +3847,46 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       // one timed source per candidate coin (version bytes collide, e.g. DGB/DOGE, VIA/VTC)
       const u = utxoSources(f, address, env);
       notChecked.push(...u.notChecked);
-      const rs = await Promise.all(u.sources.map((s) => timed(s.name, s.run(), [] as unknown[], s.ms)));
+      const rs = await Promise.all(
+        u.sources.map((s) => timed(s.name, s.run(), [] as unknown[], s.ms)),
+      );
       for (const r of rs) items.push(...(r as Found[]));
-      sources.push(`public explorers (Blockbook/Insight/qtum.info/WhatsOnChain/cryptoid) for ${u.sources.map((s) => COINS[s.coin].sym).join(", ")}`);
+      sources.push(
+        `public explorers (Blockbook/Insight/qtum.info/WhatsOnChain/cryptoid) for ${u.sources.map((s) => COINS[s.coin].sym).join(", ")}`,
+      );
     } else if (isXrpAddress(address)) {
       const r = await timed("XRP Ledger", xrpScan(f, address), { items: [], notChecked: [] });
       items.push(...(r.items as Found[]));
       notChecked.push(...r.notChecked);
-      sources.push("XRP Ledger public nodes (xrplcluster.com, ripple.com): balance, reserve, AccountDelete eligibility");
+      sources.push(
+        "XRP Ledger public nodes (xrplcluster.com, ripple.com): balance, reserve, AccountDelete eligibility",
+      );
     } else if (isXlmAddress(address)) {
       const r = await timed("Stellar", xlmScan(f, address), { items: [], notChecked: [] });
       items.push(...(r.items as Found[]));
       notChecked.push(...r.notChecked);
-      sources.push("Stellar Horizon (horizon.stellar.org): XLM balance minus base reserve, other assets as leads");
+      sources.push(
+        "Stellar Horizon (horizon.stellar.org): XLM balance minus base reserve, other assets as leads",
+      );
     } else if (recognisedOnly(address).length) {
       // every candidate is checked (never just the first), each as its own timed stage
       const cands = recognisedOnly(address);
-      const SCAN: Record<string, { run: () => Promise<{ items: unknown[]; notChecked: string[] }>; src: string }> = {
-        algo: { run: () => algoScan(f, address), src: "Algorand algod (algonode.cloud, nodely.dev): ALGO balance minus minimum balance" },
+      const SCAN: Record<
+        string,
+        { run: () => Promise<{ items: unknown[]; notChecked: string[] }>; src: string }
+      > = {
+        algo: {
+          run: () => algoScan(f, address),
+          src: "Algorand algod (algonode.cloud, nodely.dev): ALGO balance minus minimum balance",
+        },
         atom: {
           run: () => atomScan(f, address),
           src: "Cosmos Hub LCD (publicnode, cosmos.directory, polkachu, keplr): liquid ATOM, staking rewards, staked, unbonding",
         },
-        ton: { run: () => tonScan(f, address), src: "TON toncenter getAddressBalance (fallback tonapi.io): TON balance" },
+        ton: {
+          run: () => tonScan(f, address),
+          src: "TON toncenter getAddressBalance (fallback tonapi.io): TON balance",
+        },
         ada: {
           run: () => adaScan(f, address),
           src: "Cardano Koios (api.koios.rest) address_info + account_info: ADA balance, stake rewards, same-stake-key addresses, key deposit",
@@ -3691,7 +3914,9 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         items.push(...(r.items as Found[]));
         notChecked.push(...r.notChecked);
       }
-      sources.push(...cands.map((k) => SCAN[k]?.src ?? `blocktools detectAddress: ${RECOGNISED_ONLY[k]}`));
+      sources.push(
+        ...cands.map((k) => SCAN[k]?.src ?? `blocktools detectAddress: ${RECOGNISED_ONLY[k]}`),
+      );
     } else if (signumAddress(address)) {
       const r = await timed("Signum", signumScan(f, address), { items: [], notChecked: [] });
       items.push(...(r.items as Found[]));
@@ -3709,25 +3934,44 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       const [bx, fork] = await Promise.all([
         btcXpubScan(f, address).catch(() => []),
         /^(xpub|ypub|zpub|xprv)/i.test(address)
-          ? { items: [] as unknown[], notChecked: ["fork coins and same-key old coins: checked for single addresses only, not xpubs"] }
+          ? {
+              items: [] as unknown[],
+              notChecked: [
+                "fork coins and same-key old coins: checked for single addresses only, not xpubs",
+              ],
+            }
           : (() => {
               // every same-key coin is its own timed source, all in parallel with the BTC scan
               const u = utxoSources(f, address, env);
-              return Promise.all(u.sources.map((s) => timed(s.name, s.run(), [] as unknown[], s.ms))).then((rs) => ({ items: rs.flat(), notChecked: u.notChecked }));
+              return Promise.all(
+                u.sources.map((s) => timed(s.name, s.run(), [] as unknown[], s.ms)),
+              ).then((rs) => ({ items: rs.flat(), notChecked: u.notChecked }));
             })(),
       ]);
       items.push(...(bx as Found[]), ...(fork.items as Found[]));
       notChecked.push(...fork.notChecked);
       sources.push("Bitcoin xpub/address UTXO scan (blockchain.info multiaddr + mempool.space)");
-      sources.push("same key on fork coins (BCH, BTG, BSV) and old Bitcoin-family coins (LTC, DOGE, DASH, DGB, RVN, ZEC, QTUM, MONA, PPC, RDD, VTC, VIA, TRC, XPM, AUR, ...) via public explorers, each its own timed source");
+      sources.push(
+        "same key on fork coins (BCH, BTG, BSV) and old Bitcoin-family coins (LTC, DOGE, DASH, DGB, RVN, ZEC, QTUM, MONA, PPC, RDD, VTC, VIA, TRC, XPM, AUR, ...) via public explorers, each its own timed source",
+      );
     } else if (vm === "svm") {
       // Tron base58 also matches the Solana pattern, so Tron is tested first.
       // every Solana source in parallel, each under its own deadline (was serial: rent -> stake -> archaeology)
       const SOL_MS = Number(env.FIND_SOLANA_SOURCE_MS ?? 10_000);
       const sr = await Promise.all([
         timed("Solana rent", solanaRent(f, env, address), [] as Found[], SOL_MS),
-        timed("Solana stake accounts", solanaStake(f, env, address) as Promise<Found[]>, [] as Found[], SOL_MS),
-        timed("Solana program archaeology", solanaArchaeology(f, env, address) as Promise<Found[]>, [] as Found[], SOL_MS),
+        timed(
+          "Solana stake accounts",
+          solanaStake(f, env, address) as Promise<Found[]>,
+          [] as Found[],
+          SOL_MS,
+        ),
+        timed(
+          "Solana program archaeology",
+          solanaArchaeology(f, env, address) as Promise<Found[]>,
+          [] as Found[],
+          SOL_MS,
+        ),
         timed("Marinade unstake tickets", marinadeTickets(f, env, address), [] as Found[], SOL_MS),
         timed("Kamino Lend", kaminoObligations(f, address), [] as Found[], SOL_MS),
       ]);
@@ -3738,7 +3982,8 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     } else
       throw new BadRequest("airdrop_check supports EVM, Solana, Tron and Bitcoin (address/xpub)");
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
-    if (Object.keys(timings).length) console.log(JSON.stringify({ evt: "find_money_timings", ms: timings }));
+    if (Object.keys(timings).length)
+      console.log(JSON.stringify({ evt: "find_money_timings", ms: timings }));
     const top = items[0];
     return {
       address,
@@ -4560,10 +4805,19 @@ export function shorten(db: DatabaseSync, url: string) {
     if (db.prepare("SELECT 1 FROM links_retired WHERE id = ?").get(id)) continue;
     try {
       if (hit) db.prepare("UPDATE links SET id = ? WHERE url = ?").run(id, canon);
-      else db.prepare("INSERT INTO links (id, url, created) VALUES (?, ?, ?)").run(id, canon, Date.now());
+      else
+        db.prepare("INSERT INTO links (id, url, created) VALUES (?, ?, ?)").run(
+          id,
+          canon,
+          Date.now(),
+        );
       return { id, shortUrl: `${SITE}/s/${id}`, url: canon };
     } catch (e) {
-      if (!/UNIQUE/i.test(String((e as Error).message)) || /links\.url/.test(String((e as Error).message))) throw e;
+      if (
+        !/UNIQUE/i.test(String((e as Error).message)) ||
+        /links\.url/.test(String((e as Error).message))
+      )
+        throw e;
     }
   }
   throw new Error("could not allocate a short id");
@@ -4576,7 +4830,10 @@ export function resolveShort(db: DatabaseSync, id: string, count = true) {
   // Sequential legacy ids that carry a wallet address or recovery calldata are expired.
   if (isLegacyShortId(id) && linkHoldsWalletData(r.url)) return null;
   if (count)
-    db.prepare("UPDATE links SET clicks = clicks + 1, last_click = ? WHERE id = ?").run(Date.now(), id);
+    db.prepare("UPDATE links SET clicks = clicks + 1, last_click = ? WHERE id = ?").run(
+      Date.now(),
+      id,
+    );
   return {
     id,
     url: r.url,
@@ -4678,7 +4935,10 @@ export const DUST_USD = 0.5;
 export const DUST_CATEGORY = "Dust (not worth moving)";
 type DustLike = { title: string; estUsd: number | null; estimateKind: string; sweep?: unknown };
 export const isSweepDust = (i: DustLike) =>
-  !!i.sweep && i.estUsd !== null && i.estUsd < DUST_USD && (i.estimateKind === "exact" || i.estimateKind === "estimate");
+  !!i.sweep &&
+  i.estUsd !== null &&
+  i.estUsd < DUST_USD &&
+  (i.estimateKind === "exact" || i.estimateKind === "estimate");
 export function dustNote(dust: DustLike[]) {
   const amt = (t: string) => {
     const m = /^(.*?)(?: \(fork coins\)| wallet)?: (\S+ \S+) at your address/.exec(t);
@@ -4704,477 +4964,576 @@ export async function findMoney(
 ) {
   const { address, name } = await resolveAddr(f, env, input);
   const STAGE_HARD_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000) + 6_000;
-  return cached(`money:${address}`, 180_000, () => scanGate.run(() => withScanScope(STAGE_HARD_MS, async () => {
-    const t0scan = Date.now();
-    const vm = vmOfAddr(address);
-    const isTron = /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address);
-    type Item = {
-      rank?: number;
-      category: string;
-      title: string;
-      estUsd: number | null;
-      estimateKind: "exact" | "estimate" | "protected" | "lead";
-      detail: string;
-      action: string;
-      swapUrl: string;
-      protocolUrl?: string;
-      steps?: unknown[];
-      recoverUrl?: string;
-      shortUrl?: string | null;
-      claimTx?: unknown;
-      revokeTx?: unknown;
-    };
-    const items: Item[] = [];
-    const errors: string[] = [];
-    const notChecked: string[] = [];
-    const fmMs: Record<string, number> = {};
-    const STAGE_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000);
-    const run = async <T>(n: string, p: () => Promise<T>) => {
-      const t0 = Date.now();
-      let to: ReturnType<typeof setTimeout> | undefined;
-      try {
-        return await Promise.race([
-          p(),
-          new Promise<never>((_, rej) => {
-            to = setTimeout(() => rej(new Error(`timed out after ${STAGE_MS / 1000}s`)), STAGE_MS);
-          }),
-        ]);
-      } catch (e) {
-        const msg = (e as Error).message.slice(0, 120);
-        if (msg.startsWith("timed out")) notChecked.push(`${n}: not checked (${msg})`);
-        else errors.push(`${n}: ${msg}`);
-        return null;
-      } finally {
-        clearTimeout(to);
-        fmMs[n] = Date.now() - t0;
-      }
-    };
-    const ledgerOnly = isXrpAddress(address) || isXlmAddress(address) || !!signumAddress(address) || recognisedOnly(address).length > 0;
-    const balP = ledgerOnly ? Promise.resolve(null) : run("balances", () => walletBalances(f, env, address));
-    // tail work gets its own deadline too, so the total is the slowest stage, not stage + tail
-    const cap = async <T,>(n: string, p: Promise<T>, empty: T, ms: number): Promise<T> => {
-      const t0 = Date.now();
-      let to: ReturnType<typeof setTimeout> | undefined;
-      try {
-        return await Promise.race([p, new Promise<T>((res) => { to = setTimeout(() => { notChecked.push(`${n}: not checked (timed out after ${ms / 1000}s)`); res(empty); }, ms); })]);
-      } catch {
-        return empty;
-      } finally {
-        clearTimeout(to);
-        fmMs[n] = Date.now() - t0;
-      }
-    };
-    const riskOf = (H: { chainId: number; address: string; symbol: string; balance: string; valueUsd: number | null }[]) => Promise.all(
-      H.filter(
-        (h) =>
-          (h.valueUsd ?? 0) >= 5 &&
-          !isNative(h.chainId, h.address) &&
-          !STABLES.has(h.symbol.toUpperCase()),
-      )
-        .slice(0, 8)
-        .map(async (h) => {
-          const sc = Object.entries({
-            solana: SOLANA,
-            base: 8453,
-            bnb: 56,
-            eth: 1,
-            arbitrum: 42161,
-            polygon: 137,
-            optimism: 10,
-            avalanche: 43114,
-          }).find(([, v]) => v === h.chainId)?.[0] as Parameters<typeof tokenRisk>[2] | undefined;
-          if (!sc) return null;
-          const r = await tokenRisk(f, env, sc, h.address).catch(() => null);
-          return r && (r as { level: string }).level === "high"
-            ? { h, flags: (r as { flags: string[] }).flags }
-            : null;
-        }),
-    );
-    // starts as soon as balances land, concurrent with the other stages
-    const riskP = (balP as Promise<{ holdings?: { chainId: number; address: string; symbol: string; balance: string; valueUsd: number | null }[] } | null>).then((b) => riskOf(b?.holdings ?? [])).catch(() => [] as Awaited<ReturnType<typeof riskOf>>);
-    const [balR, air, lend, appr, pools, gasNow] = await Promise.all([
-      balP,
-      run("claimables", () => airdropCheck(f, env, address)),
-      vm === "evm"
-        ? run("lending", async () => {
-            const eth = await prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]);
-            return lending(f, env, getAddress(address), pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null);
-          })
-        : Promise.resolve(null),
-      vm === "evm"
-        ? run("approvals", async () =>
-            (
-              await Promise.all(
-                APPROVAL_CHAINS.map((id) =>
-                  // per-chain deadline: one slow explorer degrades only its own chain, never the whole stage
-                  Promise.race([
-                    approvals(f, env, address, id).then((r) => {
-                      if (r.coverage.includes("known spenders only")) notChecked.push(`approvals on ${chainName(id)}: checked known spenders only (unusual spenders not covered)`);
-                      return r;
-                    }),
-                    new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout")), Number(env.FIND_APPROVAL_CHAIN_MS ?? 13_000))),
-                  ]).catch((e) => {
-                    notChecked.push(`approvals not checked on ${chainName(id)}${(e as Error).message === "timeout" ? " (explorer too slow)" : ""}`);
-                    return null;
-                  }),
-                ),
-              )
-            ).filter(Boolean),
-          )
-        : Promise.resolve(null),
-      run("yields", () => yields(f, { stablecoinOnly: true, minTvlUsd: 10_000_000, limit: 50 })),
-      run("gas", () => gas(f, env)),
-    ]);
-    const bal = balR as {
-      totalUsd: number;
-      holdings: {
-        chainId: number;
-        address: string;
-        symbol: string;
-        balance: string;
-        priceUsd: number | null;
-        valueUsd: number | null;
-      }[];
-    } | null;
-    const H = bal?.holdings ?? [];
-    const airSources = [...new Set((air as { sources?: string[] } | null)?.sources ?? [])];
-    for (const n of (air as { notChecked?: string[] } | null)?.notChecked ?? []) notChecked.push(n);
-    console.log(JSON.stringify({ evt: "find_money_stages", ms: fmMs, sources: (air as { timingsMs?: unknown } | null)?.timingsMs }));
-    for (const it of (air as { items?: Found[] } | null)?.items ?? [])
-      items.push({
-        category:
-          it.kind === "lead"
-            ? "Leads (not money, not counted)"
-            : it.kind === "solana-rent"
-              ? "Reclaim rent"
-              : it.kind === "lending"
-                ? "Lending position"
-                : it.kind === "legacy"
-                  ? "Forgotten money in old contracts"
-                  : it.kind === "tron"
-                    ? "Tron rewards/unstake"
-                    : it.kind === "balance"
-                      ? "Spendable balance"
-                      : "Unclaimed rewards",
-        title: `${it.protocol}: ${it.what}`,
-        estUsd: it.kind === "lead" ? null : it.valueUsd,
-        estimateKind: it.kind === "lead" ? "lead" : it.valueUsd === null || /\bestimate\b/i.test(it.what ?? "") ? "estimate" : "exact",
-        detail: it.risk ?? "",
-        action: it.action,
-        swapUrl: it.link?.startsWith(SITE)
-          ? it.link
-          : it.chainId === TRON || it.chainId === SOLANA || it.chainId === BITCOIN
-            ? toUsdc(it.chainId, nativeOf(it.chainId))
-            : toUsdc(it.chainId, it.underlying ?? nativeOf(it.chainId)),
-        ...(it.link && !it.link.startsWith(SITE) && it.kind !== "lead"
-          ? { protocolUrl: it.link }
-          : {}),
-        ...(it.claimTx ? { claimTx: it.claimTx } : {}),
-        ...(it.sweep ? { sweep: it.sweep } : {}),
-        ...(it.evidence?.length ? { evidence: it.evidence } : {}),
-      });
-    for (const it of (lend as Found[] | null) ?? [])
-      items.push({
-        category:
-          it.kind === "claimable"
-            ? "Unclaimed rewards"
-            : it.risk
-              ? "At-risk lending position"
-              : "Lending position",
-        title: `${it.protocol}: ${it.what}`,
-        estUsd: it.valueUsd,
-        estimateKind: "exact",
-        detail: it.risk ?? "",
-        action: it.action,
-        swapUrl: it.link?.startsWith(SITE) ? it.link : toUsdc(it.chainId, nativeOf(it.chainId)),
-        ...(it.link && !it.link.startsWith(SITE) ? { protocolUrl: it.link } : {}),
-        ...(it.claimTx ? { claimTx: it.claimTx } : {}),
-        ...(it.evidence?.length ? { evidence: it.evidence } : {}),
-      });
-    // risky approvals (money protected)
-    for (const a of (appr as
-      | {
-          chainId: number;
-          approvals: {
-            symbol: string;
-            spender: string;
-            spenderName: string | null;
-            risk: string;
-            allowance: string;
-            token: string;
-            revokeTx: unknown;
-          }[];
-        }[]
-      | null) ?? [])
-      for (const x of a.approvals.filter((y) => y.risk === "high").slice(0, 5)) {
-        const held = H.find(
-          (h) => h.chainId === a.chainId && h.address.toLowerCase() === x.token.toLowerCase(),
-        );
-        items.push({
-          category: "Risky approval",
-          title: `Revoke ${x.symbol} approval to ${x.spenderName ?? short(x.spender)} on ${chainName(a.chainId)}`,
-          estUsd: (() => {
-            const v = held?.valueUsd ?? null;
-            const al = Number(x.allowance);
-            return v !== null && Number.isFinite(al) && held?.priceUsd
-              ? r2(Math.min(v, al * held.priceUsd))
-              : v;
-          })(),
-          estimateKind: "protected",
-          detail: `${x.allowance} allowance, flagged high risk`,
-          action: "Sign the revokeTx, then swap freely",
-          swapUrl: toUsdc(a.chainId, x.token),
-          revokeTx: x.revokeTx,
-        });
-      }
-    // idle stablecoins -> best yield
-    const P =
-      (
-        pools as {
-          pools?: {
-            project: string;
-            chain: string;
-            chainId: number;
-            symbol: string;
-            apy: number;
-            swapIntoUnderlying: string | null;
-          }[];
-        } | null
-      )?.pools ?? [];
-    for (const h of H.filter(
-      (x) => STABLES.has(x.symbol.toUpperCase()) && (x.valueUsd ?? 0) >= 50,
-    )) {
-      const best = P.filter((p) =>
-        p.symbol.toUpperCase().includes(h.symbol.toUpperCase().replace(".E", "")),
-      ).sort(
-        (a, b) =>
-          Number(b.chainId === h.chainId) - Number(a.chainId === h.chainId) || b.apy - a.apy,
-      )[0];
-      if (best)
-        items.push({
-          category: "Idle stablecoins",
-          title: `${h.balance} ${h.symbol} on ${chainName(h.chainId)} is idle`,
-          estUsd: r2(((h.valueUsd ?? 0) * best.apy) / 100),
-          estimateKind: "estimate",
-          detail: `≈$${r2(((h.valueUsd ?? 0) * best.apy) / 100)}/yr at ${best.apy}% APY on ${best.project} (${best.chain}); variable, not guaranteed`,
-          action:
-            best.chainId === h.chainId
-              ? `Deposit on ${best.project}`
-              : `Bridge to ${best.chain} with SwapChan, then deposit on ${best.project}`,
-          swapUrl:
-            best.chainId === h.chainId
-              ? SITE
-              : swapUrl(
-                  h.chainId,
-                  h.address,
-                  best.chainId,
-                  best.swapIntoUnderlying
-                    ? (new URL(best.swapIntoUnderlying).searchParams.get("toToken") ??
-                        usdcOf(best.chainId)!)
-                    : usdcOf(best.chainId)!,
-                  h.balance,
-                ),
-        });
-    }
-    // dust consolidation
-    const dust = H.filter(
-      (x) =>
-        (x.valueUsd ?? 0) > 0.5 && (x.valueUsd ?? 0) < 20 && !STABLES.has(x.symbol.toUpperCase()),
-    );
-    if (dust.length >= 2) {
-      const sum = r2(dust.reduce((s, d) => s + (d.valueUsd ?? 0), 0));
-      const link = db
-        ? await cap("dust batch link", batchLink(
-            f,
-            env,
-            db,
-            dust.slice(0, 10).map((d) => ({
-              fromChain: d.chainId,
-              fromToken: d.address,
-              toChain: d.chainId,
-              toToken: usdcOf(d.chainId) ?? nativeOf(d.chainId),
-              amount: d.balance,
-            })),
-          ).catch(() => null), null, 4_000)
-        : null;
-      items.push({
-        category: "Dust to consolidate",
-        title: `${dust.length} small balances worth $${sum}`,
-        estUsd: sum,
-        estimateKind: "exact",
-        detail: dust.map((d) => `${d.symbol} $${r2(d.valueUsd ?? 0)}`).join(", "),
-        action:
-          "Sweep them into USDC in one batch (check gas first: on mainnet some dust costs more to move than it's worth)",
-        swapUrl: link?.url ?? toUsdc(dust[0]!.chainId, dust[0]!.address, dust[0]!.balance),
-        shortUrl: link?.shortUrl ?? null,
-      });
-    }
-    // risky tokens to exit
-    const riskChecks = await cap("high-risk token checks", riskP, [] as Awaited<typeof riskP>, Number(env.FIND_RISK_MS ?? 6_000));
-    for (const x of riskChecks.filter((y): y is NonNullable<typeof y> => !!y))
-      items.push({
-        category: "High-risk token to exit",
-        title: `${x.h.symbol} on ${chainName(x.h.chainId)} is flagged high risk`,
-        estUsd: x.h.valueUsd,
-        estimateKind: "protected",
-        detail: x.flags.slice(0, 4).join("; "),
-        action:
-          "Exit to USDC before it goes to zero (if it's a honeypot, the sell may fail; simulate first)",
-        swapUrl: toUsdc(x.h.chainId, x.h.address, x.h.balance),
-      });
-    // gas window
-    const cheapest = (gasNow as { cheapest?: { chain: string; swapCostUsd: number } } | null)
-      ?.cheapest;
-    const ethGas = (
-      (gasNow as { chains?: { chainId: number; swapCostUsd?: number }[] } | null)?.chains ?? []
-    ).find((c) => c.chainId === 1)?.swapCostUsd;
-    const ethHeavy = H.filter((h) => h.chainId === 1).length;
-    if (ethHeavy && ethGas && cheapest && ethGas > 1)
-      items.push({
-        category: "Cheaper gas",
-        title: `Mainnet swaps cost ~$${r2(ethGas)} now vs ~$${cheapest.swapCostUsd.toFixed(3)} on ${cheapest.chain}`,
-        estUsd: r2((ethGas - cheapest.swapCostUsd) * Math.min(ethHeavy, 10)),
-        estimateKind: "estimate",
-        detail:
-          "Estimated savings if your next swaps of these holdings happen on an L2 instead of mainnet",
-        action: "Bridge once to an L2 and trade there",
-        swapUrl: swapUrl(1, NATIVE_TOKEN, 8453, NATIVE_TOKEN),
-      });
-    // coin balances worth less than moving them: one plain "dust" note, no numbered items, no instructions
-    {
-      const dust = items.filter((i) => isSweepDust(i));
-      if (dust.length) {
-        for (const d of dust) items.splice(items.indexOf(d), 1);
-        items.push(dustNote(dust));
-      }
-    }
-    const order = (i: Item) =>
-      (i.category.startsWith("At-risk") ? 1e12 : 0) +
-      (i.estUsd ?? 0) * (i.estimateKind === "estimate" ? 0.5 : 1);
-    items.sort((a, b) => order(b) - order(a));
-    // short links for the top items
-    if (db)
-      for (const it of items.slice(0, 10))
-        if (!it.shortUrl && it.swapUrl.startsWith(SITE))
+  return cached(`money:${address}`, 180_000, () =>
+    scanGate.run(() =>
+      withScanScope(STAGE_HARD_MS, async () => {
+        const t0scan = Date.now();
+        const vm = vmOfAddr(address);
+        const isTron = /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address);
+        type Item = {
+          rank?: number;
+          category: string;
+          title: string;
+          estUsd: number | null;
+          estimateKind: "exact" | "estimate" | "protected" | "lead";
+          detail: string;
+          action: string;
+          swapUrl: string;
+          protocolUrl?: string;
+          steps?: unknown[];
+          recoverUrl?: string;
+          shortUrl?: string | null;
+          claimTx?: unknown;
+          revokeTx?: unknown;
+        };
+        const items: Item[] = [];
+        const errors: string[] = [];
+        const notChecked: string[] = [];
+        const fmMs: Record<string, number> = {};
+        const STAGE_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000);
+        const run = async <T>(n: string, p: () => Promise<T>) => {
+          const t0 = Date.now();
+          let to: ReturnType<typeof setTimeout> | undefined;
           try {
-            it.shortUrl = shorten(db, it.swapUrl).shortUrl;
-          } catch {}
-    items.forEach((it, i) => {
-      it.rank = i + 1;
-    });
-    // guided recovery: step 1 sign the claim/withdraw/unstake on swapchan.com/recover, step 2 swap to USDC
-    for (const it of items) {
-      if (
-        it.estimateKind === "protected" ||
-        it.estimateKind === "lead" ||
-        it.category === "Cheaper gas" ||
-        it.category === DUST_CATEGORY ||
-        it.category === "Idle stablecoins" ||
-        /: Not claimable/.test(it.title)
-      )
-        continue;
-      Object.assign(it, recoveryFlow(db, shorten, address, it as never));
-    }
-    // "swap all of it": one batch link over every recoverable finding's swap step
-    const swapAll = db
-      ? await (async () => {
-          const rows = items
-            .filter(
-              (i) =>
-                i.estimateKind !== "protected" &&
-                i.swapUrl.startsWith(`${SITE}/?`) &&
-                (i.estUsd ?? 0) >= 1,
-            )
-            .map((i) => new URL(i.swapUrl).searchParams)
-            .filter(
-              (q) =>
-                q.get("fromToken") && q.get("toToken") && q.get("fromToken") !== q.get("toToken"),
-            )
-            .slice(0, 20)
-            .map((q) => ({
-              fromChain: Number(q.get("fromChain")),
-              fromToken: q.get("fromToken")!,
-              toChain: Number(q.get("toChain") ?? q.get("fromChain")),
-              toToken: q.get("toToken")!,
-              ...(q.get("amount") ? { amount: q.get("amount")! } : {}),
-            }));
-          return rows.length >= 2 ? cap("swap-all batch link", batchLink(f, env, db, rows as never).catch(() => null), null, 4_000) : null;
-        })()
-      : null;
-    console.log(JSON.stringify({ evt: "find_money_total", ms: fmMs }));
-    {
-      const srcMs = ((air as { timingsMs?: Record<string, number> } | null)?.timingsMs ?? {}) as Record<string, number>;
-      recordScan({
-        ms: Date.now() - t0scan,
-        checks: Object.keys(fmMs).length + Object.keys(srcMs).length,
-        timeouts: notChecked.filter((n) => n.includes("timed out")).length,
-      });
-    }
-    const total = r2(
-      items.filter((i) => i.estimateKind !== "protected").reduce((s, i) => s + (i.estUsd ?? 0), 0),
-    );
-    const protectedUsd = r2(
-      items.filter((i) => i.estimateKind === "protected").reduce((s, i) => s + (i.estUsd ?? 0), 0),
-    );
-    return {
-      address,
-      ...(name ? { name } : {}),
-      portfolioUsd: bal?.totalUsd ?? null,
-      opportunities: items.length,
-      ...(swapAll
-        ? {
-            swapAll: {
-              label: "Swap all of it to USDC (one guided batch)",
-              url: swapAll.url,
-              shortUrl: swapAll.shortUrl,
-            },
+            return await Promise.race([
+              p(),
+              new Promise<never>((_, rej) => {
+                to = setTimeout(
+                  () => rej(new Error(`timed out after ${STAGE_MS / 1000}s`)),
+                  STAGE_MS,
+                );
+              }),
+            ]);
+          } catch (e) {
+            const msg = (e as Error).message.slice(0, 120);
+            if (msg.startsWith("timed out")) notChecked.push(`${n}: not checked (${msg})`);
+            else errors.push(`${n}: ${msg}`);
+            return null;
+          } finally {
+            clearTimeout(to);
+            fmMs[n] = Date.now() - t0;
           }
-        : {}),
-      trust:
-        "Trustless: SwapChan never signs, never holds keys or funds, and cannot move money. Every recoveryTx is unsigned; your own wallet signs it.",
-      flow: "Each item has steps: [1] sign the recovery tx on swapchan.com/recover (claim/withdraw/unstake/unwrap; built only when every recipient argument is your own wallet), [2] swap to USDC. swapAll batches every swap step.",
-      totalEstUsd: total,
-      atRiskUsd: protectedUsd,
-      totals:
-        "totalEstUsd = claimable/recoverable/estimated savings; atRiskUsd = value exposed to risky approvals or high-risk tokens (protect it, not new money)",
-      items,
-      // the per-chain scanners' sources (Stellar Horizon, XRPL nodes, explorers...); ledger-only addresses get only these
-      sources: airSources,
-      checked: ledgerOnly
-        ? airSources
-        : [
-        "wallet balances",
-        "unclaimed rewards (Merkl)",
-        "legacy contracts (PoWH3D, Fomo3D, EtherDelta ETH+ERC-20, IDEX v1, Liquity)",
-        "contract archaeology (EVM full history: reward views, vaults, LPs, Uniswap v3 fees, NFTs)",
-        ...(vm === "evm"
-          ? [
-              "lending (Aave v2/v3, Compound v2/v3, Venus, Liquity)",
-              `approvals on ${APPROVAL_CHAINS.map(chainName)
-                .filter((n) => !notChecked.some((x) => x.endsWith(` ${n}`)))
-                .join("/")}`,
-            ]
-          : []),
-        "idle stablecoin yields (DefiLlama)",
-        "dust",
-        "token risk",
-        "gas",
-        ...(vm === "svm" && !isTron ? ["Solana rent in empty token accounts"] : []),
-        ...(isTron ? ["Tron rewards/unfreezes/dividend contracts/JustLend"] : []),
-        ...airSources,
-      ],
-      notChecked: [
-        ...notChecked,
-        "Stuck bridge transfers need a tx hash (use bridge_doctor). One-off project airdrops have no free unified source. EVM balances cover SwapChan-listed tokens only.",
-      ],
-      errors,
-      disclaimer:
-        "Estimates are labeled; yields are variable; nothing is financial advice. Claim/revoke txs are unsigned and only built for allowlisted contracts.",
-      next: items[0]
-        ? cta(`#1: ${items[0].title}`, items[0].swapUrl)
-        : cta("Nothing found to recover. Swap at the best price on SwapChan", SITE),
-    };
-  })));
+        };
+        const ledgerOnly =
+          isXrpAddress(address) ||
+          isXlmAddress(address) ||
+          !!signumAddress(address) ||
+          recognisedOnly(address).length > 0;
+        const balP = ledgerOnly
+          ? Promise.resolve(null)
+          : run("balances", () => walletBalances(f, env, address));
+        // tail work gets its own deadline too, so the total is the slowest stage, not stage + tail
+        const cap = async <T>(n: string, p: Promise<T>, empty: T, ms: number): Promise<T> => {
+          const t0 = Date.now();
+          let to: ReturnType<typeof setTimeout> | undefined;
+          try {
+            return await Promise.race([
+              p,
+              new Promise<T>((res) => {
+                to = setTimeout(() => {
+                  notChecked.push(`${n}: not checked (timed out after ${ms / 1000}s)`);
+                  res(empty);
+                }, ms);
+              }),
+            ]);
+          } catch {
+            return empty;
+          } finally {
+            clearTimeout(to);
+            fmMs[n] = Date.now() - t0;
+          }
+        };
+        const riskOf = (
+          H: {
+            chainId: number;
+            address: string;
+            symbol: string;
+            balance: string;
+            valueUsd: number | null;
+          }[],
+        ) =>
+          Promise.all(
+            H.filter(
+              (h) =>
+                (h.valueUsd ?? 0) >= 5 &&
+                !isNative(h.chainId, h.address) &&
+                !STABLES.has(h.symbol.toUpperCase()),
+            )
+              .slice(0, 8)
+              .map(async (h) => {
+                const sc = Object.entries({
+                  solana: SOLANA,
+                  base: 8453,
+                  bnb: 56,
+                  eth: 1,
+                  arbitrum: 42161,
+                  polygon: 137,
+                  optimism: 10,
+                  avalanche: 43114,
+                }).find(([, v]) => v === h.chainId)?.[0] as
+                  | Parameters<typeof tokenRisk>[2]
+                  | undefined;
+                if (!sc) return null;
+                const r = await tokenRisk(f, env, sc, h.address).catch(() => null);
+                return r && (r as { level: string }).level === "high"
+                  ? { h, flags: (r as { flags: string[] }).flags }
+                  : null;
+              }),
+          );
+        // starts as soon as balances land, concurrent with the other stages
+        const riskP = (
+          balP as Promise<{
+            holdings?: {
+              chainId: number;
+              address: string;
+              symbol: string;
+              balance: string;
+              valueUsd: number | null;
+            }[];
+          } | null>
+        )
+          .then((b) => riskOf(b?.holdings ?? []))
+          .catch(() => [] as Awaited<ReturnType<typeof riskOf>>);
+        const [balR, air, lend, appr, pools, gasNow] = await Promise.all([
+          balP,
+          run("claimables", () => airdropCheck(f, env, address)),
+          vm === "evm"
+            ? run("lending", async () => {
+                const eth = await prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]);
+                return lending(
+                  f,
+                  env,
+                  getAddress(address),
+                  pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null,
+                );
+              })
+            : Promise.resolve(null),
+          vm === "evm"
+            ? run("approvals", async () =>
+                (
+                  await Promise.all(
+                    APPROVAL_CHAINS.map((id) =>
+                      // per-chain deadline: one slow explorer degrades only its own chain, never the whole stage
+                      Promise.race([
+                        approvals(f, env, address, id).then((r) => {
+                          if (r.coverage.includes("known spenders only"))
+                            notChecked.push(
+                              `approvals on ${chainName(id)}: checked known spenders only (unusual spenders not covered)`,
+                            );
+                          return r;
+                        }),
+                        new Promise<never>((_, rej) =>
+                          setTimeout(
+                            () => rej(new Error("timeout")),
+                            Number(env.FIND_APPROVAL_CHAIN_MS ?? 13_000),
+                          ),
+                        ),
+                      ]).catch((e) => {
+                        notChecked.push(
+                          `approvals not checked on ${chainName(id)}${(e as Error).message === "timeout" ? " (explorer too slow)" : ""}`,
+                        );
+                        return null;
+                      }),
+                    ),
+                  )
+                ).filter(Boolean),
+              )
+            : Promise.resolve(null),
+          run("yields", () =>
+            yields(f, { stablecoinOnly: true, minTvlUsd: 10_000_000, limit: 50 }),
+          ),
+          run("gas", () => gas(f, env)),
+        ]);
+        const bal = balR as {
+          totalUsd: number;
+          holdings: {
+            chainId: number;
+            address: string;
+            symbol: string;
+            balance: string;
+            priceUsd: number | null;
+            valueUsd: number | null;
+          }[];
+        } | null;
+        const H = bal?.holdings ?? [];
+        const airSources = [...new Set((air as { sources?: string[] } | null)?.sources ?? [])];
+        for (const n of (air as { notChecked?: string[] } | null)?.notChecked ?? [])
+          notChecked.push(n);
+        console.log(
+          JSON.stringify({
+            evt: "find_money_stages",
+            ms: fmMs,
+            sources: (air as { timingsMs?: unknown } | null)?.timingsMs,
+          }),
+        );
+        for (const it of (air as { items?: Found[] } | null)?.items ?? [])
+          items.push({
+            category:
+              it.kind === "lead"
+                ? "Leads (not money, not counted)"
+                : it.kind === "solana-rent"
+                  ? "Reclaim rent"
+                  : it.kind === "lending"
+                    ? "Lending position"
+                    : it.kind === "legacy"
+                      ? "Forgotten money in old contracts"
+                      : it.kind === "tron"
+                        ? "Tron rewards/unstake"
+                        : it.kind === "balance"
+                          ? "Spendable balance"
+                          : "Unclaimed rewards",
+            title: `${it.protocol}: ${it.what}`,
+            estUsd: it.kind === "lead" ? null : it.valueUsd,
+            estimateKind:
+              it.kind === "lead"
+                ? "lead"
+                : it.valueUsd === null || /\bestimate\b/i.test(it.what ?? "")
+                  ? "estimate"
+                  : "exact",
+            detail: it.risk ?? "",
+            action: it.action,
+            swapUrl: it.link?.startsWith(SITE)
+              ? it.link
+              : it.chainId === TRON || it.chainId === SOLANA || it.chainId === BITCOIN
+                ? toUsdc(it.chainId, nativeOf(it.chainId))
+                : toUsdc(it.chainId, it.underlying ?? nativeOf(it.chainId)),
+            ...(it.link && !it.link.startsWith(SITE) && it.kind !== "lead"
+              ? { protocolUrl: it.link }
+              : {}),
+            ...(it.claimTx ? { claimTx: it.claimTx } : {}),
+            ...(it.sweep ? { sweep: it.sweep } : {}),
+            ...(it.evidence?.length ? { evidence: it.evidence } : {}),
+          });
+        for (const it of (lend as Found[] | null) ?? [])
+          items.push({
+            category:
+              it.kind === "claimable"
+                ? "Unclaimed rewards"
+                : it.risk
+                  ? "At-risk lending position"
+                  : "Lending position",
+            title: `${it.protocol}: ${it.what}`,
+            estUsd: it.valueUsd,
+            estimateKind: "exact",
+            detail: it.risk ?? "",
+            action: it.action,
+            swapUrl: it.link?.startsWith(SITE) ? it.link : toUsdc(it.chainId, nativeOf(it.chainId)),
+            ...(it.link && !it.link.startsWith(SITE) ? { protocolUrl: it.link } : {}),
+            ...(it.claimTx ? { claimTx: it.claimTx } : {}),
+            ...(it.evidence?.length ? { evidence: it.evidence } : {}),
+          });
+        // risky approvals (money protected)
+        for (const a of (appr as
+          | {
+              chainId: number;
+              approvals: {
+                symbol: string;
+                spender: string;
+                spenderName: string | null;
+                risk: string;
+                allowance: string;
+                token: string;
+                revokeTx: unknown;
+              }[];
+            }[]
+          | null) ?? [])
+          for (const x of a.approvals.filter((y) => y.risk === "high").slice(0, 5)) {
+            const held = H.find(
+              (h) => h.chainId === a.chainId && h.address.toLowerCase() === x.token.toLowerCase(),
+            );
+            items.push({
+              category: "Risky approval",
+              title: `Revoke ${x.symbol} approval to ${x.spenderName ?? short(x.spender)} on ${chainName(a.chainId)}`,
+              estUsd: (() => {
+                const v = held?.valueUsd ?? null;
+                const al = Number(x.allowance);
+                return v !== null && Number.isFinite(al) && held?.priceUsd
+                  ? r2(Math.min(v, al * held.priceUsd))
+                  : v;
+              })(),
+              estimateKind: "protected",
+              detail: `${x.allowance} allowance, flagged high risk`,
+              action: "Sign the revokeTx, then swap freely",
+              swapUrl: toUsdc(a.chainId, x.token),
+              revokeTx: x.revokeTx,
+            });
+          }
+        // idle stablecoins -> best yield
+        const P =
+          (
+            pools as {
+              pools?: {
+                project: string;
+                chain: string;
+                chainId: number;
+                symbol: string;
+                apy: number;
+                swapIntoUnderlying: string | null;
+              }[];
+            } | null
+          )?.pools ?? [];
+        for (const h of H.filter(
+          (x) => STABLES.has(x.symbol.toUpperCase()) && (x.valueUsd ?? 0) >= 50,
+        )) {
+          const best = P.filter((p) =>
+            p.symbol.toUpperCase().includes(h.symbol.toUpperCase().replace(".E", "")),
+          ).sort(
+            (a, b) =>
+              Number(b.chainId === h.chainId) - Number(a.chainId === h.chainId) || b.apy - a.apy,
+          )[0];
+          if (best)
+            items.push({
+              category: "Idle stablecoins",
+              title: `${h.balance} ${h.symbol} on ${chainName(h.chainId)} is idle`,
+              estUsd: r2(((h.valueUsd ?? 0) * best.apy) / 100),
+              estimateKind: "estimate",
+              detail: `≈$${r2(((h.valueUsd ?? 0) * best.apy) / 100)}/yr at ${best.apy}% APY on ${best.project} (${best.chain}); variable, not guaranteed`,
+              action:
+                best.chainId === h.chainId
+                  ? `Deposit on ${best.project}`
+                  : `Bridge to ${best.chain} with SwapChan, then deposit on ${best.project}`,
+              swapUrl:
+                best.chainId === h.chainId
+                  ? SITE
+                  : swapUrl(
+                      h.chainId,
+                      h.address,
+                      best.chainId,
+                      best.swapIntoUnderlying
+                        ? (new URL(best.swapIntoUnderlying).searchParams.get("toToken") ??
+                            usdcOf(best.chainId)!)
+                        : usdcOf(best.chainId)!,
+                      h.balance,
+                    ),
+            });
+        }
+        // dust consolidation
+        const dust = H.filter(
+          (x) =>
+            (x.valueUsd ?? 0) > 0.5 &&
+            (x.valueUsd ?? 0) < 20 &&
+            !STABLES.has(x.symbol.toUpperCase()),
+        );
+        if (dust.length >= 2) {
+          const sum = r2(dust.reduce((s, d) => s + (d.valueUsd ?? 0), 0));
+          const link = db
+            ? await cap(
+                "dust batch link",
+                batchLink(
+                  f,
+                  env,
+                  db,
+                  dust.slice(0, 10).map((d) => ({
+                    fromChain: d.chainId,
+                    fromToken: d.address,
+                    toChain: d.chainId,
+                    toToken: usdcOf(d.chainId) ?? nativeOf(d.chainId),
+                    amount: d.balance,
+                  })),
+                ).catch(() => null),
+                null,
+                4_000,
+              )
+            : null;
+          items.push({
+            category: "Dust to consolidate",
+            title: `${dust.length} small balances worth $${sum}`,
+            estUsd: sum,
+            estimateKind: "exact",
+            detail: dust.map((d) => `${d.symbol} $${r2(d.valueUsd ?? 0)}`).join(", "),
+            action:
+              "Sweep them into USDC in one batch (check gas first: on mainnet some dust costs more to move than it's worth)",
+            swapUrl: link?.url ?? toUsdc(dust[0]!.chainId, dust[0]!.address, dust[0]!.balance),
+            shortUrl: link?.shortUrl ?? null,
+          });
+        }
+        // risky tokens to exit
+        const riskChecks = await cap(
+          "high-risk token checks",
+          riskP,
+          [] as Awaited<typeof riskP>,
+          Number(env.FIND_RISK_MS ?? 6_000),
+        );
+        for (const x of riskChecks.filter((y): y is NonNullable<typeof y> => !!y))
+          items.push({
+            category: "High-risk token to exit",
+            title: `${x.h.symbol} on ${chainName(x.h.chainId)} is flagged high risk`,
+            estUsd: x.h.valueUsd,
+            estimateKind: "protected",
+            detail: x.flags.slice(0, 4).join("; "),
+            action:
+              "Exit to USDC before it goes to zero (if it's a honeypot, the sell may fail; simulate first)",
+            swapUrl: toUsdc(x.h.chainId, x.h.address, x.h.balance),
+          });
+        // gas window
+        const cheapest = (gasNow as { cheapest?: { chain: string; swapCostUsd: number } } | null)
+          ?.cheapest;
+        const ethGas = (
+          (gasNow as { chains?: { chainId: number; swapCostUsd?: number }[] } | null)?.chains ?? []
+        ).find((c) => c.chainId === 1)?.swapCostUsd;
+        const ethHeavy = H.filter((h) => h.chainId === 1).length;
+        if (ethHeavy && ethGas && cheapest && ethGas > 1)
+          items.push({
+            category: "Cheaper gas",
+            title: `Mainnet swaps cost ~$${r2(ethGas)} now vs ~$${cheapest.swapCostUsd.toFixed(3)} on ${cheapest.chain}`,
+            estUsd: r2((ethGas - cheapest.swapCostUsd) * Math.min(ethHeavy, 10)),
+            estimateKind: "estimate",
+            detail:
+              "Estimated savings if your next swaps of these holdings happen on an L2 instead of mainnet",
+            action: "Bridge once to an L2 and trade there",
+            swapUrl: swapUrl(1, NATIVE_TOKEN, 8453, NATIVE_TOKEN),
+          });
+        // coin balances worth less than moving them: one plain "dust" note, no numbered items, no instructions
+        {
+          const dust = items.filter((i) => isSweepDust(i));
+          if (dust.length) {
+            for (const d of dust) items.splice(items.indexOf(d), 1);
+            items.push(dustNote(dust));
+          }
+        }
+        const order = (i: Item) =>
+          (i.category.startsWith("At-risk") ? 1e12 : 0) +
+          (i.estUsd ?? 0) * (i.estimateKind === "estimate" ? 0.5 : 1);
+        items.sort((a, b) => order(b) - order(a));
+        // short links for the top items
+        if (db)
+          for (const it of items.slice(0, 10))
+            if (!it.shortUrl && it.swapUrl.startsWith(SITE))
+              try {
+                it.shortUrl = shorten(db, it.swapUrl).shortUrl;
+              } catch {}
+        items.forEach((it, i) => {
+          it.rank = i + 1;
+        });
+        // guided recovery: step 1 sign the claim/withdraw/unstake on swapchan.com/recover, step 2 swap to USDC
+        for (const it of items) {
+          if (
+            it.estimateKind === "protected" ||
+            it.estimateKind === "lead" ||
+            it.category === "Cheaper gas" ||
+            it.category === DUST_CATEGORY ||
+            it.category === "Idle stablecoins" ||
+            /: Not claimable/.test(it.title)
+          )
+            continue;
+          Object.assign(it, recoveryFlow(db, shorten, address, it as never));
+        }
+        // "swap all of it": one batch link over every recoverable finding's swap step
+        const swapAll = db
+          ? await (async () => {
+              const rows = items
+                .filter(
+                  (i) =>
+                    i.estimateKind !== "protected" &&
+                    i.swapUrl.startsWith(`${SITE}/?`) &&
+                    (i.estUsd ?? 0) >= 1,
+                )
+                .map((i) => new URL(i.swapUrl).searchParams)
+                .filter(
+                  (q) =>
+                    q.get("fromToken") &&
+                    q.get("toToken") &&
+                    q.get("fromToken") !== q.get("toToken"),
+                )
+                .slice(0, 20)
+                .map((q) => ({
+                  fromChain: Number(q.get("fromChain")),
+                  fromToken: q.get("fromToken")!,
+                  toChain: Number(q.get("toChain") ?? q.get("fromChain")),
+                  toToken: q.get("toToken")!,
+                  ...(q.get("amount") ? { amount: q.get("amount")! } : {}),
+                }));
+              return rows.length >= 2
+                ? cap(
+                    "swap-all batch link",
+                    batchLink(f, env, db, rows as never).catch(() => null),
+                    null,
+                    4_000,
+                  )
+                : null;
+            })()
+          : null;
+        console.log(JSON.stringify({ evt: "find_money_total", ms: fmMs }));
+        {
+          const srcMs = ((air as { timingsMs?: Record<string, number> } | null)?.timingsMs ??
+            {}) as Record<string, number>;
+          recordScan({
+            ms: Date.now() - t0scan,
+            checks: Object.keys(fmMs).length + Object.keys(srcMs).length,
+            timeouts: notChecked.filter((n) => n.includes("timed out")).length,
+          });
+        }
+        const total = r2(
+          items
+            .filter((i) => i.estimateKind !== "protected")
+            .reduce((s, i) => s + (i.estUsd ?? 0), 0),
+        );
+        const protectedUsd = r2(
+          items
+            .filter((i) => i.estimateKind === "protected")
+            .reduce((s, i) => s + (i.estUsd ?? 0), 0),
+        );
+        return {
+          address,
+          ...(name ? { name } : {}),
+          portfolioUsd: bal?.totalUsd ?? null,
+          opportunities: items.length,
+          ...(swapAll
+            ? {
+                swapAll: {
+                  label: "Swap all of it to USDC (one guided batch)",
+                  url: swapAll.url,
+                  shortUrl: swapAll.shortUrl,
+                },
+              }
+            : {}),
+          trust:
+            "Trustless: SwapChan never signs, never holds keys or funds, and cannot move money. Every recoveryTx is unsigned; your own wallet signs it.",
+          flow: "Each item has steps: [1] sign the recovery tx on swapchan.com/recover (claim/withdraw/unstake/unwrap; built only when every recipient argument is your own wallet), [2] swap to USDC. swapAll batches every swap step.",
+          totalEstUsd: total,
+          atRiskUsd: protectedUsd,
+          totals:
+            "totalEstUsd = claimable/recoverable/estimated savings; atRiskUsd = value exposed to risky approvals or high-risk tokens (protect it, not new money)",
+          items,
+          // the per-chain scanners' sources (Stellar Horizon, XRPL nodes, explorers...); ledger-only addresses get only these
+          sources: airSources,
+          checked: ledgerOnly
+            ? airSources
+            : [
+                "wallet balances",
+                "unclaimed rewards (Merkl)",
+                "legacy contracts (PoWH3D, Fomo3D, EtherDelta ETH+ERC-20, IDEX v1, Liquity)",
+                "contract archaeology (EVM full history: reward views, vaults, LPs, Uniswap v3 fees, NFTs)",
+                ...(vm === "evm"
+                  ? [
+                      "lending (Aave v2/v3, Compound v2/v3, Venus, Liquity)",
+                      `approvals on ${APPROVAL_CHAINS.map(chainName)
+                        .filter((n) => !notChecked.some((x) => x.endsWith(` ${n}`)))
+                        .join("/")}`,
+                    ]
+                  : []),
+                "idle stablecoin yields (DefiLlama)",
+                "dust",
+                "token risk",
+                "gas",
+                ...(vm === "svm" && !isTron ? ["Solana rent in empty token accounts"] : []),
+                ...(isTron ? ["Tron rewards/unfreezes/dividend contracts/JustLend"] : []),
+                ...airSources,
+              ],
+          notChecked: [
+            ...notChecked,
+            "Stuck bridge transfers need a tx hash (use bridge_doctor). One-off project airdrops have no free unified source. EVM balances cover SwapChan-listed tokens only.",
+          ],
+          errors,
+          disclaimer:
+            "Estimates are labeled; yields are variable; nothing is financial advice. Claim/revoke txs are unsigned and only built for allowlisted contracts.",
+          next: items[0]
+            ? cta(`#1: ${items[0].title}`, items[0].swapUrl)
+            : cta("Nothing found to recover. Swap at the best price on SwapChan", SITE),
+        };
+      }),
+    ),
+  );
 }
 
 // ---------- routes ----------
@@ -5269,7 +5628,11 @@ export function intelRoutes(
   app.get("/recover-verify", (c) =>
     run(c, async () =>
       verifyRecovery(
-        { to: c.req.query("to") ?? "", data: c.req.query("data") ?? "0x", value: c.req.query("value") ?? "0" },
+        {
+          to: c.req.query("to") ?? "",
+          data: c.req.query("data") ?? "0x",
+          value: c.req.query("value") ?? "0",
+        },
         c.req.query("owner") ?? "",
       ),
     ),
@@ -5277,9 +5640,16 @@ export function intelRoutes(
   app.get("/utxo-sweep", (c) =>
     run(c, async () => {
       const coin = c.req.query("coin") as Coin;
-      if (!COINS[coin]) throw new BadRequest(`coin must be one of ${Object.keys(COINS).join(", ")}`);
+      if (!COINS[coin])
+        throw new BadRequest(`coin must be one of ${Object.keys(COINS).join(", ")}`);
       const fr = c.req.query("feeRate");
-      return utxoSweep(f, coin, c.req.query("from") ?? "", c.req.query("to") ?? "", fr ? Number(fr) : undefined).catch((e) => {
+      return utxoSweep(
+        f,
+        coin,
+        c.req.query("from") ?? "",
+        c.req.query("to") ?? "",
+        fr ? Number(fr) : undefined,
+      ).catch((e) => {
         throw new BadRequest((e as Error).message);
       });
     }),
@@ -5287,7 +5657,8 @@ export function intelRoutes(
   app.get("/fork-sweep", (c) =>
     run(c, async () => {
       const k = c.req.query("chain") as EthFork;
-      if (!ETH_FORKS[k]) throw new BadRequest(`chain must be one of ${Object.keys(ETH_FORKS).join(", ")}`);
+      if (!ETH_FORKS[k])
+        throw new BadRequest(`chain must be one of ${Object.keys(ETH_FORKS).join(", ")}`);
       return forkSweep(f, k, c.req.query("from") ?? "", c.req.query("to") ?? "").catch((e) => {
         throw new BadRequest((e as Error).message);
       });
@@ -5295,7 +5666,13 @@ export function intelRoutes(
   );
   app.get("/evm-sweep", (c) =>
     run(c, async () =>
-      evmSweep(f, c.req.query("chain") ?? "", c.req.query("from") ?? "", c.req.query("to") ?? "", c.req.query("token") || undefined).catch((e) => {
+      evmSweep(
+        f,
+        c.req.query("chain") ?? "",
+        c.req.query("from") ?? "",
+        c.req.query("to") ?? "",
+        c.req.query("token") || undefined,
+      ).catch((e) => {
         throw new BadRequest((e as Error).message);
       }),
     ),
@@ -5349,7 +5726,11 @@ export function intelRoutes(
     ),
   );
   app.get("/airdrops", (c) =>
-    run(c, () => scanGate.run(() => withScanScope(20_000, () => airdropCheck(f, env, need(c.req.query("address"), "address"))))),
+    run(c, () =>
+      scanGate.run(() =>
+        withScanScope(20_000, () => airdropCheck(f, env, need(c.req.query("address"), "address"))),
+      ),
+    ),
   );
   app.get("/market", (c) => run(c, () => marketContext(f)));
   app.post("/rebalance", (c) =>

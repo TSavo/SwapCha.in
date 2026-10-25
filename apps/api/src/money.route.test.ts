@@ -44,15 +44,21 @@ describe("/onchain/money routes every old coin to its own sources", () => {
   const cases = (Object.keys(COINS) as Coin[])
     .map((k) => [k, REAL[k] ?? convert(BTC, k)] as const)
     .filter((c): c is readonly [Coin, string] => !!c[1] && c[0] !== "btc");
-  it.each(cases)("%s %s", async (k, addr) => {
-    const r = await scan(addr);
-    expect(r.status).toBe(200);
-    expect(r.text).not.toMatch(/Solana|Kamino/);
-    const row = COINS[k] as { name: string; src: { type: string; urls?: string[] } | null };
-    const hosts = (row.src?.urls ?? []).map(hostOf);
-    const hit = r.urls.some((u) =>
-      row.src?.type === "cryptoid" ? /cryptoid/.test(u) && u.includes(`/${k}/`) : hosts.includes(hostOf(u)),
-    );
-    expect(hit || r.text.includes(row.name)).toBe(true);
-  }, 20_000);
+  it.each(cases)(
+    "%s %s",
+    async (k, addr) => {
+      const r = await scan(addr);
+      expect(r.status).toBe(200);
+      expect(r.text).not.toMatch(/Solana|Kamino/);
+      const row = COINS[k] as { name: string; src: { type: string; urls?: string[] } | null };
+      const hosts = (row.src?.urls ?? []).map(hostOf);
+      const hit = r.urls.some((u) =>
+        row.src?.type === "cryptoid"
+          ? /cryptoid/.test(u) && u.includes(`/${k}/`)
+          : hosts.includes(hostOf(u)),
+      );
+      expect(hit || r.text.includes(row.name)).toBe(true);
+    },
+    20_000,
+  );
 });

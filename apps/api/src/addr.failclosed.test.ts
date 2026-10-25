@@ -29,8 +29,12 @@ describe("address fallbacks fail closed without blocktools (no TS fallback)", ()
     expect(() => i.vmOfAddr("So11111111111111111111111111111111111111112")).toThrow(
       /blocktools unavailable/,
     );
-    expect(() => u.outputScript("LW98ceYNxYki9e9QxDACLn82TtVEPm4qmy", "ltc")).toThrow(/blocktools unavailable/);
-    expect(() => u.decodeFor("LW98ceYNxYki9e9QxDACLn82TtVEPm4qmy", "ltc")).toThrow(/blocktools unavailable/);
+    expect(() => u.outputScript("LW98ceYNxYki9e9QxDACLn82TtVEPm4qmy", "ltc")).toThrow(
+      /blocktools unavailable/,
+    );
+    expect(() => u.decodeFor("LW98ceYNxYki9e9QxDACLn82TtVEPm4qmy", "ltc")).toThrow(
+      /blocktools unavailable/,
+    );
     expect(i.vmOfAddr("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")).toBe("evm");
   }, 60_000);
 });

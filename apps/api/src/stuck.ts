@@ -4,10 +4,10 @@
  * (intel.ts) — archaeology on every chain; promote recurring unknown hits here.
  */
 
-import { exitDeadline, minOut } from "./exitguard.js";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { BITCOIN, NATIVE_TOKEN } from "@swapchan/shared";
 import { encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
+import { exitDeadline, minOut } from "./exitguard.js";
 import { evmClient, json, prices, pxOf, SITE, swapUrl, usdcOf } from "./onchain.js";
 import type { Evidence } from "./recover.js";
 

@@ -1,6 +1,3 @@
-import { type BtVerdict, btVerifyRecovery } from "./blocktools.js";
-import { checkSolSpec, encodeSol, type SolIx, type SolSpec } from "./solrecover.js";
-import { tronSpec, verifyTronSpec, encodeSpec } from "./tronrecover.js";
 import type { DatabaseSync } from "node:sqlite";
 import { NATIVE_TOKEN, SOLANA, SUPPORTED_CHAINS } from "@swapchan/shared";
 import {
@@ -11,6 +8,7 @@ import {
   toFunctionSelector,
   toHex,
 } from "viem";
+import { type BtVerdict, btVerifyRecovery } from "./blocktools.js";
 import {
   chainName,
   evmClient,
@@ -22,6 +20,8 @@ import {
   swapUrl,
   usdcOf,
 } from "./onchain.js";
+import { checkSolSpec, encodeSol, type SolIx, type SolSpec } from "./solrecover.js";
+import { encodeSpec, tronSpec, verifyTronSpec } from "./tronrecover.js";
 
 /**
  * Guided recovery: every stuck-money finding becomes
@@ -62,7 +62,10 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
     sig: "completeQueuedWithdrawal((address staker,address delegatedTo,address withdrawer,uint256 nonce,uint32 startBlock,address[] strategies,uint256[] scaledShares),address[],bool)",
     owners: [-2],
   },
-  { sig: "queueWithdrawals((address[] strategies,uint256[] depositShares,address withdrawer)[])", owners: [] },
+  {
+    sig: "queueWithdrawals((address[] strategies,uint256[] depositShares,address withdrawer)[])",
+    owners: [],
+  },
   { sig: "redeem(uint256,address,address)", owners: [1, 2] },
   { sig: "withdrawToken(address,uint256)", owners: [] },
   { sig: "claimComp(address)", owners: [0] },
@@ -83,9 +86,15 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "releaseDeed(bytes32)", owners: [] },
   { sig: "claim(uint256,address,uint256,bytes32[])", owners: [1] },
   { sig: "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)", owners: [5] },
-  { sig: "exitPostExpToToken(address,address,uint256,uint256,(address,uint256,address,address,(uint8,address,bytes,bool)))", owners: [0] },
+  {
+    sig: "exitPostExpToToken(address,address,uint256,uint256,(address,uint256,address,address,(uint8,address,bytes,bool)))",
+    owners: [0],
+  },
   { sig: "redeem(address,uint256,address,uint256,bool)", owners: [0] },
-  { sig: "decreaseLiquidity((uint256 tokenId,uint128 liquidity,uint256 amount0Min,uint256 amount1Min,uint256 deadline))", owners: [] },
+  {
+    sig: "decreaseLiquidity((uint256 tokenId,uint128 liquidity,uint256 amount0Min,uint256 amount1Min,uint256 deadline))",
+    owners: [],
+  },
   {
     sig: "collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max))",
     owners: [-1],
@@ -207,27 +216,55 @@ export function recoveryFlow(
   const tt = (it.claimTx as { tronTx?: unknown; description?: string } | undefined)?.tronTx;
   const spec = tt ? tronSpec(tt) : null;
   if (spec && verifyTronSpec(spec, owner)) {
-    const q = new URLSearchParams({ tron: encodeSpec(spec), title: it.title.slice(0, 140), next: it.swapUrl });
+    const q = new URLSearchParams({
+      tron: encodeSpec(spec),
+      title: it.title.slice(0, 140),
+      next: it.swapUrl,
+    });
     rurl = `${SITE}/recover?${q}`;
-    steps.push({ step: 1, kind: "recover", label: `Sign: ${(it.claimTx as { description?: string }).description ?? spec.endpoint} (TronLink)`, url: rurl, shortUrl: s(rurl) } as Step);
+    steps.push({
+      step: 1,
+      kind: "recover",
+      label: `Sign: ${(it.claimTx as { description?: string }).description ?? spec.endpoint} (TronLink)`,
+      url: rurl,
+      shortUrl: s(rurl),
+    } as Step);
   }
-  const st = (it.claimTx as { solanaTx?: { kind?: string; data?: { instructions?: SolIx[] } }; description?: string } | undefined)?.solanaTx;
+  const st = (
+    it.claimTx as
+      | { solanaTx?: { kind?: string; data?: { instructions?: SolIx[] } }; description?: string }
+      | undefined
+  )?.solanaTx;
   if (!rurl && st?.kind === "svm-instructions" && st.data?.instructions?.length) {
     const sspec: SolSpec = { owner, ix: st.data.instructions };
     if (!checkSolSpec(sspec, owner)) {
-      const q = new URLSearchParams({ sol: encodeSol(sspec), title: it.title.slice(0, 140), next: it.swapUrl });
+      const q = new URLSearchParams({
+        sol: encodeSol(sspec),
+        title: it.title.slice(0, 140),
+        next: it.swapUrl,
+      });
       rurl = `${SITE}/recover?${q}`;
-      steps.push({ step: 1, kind: "recover", label: `Sign: ${(it.claimTx as { description?: string }).description ?? "Solana recovery"} (Solana wallet)`, url: rurl, shortUrl: s(rurl) } as Step);
+      steps.push({
+        step: 1,
+        kind: "recover",
+        label: `Sign: ${(it.claimTx as { description?: string }).description ?? "Solana recovery"} (Solana wallet)`,
+        url: rurl,
+        shortUrl: s(rurl),
+      } as Step);
     }
   }
   const sw = (it as { sweep?: Sweep }).sweep;
   if (sw && !rurl) {
     rurl = sweepUrl(sw, it.title);
-    const label = sw.kind === "utxo" ? `Build the unsigned ${sw.sym} sweep to your own ${sw.sym} address, then sign it offline` : `Get it back: sign the ${sw.sym} transfer to your connected wallet`;
+    const label =
+      sw.kind === "utxo"
+        ? `Build the unsigned ${sw.sym} sweep to your own ${sw.sym} address, then sign it offline`
+        : `Get it back: sign the ${sw.sym} transfer to your connected wallet`;
     steps.push({ step: 1, kind: "recover", label, url: rurl, shortUrl: s(rurl) } as Step);
     // SwapChan has no route for these coins yet: no fake swap link
     const fc = Number(/fromChain=(\d+)&/.exec(it.swapUrl ?? "")?.[1] ?? "0");
-    if (!it.swapUrl || !(fc in SUPPORTED_CHAINS)) return { steps, recoverUrl: rurl, swapUrl: rurl } as never;
+    if (!it.swapUrl || !(fc in SUPPORTED_CHAINS))
+      return { steps, recoverUrl: rurl, swapUrl: rurl } as never;
   }
   // chains SwapChan cannot route yet (XRP, Signum): no fake swap link, no recover step
   if (!rurl && /fromChain=0&/.test(it.swapUrl ?? "")) return { steps, swapUrl: SITE } as never;
@@ -260,7 +297,13 @@ export interface NewFound {
   /** Non-EVM / fork-chain balance: /recover?sweep= builds the unsigned sweep in the browser. */
   sweep?: Sweep;
 }
-export type Sweep = { kind: "utxo" | "fork" | "evm"; coin: string; from: string; sym: string; token?: string };
+export type Sweep = {
+  kind: "utxo" | "fork" | "evm";
+  coin: string;
+  from: string;
+  sym: string;
+  token?: string;
+};
 export function sweepUrl(sw: Sweep, title: string) {
   return `${SITE}/recover?${new URLSearchParams({ sweep: sw.kind, coin: sw.coin, from: sw.from, sym: sw.sym, ...(sw.token ? { token: sw.token } : {}), title: title.slice(0, 140) })}`;
 }

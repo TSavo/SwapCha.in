@@ -5,7 +5,13 @@
 // (100..103) where the links.db target, the one that was resolving, is kept.
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { initLinksDb, isLegacyShortId, linkHoldsWalletData, migrateStrayLinks, resolveShort } from "./intel.js";
+import {
+  initLinksDb,
+  isLegacyShortId,
+  linkHoldsWalletData,
+  migrateStrayLinks,
+  resolveShort,
+} from "./intel.js";
 import issued from "./issued-links.fixture.json" with { type: "json" };
 
 type Row = { url: string; created: number; source: string };

@@ -4,7 +4,9 @@ import { BusyError, gate, scanSignal, withScanScope } from "./scanctx.js";
 describe("scan scope", () => {
   it("aborts the scope's signal when the scan settles, so abandoned work is cancelled", async () => {
     let sig: AbortSignal | undefined;
-    await withScanScope(10_000, async () => { sig = scanSignal(); });
+    await withScanScope(10_000, async () => {
+      sig = scanSignal();
+    });
     expect(sig?.aborted).toBe(true);
   });
   it("aborts at the hard deadline while still running", async () => {
@@ -17,7 +19,15 @@ describe("scan scope", () => {
   });
   it("nested scopes inherit the parent's abort", async () => {
     let inner: AbortSignal | undefined;
-    await withScanScope(10_000, async () => { await withScanScope(10_000, async () => { inner = scanSignal(); }, 1000); });
+    await withScanScope(10_000, async () => {
+      await withScanScope(
+        10_000,
+        async () => {
+          inner = scanSignal();
+        },
+        1000,
+      );
+    });
     expect(inner?.aborted).toBe(true);
   });
 });

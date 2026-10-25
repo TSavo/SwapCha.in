@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { installScopedFetch, startWatchdog } from "./scanctx.js";
+
 installScopedFetch();
 const { createApp } = await import("./index.js");
 

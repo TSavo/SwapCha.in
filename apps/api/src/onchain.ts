@@ -264,10 +264,17 @@ export const llamaId = (chainId: number, a: string) =>
 /** Only BTC wrappers legitimately trade above $15k per token. Anything else that high (e.g. HAY at $50k), anything
  *  over $1M, or a low-confidence quote is dropped: amount still shown, USD left unpriced and flagged unverified. */
 const HIGH_OK = /BTC|^SATS?$/i;
-export function sanePx<T extends { price?: number; symbol?: string; confidence?: number }>(v: T): T & { unverified?: true } {
+export function sanePx<T extends { price?: number; symbol?: string; confidence?: number }>(
+  v: T,
+): T & { unverified?: true } {
   const p = v.price;
   if (p === undefined) return v;
-  const absurd = !Number.isFinite(p) || p < 0 || p > 1_000_000 || (p > 15_000 && !HIGH_OK.test(v.symbol ?? "")) || (v.confidence !== undefined && v.confidence < 0.5);
+  const absurd =
+    !Number.isFinite(p) ||
+    p < 0 ||
+    p > 1_000_000 ||
+    (p > 15_000 && !HIGH_OK.test(v.symbol ?? "")) ||
+    (v.confidence !== undefined && v.confidence < 0.5);
   if (!absurd) return v;
   const { price: _drop, ...rest } = v;
   return { ...(rest as T), unverified: true };
@@ -608,7 +615,8 @@ export async function walletBalances(
   };
 }
 
-import { knownSpenderAllowances, spendersFor, KNOWN_ONLY_NOTE } from "./knownspenders.js";
+import { KNOWN_ONLY_NOTE, knownSpenderAllowances, spendersFor } from "./knownspenders.js";
+
 // ---------- 2. approvals ----------
 const APPROVAL_TOPIC = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -621,7 +629,10 @@ const APPROVAL_EXPLORER: Record<number, string[]> = {
 /** Chains the free Etherscan v2 tier serves (OP, Base, BSC, Avalanche are paid-only; Scroll unsupported). */
 export const ETHERSCAN_FREE = new Set([1, 137, 42161, 59144]);
 /** Public RPCs that answer a full-range topic-filtered eth_getLogs. */
-const FULL_RANGE_LOG_RPC: Record<number, string> = { 534352: "https://rpc.scroll.io", 10: "https://mainnet.optimism.io" };
+const FULL_RANGE_LOG_RPC: Record<number, string> = {
+  534352: "https://rpc.scroll.io",
+  10: "https://mainnet.optimism.io",
+};
 type SpenderInfo = {
   contract_name?: string | null;
   tag?: string | null;
@@ -685,7 +696,12 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
       `https://api.gopluslabs.io/api/v2/token_approval_security/${chainId}?addresses=${o}`,
       undefined,
       // no log history on this chain: leave time for the known-spender scan inside find_money's per-chain deadline
-      ROUTESCAN.has(chainId) || APPROVAL_EXPLORER[chainId] || FULL_RANGE_LOG_RPC[chainId] || ETHERSCAN_FREE.has(chainId) ? 20_000 : 6_000,
+      ROUTESCAN.has(chainId) ||
+        APPROVAL_EXPLORER[chainId] ||
+        FULL_RANGE_LOG_RPC[chainId] ||
+        ETHERSCAN_FREE.has(chainId)
+        ? 20_000
+        : 6_000,
     ),
   ).catch(() => null);
   if (gp?.code === 1) {
@@ -715,10 +731,18 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
         // public Blockscout instances rate-limit bursts (the history scan hits the same host); back off and retry
         let r: { message?: string; result: Log[] | null | string } = { result: null };
         for (let i = 0; i < 3; i++) {
-          r = await json<{ message?: string; result: Log[] | null | string }>(f, url, undefined, 10_000).catch(
-            (e) => ({ message: String((e as Error).message), result: null }),
-          );
-          if (!/too many|429|rate limit/i.test(`${r.message ?? ""} ${typeof r.result === "string" ? r.result : ""}`)) break;
+          r = await json<{ message?: string; result: Log[] | null | string }>(
+            f,
+            url,
+            undefined,
+            10_000,
+          ).catch((e) => ({ message: String((e as Error).message), result: null }));
+          if (
+            !/too many|429|rate limit/i.test(
+              `${r.message ?? ""} ${typeof r.result === "string" ? r.result : ""}`,
+            )
+          )
+            break;
           await new Promise((res) => setTimeout(res, 800 * (i + 1)));
         }
         if (Array.isArray(r.result)) return r.result;
@@ -786,16 +810,31 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
   // No full Approval-log history here: read allowance() for held tokens against known spenders.
   let knownOnly = false;
   if (!sources.some((x) => x.includes("logs") || x.includes("log scan"))) {
-    const bal = (await walletBalances(f, env, o, [chainId]).catch(() => null)) as { holdings?: { chainId: number; address: string }[] } | null;
-    const toks = (bal?.holdings ?? []).filter((h) => h.chainId === chainId && isAddress(h.address) && !isNativeAddr(chainId, h.address)).map((h) => h.address);
+    const bal = (await walletBalances(f, env, o, [chainId]).catch(() => null)) as {
+      holdings?: { chainId: number; address: string }[];
+    } | null;
+    const toks = (bal?.holdings ?? [])
+      .filter(
+        (h) => h.chainId === chainId && isAddress(h.address) && !isNativeAddr(chainId, h.address),
+      )
+      .map((h) => h.address);
     if (bal) {
-      const found = await knownSpenderAllowances(evmClient(chainId, env), chainId, o, toks).catch(() => null);
+      const found = await knownSpenderAllowances(evmClient(chainId, env), chainId, o, toks).catch(
+        () => null,
+      );
       if (found) {
         knownOnly = true;
-        sources.push(`known-spender allowance scan (${toks.length} held tokens × ${Object.keys(spendersFor(chainId)).length} spenders)`);
+        sources.push(
+          `known-spender allowance scan (${toks.length} held tokens × ${Object.keys(spendersFor(chainId)).length} spenders)`,
+        );
         for (const x of found) {
           const k = `${x.token.toLowerCase()}:${x.spender.toLowerCase()}`;
-          if (!pairs.has(k)) pairs.set(k, { token: x.token, spender: x.spender, info: { contract_name: x.name, is_contract: 1 } });
+          if (!pairs.has(k))
+            pairs.set(k, {
+              token: x.token,
+              spender: x.spender,
+              info: { contract_name: x.name, is_contract: 1 },
+            });
         }
       }
     }
@@ -805,7 +844,9 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
       `approvals not checked on ${chainName(chainId)}: no free approval source for this chain answered`,
     );
   // curated well-known spenders override index metadata (GoPlus has tagged Permit2 as an unverified EOA)
-  const known = Object.fromEntries(Object.entries(spendersFor(chainId)).map(([a, n]) => [a.toLowerCase(), n]));
+  const known = Object.fromEntries(
+    Object.entries(spendersFor(chainId)).map(([a, n]) => [a.toLowerCase(), n]),
+  );
   for (const p of pairs.values()) {
     const n = known[p.spender.toLowerCase()];
     if (n) p.info = { contract_name: n, is_contract: 1, is_open_source: 1 };
@@ -894,8 +935,8 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
     coverage: knownOnly
       ? `${sources.some((x) => x.startsWith("GoPlus")) ? "GoPlus index plus " : ""}${KNOWN_ONLY_NOTE}. No result here does NOT mean no approvals.`
       : ROUTESCAN.has(chainId)
-      ? "Full Approval-log history (Routescan) plus GoPlus, each re-checked on-chain."
-      : "GoPlus approval index (can miss very old or obscure approvals), each re-checked on-chain.",
+        ? "Full Approval-log history (Routescan) plus GoPlus, each re-checked on-chain."
+        : "GoPlus approval index (can miss very old or obscure approvals), each re-checked on-chain.",
     note: "Revoking = approve(spender, 0). revokeTx is unsigned: the owner's wallet signs and sends it (costs a little gas).",
   };
 }

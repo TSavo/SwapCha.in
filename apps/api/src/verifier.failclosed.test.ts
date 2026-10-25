@@ -13,7 +13,11 @@ describe("verifiers fail closed without blocktools (no TS fallback)", () => {
     const r = await import("./recover.js");
     const s = await import("./sweepverify.js");
     const o = "0x1111111111111111111111111111111111111111";
-    expect(() => r.verifyRecovery({ to: o, data: "0x3ccfd60b", value: "0" }, o)).toThrow(/blocktools unavailable/);
-    expect(() => s.verifySweepTx({ from: o, to: o, value: 1n, chainId: 1 }, o, 1)).toThrow(/blocktools unavailable/);
+    expect(() => r.verifyRecovery({ to: o, data: "0x3ccfd60b", value: "0" }, o)).toThrow(
+      /blocktools unavailable/,
+    );
+    expect(() => s.verifySweepTx({ from: o, to: o, value: 1n, chainId: 1 }, o, 1)).toThrow(
+      /blocktools unavailable/,
+    );
   }, 60_000);
 });
