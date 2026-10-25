@@ -11,6 +11,11 @@ services:
     restart: unless-stopped
     environment: # unset keys = that provider/feature self-disables
       TZ: America/Los_Angeles
+      # getaddrinfo runs on libuv's threadpool (default 4): under concurrent scans every outbound
+      # connection queued behind DNS, so all hosts looked slow at ~4% CPU.
+      UV_THREADPOOL_SIZE: "64"
+      # scan concurrency gate (scanctx.gate); 8 overloads the public RPCs (every scan hits 17s), 4 holds ~15s
+      FIND_MAX_CONCURRENT: ${FIND_MAX_CONCURRENT:-4}
       ZEROX_API_KEY: ${ZEROX_API_KEY:-}
       LIFI_API_KEY: ${LIFI_API_KEY:-}
       LIFI_INTEGRATOR: ${LIFI_INTEGRATOR:-myswapchan}
