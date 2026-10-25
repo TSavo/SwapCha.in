@@ -1,3 +1,4 @@
+import { base58 } from "@scure/base";
 import { sablierStreams } from "./vesting.js";
 import { daoRefunds } from "./refunds.js";
 import { bridgeWithdrawals } from "./bridges.js";
@@ -149,8 +150,14 @@ async function resolveAddr(f: F, env: NodeJS.ProcessEnv, input: string) {
   }
   return { address: s, name: null as string | null };
 }
-const vmOfAddr = (a: string) =>
-  isAddress(a) ? "evm" : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) ? "svm" : "other";
+/** "svm" only for a base58 string that decodes to a 32-byte ed25519 pubkey. BTC/DOGE/LTC legacy, Tron
+ *  and XRP addresses also match the base58 charset but decode to 25 bytes; before this check they were
+ *  classified "svm" and got Solana/Kamino sources and "Solana rent" lines. */
+export const vmOfAddr = (a: string) =>
+  isAddress(a) ? "evm" : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) && b58len(a) === 32 ? "svm" : "other";
+function b58len(a: string): number {
+  try { return base58.decode(a).length; } catch { return -1; }
+}
 
 // ---------- 1. simulate_swap ----------
 const ROUTERS_BY_CHAIN = (chainId: number) =>
@@ -3639,7 +3646,8 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push("TronGrid (rewards, unfreezes, contract probes, JustLend supplied jTokens)");
     } else if (
       /^(xpub|ypub|zpub|xprv)/i.test(address) ||
-      (/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address) && !!decodeAny(address))
+      (/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address) && !!decodeAny(address)) ||
+      /^bc1p[02-9ac-hj-np-z]{58}$/.test(address) // taproot (bech32m): decodeAny only knows witness v0
     ) {
       const [bx, fork] = await Promise.all([
         btcXpubScan(f, address).catch(() => []),
