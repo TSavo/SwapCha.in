@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildInput, CHAIN_COUNT, DEV_TOOLS, devToolLd, looksSecret, POWERED_BY } from "./devTools";
+import {
+  buildInput,
+  CHAIN_COUNT,
+  DEV_TOOLS,
+  devToolLd,
+  looksSecret,
+  POWERED_BY,
+  RELATED_FOR,
+  relatedTools,
+  UTXO_CHAIN_COUNT,
+} from "./devTools";
 
 describe("developer tool pages", () => {
   it("every page has SEO copy, 3-5 FAQs, examples and valid related links", () => {
@@ -16,6 +26,7 @@ describe("developer tool pages", () => {
       for (const r of t.related) expect(slugs.has(r)).toBe(true);
     }
     expect(CHAIN_COUNT).toBe(41);
+    expect(UTXO_CHAIN_COUNT).toBe(30);
     expect(POWERED_BY).toBe("This tool is powered by blocktools.");
   });
 
@@ -50,5 +61,29 @@ describe("developer tool pages", () => {
     expect(looksSecret({ xpub: `xprv${"A".repeat(107)}` })).toBe(true);
     expect(looksSecret({ x: Array(12).fill("abandon").join(" ") })).toBe(true);
     expect(looksSecret({ xpub: `xpub${"A".repeat(107)}` })).toBe(false);
+  });
+});
+
+describe("new tool pages and result-page links", () => {
+  it("address-script, hash-tools, polkadot-storage-key, anchor-discriminator exist with keywords and MCP tools", () => {
+    const want: Record<string, string> = {
+      "address-script": "address_tool",
+      "hash-tools": "hash_tool",
+      "polkadot-storage-key": "substrate_tool",
+      "anchor-discriminator": "solana_address",
+    };
+    for (const [slug, mcp] of Object.entries(want)) {
+      const t = DEV_TOOLS.find((x) => x.slug === slug)!;
+      expect(t.mcp).toBe(mcp);
+      expect(t.keywords.length).toBeGreaterThan(0);
+      expect(JSON.stringify(t)).not.toMatch(/blocktools/i);
+    }
+  });
+  it("find_money, wallet and recover link only to real /tools pages", () => {
+    for (const ctx of Object.keys(RELATED_FOR) as (keyof typeof RELATED_FOR)[]) {
+      const l = relatedTools(ctx);
+      expect(l.length).toBe(RELATED_FOR[ctx].length);
+      for (const x of l) expect(x.href).toMatch(/^\/tools\/[a-z0-9-]+$/);
+    }
   });
 });

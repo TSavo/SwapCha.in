@@ -7,6 +7,7 @@ import { SpeechBubble } from "@/components/Character";
 import { ConnectButton } from "@/components/ConnectButton";
 import { describeCall } from "@/lib/callSummary";
 import { localCallPaysOwner } from "@/lib/recoverCheck";
+import { RelatedTools } from "./RelatedTools";
 
 const ABI = parseAbi([
   "function withdraw()",
@@ -183,6 +184,7 @@ export function Recover(p: {
         You sign in your own wallet; SwapChan never holds your keys or funds. The call is decoded
         above so you can check it first.
       </p>
+      <RelatedTools ctx="recover" />
     </div>
   );
 }

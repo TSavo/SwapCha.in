@@ -2302,10 +2302,32 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
   );
 
   server.registerTool(
+    "hash_tool",
+    {
+      title: "BLAKE2b / twox128 / Base58 (dev tool)",
+      description: `Hashing and encoding of PUBLIC data: op=blake2b (hex data, out_len bytes 1-64, optional personal), twox128 (text, Substrate xxHash), base58_encode (hex data), base58_decode (base58 text; plain Base58, no checksum). ${OFFLINE}`,
+      inputSchema: z.object({
+        op: z.enum(["blake2b", "twox128", "base58_encode", "base58_decode"]),
+        data: pub(1024).optional(),
+        out_len: z.number().int().min(1).max(64).optional(),
+        personal: z.string().max(16).optional(),
+        text: pub(256).optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({
+      blake2b: ["blake2b"],
+      twox128: ["twox128"],
+      base58_encode: ["base58", "encode"],
+      base58_decode: ["base58", "decode"],
+    }),
+  );
+
+  server.registerTool(
     "chain_params",
     {
       title: "UTXO chain parameters table (dev tool)",
-      description: `Address/version-byte parameters for the supported UTXO chains (prefixes, bech32 HRP, xpub versions). chain=<ticker> for one, omit for all. ${OFFLINE}`,
+      description: `Chain parameter table: 41 chains; Base58 version bytes, bech32 HRP and WIF byte for the 30 Bitcoin-family ones, checksum/SLIP-44/tx format for all. chain=<ticker> for one, omit for all. ${OFFLINE}`,
       inputSchema: z.object({ chain: z.string().max(16).optional() }),
       annotations: devAnn,
     },

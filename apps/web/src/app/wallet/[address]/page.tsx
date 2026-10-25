@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LookupForm } from "@/components/tools/LookupForm";
+import { RelatedTools } from "@/components/tools/RelatedTools";
 import { ToolFrame } from "@/components/tools/ToolFrame";
 import { CHAIN_NAME, chainParam, intel } from "@/lib/intel";
 import { tool } from "@/lib/toolList";
@@ -37,6 +38,8 @@ export default async function Page({ params }: Props) {
           initial={decodeURIComponent(p.address)}
         />
       }
-    />
+    >
+      <RelatedTools ctx="wallet" />
+    </ToolFrame>
   );
 }

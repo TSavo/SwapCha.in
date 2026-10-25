@@ -4,6 +4,8 @@
  * SEO copy (titles, meta, H1) follows audits/tools-directory-plan.md §4.
  */
 export const CHAIN_COUNT = 41; // chainParams() rows in the vendored wasm (asserted in api devtools.test.ts)
+/** rows with Base58 version bytes (Bitcoin-family / UTXO); the other 11 are account chains (eth, sol, dot...). */
+export const UTXO_CHAIN_COUNT = 30;
 export const POWERED_BY = "This tool is powered by blocktools.";
 
 export type Field = {
@@ -71,7 +73,7 @@ export const DEV_TOOLS: DevTool[] = [
       },
       {
         q: "Which formats are supported?",
-        a: `Base58Check (P2PKH, P2SH), bech32 and bech32m (SegWit v0 and Taproot) and CashAddr across ${CHAIN_COUNT} chains.`,
+        a: `Base58Check (P2PKH, P2SH), bech32 and bech32m (SegWit v0 and Taproot) and CashAddr on the ${UTXO_CHAIN_COUNT} Bitcoin-family chains, plus the native formats of the other ${CHAIN_COUNT - UTXO_CHAIN_COUNT} (Ethereum, Solana, Polkadot SS58 and others): ${CHAIN_COUNT} chains in all.`,
       },
     ],
     modes: [
@@ -432,14 +434,240 @@ export const DEV_TOOLS: DevTool[] = [
     related: ["ss58", "validate-address", "chain-params"],
   },
   {
+    slug: "address-script",
+    name: "Address to scriptPubKey converter",
+    emoji: "📜",
+    mcp: "address_tool",
+    title: "Address to scriptPubKey (and back) Converter | SwapChan",
+    description:
+      "Turn a Bitcoin-family address into its output script hex, or a script back into an address.",
+    h1: "Address ↔ scriptPubKey",
+    intro: `Convert an address into the scriptPubKey hex that locks coins to it, or decode a script back to an address, on ${UTXO_CHAIN_COUNT} Bitcoin-family chains.`,
+    body: [
+      "Every Bitcoin-family output is locked by a script. A legacy address becomes OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG, a SegWit address becomes a version byte plus a program. Wallets, explorers and indexers match outputs by this script, not by the address text.",
+      "Use it to check what an address really pays to, to compare the same hash across forks, or to read the address behind a raw script from a decoded transaction. Uppercase bech32 and Zcash t-addresses are supported.",
+    ],
+    keywords: ["address to scriptpubkey", "scriptpubkey to address", "output script hex"],
+    faq: [
+      {
+        q: "What is a scriptPubKey?",
+        a: "The locking script in a transaction output. Whoever can satisfy it can spend the coins; the address is just a human-friendly encoding of it.",
+      },
+      {
+        q: "Why do two chains give the same script?",
+        a: "Forks share script formats, so the same public key hash gives the same script on Bitcoin, Litecoin, Zcash and others. Only the address encoding differs.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "to_script",
+        label: "Address → script",
+        fn: "address-script",
+        op: "to_script",
+        fields: [chain(), address],
+      },
+      {
+        id: "from_script",
+        label: "Script → address",
+        fn: "address-script",
+        op: "from_script",
+        fields: [
+          chain(),
+          { name: "script", label: "scriptPubKey hex", placeholder: "76a914…88ac" },
+        ],
+      },
+    ],
+    examples: [
+      {
+        label: "Bitcoin genesis address",
+        mode: "to_script",
+        values: { chain: "btc", address: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa" },
+      },
+      {
+        label: "Uppercase bech32",
+        mode: "to_script",
+        values: { chain: "btc", address: "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4" },
+      },
+      {
+        label: "Script on Zcash",
+        mode: "from_script",
+        values: { chain: "zec", script: "76a91477bff20c60e522dfaa3350c39b030a5d004e839a88ac" },
+      },
+    ],
+    related: ["validate-address", "convert-address", "chain-params"],
+  },
+  {
+    slug: "hash-tools",
+    name: "BLAKE2b, xxHash (twox128) & Base58",
+    emoji: "#️⃣",
+    mcp: "hash_tool",
+    title: "BLAKE2b, twox128 & Base58 Online Calculator | SwapChan",
+    description:
+      "Hash hex data with BLAKE2b, text with xxHash twox128, or Base58-encode and decode bytes.",
+    h1: "Blockchain hash tools",
+    intro:
+      "BLAKE2b with any output length and optional personalization, Substrate's twox128, and plain Base58 encode/decode, in one place.",
+    body: [
+      "BLAKE2b is used by Zcash, Polkadot, Cardano and others; the output length and personalization string change the result, so both are adjustable. twox128 is the xxHash variant Substrate uses to build storage keys from pallet and item names.",
+      "Base58 is the alphabet behind Bitcoin and Solana addresses, without the checksum. Use it to turn raw bytes into a Solana-style key or to see the bytes behind one.",
+    ],
+    keywords: ["blake2b online", "twox128 hash", "base58 decode online"],
+    faq: [
+      {
+        q: "What input does BLAKE2b take?",
+        a: "Hex bytes (0x optional). Output length is 1 to 64 bytes; 32 is the common choice.",
+      },
+      {
+        q: "Is Base58 here the same as Base58Check?",
+        a: "No. This is plain Base58 with no version byte or checksum, as used for Solana keys.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "blake2b",
+        label: "BLAKE2b",
+        fn: "blake2b",
+        fields: [
+          { name: "data", label: "Data (hex)", placeholder: "0x68656c6c6f" },
+          {
+            name: "out_len",
+            label: "Output bytes (1-64)",
+            kind: "number",
+            placeholder: "32",
+            optional: true,
+          },
+          { name: "personal", label: "Personalization (optional)", optional: true },
+        ],
+      },
+      {
+        id: "twox128",
+        label: "twox128",
+        fn: "twox128",
+        fields: [{ name: "text", label: "Text", placeholder: "System" }],
+      },
+      {
+        id: "b58enc",
+        label: "Base58 encode",
+        fn: "base58",
+        op: "encode",
+        fields: [{ name: "data", label: "Data (hex)" }],
+      },
+      {
+        id: "b58dec",
+        label: "Base58 decode",
+        fn: "base58",
+        op: "decode",
+        fields: [{ name: "data", label: "Base58 text" }],
+      },
+    ],
+    examples: [
+      {
+        label: "BLAKE2b-256 of hello",
+        mode: "blake2b",
+        values: { data: "68656c6c6f", out_len: "32" },
+      },
+      { label: "twox128(System)", mode: "twox128", values: { text: "System" } },
+    ],
+    related: ["polkadot-storage-key", "ss58", "anchor-discriminator"],
+  },
+  {
+    slug: "polkadot-storage-key",
+    name: "Polkadot System.Account storage key",
+    emoji: "🗝️",
+    mcp: "substrate_tool",
+    title: "Polkadot Account Storage Key Generator & AccountInfo Decoder | SwapChan",
+    description:
+      "Build the System.Account storage key for a Polkadot address and decode the AccountInfo it returns.",
+    h1: "Polkadot storage key for an account",
+    intro:
+      "Get the System.Account storage key for any SS58 address, ready for state_getStorage, and decode the SCALE AccountInfo hex the node sends back.",
+    body: [
+      'A Substrate account\'s balance lives under twox128("System") + twox128("Account") + blake2_128_concat(account id). This page builds that key from an address, so you can query a node directly with state_getStorage.',
+      "Paste the hex the node returns to decode the nonce and free, reserved and frozen balances.",
+    ],
+    keywords: ["polkadot storage key", "system account storage key", "decode accountinfo"],
+    faq: [
+      {
+        q: "Which networks does it work for?",
+        a: "Any Substrate chain using the standard System pallet: Polkadot, Kusama and most parachains. The key depends on the account id, not the SS58 prefix.",
+      },
+      {
+        q: "Where do I use the key?",
+        a: "In a state_getStorage RPC call to any node. The result is the SCALE-encoded AccountInfo you can decode here.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "key",
+        label: "Storage key",
+        fn: "polkadot-storage-key",
+        fields: [{ name: "account", label: "SS58 address", placeholder: "1…" }],
+      },
+      {
+        id: "decode",
+        label: "Decode AccountInfo",
+        fn: "decode-account-info",
+        fields: [{ name: "hex", label: "AccountInfo hex" }],
+      },
+    ],
+    examples: [
+      {
+        label: "Alice",
+        mode: "key",
+        values: { account: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY" },
+      },
+    ],
+    related: ["ss58", "hash-tools", "validate-address"],
+  },
+  {
+    slug: "anchor-discriminator",
+    name: "Anchor instruction discriminator",
+    emoji: "⚓",
+    mcp: "solana_address",
+    title: "Anchor Instruction Discriminator Calculator (Solana) | SwapChan",
+    description: "Compute the 8-byte Anchor discriminator for a Solana instruction name.",
+    h1: "Anchor discriminator calculator",
+    intro:
+      'Type an Anchor instruction name to get its 8-byte discriminator: the first 8 bytes of sha256("global:<name>").',
+    body: [
+      "Anchor programs route instructions by an 8-byte prefix on the instruction data. Matching that prefix tells you which instruction a transaction calls, which is how explorers and decoders label Anchor calls.",
+      "Use the snake_case name from the program's IDL, for example initialize or claim_rewards.",
+    ],
+    keywords: ["anchor discriminator", "solana instruction discriminator"],
+    faq: [
+      {
+        q: "How is it computed?",
+        a: 'sha256("global:" + name), first 8 bytes. Names are the snake_case Rust function names.',
+      },
+      {
+        q: "Does it work for account discriminators?",
+        a: "This computes instruction discriminators (global: namespace). Account discriminators use the account: namespace and the struct name.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "disc",
+        label: "Discriminator",
+        fn: "anchor-discriminator",
+        fields: [{ name: "name", label: "Instruction name", placeholder: "initialize" }],
+      },
+    ],
+    examples: [{ label: "initialize", mode: "disc", values: { name: "initialize" } }],
+    related: ["solana-pda", "hash-tools"],
+  },
+  {
     slug: "chain-params",
     name: "Chain parameters table",
     emoji: "📋",
     mcp: "chain_params",
-    title: `Crypto Chain Parameters: Address Version Bytes & Prefixes, ${CHAIN_COUNT} chains | SwapChan`,
-    description: `Address version bytes, bech32 prefixes, WIF bytes and SLIP-44 coin types for ${CHAIN_COUNT} chains.`,
+    title: `Crypto Chain Parameters: Address Version Bytes & Prefixes | SwapChan`,
+    description: `Address version bytes, bech32 prefixes and WIF bytes for ${UTXO_CHAIN_COUNT} Bitcoin-family chains; SLIP-44 and checksum types for all ${CHAIN_COUNT}.`,
     h1: "Chain parameters table",
-    intro: `Address version bytes, bech32 prefixes, WIF bytes, SLIP-44 coin types and checksum types for ${CHAIN_COUNT} chains, in one table.`,
+    intro: `Address version bytes, bech32 prefixes and WIF bytes for the ${UTXO_CHAIN_COUNT} Bitcoin-family chains, and SLIP-44 coin types and checksum types for all ${CHAIN_COUNT} chains, in one table.`,
     body: [
       "Every Bitcoin-family chain picks its own version bytes for P2PKH and P2SH addresses, its own bech32 human-readable part and its own WIF byte; other chains record their checksum and transaction format. These parameters are what the validator, converter and xpub tools on this site use.",
       "Look up one chain by ticker, or show the whole table.",
@@ -523,4 +751,17 @@ export function devToolLd(t: DevTool, site = "https://swapchan.com") {
       ],
     },
   ];
+}
+
+/** Which /tools pages to link from a result page (find_money, wallet history, recover). Slugs only from DEV_TOOLS. */
+export const RELATED_FOR = {
+  find_money: ["validate-address", "xpub-addresses", "convert-address", "chain-params"],
+  wallet: ["validate-address", "convert-address", "ss58", "solana-pda"],
+  recover: ["xpub-addresses", "address-script", "validate-address", "cashaddr"],
+} as const;
+export function relatedTools(ctx: keyof typeof RELATED_FOR): { href: string; name: string }[] {
+  return RELATED_FOR[ctx].flatMap((s) => {
+    const t = devTool(s);
+    return t ? [{ href: `/tools/${t.slug}`, name: t.name }] : [];
+  });
 }

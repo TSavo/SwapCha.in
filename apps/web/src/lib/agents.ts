@@ -75,7 +75,10 @@ export const TOOLS = [
   ],
   ["solana_address", "Developer tool: Solana PDA, ATA, on-curve check, Anchor discriminator."],
   ["substrate_tool", "Developer tool: SS58 decode/encode/convert, storage keys, blake2b, twox128."],
-  ["chain_params", "Developer tool: address version bytes and prefixes for 41 chains."],
+  [
+    "chain_params",
+    "Developer tool: address version bytes and prefixes for 30 Bitcoin-family chains (41 chains in the table).",
+  ],
 ] as const;
 
 export type Client = {

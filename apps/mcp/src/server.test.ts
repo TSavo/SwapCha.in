@@ -139,6 +139,7 @@ describe("swapchan mcp over streamable http", () => {
         "xpub_addresses",
         "solana_address",
         "substrate_tool",
+        "hash_tool",
         "chain_params",
       ].sort(),
     );
@@ -384,10 +385,11 @@ describe("swapchan mcp over streamable http", () => {
         "xpub_addresses",
         "solana_address",
         "substrate_tool",
+        "hash_tool",
         "chain_params",
       ].includes(t.name),
     );
-    expect(dev).toHaveLength(5);
+    expect(dev).toHaveLength(6);
     for (const t of dev) {
       expect(t.annotations?.readOnlyHint).toBe(true);
       expect(t.annotations?.destructiveHint).toBe(false);

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
 import { Recover } from "@/components/tools/Recover";
+import { RelatedTools } from "@/components/tools/RelatedTools";
 import { SolRecover, type SolSpec } from "@/components/tools/SolRecover";
 import { SweepRecover } from "@/components/tools/SweepRecover";
 import { TronRecover, type TronSpec } from "@/components/tools/TronRecover";
@@ -175,6 +176,7 @@ export default async function Page({
         Already have a recovery transaction from find_money? Open the permanent link it gave you (it
         includes <code>?to=&amp;data=</code>) and sign step 1 here, then swap.
       </p>
+      <RelatedTools ctx="recover" />
     </main>
   );
 }

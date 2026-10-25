@@ -11,6 +11,7 @@ import { API_URL } from "@/lib/api";
 import { describeCall } from "@/lib/callSummary";
 import { useSolana } from "@/lib/useSolana";
 import { DataView } from "./DataView";
+import { RelatedTools } from "./RelatedTools";
 
 type J = Record<string, unknown> & { error?: string; next?: { label: string; swapUrl: string } };
 const get = async (path: string): Promise<J> => {
@@ -515,6 +516,7 @@ export function DashboardHome() {
           </p>
         </div>
       )}
+      <RelatedTools ctx="find_money" />
     </div>
   );
 }
