@@ -158,7 +158,7 @@ export async function vaultPositions(
   const all = list ?? (await vaultList(f));
   const byChain = new Map<number, VaultRef[]>();
   for (const v of all) byChain.set(v.chainId, [...(byChain.get(v.chainId) ?? []), v]);
-  const hits: { v: VaultRef; bal: bigint; under: string; amt: bigint; dec: number; udec: number; sym: string; exact: boolean }[] = [];
+  const hits: { v: VaultRef; bal: bigint; under: string; amt: bigint; dec: number; udec: number; sym: string; exact: boolean; now?: bigint; nowShares?: bigint }[] = [];
   await Promise.all(
     [...byChain].map(async ([chainId, vs]) => {
       const bals = await mc(
@@ -172,7 +172,7 @@ export async function vaultPositions(
       if (!held.length) return;
       const q = (sig: string, name: string, args?: (x: { bal: bigint }) => unknown[]) =>
         mc(chainId, env, held.map((x) => ({ address: x.v.address, abi: fn(sig), functionName: name, ...(args ? { args: args(x) } : {}) })));
-      const [dec, sym, asset, conv, token, pps, want, ppfs] = await Promise.all([
+      const [dec, sym, asset, conv, token, pps, want, ppfs, maxW, maxR] = await Promise.all([
         q("decimals() view returns (uint8)", "decimals"),
         q("symbol() view returns (string)", "symbol"),
         q("asset() view returns (address)", "asset"),
@@ -181,6 +181,9 @@ export async function vaultPositions(
         q("pricePerShare() view returns (uint256)", "pricePerShare"),
         q("want() view returns (address)", "want"),
         q("getPricePerFullShare() view returns (uint256)", "getPricePerFullShare"),
+        // ERC-4626 limits: MetaMorpho (and other lending vaults) cap these at the liquidity available right now
+        q("maxWithdraw(address) view returns (uint256)", "maxWithdraw", () => [owner]),
+        q("maxRedeem(address) view returns (uint256)", "maxRedeem", () => [owner]),
       ]);
       const unders = [...new Set(held.map((_, i) => (asset[i] ?? token[i] ?? want[i]) as string | null).filter(Boolean))] as `0x${string}`[];
       const udecs = await mc(chainId, env, unders.map((u) => ({ address: u, abi: fn("decimals() view returns (uint8)"), functionName: "decimals" })));
@@ -204,7 +207,11 @@ export async function vaultPositions(
           kind = "beefy";
         }
         if (!under || amt === null || amt <= 0n) return;
+        const mw = kind === "4626" && typeof maxW[i] === "bigint" ? (maxW[i] as bigint) : undefined;
+        const mr = kind === "4626" && typeof maxR[i] === "bigint" ? (maxR[i] as bigint) : undefined;
+        const capped = mw !== undefined && mw < amt;
         hits.push({
+          ...(capped ? { now: mw, nowShares: mr !== undefined && mr < x.bal ? mr : x.bal } : {}),
           v: { ...x.v, kind },
           bal: x.bal,
           under,
@@ -222,23 +229,43 @@ export async function vaultPositions(
     f,
     hits.map((h) => ({ chainId: h.v.chainId, address: h.under })),
   ).catch(() => new Map());
-  return hits.map((h) => {
-    const amt = formatUnits(h.amt, h.udec);
+  return hits.flatMap((h) => {
     const p = pxOf(px, h.v.chainId, h.under)?.price ?? null;
     const usdc = usdcOf(h.v.chainId);
-    return {
+    const out: NewFound[] = [];
+    if (h.now !== undefined) {
+      // part of the position is lent out: only maxWithdraw is claimable now; the rest is a lead
+      const rest = Number(formatUnits(h.amt - h.now, h.udec));
+      out.push({
+        kind: "lead",
+        protocol: `${h.v.source} vault ${h.sym} (locked by utilization)`,
+        chainId: h.v.chainId,
+        what: `${rest.toPrecision(6)} of the underlying is lent out and cannot be withdrawn right now (convertToAssets minus maxWithdraw). Check again when vault liquidity frees up.`,
+        valueUsd: p ? r2(rest * p) : null,
+        action: `Withdraw the rest later from ${h.sym}`,
+        evidence: [{ chainId: h.v.chainId, address: h.v.address, call: "maxWithdraw(address)", args: [owner], raw: toHex(h.now) }],
+        confidence: "high",
+      } as unknown as NewFound);
+      if (h.now === 0n || !h.nowShares) return out;
+    }
+    const nowAmt = h.now ?? h.amt;
+    const amt = formatUnits(nowAmt, h.udec);
+    out.push({
       kind: "claimable" as const,
       protocol: `${h.v.source} vault ${h.sym}`,
       chainId: h.v.chainId,
-      what: `${Number(formatUnits(h.bal, h.dec)).toPrecision(6)} ${h.sym} shares, worth ${Number(amt).toPrecision(6)} of the underlying token (${h.v.kind === "4626" ? "convertToAssets" : "pricePerShare"}, ${h.exact ? "exact" : "estimate"})`,
+      what: h.now !== undefined
+        ? `${Number(formatUnits(h.nowShares!, h.dec)).toPrecision(6)} of your ${Number(formatUnits(h.bal, h.dec)).toPrecision(6)} ${h.sym} shares are withdrawable now, worth ${Number(amt).toPrecision(6)} of the underlying (maxWithdraw, capped at the vault's available liquidity, exact)`
+        : `${Number(formatUnits(h.bal, h.dec)).toPrecision(6)} ${h.sym} shares, worth ${Number(amt).toPrecision(6)} of the underlying token (${h.v.kind === "4626" ? "convertToAssets" : "pricePerShare"}, ${h.exact ? "exact" : "estimate"})`,
       valueUsd: p ? r2(Number(amt) * p) : null,
-      claimTx: vaultRedeemTx(h.v, owner, h.bal),
+      claimTx: vaultRedeemTx(h.v, owner, h.nowShares ?? h.bal),
       action: `Withdraw from ${h.sym}, then swap the underlying on SwapChan`,
       ...(usdc ? { link: swapUrl(h.v.chainId, getAddress(h.under), h.v.chainId, usdc, amt) } : {}),
       evidence: [
         { chainId: h.v.chainId, address: h.v.address, call: "balanceOf(address)", abi: "balanceOf(address) view returns (uint256)", args: [owner], raw: toHex(h.bal) },
       ],
       confidence: h.exact ? ("high" as const) : ("medium" as const),
-    } as NewFound;
+    } as NewFound);
+    return out;
   });
 }
