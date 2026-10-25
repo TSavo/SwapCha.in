@@ -19,16 +19,35 @@ export const scanSignal = () => als.getStore();
 
 let installed = false;
 /** Wrap globalThis.fetch once so every request made inside a scan scope is aborted with it. */
+/** Per-host outbound stats (host only — never path/query, which can carry API keys). */
+type HS = { n: number; inflight: number; peak: number; ok: number; r429: number; r5xx: number; other: number; err: number; ms: number };
+const hosts = new Map<string, HS>();
+export function hostStats(top = 15) {
+  return [...hosts].sort((a, b) => b[1].ms - a[1].ms).slice(0, top).map(([h, v]) => ({ h, ...v, avgMs: Math.round(v.ms / Math.max(1, v.n)) }));
+}
+function track(input: Parameters<typeof fetch>[0], p: Promise<Response>): Promise<Response> {
+  let h = "?";
+  try { h = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url).host; } catch {}
+  const v = hosts.get(h) ?? { n: 0, inflight: 0, peak: 0, ok: 0, r429: 0, r5xx: 0, other: 0, err: 0, ms: 0 };
+  hosts.set(h, v);
+  v.n++; v.inflight++; v.peak = Math.max(v.peak, v.inflight);
+  const t = Date.now();
+  return p.then(
+    (r) => { v.inflight--; v.ms += Date.now() - t; if (r.status === 429) v.r429++; else if (r.status >= 500) v.r5xx++; else if (r.ok) v.ok++; else v.other++; return r; },
+    (e) => { v.inflight--; v.ms += Date.now() - t; v.err++; throw e; },
+  );
+}
+
 export function installScopedFetch() {
   if (installed) return;
   installed = true;
   const base = globalThis.fetch.bind(globalThis);
   globalThis.fetch = ((input: Parameters<typeof fetch>[0], init?: RequestInit) => {
     const s = als.getStore();
-    if (!s) return base(input, init);
+    if (!s) return track(input, base(input, init));
     if (s.aborted) return Promise.reject(new Error("scan finished (request cancelled)"));
     const signal = init?.signal ? AbortSignal.any([init.signal, s]) : s;
-    return base(input, { ...init, signal });
+    return track(input, base(input, { ...init, signal }));
   }) as typeof fetch;
 }
 
@@ -113,7 +132,11 @@ export function health(now = Date.now()) {
 /** Exit (so `restart: unless-stopped` brings up a clean process) when unhealthy for `failsToExit` checks in a row. */
 export function startWatchdog(everyMs = 30_000, failsToExit = 4) {
   let bad = 0;
+  let lastN = 0;
   setInterval(() => {
+    const tot = [...hosts.values()].reduce((a, v) => a + v.n, 0);
+    if (tot !== lastN) console.log(JSON.stringify({ evt: "outbound_hosts", hosts: hostStats(12) }));
+    lastN = tot;
     const h = health();
     bad = h.ok ? 0 : bad + 1;
     if (!h.ok) console.log(JSON.stringify({ evt: "health_watchdog", bad, ...h }));
