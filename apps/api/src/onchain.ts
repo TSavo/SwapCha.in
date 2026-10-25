@@ -208,7 +208,10 @@ export function evmClient(chainId: number, env: NodeJS.ProcessEnv = process.env)
   ].filter((u): u is string => !!u);
   const c = createPublicClient({
     chain,
-    batch: { multicall: true },
+    // viem's default multicall chunk is 1024 calldata bytes (~28 calls), so one find_money scan sent ~310 aggregate3
+    // requests to the Ethereum RPC (129 in flight at peak). 8192 bytes: 4 parallel local scans went from 247-396
+    // Ethereum RPC requests (peak 43-149) to 134-167 (peak ~37), with no new call failures.
+    batch: { multicall: { batchSize: Number(env.EVM_MULTICALL_BATCH_BYTES ?? 8192) } },
     transport: fallback(urls.map((u) => http(u, { timeout: 10_000, retryCount: 1 }))),
   }) as PublicClient;
   clients.set(chainId, c);
