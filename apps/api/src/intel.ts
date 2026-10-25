@@ -367,6 +367,11 @@ const HIST_CAP = 10_000;
 /** Free Etherscan-compatible explorers with full account history. ETHERSCAN_API_KEY (free tier) unlocks every chain. */
 function explorerApi(chainId: number, env: NodeJS.ProcessEnv) {
   const out: { name: string; url: (q: string) => string }[] = [];
+  // Ethereum: Routescan (keyless) first. Etherscan's key is rate-limited per second across the whole process
+  // (measured: half of one scan's ~40 Etherscan calls came back rate-limited); Routescan answered txlist/tokentx 2000 rows in 0.1-0.2 s and the items found were identical
+  // (18/18 for one address). Etherscan then Blockscout stay as fallbacks.
+  if (chainId === 1)
+    out.push({ name: "Routescan", url: (q) => `https://api.routescan.io/v2/network/mainnet/evm/1/etherscan/api?${q}` });
   if (env.ETHERSCAN_API_KEY && ETHERSCAN_FREE.has(chainId))
     out.push({
       name: "Etherscan v2",
@@ -379,10 +384,12 @@ function explorerApi(chainId: number, env: NodeJS.ProcessEnv) {
     59144: "https://api-explorer.linea.build/api",
   };
   const rs: Record<number, string> = {
-    1: "https://api.routescan.io/v2/network/mainnet/evm/1/etherscan/api",
     43114: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api",
   };
-  if (bs[chainId]) out.push({ name: "Blockscout", url: (q) => `${bs[chainId]}?${q}` });
+  // Linea: its Blockscout returns the full history (measured for one address: 341 txs / 86 tokens vs Etherscan v2's
+  // 0 / 44) and costs no Etherscan quota, so it goes first there; Etherscan stays the fallback.
+  if (bs[chainId] && chainId === 59144) out.unshift({ name: "Blockscout", url: (q) => `${bs[chainId]}?${q}` });
+  else if (bs[chainId]) out.push({ name: "Blockscout", url: (q) => `${bs[chainId]}?${q}` });
   if (rs[chainId]) out.push({ name: "Routescan", url: (q) => `${rs[chainId]}?${q}` });
   return out;
 }
@@ -2604,6 +2611,7 @@ export async function evmArchaeology(
   const c = evmClient(chainId, env);
   const items: Found[] = [];
   const stats: Record<string, number | string> = {};
+  const tArch = Date.now();
   // 1. discovery
   let called: string[] = [];
   let tokens: string[] = [];
@@ -2632,9 +2640,9 @@ export async function evmArchaeology(
           return [];
         }
       };
-      const txs = await get("txlist", 2000);
-      const tt = await get("tokentx", 2000);
-      const nt = await get("tokennfttx", 1000);
+      // the three lists are independent: fetched together (each keeps its own rate-limit retry) instead of one after
+      // another
+      const [txs, tt, nt] = await Promise.all([get("txlist", 2000), get("tokentx", 2000), get("tokennfttx", 1000)]);
       called = [
         ...new Set(
           txs
@@ -2657,6 +2665,7 @@ export async function evmArchaeology(
   }
   stats.contractsCalled = called.length;
   stats.tokensSeen = tokens.length;
+  stats.discoverMs = Date.now() - tArch;
   if (!stats.explorer)
     return { items, stats: { ...stats, note: "no keyless explorer for this chain" } };
   const cands = [...new Set([...called, ...tokens])].slice(0, 400) as `0x${string}`[];
@@ -2710,6 +2719,7 @@ export async function evmArchaeology(
     .map((a, i) => ({ a, bal: bals[i] ?? 0n }))
     .filter((x) => typeof x.bal === "bigint" && x.bal > 0n);
   stats.nonzeroBalances = withBal.length;
+  stats.probeMs = Date.now() - tArch;
   // 3. classify contracts with a balance: ERC-4626 / Yearn vault, Uniswap-v2-style LP, staking/receipt token
   const meta = async (
     fnSig: string,

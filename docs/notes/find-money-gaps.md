@@ -99,3 +99,21 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
     decode). Spendable = free - max(frozen - reserved, 0); frozen/reserved = lead. The Asset Hub sidecar was down
     (500, WebSocket not connected) on 2026-10-24, so Asset Hub currently answers via RPC. Subscan needs a key (403).
     Not checked: DOT nomination-pool membership and pending staking rewards, parachain balances.
+
+## find_money latency (2026-10-25)
+
+Production (4 parallel scans, 02:18 PDT) logged find_money_watchdog 23/41 checks timed out: balances/lending/gas at
+17 s and most sources at 12 s, with ethereum-rpc.publicnode.com averaging 4.6 s per request (peak 75 in flight).
+Measured locally (box, 4 parallel scans of public addresses):
+- viem multicall chunks were 1024 bytes (~28 calls), so one scan sent ~310 aggregate3 requests to the Ethereum RPC.
+  Chunks are now 8192 bytes (EVM_MULTICALL_BATCH_BYTES): Ethereum RPC requests 247-396 -> 134-167 per 4 scans,
+  peak in flight 43-149 -> ~37.
+- "history <chain>" (explorer txlist/tokentx/tokennfttx, then probes) was the stage that timed out: about half of one
+  scan's ~40 Etherscan calls came back rate-limited and were retried after sleeps, and the three lists were fetched
+  one after another. Now: Ethereum uses Routescan first (keyless; Etherscan then Blockscout are fallbacks), Linea uses
+  its Blockscout first (more complete for the tested address), and the three lists are fetched in parallel.
+  Timeouts per 4 parallel scans: 15-16 -> 2-4 (two runs each).
+- Tried and dropped: a process-wide Etherscan pacer (2.5-4 calls/s). It removed rate-limit retries but made scans
+  queue, so more sources hit their deadlines (13-15 timeouts per 4 scans).
+- Still slow: history Optimism (optimism.blockscout.com, ~2.7 s per call, no keyless alternative wired) and history
+  Polygon/Arbitrum when the Etherscan key is busy. Not measured on production under load (no load tests there).
