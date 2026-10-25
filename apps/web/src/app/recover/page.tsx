@@ -32,10 +32,10 @@ export default async function Page({
         </main>
       );
   }
-  if ((q.sweep === "utxo" || q.sweep === "fork") && q.coin?.match(/^[a-z]{2,10}$/) && q.from?.match(/^[A-Za-z0-9:]{20,100}$/))
+  if ((q.sweep === "utxo" || q.sweep === "fork" || q.sweep === "evm") && q.coin?.match(/^[a-z]{2,10}$/) && q.from?.match(/^[A-Za-z0-9:]{20,100}$/))
     return (
       <main className="flex min-h-screen flex-col items-center px-4 py-10 text-white">
-        <SweepRecover kind={q.sweep} coin={q.coin} from={q.from} sym={(q.sym ?? q.coin).slice(0, 8)} title={q.title ?? "Sweep coins"} />
+        <SweepRecover kind={q.sweep} coin={q.coin} {...(q.token?.match(/^0x[0-9a-fA-F]{40}$/) ? { token: q.token } : {})} from={q.from} sym={(q.sym ?? q.coin).slice(0, 8)} title={q.title ?? "Sweep coins"} />
       </main>
     );
   const ok = q.to?.match(/^0x[0-9a-fA-F]{40}$/) && q.data?.match(/^0x[0-9a-fA-F]*$/);

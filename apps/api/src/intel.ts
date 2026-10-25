@@ -7,6 +7,7 @@ import { v4Positions } from "./lpv4.js";
 import { ensDeeds } from "./ensdeed.js";
 import { coinOf, decodeAny, utxoScan, utxoSweep, COINS, type Coin } from "./utxochains.js";
 import { isXrpAddress, signumAddress, signumScan, xrpScan } from "./ledgers.js";
+import { extraEvmScan, evmSweep } from "./extraevm.js";
 import { ethForkScan, forkSweep, ETH_FORKS, type EthFork } from "./ethforks.js";
 import { maturedPendle } from "./pendle.js";
 import { tronExtras, tronV1Account } from "./tron2.js";
@@ -3497,7 +3498,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
       const archChains = env.ETHERSCAN_API_KEY ? [1, 42161, 10, 137, 43114, 534352, 59144] : [1, 10, 534352, 43114, 59144];
       const noArch = { items: [] as Found[], stats: { error: "not checked (timeout)" } as Record<string, number | string> };
-      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, forkR, stuck, ...arch] = await Promise.all([
+      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, forkR, xevmR, stuck, ...arch] = await Promise.all([
         timed("Merkl", merklP, [] as Found[]),
         timed("legacy contracts", legacyP, [] as Found[]),
         timed("wrapped native", wrappedNative(f, env, own), []),
@@ -3515,13 +3516,14 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         timed("matured Pendle", maturedPendle(f, env, own), []),
         timed("ENS old-registrar deeds", ensDeeds(f, env, own), []),
         timed("ETH fork chains (ETC, ETHW, EtherFair)", ethForkScan(f, own).then((r) => (notChecked.push(...r.notChecked), r.items)), []),
+        timed("extra EVM chains", extraEvmScan(f, own).then((r) => (notChecked.push(...r.notChecked), r.items)), []),
         timed("contract registry", stuckMoneyRegistry(f, env, own), []),
         ...archChains.map((id) => timed(`history ${chainName(id)}`, evmArchaeology(f, env, id, own), noArch, Number(env.FIND_ARCH_TIMEOUT_MS ?? 15_000))),
       ]);
       items.push(...(merklR as Found[]), ...(legacyR as Found[]));
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
-      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]), ...(eigen as Found[]), ...(beacon as Found[]), ...(lstQ as Found[]), ...(lp as Found[]), ...(gaugeR as Found[]), ...(chefR as Found[]), ...(v4R as Found[]), ...(pendleR as Found[]), ...(ensR as Found[]), ...(forkR as Found[]));
+      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]), ...(eigen as Found[]), ...(beacon as Found[]), ...(lstQ as Found[]), ...(lp as Found[]), ...(gaugeR as Found[]), ...(chefR as Found[]), ...(v4R as Found[]), ...(pendleR as Found[]), ...(ensR as Found[]), ...(forkR as Found[]), ...(xevmR as Found[]));
       sources.push("staked LP: every Curve gauge on 7 chains (Curve gauge list), every Convex and Aura pool, SushiSwap MasterChef v1/v2");
       sources.push("concentrated-liquidity positions (principal + fees, exact): Uniswap v3 on 7 chains, Sushi v3, PancakeSwap v3");
       sources.push("withdrawal queues: ether.fi, Frax, Swell, Stader; EigenLayer; beacon validators; Aave/Spark supplied; vault registry: Yearn v2/v3, Beefy, Morpho, sDAI/sUSDS/sfrxETH/scrvUSD/sUSDe on 7 EVM chains");
@@ -5048,6 +5050,13 @@ export function intelRoutes(
         throw new BadRequest((e as Error).message);
       });
     }),
+  );
+  app.get("/evm-sweep", (c) =>
+    run(c, async () =>
+      evmSweep(f, c.req.query("chain") ?? "", c.req.query("from") ?? "", c.req.query("to") ?? "", c.req.query("token") || undefined).catch((e) => {
+        throw new BadRequest((e as Error).message);
+      }),
+    ),
   );
   app.get("/recovery-guide", (c) =>
     run(c, async () => recoveryGuide(c.req.query("situation") ?? "full")),

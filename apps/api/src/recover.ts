@@ -3,7 +3,7 @@ import { verifySafe } from "./safe.js";
 import { PENDLE_ROUTER } from "./pendle.js";
 import { verifyV4 } from "./lpv4.js";
 import type { DatabaseSync } from "node:sqlite";
-import { NATIVE_TOKEN, SOLANA } from "@swapchan/shared";
+import { NATIVE_TOKEN, SOLANA, SUPPORTED_CHAINS } from "@swapchan/shared";
 import {
   decodeFunctionData,
   encodeFunctionData,
@@ -247,7 +247,8 @@ export function recoveryFlow(
     rurl = sweepUrl(sw, it.title);
     steps.push({ step: 1, kind: "recover", label: `Build the unsigned ${sw.sym} sweep to your own ${sw.sym} address, then sign it offline`, url: rurl, shortUrl: s(rurl) } as Step);
     // SwapChan has no route for these coins yet: no fake swap link
-    if (!it.swapUrl || /fromChain=(0|61|10001|513100)&/.test(it.swapUrl)) return { steps, recoverUrl: rurl, swapUrl: rurl } as never;
+    const fc = Number(/fromChain=(\d+)&/.exec(it.swapUrl ?? "")?.[1] ?? "0");
+    if (!it.swapUrl || !(fc in SUPPORTED_CHAINS)) return { steps, recoverUrl: rurl, swapUrl: rurl } as never;
   }
   // chains SwapChan cannot route yet (XRP, Signum): no fake swap link, no recover step
   if (!rurl && /fromChain=0&/.test(it.swapUrl ?? "")) return { steps, swapUrl: SITE } as never;
@@ -280,9 +281,9 @@ export interface NewFound {
   /** Non-EVM / fork-chain balance: /recover?sweep= builds the unsigned sweep in the browser. */
   sweep?: Sweep;
 }
-export type Sweep = { kind: "utxo" | "fork"; coin: string; from: string; sym: string };
+export type Sweep = { kind: "utxo" | "fork" | "evm"; coin: string; from: string; sym: string; token?: string };
 export function sweepUrl(sw: Sweep, title: string) {
-  return `${SITE}/recover?${new URLSearchParams({ sweep: sw.kind, coin: sw.coin, from: sw.from, sym: sw.sym, title: title.slice(0, 140) })}`;
+  return `${SITE}/recover?${new URLSearchParams({ sweep: sw.kind, coin: sw.coin, from: sw.from, sym: sw.sym, ...(sw.token ? { token: sw.token } : {}), title: title.slice(0, 140) })}`;
 }
 
 // ---------- unwrapped native (WETH/WBNB/WPOL/WAVAX) ----------

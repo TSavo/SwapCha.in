@@ -5,8 +5,8 @@ import { SpeechBubble } from "@/components/Character";
 import { API_URL } from "@/lib/agents";
 
 /** Builds an UNSIGNED sweep via the API. Nothing is signed or broadcast here; no keys ever touch this page. */
-export function SweepRecover(p: { kind: "utxo" | "fork"; coin: string; from: string; sym: string; title: string }) {
-  const [to, setTo] = useState(p.kind === "fork" ? p.from : "");
+export function SweepRecover(p: { kind: "utxo" | "fork" | "evm"; coin: string; token?: string; from: string; sym: string; title: string }) {
+  const [to, setTo] = useState(p.kind !== "utxo" ? p.from : "");
   const [res, setRes] = useState<Record<string, unknown>>();
   const [err, setErr] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -17,7 +17,9 @@ export function SweepRecover(p: { kind: "utxo" | "fork"; coin: string; from: str
     const q =
       p.kind === "utxo"
         ? `utxo-sweep?${new URLSearchParams({ coin: p.coin, from: p.from, to })}`
-        : `fork-sweep?${new URLSearchParams({ chain: p.coin, from: p.from, to })}`;
+        : p.kind === "evm"
+          ? `evm-sweep?${new URLSearchParams({ chain: p.coin, from: p.from, to, ...(p.token ? { token: p.token } : {}) })}`
+          : `fork-sweep?${new URLSearchParams({ chain: p.coin, from: p.from, to })}`;
     try {
       const r = await fetch(`${API_URL}/onchain/${q}`);
       const j = (await r.json()) as Record<string, unknown>;
