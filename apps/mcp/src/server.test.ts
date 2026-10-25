@@ -392,7 +392,9 @@ describe("swapchan mcp over streamable http", () => {
       expect(t.annotations?.readOnlyHint).toBe(true);
       expect(t.annotations?.destructiveHint).toBe(false);
       expect(t.annotations?.openWorldHint).toBe(false);
-      expect(t.description).toMatch(/powered by blocktools/);
+      expect(t.description).toMatch(
+        /Pure, offline computation \(blocktools\); nothing is fetched or stored\./,
+      );
       expect(t.description).not.toMatch(/https?:|blocktools\.\w/);
       const fields = Object.keys((t.inputSchema as { properties?: object }).properties ?? {});
       for (const f of fields)

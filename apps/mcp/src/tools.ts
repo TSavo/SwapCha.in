@@ -2154,7 +2154,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
 
   // ---- Developer tools (blocktools wasm via the API). Read-only, public input only:
   // never keys, seeds, signing or recovery (that lives in blocktools, not here).
-  const OFFLINE = "Pure, offline computation powered by blocktools; nothing is fetched or stored.";
+  const OFFLINE = "Pure, offline computation (blocktools); nothing is fetched or stored.";
   const devAnn = {
     readOnlyHint: true,
     destructiveHint: false,
@@ -2183,14 +2183,14 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "address_tool",
     {
       title: "Address detect / validate / convert / script (dev tool)",
-      description: `Work with public crypto addresses: op=detect (which chains/formats an address fits), validate (address + chain), convert (address to another chain's format, e.g. BTC→LTC), cashaddr_to_legacy / cashaddr_to_cashaddr / cashaddr_decode (Bitcoin Cash; prefix for to_cashaddr), to_script (address+chain → scriptPubKey hex), from_script (script hex+chain → address), base58_encode (hex data) / base58_decode (base58 data). convert accepts optional from chain. ${OFFLINE}`,
+      description: `Work with public crypto addresses: op=detect (which chains/formats an address fits), validate (address + chain), convert (address to another chain's format, e.g. BTC→LTC), cashaddr_to_legacy / legacy_to_cashaddr / cashaddr_decode (Bitcoin Cash; prefix for to_cashaddr), to_script (address+chain → scriptPubKey hex), from_script (script hex+chain → address), base58_encode (hex data) / base58_decode (base58 data). convert accepts optional from chain. ${OFFLINE}`,
       inputSchema: z.object({
         op: z.enum([
           "detect",
           "validate",
           "convert",
           "cashaddr_to_legacy",
-          "cashaddr_to_cashaddr",
+          "legacy_to_cashaddr",
           "cashaddr_decode",
           "to_script",
           "from_script",
@@ -2212,7 +2212,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
       validate: ["validate-address"],
       convert: ["convert-address"],
       cashaddr_to_legacy: ["cashaddr", "to_legacy"],
-      cashaddr_to_cashaddr: ["cashaddr", "to_cashaddr"],
+      legacy_to_cashaddr: ["cashaddr", "to_cashaddr"],
       cashaddr_decode: ["cashaddr", "decode"],
       to_script: ["address-script", "to_script"],
       from_script: ["address-script", "from_script"],
@@ -2243,9 +2243,9 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "solana_address",
     {
       title: "Solana PDA / ATA / on-curve / Anchor discriminator (dev tool)",
-      description: `Solana address math: op=pda (program + seeds as hex strings → program-derived address and bump), ata (owner + mint [+ token_program] → associated token account), on_curve (address → is it an ed25519 point), anchor_discriminator (instruction name, e.g. initialize → 8-byte discriminator). ${OFFLINE}`,
+      description: `Solana address math: op=pda (program + seeds as hex strings → program-derived address and bump), ata (owner + mint [+ token_program] → associated token account), on_curve (address → is it an ed25519 point), anchor_disc (instruction name, e.g. initialize → 8-byte discriminator). ${OFFLINE}`,
       inputSchema: z.object({
-        op: z.enum(["pda", "ata", "on_curve", "anchor_discriminator"]),
+        op: z.enum(["pda", "ata", "on_curve", "anchor_disc"]),
         program: z.string().max(64).optional(),
         seeds: z.array(z.string().max(256)).max(16).optional(),
         owner: z.string().max(64).optional(),
@@ -2260,7 +2260,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
       pda: ["solana-pda"],
       ata: ["solana-ata"],
       on_curve: ["solana-on-curve"],
-      anchor_discriminator: ["anchor-discriminator"],
+      anchor_disc: ["anchor-discriminator"],
     }),
   );
 
