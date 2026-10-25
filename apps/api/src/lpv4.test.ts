@@ -21,9 +21,9 @@ describe("uniswap v4", () => {
     expect(unpackInfo((enc(-120) << 8n) | (enc(240) << 32n))).toEqual({ tickLower: -120, tickUpper: 240 });
   });
   it("exit tx verifies only when taking to owner", () => {
-    const tx = v4ExitTx(1, "0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e", 5n, 10n, "0x0000000000000000000000000000000000000000", own, own);
+    const tx = v4ExitTx(1, "0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e", 5n, 10n, "0x0000000000000000000000000000000000000000", own, own, [100n, 200n]);
     expect(verifyRecovery(tx, own).verified).toBe(true);
-    const evil = v4ExitTx(1, "0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e", 5n, 10n, own, own, bad);
+    const evil = v4ExitTx(1, "0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e", 5n, 10n, own, own, bad, [100n, 200n]);
     expect(verifyRecovery(evil, own).verified).toBe(false);
     expect(verifyV4("0x12345678", own)).toBe(null);
   });

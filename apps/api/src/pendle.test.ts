@@ -6,10 +6,10 @@ const bad = "0x2222222222222222222222222222222222222222" as const;
 const T = "0x3333333333333333333333333333333333333333";
 describe("pendle matured", () => {
   it("exit and SY redeem verify only to owner", () => {
-    expect(verifyRecovery(exitTx(1, own, T, 5n, 0n, T), own).verified).toBe(true);
-    expect(verifyRecovery(exitTx(1, bad, T, 5n, 0n, T), own).verified).toBe(false);
-    expect(verifyRecovery(syRedeemTx(1, own, T, 5n, T), own).verified).toBe(true);
-    expect(verifyRecovery(syRedeemTx(1, bad, T, 5n, T), own).verified).toBe(false);
+    expect(verifyRecovery(exitTx(1, own, T, 5n, 0n, T, 4n), own).verified).toBe(true);
+    expect(verifyRecovery(exitTx(1, bad, T, 5n, 0n, T, 4n), own).verified).toBe(false);
+    expect(verifyRecovery(syRedeemTx(1, own, T, 5n, T, 4n), own).verified).toBe(true);
+    expect(verifyRecovery(syRedeemTx(1, bad, T, 5n, T, 4n), own).verified).toBe(false);
   });
   it("approval verifies only for the Pendle Router", () => {
     const a = approveTx(1, T, 5n, "PT");

@@ -3,6 +3,7 @@ import { tronSpec, verifyTronSpec, encodeSpec } from "./tronrecover.js";
 import { verifySafe } from "./safe.js";
 import { PENDLE_ROUTER } from "./pendle.js";
 import { verifyV4 } from "./lpv4.js";
+import { deadlineOk } from "./exitguard.js";
 import type { DatabaseSync } from "node:sqlite";
 import { NATIVE_TOKEN, SOLANA, SUPPORTED_CHAINS } from "@swapchan/shared";
 import {
@@ -145,12 +146,33 @@ export function verifyRecovery(tx: { to: string; data: string; value: string }, 
               : args[i];
         return typeof v === "string" && v.toLowerCase() === owner.toLowerCase();
       });
+      if (ok) {
+        const g = exitGuard(s.sig, args);
+        if (g) return { verified: false, reason: `${s.sig}: ${g}` } as const;
+      }
       return ok
         ? ({ verified: true, call: s.sig } as const)
         : ({ verified: false, reason: `${s.sig}: recipient is not the owner` } as const);
     } catch {}
   }
   return { verified: false, reason: "not a standard recovery call" } as const;
+}
+
+/** Sandwich guard: liquidity/Pendle exits need a non-zero quoted minimum and a short deadline. */
+function exitGuard(sig: string, args: unknown[]): string | null {
+  const name = sig.slice(0, sig.indexOf("("));
+  if (name === "removeLiquidity") {
+    if (args[3] === 0n && args[4] === 0n) return "zero minimum outputs (sandwichable)";
+    if (!deadlineOk(args[6] as bigint)) return "deadline too far out";
+  }
+  if (name === "decreaseLiquidity") {
+    const p = args[0] as { liquidity: bigint; amount0Min: bigint; amount1Min: bigint; deadline: bigint };
+    if (p.liquidity > 0n && p.amount0Min === 0n && p.amount1Min === 0n) return "zero minimum outputs (sandwichable)";
+    if (!deadlineOk(p.deadline)) return "deadline too far out";
+  }
+  if (name === "exitPostExpToToken" && (args[4] as readonly unknown[])[1] === 0n) return "zero minTokenOut (sandwichable)";
+  if (sig === "redeem(address,uint256,address,uint256,bool)" && args[3] === 0n) return "zero minTokenOut (sandwichable)";
+  return null;
 }
 
 /** Permanent in-app signing page for one recovery step. */

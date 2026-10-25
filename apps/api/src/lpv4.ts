@@ -1,6 +1,7 @@
 import { decodeAbiParameters, encodeAbiParameters, encodeFunctionData, formatUnits, getAddress, keccak256, parseAbiItem } from "viem";
 import { evmClient, prices, pxOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
+import { deadlineOk, exitDeadline, minOut, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 
 /** Uniswap v4 positions (Ethereum, Base, Arbitrum, Optimism). Ids from Blockscout ERC-721 transfers + ownerOf.
  *  Principal is exact (bigint TickMath at the current sqrtPrice), fees exact from fee-growth accounting.
@@ -33,23 +34,29 @@ const s24 = (x: bigint) => { const v = Number(x & 0xffffffn); return v >= 0x8000
 export const unpackInfo = (info: bigint) => ({ tickLower: s24(info >> 8n), tickUpper: s24(info >> 32n) });
 
 const MOD = parseAbiItem("function modifyLiquidities(bytes unlockData, uint256 deadline) payable");
-export function v4ExitTx(chainId: number, pm: string, id: bigint, L: bigint, c0: string, c1: string, owner: `0x${string}`) {
-  const dec = encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }, { type: "uint128" }, { type: "uint128" }, { type: "bytes" }], [id, L, 0n, 0n, "0x"]);
+/** principal = quoted principal out (from pool state, fees excluded: v4 checks mins against principal only). */
+export function v4ExitTx(chainId: number, pm: string, id: bigint, L: bigint, c0: string, c1: string, owner: `0x${string}`, principal: readonly [bigint, bigint], nowMs = Date.now()) {
+  const dec = encodeAbiParameters([{ type: "uint256" }, { type: "uint256" }, { type: "uint128" }, { type: "uint128" }, { type: "bytes" }], [id, L, minOut(principal[0]), minOut(principal[1]), "0x"]);
   const take = encodeAbiParameters([{ type: "address" }, { type: "address" }, { type: "address" }], [c0 as `0x${string}`, c1 as `0x${string}`, owner]);
   const unlock = encodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], ["0x0111", [dec, take]]);
-  return { chainId, to: pm, value: "0", data: encodeFunctionData({ abi: [MOD], args: [unlock, 2n ** 63n] }), description: `Remove all liquidity from v4 position #${id} and take both tokens to your wallet` };
+  return { chainId, to: pm, value: "0", data: encodeFunctionData({ abi: [MOD], args: [unlock, exitDeadline(nowMs)] }), description: `Remove all liquidity from v4 position #${id} and take both tokens to your wallet` };
 }
 /** Only DECREASE_LIQUIDITY (0x01) and TAKE_PAIR (0x11) with recipient == owner are allowed. */
 export function verifyV4(data: string, owner: string): boolean | null {
   if (!data.startsWith("0xdd46508f")) return null;
   try {
-    const [unlock] = decodeAbiParameters([{ type: "bytes" }, { type: "uint256" }], `0x${data.slice(10)}`);
+    const [unlock, deadline] = decodeAbiParameters([{ type: "bytes" }, { type: "uint256" }], `0x${data.slice(10)}`);
+    if (!deadlineOk(deadline)) return false;
     const [acts, params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], unlock);
     const a = acts.slice(2).match(/../g) ?? [];
     if (a.length !== params.length || !a.length) return false;
     let took = false;
     for (let i = 0; i < a.length; i++) {
-      if (a[i] === "01") continue;
+      if (a[i] === "01") {
+        const [, liq, m0, m1] = decodeAbiParameters([{ type: "uint256" }, { type: "uint256" }, { type: "uint128" }, { type: "uint128" }, { type: "bytes" }], params[i]!);
+        if (liq > 0n && m0 === 0n && m1 === 0n) return false; // zero-minimum decrease is sandwichable
+        continue;
+      }
       if (a[i] !== "11") return false;
       const [, , to] = decodeAbiParameters([{ type: "address" }, { type: "address" }, { type: "address" }], params[i]!);
       if (getAddress(to) !== getAddress(owner)) return false;
@@ -103,7 +110,7 @@ export async function v4Positions(f: F, env: NodeJS.ProcessEnv, owner: `0x${stri
       const f1 = ((((fg[1] - pinfo[2]) % M256) + M256) % M256) * L / Q128;
       const a0 = p0 + f0, a1 = p1 + f1;
       if (a0 === 0n && a1 === 0n) return null;
-      return ({ v, id: ids[i]!, L, key, a0, a1, tx: v4ExitTx(v.chainId, v.pm, ids[i]!, L, key.currency0, key.currency1, owner) });
+      return ({ v, id: ids[i]!, L, key, a0, a1, tx: v4ExitTx(v.chainId, v.pm, ids[i]!, L, key.currency0, key.currency1, owner, [p0, p1]) });
     }))).filter((x) => x !== null);
     const toks = [...new Set(out.flatMap((x) => [x.key.currency0, x.key.currency1]).filter((t) => !/^0x0+$/.test(t)))] as `0x${string}`[];
     const md = await c.multicall({ allowFailure: true, contracts: toks.flatMap((t) => [
@@ -131,7 +138,7 @@ export async function v4Positions(f: F, env: NodeJS.ProcessEnv, owner: `0x${stri
       kind: "claimable", protocol: "Uniswap v4 LP", chainId: x.v.chainId,
       what: `Position #${x.id}: ${l0.s} + ${l1.s} incl. fees (exact from pool state${l0.unp || l1.unp ? "; USD counts priced legs only" : ""})`,
       valueUsd: usd, claimTx: x.tx,
-      action: "Sign one transaction to remove the liquidity and take both tokens to your wallet, then swap on SwapChan",
+      action: `Sign one transaction to remove the liquidity and take both tokens to your wallet, then swap on SwapChan. ${PRIVATE_SUBMISSION_NOTE}`,
       confidence: "high",
       evidence: [{ chainId: x.v.chainId, address: x.v.pm, call: "getPoolAndPositionInfo, getPositionLiquidity; StateView getSlot0/getFeeGrowthInside/getPositionInfo", args: [x.id.toString()], raw: [x.a0.toString(), x.a1.toString()] }],
     } as NewFound;
