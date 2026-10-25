@@ -4,6 +4,7 @@
  * (intel.ts) — archaeology on every chain; promote recurring unknown hits here.
  */
 
+import { exitDeadline, minOut } from "./exitguard.js";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { BITCOIN, NATIVE_TOKEN } from "@swapchan/shared";
 import { encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
@@ -1025,7 +1026,10 @@ export async function uniV2RemoveLiquidityTx(
   liquidity: bigint,
   token0: `0x${string}`,
   token1: `0x${string}`,
+  /** expected amounts out from live reserves (reserve * liquidity / totalSupply); required: no quote, no tx */
+  quoted?: readonly [bigint, bigint],
 ): Promise<StuckFound["claimTx"]> {
+  if (!quoted || (quoted[0] === 0n && quoted[1] === 0n)) return undefined;
   // Prefer router removeLiquidity; routers per chain
   const ROUTER: Record<number, `0x${string}`> = {
     1: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
@@ -1037,7 +1041,7 @@ export async function uniV2RemoveLiquidityTx(
   };
   const router = ROUTER[chainId];
   if (!router) return undefined;
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+  const deadline = exitDeadline();
   // Note: needs prior approve(pair→router). We build removeLiquidity; agent must approve first.
   return {
     chainId,
@@ -1045,7 +1049,7 @@ export async function uniV2RemoveLiquidityTx(
     data: encodeFunctionData({
       abi: fn("removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)"),
       functionName: "removeLiquidity",
-      args: [token0, token1, liquidity, 0n, 0n, owner, deadline],
+      args: [token0, token1, liquidity, minOut(quoted[0]), minOut(quoted[1]), owner, deadline],
     }),
     value: "0",
     description: `removeLiquidity: burn LP ${pair.slice(0, 8)}… (approve router first)`,

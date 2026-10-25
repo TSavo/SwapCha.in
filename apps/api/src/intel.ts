@@ -1,4 +1,5 @@
 import { base58 } from "@scure/base";
+import { exitDeadline, minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { sablierStreams } from "./vesting.js";
 import { daoRefunds } from "./refunds.js";
 import { bridgeWithdrawals } from "./bridges.js";
@@ -2768,8 +2769,10 @@ export async function evmArchaeology(
             56: "0x10ED43C718714eb63d5aA57B78B54704E256024E",
           };
           const router = ROUTER[chainId];
-          const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
-          const claimTx = router
+          // mins from the live reserves read this scan (u0/u1 = pro-rata share) minus 1%, 20-minute deadline
+          const deadline = exitDeadline();
+          const quoted = u0 > 0n || u1 > 0n;
+          const claimTx = router && quoted
             ? {
                 chainId,
                 to: router,
@@ -2778,7 +2781,7 @@ export async function evmArchaeology(
                     "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)",
                   ),
                   functionName: "removeLiquidity",
-                  args: [t0a, t1a, x.bal, 0n, 0n, owner, deadline],
+                  args: [t0a, t1a, x.bal, minOut(u0), minOut(u1), owner, deadline],
                 }),
                 value: "0",
                 description: `removeLiquidity: burn ${sh.toPrecision(5)} LP (approve ${short(x.a)}→router first)`,
@@ -2792,8 +2795,10 @@ export async function evmArchaeology(
             valueUsd: usd,
             ...(claimTx ? { claimTx } : {}),
             action: claimTx
-              ? "Approve the router to spend LP, sign removeLiquidity, then swap both tokens on SwapChan"
-              : "Remove liquidity on the pool's app, then swap the two tokens on SwapChan",
+              ? `Approve the router to spend LP, sign removeLiquidity, then swap both tokens on SwapChan. ${PRIVATE_SUBMISSION_NOTE}`
+              : router && !quoted
+                ? NO_QUOTE_NOTE
+                : "Remove liquidity on the pool's app, then swap the two tokens on SwapChan",
             link: `${EXPLORER[chainId] ?? "https://etherscan.io"}/address/${x.a}`,
             evidence: [
               {
@@ -4451,14 +4456,32 @@ export async function gasHistory(
 
 // ---------- links: deep-link builder + permanent shortener ----------
 const B62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const b62 = (n: number) => {
+/** Unguessable short id: 12 base62 chars from crypto.getRandomValues (rejection-sampled, ~71 bits). */
+export const SHORT_ID_LEN = 12;
+export function randomShortId(len = SHORT_ID_LEN) {
   let s = "";
-  do {
-    s = B62[n % 62] + s;
-    n = Math.floor(n / 62);
-  } while (n > 0);
+  while (s.length < len) {
+    const buf = new Uint8Array(len * 2);
+    globalThis.crypto.getRandomValues(buf);
+    for (const b of buf) if (b < 248 && s.length < len) s += B62[b % 62];
+  }
   return s;
-};
+}
+/** Ids issued before 2026-10-24 were sequential (b62(n+3843), <=4 chars) and can be walked. */
+export const isLegacyShortId = (id: string) => id.length < 10;
+const WALLET_PATHS = /^\/(recover|money|dashboard|wallet|portfolio)(\/|$)/i;
+const WALLET_KEYS = /^(owner|recipient|to|address|wallet|account|holder|receiver|data)$/i;
+/** Does this stored URL carry a wallet address or recovery calldata? */
+export function linkHoldsWalletData(url: string) {
+  try {
+    const u = new URL(url);
+    if (WALLET_PATHS.test(u.pathname)) return true;
+    for (const k of u.searchParams.keys()) if (WALLET_KEYS.test(k)) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
 export function initLinksDb(db: DatabaseSync) {
   db.exec(
     `CREATE TABLE IF NOT EXISTS links (n INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE, url TEXT UNIQUE NOT NULL, created INTEGER NOT NULL, clicks INTEGER NOT NULL DEFAULT 0);`,
@@ -4473,18 +4496,29 @@ export function shorten(db: DatabaseSync, url: string) {
   const hit = db.prepare("SELECT id FROM links WHERE url = ?").get(canon) as
     | { id: string }
     | undefined;
-  if (hit) return { id: hit.id, shortUrl: `${SITE}/s/${hit.id}`, url: canon };
-  const r = db.prepare("INSERT INTO links (url, created) VALUES (?, ?)").run(canon, Date.now());
-  // offset so ids start at 3 chars; AUTOINCREMENT guarantees ids are never reused
-  const id = b62(Number(r.lastInsertRowid) + 3843);
-  db.prepare("UPDATE links SET id = ? WHERE n = ?").run(id, r.lastInsertRowid);
-  return { id, shortUrl: `${SITE}/s/${id}`, url: canon };
+  if (hit && !(isLegacyShortId(hit.id) && linkHoldsWalletData(canon)))
+    return { id: hit.id, shortUrl: `${SITE}/s/${hit.id}`, url: canon };
+  // New ids are random, never sequential. A legacy sequential id holding wallet data is
+  // retired (it stops resolving) and its row gets a fresh random id instead.
+  for (let i = 0; i < 8; i++) {
+    const id = randomShortId();
+    try {
+      if (hit) db.prepare("UPDATE links SET id = ? WHERE url = ?").run(id, canon);
+      else db.prepare("INSERT INTO links (id, url, created) VALUES (?, ?, ?)").run(id, canon, Date.now());
+      return { id, shortUrl: `${SITE}/s/${id}`, url: canon };
+    } catch (e) {
+      if (!/UNIQUE/i.test(String((e as Error).message)) || /links\.url/.test(String((e as Error).message))) throw e;
+    }
+  }
+  throw new Error("could not allocate a short id");
 }
 export function resolveShort(db: DatabaseSync, id: string, count = true) {
   const r = db.prepare("SELECT url, clicks, created FROM links WHERE id = ?").get(id) as
     | { url: string; clicks: number; created: number }
     | undefined;
   if (!r) return null;
+  // Sequential legacy ids that carry a wallet address or recovery calldata are expired.
+  if (isLegacyShortId(id) && linkHoldsWalletData(r.url)) return null;
   if (count) db.prepare("UPDATE links SET clicks = clicks + 1 WHERE id = ?").run(id);
   return {
     id,

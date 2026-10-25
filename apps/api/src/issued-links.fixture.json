@@ -245,42 +245,42 @@
   ],
   "10w": [
     {
-      "url": "https://swapchan.com/recover?chain=1&to=0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2&data=0x2e1a7d4d000000000000000000000000000000000000000000000000145a277acf9c9ab6&title=Wrapped+native+on+Ethereum%3A+1.46653+wrapped+native+token+%28WETH-style%29+sitting+unwrapped&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D1%26toChain%3D1%26fromToken%3D0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE%26toToken%3D0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48%26amount%3D1.46652803708515807",
+      "url": "https://swapchan.com/recover?redacted=1&n=0",
       "created": 1792862525746,
       "source": "links.db"
     }
   ],
   "10x": [
     {
-      "url": "https://swapchan.com/recover?chain=8453&to=0x4200000000000000000000000000000000000006&data=0x2e1a7d4d00000000000000000000000000000000000000000000000003168628428472a1&title=Wrapped+native+on+Base%3A+0.222513+wrapped+native+token+%28WETH-style%29+sitting+unwrapped&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D8453%26toChain%3D8453%26fromToken%3D0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE%26toToken%3D0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913%26amount%3D0.222512739074208417",
+      "url": "https://swapchan.com/recover?redacted=1&n=1",
       "created": 1792862525765,
       "source": "links.db"
     }
   ],
   "10y": [
     {
-      "url": "https://swapchan.com/recover?chain=43114&to=0x6072a6d18446278bb5a43eb747de8f61e34cb77f&data=0xba0876520000000000000000000000000000000000000000000000000000000000010004000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa96045000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa96045&title=Vault+eBTC.b-5%3A+0.00065540+eBTC.b-5+vault+shares+%28ERC-4626%29+at+0x6072a6d18446278bb5a43eb747de8f61e34cb77f&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D43114%26toChain%3D43114%26fromToken%3D0x152b9d0FdC40C096757F570A51E494bd4b943E50%26toToken%3D0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+      "url": "https://swapchan.com/recover?redacted=1&n=2",
       "created": 1792862525788,
       "source": "links.db"
     }
   ],
   "10z": [
     {
-      "url": "https://swapchan.com/recover?chain=10&to=0x4200000000000000000000000000000000000006&data=0x2e1a7d4d000000000000000000000000000000000000000000000000007c18f1c5d12561&title=Wrapped+native+on+Optimism%3A+0.0349303+wrapped+native+token+%28WETH-style%29+sitting+unwrapped&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D10%26toChain%3D10%26fromToken%3D0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE%26toToken%3D0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85%26amount%3D0.034930323797124449",
+      "url": "https://swapchan.com/recover?redacted=1&n=3",
       "created": 1792862525810,
       "source": "links.db"
     }
   ],
   "10A": [
     {
-      "url": "https://swapchan.com/recover?chain=42161&to=0x82aF49447D8a07e3bd95BD0d56f35241523fBab1&data=0x2e1a7d4d000000000000000000000000000000000000000000000000003a0433d0706909&title=Wrapped+native+on+Arbitrum%3A+0.0163302+wrapped+native+token+%28WETH-style%29+sitting+unwrapped&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D42161%26toChain%3D42161%26fromToken%3D0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE%26toToken%3D0xaf88d065e77c8cC2239327C5EDb3A432268e5831%26amount%3D0.016330169236089097",
+      "url": "https://swapchan.com/recover?redacted=1&n=4",
       "created": 1792862525832,
       "source": "links.db"
     }
   ],
   "10B": [
     {
-      "url": "https://swapchan.com/recover?chain=137&to=0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270&data=0x2e1a7d4d000000000000000000000000000000000000000000000000df99cfd813b892a9&title=Wrapped+native+on+Polygon%3A+16.1121+wrapped+native+token+%28WETH-style%29+sitting+unwrapped&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D137%26toChain%3D137%26fromToken%3D0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE%26toToken%3D0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359%26amount%3D16.112137668845408937",
+      "url": "https://swapchan.com/recover?redacted=1&n=5",
       "created": 1792862525854,
       "source": "links.db"
     }
@@ -301,7 +301,7 @@
   ],
   "10E": [
     {
-      "url": "https://swapchan.com/recover?chain=56&to=0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c&data=0x2e1a7d4d000000000000000000000000000000000000000000000000000008b90e43a37d&title=Wrapped+native+on+BNB+Chain%3A+0.00000959090+wrapped+native+token+%28WETH-style%29+sitting+unwrapped&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D56%26toChain%3D56%26fromToken%3D0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE%26toToken%3D0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d%26amount%3D0.000009590901285757",
+      "url": "https://swapchan.com/recover?redacted=1&n=6",
       "created": 1792862525921,
       "source": "links.db"
     }
@@ -322,7 +322,7 @@
   ],
   "10H": [
     {
-      "url": "https://swapchan.com/recover?chain=1&to=0xC36442b4a4522E871399CD717aBDD847Ab11FE88&data=0xfc6f786500000000000000000000000000000000000000000000000000000000001138b9000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa9604500000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000ffffffffffffffffffffffffffffffff&title=Uniswap+v3+fees%3A+Position+%231128633+%28active+liquidity%29%3A+uncollected+fees+6.0637e%2B5+BARK+%2B+0.0015421+WETH&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D1%26toChain%3D1%26fromToken%3D0x4eA6B1487c599AFF5E77587Ed1fE53Ea610A0882%26toToken%3D0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "url": "https://swapchan.com/recover?redacted=1&n=7",
       "created": 1792862525987,
       "source": "links.db"
     }
@@ -336,7 +336,7 @@
   ],
   "10J": [
     {
-      "url": "https://swapchan.com/recover?chain=1&to=0xC36442b4a4522E871399CD717aBDD847Ab11FE88&data=0xfc6f7865000000000000000000000000000000000000000000000000000000000001b621000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa9604500000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000ffffffffffffffffffffffffffffffff&title=Uniswap+v3+fees%3A+Position+%23112161+%28active+liquidity%29%3A+uncollected+fees+6.2906+DGENV2+%2B+0.031984+WETH&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D1%26toChain%3D1%26fromToken%3D0x6793655C396EAeE311fB4d3596B88FD7D195c79e%26toToken%3D0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "url": "https://swapchan.com/recover?redacted=1&n=8",
       "created": 1792862526030,
       "source": "links.db"
     }
@@ -350,7 +350,7 @@
   ],
   "10L": [
     {
-      "url": "https://swapchan.com/recover?chain=1&to=0xC36442b4a4522E871399CD717aBDD847Ab11FE88&data=0xfc6f786500000000000000000000000000000000000000000000000000000000000e8ac0000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa9604500000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000ffffffffffffffffffffffffffffffff&title=Uniswap+v3+fees%3A+Position+%23953024+%28active+liquidity%29%3A+uncollected+fees+0.00020101+WETH+%2B+19678+Mierda&next=https%3A%2F%2Fswapchan.com%2F%3FfromChain%3D1%26toChain%3D1%26fromToken%3D0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2%26toToken%3D0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "url": "https://swapchan.com/recover?redacted=1&n=9",
       "created": 1792862526078,
       "source": "links.db"
     }

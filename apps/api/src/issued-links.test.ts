@@ -1,10 +1,11 @@
+// Fixture: wallet-bearing legacy targets are redacted (2026-10-24); those ids are expired.
 // URLs are forever: every short id ever issued (any links.db backup, the live links.db, and the
 // stray ids find_money once wrote into watches.db) must keep resolving.
 // Fixture = snapshot of all of them; ids with two targets are the 2026-10-23 watches.db collision
 // (100..103) where the links.db target, the one that was resolving, is kept.
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { initLinksDb, migrateStrayLinks, resolveShort } from "./intel.js";
+import { initLinksDb, isLegacyShortId, linkHoldsWalletData, migrateStrayLinks, resolveShort } from "./intel.js";
 import issued from "./issued-links.fixture.json" with { type: "json" };
 
 type Row = { url: string; created: number; source: string };
@@ -29,8 +30,13 @@ describe("every short id ever issued resolves", () => {
       for (const r of rows) if (r.source === "watches.db") ins(stray, id, r, n);
     }
     migrateStrayLinks(stray, links);
-    for (const [id, rows] of Object.entries(all))
-      expect(resolveShort(links, id, false)?.url, `/s/${id}`).toBe(kept(rows).url);
+    // 2026-10-24: sequential ids that carry a wallet address / recovery calldata are expired
+    // (they could be walked to list wallets with recoverable money); everything else still resolves.
+    for (const [id, rows] of Object.entries(all)) {
+      const url = kept(rows).url;
+      const dead = isLegacyShortId(id) && linkHoldsWalletData(url);
+      expect(resolveShort(links, id, false)?.url ?? null, `/s/${id}`).toBe(dead ? null : url);
+    }
     const lost = links
       .prepare("SELECT id FROM link_collisions ORDER BY id")
       .all()
@@ -55,7 +61,11 @@ describe("every short id ever issued resolves", () => {
         expect(
           new URL(r.headers.get("location") ?? "", "https://swapchan.com").toString(),
           `/s/${id}`,
-        ).toBe(kept(rows).url);
+        ).toBe(
+          isLegacyShortId(id) && linkHoldsWalletData(kept(rows).url)
+            ? "https://swapchan.com/"
+            : kept(rows).url,
+        );
       }
     },
     120_000,

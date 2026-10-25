@@ -21,6 +21,9 @@ const ABI = parseAbi([
   "function claimCollateral()",
   "function collect((uint256 tokenId, address recipient, uint128 amount0Max, uint128 amount1Max) params)",
 ]);
+// Liquidity / Pendle exits (v2 removeLiquidity, v3 multicall(decrease,collect), v4 modifyLiquidities,
+// Pendle exitPostExpToToken, SY redeem): sandwichable in the public mempool, so suggest a private RPC.
+const EXIT_SELECTORS = ["0xbaa2abde", "0xac9650d8", "0xdd46508f", "0xf06a07a0", "0x769f8e5d"];
 const CHAINS: Record<number, string> = {
   1: "Ethereum",
   8453: "Base",
@@ -101,6 +104,14 @@ export function Recover(p: {
           <dt className="text-violet-400">data</dt>
           <dd data-testid="data">{p.data}</dd>
         </dl>
+        {EXIT_SELECTORS.includes(p.data.slice(0, 10).toLowerCase()) && (
+          <p className="mt-2 text-amber-200" data-testid="private-submission-note">
+            This exit removes liquidity or swaps, so a bot could sandwich it in the public mempool.
+            Its minimum outputs come from a live quote (1% slippage) and it expires 20 minutes after
+            it was built. For extra protection, send it through a private RPC such as Flashbots
+            Protect (rpc.flashbots.net) or MEV Blocker (rpc.mevblocker.io) in your wallet first.
+          </p>
+        )}
         {!safe && (
           <p className="mt-2 font-bold text-rose-300">
             I don't recognise this call as a withdraw-to-you, so I won't let you sign it here.

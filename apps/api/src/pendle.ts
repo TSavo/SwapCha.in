@@ -1,6 +1,7 @@
 import { encodeFunctionData, getAddress, parseAbiItem } from "viem";
 import { evmClient } from "./onchain.js";
 import type { NewFound } from "./recover.js";
+import { minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 
 /** Matured Pendle: PT/LP past expiry (redeem via Router exitPostExpToToken) and loose SY (SY.redeem).
  *  Detection: Pendle dashboard API, confirmed with on-chain balanceOf. USD = Pendle's valuation (estimate). */
@@ -11,17 +12,17 @@ const EXIT = parseAbiItem("function exitPostExpToToken(address receiver, address
 const REDEEM = parseAbiItem("function redeem(address receiver, uint256 amountSharesToRedeem, address tokenOut, uint256 minTokenOut, bool burnFromInternalBalance) returns (uint256)");
 const APPROVE = parseAbiItem("function approve(address spender, uint256 amount) returns (bool)");
 const Z = "0x0000000000000000000000000000000000000000";
-export const exitTx = (chainId: number, owner: `0x${string}`, market: string, pt: bigint, lp: bigint, tokenOut: string) => ({
+export const exitTx = (chainId: number, owner: `0x${string}`, market: string, pt: bigint, lp: bigint, tokenOut: string, minTokenOut = 0n) => ({
   chainId, to: PENDLE_ROUTER, value: "0",
-  data: encodeFunctionData({ abi: [EXIT], args: [owner, market as `0x${string}`, pt, lp, { tokenOut: tokenOut as `0x${string}`, minTokenOut: 0n, tokenRedeemSy: tokenOut as `0x${string}`, pendleSwap: Z, swapData: { swapType: 0, extRouter: Z, extCalldata: "0x", needScale: false } }] }),
+  data: encodeFunctionData({ abi: [EXIT], args: [owner, market as `0x${string}`, pt, lp, { tokenOut: tokenOut as `0x${string}`, minTokenOut, tokenRedeemSy: tokenOut as `0x${string}`, pendleSwap: Z, swapData: { swapType: 0, extRouter: Z, extCalldata: "0x", needScale: false } }] }),
   description: "Redeem matured Pendle PT/LP to your wallet",
 });
 export const approveTx = (chainId: number, token: string, amt: bigint, what: string) => ({
   chainId, to: token, value: "0", data: encodeFunctionData({ abi: [APPROVE], args: [PENDLE_ROUTER, amt] }),
   description: `Step 1 of 2: let the Pendle Router redeem your ${what} (approval only, moves nothing)`,
 });
-export const syRedeemTx = (chainId: number, owner: `0x${string}`, sy: string, amt: bigint, tokenOut: string) => ({
-  chainId, to: sy, value: "0", data: encodeFunctionData({ abi: [REDEEM], args: [owner, amt, tokenOut as `0x${string}`, 0n, false] }),
+export const syRedeemTx = (chainId: number, owner: `0x${string}`, sy: string, amt: bigint, tokenOut: string, minTokenOut = 0n) => ({
+  chainId, to: sy, value: "0", data: encodeFunctionData({ abi: [REDEEM], args: [owner, amt, tokenOut as `0x${string}`, minTokenOut, false] }),
   description: "Redeem Pendle SY to its underlying token in your wallet",
 });
 
@@ -33,6 +34,13 @@ const BAL = parseAbiItem("function balanceOf(address) view returns (uint256)");
 const ALW = parseAbiItem("function allowance(address,address) view returns (uint256)");
 const OUTS = parseAbiItem("function getTokensOut() view returns (address[])");
 
+/** Live quote: simulate the zero-min call as the owner; first return word is the token amount out. */
+async function quoteOut(cl: { call: (a: { account: `0x${string}`; to: `0x${string}`; data: `0x${string}` }) => Promise<{ data?: `0x${string}` }> }, owner: `0x${string}`, tx: { to: string; data: string }): Promise<bigint | null> {
+  const r = await cl.call({ account: owner, to: tx.to as `0x${string}`, data: tx.data as `0x${string}` }).catch(() => null);
+  if (!r?.data || r.data.length < 66) return null;
+  const v = BigInt(r.data.slice(0, 66));
+  return v > 0n ? v : null;
+}
 export async function maturedPendle(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}`, now = Date.now()): Promise<NewFound[]> {
   const d = await j<{ positions: Pos[] }>(f, `${API}/dashboard/positions/database/${owner}`);
   if (!d) throw new Error("Pendle API unavailable");
@@ -60,12 +68,18 @@ export async function maturedPendle(f: F, env: NodeJS.ProcessEnv, owner: `0x${st
       if (!tokenOut) return;
       const usd = Math.round(((bp > 0n ? p.pt.valuation : 0) + (bl > 0n ? p.lp.valuation : 0)) * 100) / 100;
       const needPt = bp > 0n && ap < bp, needLp = bl > 0n && al < bl;
-      const tx = needPt ? approveTx(c.chainId, pt, bp, m.pt.symbol) : needLp ? approveTx(c.chainId, lp, bl, "Pendle LP") : exitTx(c.chainId, owner, m.address, bp, bl, tokenOut);
+      let tx: ReturnType<typeof approveTx> | ReturnType<typeof exitTx> | undefined;
+      if (needPt) tx = approveTx(c.chainId, pt, bp, m.pt.symbol);
+      else if (needLp) tx = approveTx(c.chainId, lp, bl, "Pendle LP");
+      else {
+        const q = await quoteOut(cl as never, owner, exitTx(c.chainId, owner, m.address, bp, bl, tokenOut));
+        tx = q ? exitTx(c.chainId, owner, m.address, bp, bl, tokenOut, minOut(q)) : undefined;
+      }
       out.push({
         kind: "claimable", protocol: "Pendle (matured)", chainId: c.chainId,
         what: `${m.pt.symbol} matured ${m.expiry.slice(0, 10)}: ${bp > 0n ? "PT" : ""}${bp > 0n && bl > 0n ? " + " : ""}${bl > 0n ? "LP" : ""} redeemable (USD is Pendle's valuation, estimate)`,
-        valueUsd: usd || null, claimTx: tx,
-        action: needPt || needLp ? "Sign the one-time approval, then run find_money again for the redeem transaction (pays your wallet)" : "Sign one transaction to redeem the matured position into your wallet, then swap on SwapChan",
+        valueUsd: usd || null, ...(tx ? { claimTx: tx } : {}),
+        action: needPt || needLp ? "Sign the one-time approval, then run find_money again for the redeem transaction (pays your wallet)" : tx ? `Sign one transaction to redeem the matured position into your wallet, then swap on SwapChan. ${PRIVATE_SUBMISSION_NOTE}` : NO_QUOTE_NOTE,
         confidence: "high",
         evidence: [{ chainId: c.chainId, address: pt, call: "balanceOf", args: [owner], raw: bp.toString() }, { chainId: c.chainId, address: lp, call: "balanceOf", args: [owner], raw: bl.toString() }, { chainId: c.chainId, address: m.address, call: "Pendle API market.expiry", args: [], raw: m.expiry }],
       });
@@ -76,11 +90,13 @@ export async function maturedPendle(f: F, env: NodeJS.ProcessEnv, owner: `0x${st
       if (b === 0n) return;
       const tokenOut = await pickOut(sy);
       if (!tokenOut) return;
+      const q = await quoteOut(cl as never, owner, syRedeemTx(c.chainId, owner, sy, b, tokenOut));
+      const tx = q ? syRedeemTx(c.chainId, owner, sy, b, tokenOut, minOut(q)) : undefined;
       out.push({
         kind: "claimable", protocol: "Pendle SY", chainId: c.chainId,
         what: `Loose Pendle SY balance (${b} raw units) redeemable to its underlying; not priced`,
-        valueUsd: null, claimTx: syRedeemTx(c.chainId, owner, sy, b, tokenOut),
-        action: "Sign one transaction to redeem SY into the underlying token in your wallet", confidence: "medium",
+        valueUsd: null, ...(tx ? { claimTx: tx } : {}),
+        action: tx ? `Sign one transaction to redeem SY into the underlying token in your wallet. ${PRIVATE_SUBMISSION_NOTE}` : NO_QUOTE_NOTE, confidence: "medium",
         evidence: [{ chainId: c.chainId, address: sy, call: "balanceOf", args: [owner], raw: b.toString() }],
       });
     }));
