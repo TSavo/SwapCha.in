@@ -1,0 +1,32 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const addressValidate: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const addressesFromXpub: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number, number];
+export const buildUnsignedSweep: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
+export const chainParams: () => [number, number];
+export const checkTx: (a: number, b: number) => [number, number];
+export const convertAddress: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const convertAddressFrom: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
+export const decodeTx: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const deriveFromXpub: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
+export const describeTx: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const detectAddress: (a: number, b: number) => [number, number];
+export const explainPlan: (a: number, b: number) => [number, number, number, number];
+export const listChains: () => [number, number];
+export const supportedChains: () => [number, number];
+export const unverifiedChains: () => [number, number];
+export const validateAddress: (a: number, b: number, c: number, d: number) => [number, number, number, number];
+export const verifyTx: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number, number];
+export const version: () => [number, number];
+export const rustsecp256k1_v0_10_0_context_create: (a: number) => number;
+export const rustsecp256k1_v0_10_0_context_destroy: (a: number) => void;
+export const rustsecp256k1_v0_10_0_default_error_callback_fn: (a: number, b: number) => void;
+export const rustsecp256k1_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;
+export const __wbindgen_export_0: WebAssembly.Table;
+export const __wbindgen_malloc: (a: number, b: number) => number;
+export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __externref_table_dealloc: (a: number) => void;
+export const __externref_table_alloc: () => number;
+export const __wbindgen_start: () => void;
