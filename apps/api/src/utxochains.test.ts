@@ -93,3 +93,11 @@ describe("IronHands payout() is a verified recovery only on the IronHands contra
     expect(verifyRecovery({ to: "0x0000000000000000000000000000000000000001", data: "0x63bd1d4a", value: "0" }, "0x1").verified).toBe(false);
   });
 });
+import { coinPrices } from "./utxochains.js";
+describe("coin prices", () => {
+  it("falls back to CoinPaprika when DefiLlama and CoinGecko have no BTG price", async () => {
+    const f = (async (u: string) =>
+      new Response(JSON.stringify(u.includes("coinpaprika") ? { quotes: { USD: { price: 0.5 } } } : u.includes("llama") ? { coins: {} } : {}))) as unknown as typeof fetch;
+    expect((await coinPrices(f, ["bitcoin-gold"]))["bitcoin-gold"]).toBe(0.5);
+  });
+});

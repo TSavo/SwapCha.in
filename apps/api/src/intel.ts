@@ -6,6 +6,7 @@ import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
 import { ensDeeds } from "./ensdeed.js";
 import { coinOf, decodeAny, utxoScan, utxoSweep, COINS, type Coin } from "./utxochains.js";
+import { isXrpAddress, signumAddress, signumScan, xrpScan } from "./ledgers.js";
 import { ethForkScan, forkSweep, ETH_FORKS, type EthFork } from "./ethforks.js";
 import { maturedPendle } from "./pendle.js";
 import { tronExtras, tronV1Account } from "./tron2.js";
@@ -3557,6 +3558,16 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       items.push(...(r.items as Found[]));
       notChecked.push(...r.notChecked);
       sources.push("public Blockbook explorers (BCH, BTG, LTC, DOGE, FTC)");
+    } else if (isXrpAddress(address)) {
+      const r = await timed("XRP Ledger", xrpScan(f, address), { items: [], notChecked: [] });
+      items.push(...(r.items as Found[]));
+      notChecked.push(...r.notChecked);
+      sources.push("XRP Ledger public nodes (xrplcluster.com, ripple.com): balance, reserve, AccountDelete eligibility");
+    } else if (signumAddress(address)) {
+      const r = await timed("Signum", signumScan(f, address), { items: [], notChecked: [] });
+      items.push(...(r.items as Found[]));
+      notChecked.push(...r.notChecked);
+      sources.push("Signum public nodes (europe/brazil/us-east.signum.network)");
     } else if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address)) {
       // JustLend supply is covered (with a redeem tx) by tronExtras inside tronMoney
       items.push(...(await tronMoney(f, address, env)));
@@ -4538,7 +4549,8 @@ export async function findMoney(
         fmMs[n] = Date.now() - t0;
       }
     };
-    const balP = run("balances", () => walletBalances(f, env, address));
+    const ledgerOnly = isXrpAddress(address) || !!signumAddress(address);
+    const balP = ledgerOnly ? Promise.resolve(null) : run("balances", () => walletBalances(f, env, address));
     const [balR, air, lend, appr, pools, gasNow] = await Promise.all([
       balP,
       run("claimables", () => airdropCheck(f, env, address)),

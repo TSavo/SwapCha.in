@@ -70,6 +70,7 @@ async function bb<T>(f: F, coin: Coin, path: string): Promise<T> {
   }
   throw new Error(`${coin} blockbook unavailable (${String(last)})`);
 }
+const PAPRIKA: Record<string, string> = { "bitcoin-gold": "btg-bitcoin-gold", feathercoin: "ftc-feathercoin", ripple: "xrp-xrp", litecoin: "ltc-litecoin", dogecoin: "doge-dogecoin", "bitcoin-cash": "bch-bitcoin-cash", "ethereum-classic": "etc-ethereum-classic" };
 export async function coinPrices(f: F, ids: string[]): Promise<Record<string, number>> {
   const r = await f(`https://coins.llama.fi/prices/current/${ids.map((i) => `coingecko:${i}`).join(",")}`, { signal: AbortSignal.timeout(5000) })
     .then((x) => x.json() as Promise<{ coins: Record<string, { price: number }> }>).catch(() => ({ coins: {} }));
@@ -80,6 +81,12 @@ export async function coinPrices(f: F, ids: string[]): Promise<Record<string, nu
       .then((x) => x.json() as Promise<Record<string, { usd?: number }>>).catch(() => ({}) as Record<string, { usd?: number }>);
     for (const i of miss) if (g[i]?.usd) out[i] = g[i]!.usd!;
   }
+  // last resort (CoinGecko rate-limits the server): CoinPaprika for coins DefiLlama does not price
+  await Promise.all(ids.filter((i) => out[i] == null && PAPRIKA[i]).map(async (i) => {
+    const t = await f(`https://api.coinpaprika.com/v1/tickers/${PAPRIKA[i]}`, { signal: AbortSignal.timeout(4000) })
+      .then((x) => x.json() as Promise<{ quotes?: { USD?: { price?: number } } }>).catch(() => null);
+    if (t?.quotes?.USD?.price) out[i] = t.quotes.USD.price;
+  }));
   return out;
 }
 
