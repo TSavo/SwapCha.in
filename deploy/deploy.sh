@@ -5,7 +5,7 @@
 # Secrets come from Vault here and live only in this process's environment; compose hands them to the containers.
 #   secret/swapchan/cloudflare  tunnel_token, tunnel_id     (required: written when the tunnel was created)
 #   secret/swapchan/fees        recipient, bps, lifi_enabled              (integrator fee; unset = no fee)
-#   secret/swapchan/providers   zerox, lifi, relay, velora, jupiter, oneinch, debridge_referral  (API keys; unset = provider off / free tier)
+#   secret/swapchan/providers   zerox, lifi, relay, etherscan, cryptoid, velora, jupiter, oneinch, debridge_referral  (API keys; unset = provider off / free tier)
 #   secret/swapchan/fees        ... solana, bitcoin, tron, thorname (THORChain affiliate)
 #   secret/swapchan/reown       project_id                  (wallet connect; unset = connect disabled)
 #   secret/swapchan/analytics   measurement_id              (GA4; unset = no analytics)
@@ -35,6 +35,7 @@ export LIFI_API_KEY=$(opt providers lifi)
 export LIFI_INTEGRATOR=$(opt providers lifi_integrator)   # portal.li.fi integrator name (default myswapchan)
 export RELAY_API_KEY=$(opt providers relay)
 export ETHERSCAN_API_KEY=$(opt providers etherscan)
+export CRYPTOID_API_KEY=$(opt providers cryptoid)   # chainz.cryptoid.info (old coins; keyless = 1 call / 10 s)
 export JUPITER_API_KEY=$(opt providers jupiter)   # optional: developers.jup.ag/portal (keyless = 0.5 RPS)
 export SWAPCHAN_FEE_RECIPIENT_SOLANA=$(opt fees solana)   # Jupiter platform fee owner
 export VELORA_API_KEY=$(opt providers velora)

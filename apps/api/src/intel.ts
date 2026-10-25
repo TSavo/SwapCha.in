@@ -11,7 +11,7 @@ import { lstQueues } from "./lst.js";
 import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
 import { ensDeeds } from "./ensdeed.js";
-import { coinOf, decodeAny, utxoScan, utxoSweep, COINS, type Coin } from "./utxochains.js";
+import { coinOf, decodeAny, utxoSources, utxoSweep, COINS, type Coin } from "./utxochains.js";
 import { isXrpAddress, signumAddress, signumScan, xrpScan } from "./ledgers.js";
 import { extraEvmScan, evmSweep } from "./extraevm.js";
 import { blockscoutAbi, bytecodeSelectors, resolveSelectors, recoveryCandidates } from "./abiprobe.js";
@@ -3617,10 +3617,12 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         "contract archaeology: full explorer history → every contract called/token received, probed with balanceOf/earned/dividendsOf/claimable/pendingRewards, ERC-4626 & Yearn vault shares, Uniswap-v2 LP shares, Uniswap v3 positions + simulated collect() fees, EtherDelta/IDEX ERC-20 balances, NFTs still held",
       );
     } else if (coinOf(address)) {
-      const r = await timed(`${COINS[coinOf(address)!].name} balance`, utxoScan(f, address), { items: [], notChecked: [] });
-      items.push(...(r.items as Found[]));
-      notChecked.push(...r.notChecked);
-      sources.push("public Blockbook explorers (BCH, BTG, LTC, DOGE, FTC)");
+      // one timed source per candidate coin (version bytes collide, e.g. DGB/DOGE, VIA/VTC)
+      const u = utxoSources(f, address, env);
+      notChecked.push(...u.notChecked);
+      const rs = await Promise.all(u.sources.map((s) => timed(s.name, s.run(), [] as unknown[])));
+      for (const r of rs) items.push(...(r as Found[]));
+      sources.push(`public explorers (Blockbook/Insight/qtum.info/WhatsOnChain/cryptoid) for ${u.sources.map((s) => COINS[s.coin].sym).join(", ")}`);
     } else if (isXrpAddress(address)) {
       const r = await timed("XRP Ledger", xrpScan(f, address), { items: [], notChecked: [] });
       items.push(...(r.items as Found[]));
@@ -3642,13 +3644,17 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       const [bx, fork] = await Promise.all([
         btcXpubScan(f, address).catch(() => []),
         /^(xpub|ypub|zpub|xprv)/i.test(address)
-          ? { items: [], notChecked: ["fork coins (BCH/BTG) and same-key LTC/DOGE/FTC: checked for single addresses only, not xpubs"] }
-          : timed("fork + same-key coins", utxoScan(f, address), { items: [], notChecked: [] }),
+          ? { items: [] as unknown[], notChecked: ["fork coins and same-key old coins: checked for single addresses only, not xpubs"] }
+          : (() => {
+              // every same-key coin is its own timed source, all in parallel with the BTC scan
+              const u = utxoSources(f, address, env);
+              return Promise.all(u.sources.map((s) => timed(s.name, s.run(), [] as unknown[]))).then((rs) => ({ items: rs.flat(), notChecked: u.notChecked }));
+            })(),
       ]);
       items.push(...(bx as Found[]), ...(fork.items as Found[]));
       notChecked.push(...fork.notChecked);
       sources.push("Bitcoin xpub/address UTXO scan (blockchain.info multiaddr + mempool.space)");
-      sources.push("same address on BCH and BTG (fork coins) and LTC/DOGE/FTC (same key) via public Blockbook explorers");
+      sources.push("same key on fork coins (BCH, BTG, BSV) and old Bitcoin-family coins (LTC, DOGE, DASH, DGB, RVN, ZEC, QTUM, MONA, PPC, RDD, VTC, VIA, TRC, XPM, AUR, ...) via public explorers, each its own timed source");
     } else if (vm === "svm") {
       // Tron base58 also matches the Solana pattern, so Tron is tested first.
       // every Solana source in parallel, each under its own deadline (was serial: rent -> stake -> archaeology)
