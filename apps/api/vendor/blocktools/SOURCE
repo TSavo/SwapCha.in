@@ -1,1 +1,1 @@
-Built from TSavo/blocktools 0ba1ce6 (CI green; includes 2052b30, 096c0fb, e6909ee, 88b5315, 1daebde; adds serializeNvcTxFromJson) (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok: no secret code, exports match).
+Built from TSavo/blocktools 51a1844 (CI green; includes b580bde, 0bcb37a, b030d9a; adds buildEvmTransfer, selectUtxos, checkTxPolicy, solBuildTransfer) (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok: no secret code, exports match). wasm sha256 d964f514c0ecc843022cd6654edf46943e273804d7baa07395bfb213676267da.

@@ -369,6 +369,68 @@ module.exports.verifyTx = function(input, chain, expect_to, change, chain_id, ma
 };
 
 /**
+ * Check a tx against an offline policy file (docs/POLICY.md). Deny by default; the rule for `chain`
+ * is used. JSON {ok, failures, warnings, policy_sha256}. Throws on a bad tx or policy file.
+ * @param {string} input
+ * @param {string} chain
+ * @param {string} policy_json
+ * @returns {string}
+ */
+module.exports.checkTxPolicy = function(input, chain, policy_json) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const ptr0 = passStringToWasm0(input, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(chain, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(policy_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.checkTxPolicy(ptr0, len0, ptr1, len1, ptr2, len2);
+        var ptr4 = ret[0];
+        var len4 = ret[1];
+        if (ret[3]) {
+            ptr4 = 0; len4 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred5_0 = ptr4;
+        deferred5_1 = len4;
+        return getStringFromWasm0(ptr4, len4);
+    } finally {
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+    }
+};
+
+/**
+ * Build an unsigned Solana legacy transfer (one zeroed signature + message; byte-identical to
+ * @solana/kit). `plan` JSON: {from, to, blockhash, priority?:[micro_lamports_str, cu_limit]} plus one of
+ * lamports:"N" | sweep_balance:"N" | token:{mint, amount:"N", decimals, token_program, create_ata}.
+ * Returns hex. Takes no keys; sign elsewhere.
+ * @param {string} plan
+ * @returns {string}
+ */
+module.exports.solBuildTransfer = function(plan) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(plan, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.solBuildTransfer(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+};
+
+/**
  * Library version (semver string, same as the `blocktools` crate).
  * @returns {string}
  */
@@ -1462,6 +1524,64 @@ module.exports.recoveryTables = function() {
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+};
+
+/**
+ * Unsigned EIP-155 transfer (ETH forks / extra EVM chains, native or ERC-20). Request JSON:
+ * {chainId, nonce, gas, gasPrice, to, value | balance, token?, maxPriorityFeePerGas?, from?}.
+ * Returns {unsigned, sighash, kind, chainId, nonce, gas, gasPrice, to, value, data, fee, ...}.
+ * @param {string} req_json
+ * @returns {string}
+ */
+module.exports.buildEvmTransfer = function(req_json) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(req_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.buildEvmTransfer(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+};
+
+/**
+ * SwapChan coin selection: own script only, drop value < rate×148×20 (fee > 5%), largest first, max 200 inputs.
+ * @param {string} utxos_json
+ * @param {string} script_hex
+ * @param {number} fee_rate
+ * @returns {string}
+ */
+module.exports.selectUtxos = function(utxos_json, script_hex, fee_rate) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(utxos_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(script_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.selectUtxos(ptr0, len0, ptr1, len1, fee_rate);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
     }
 };
 

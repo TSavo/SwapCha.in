@@ -9,6 +9,8 @@ export const decodeTx: (a: number, b: number, c: number, d: number) => [number, 
 export const serializeNvcTxFromJson: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const describeTx: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const verifyTx: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => [number, number, number, number];
+export const checkTxPolicy: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
+export const solBuildTransfer: (a: number, b: number) => [number, number, number, number];
 export const version: () => [number, number];
 export const supportedChains: () => [number, number];
 export const unverifiedChains: () => [number, number];
@@ -50,6 +52,8 @@ export const verifyRecoveryRaw: (a: number, b: number, c: number, d: number, e: 
 export const verifySweepTx: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
 export const verifySweepRaw: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
 export const recoveryTables: () => [number, number];
+export const buildEvmTransfer: (a: number, b: number) => [number, number, number, number];
+export const selectUtxos: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
 export const rustsecp256k1_v0_10_0_context_create: (a: number) => number;
 export const rustsecp256k1_v0_10_0_context_destroy: (a: number) => void;
 export const rustsecp256k1_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;

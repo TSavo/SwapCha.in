@@ -36,6 +36,18 @@ export function describeTx(input: string, chain: string): string;
  */
 export function verifyTx(input: string, chain: string, expect_to: string[], change: string[], chain_id: number | null | undefined, max_fee: string, allow_warnings: boolean, allow_value_with_token?: boolean | null): string;
 /**
+ * Check a tx against an offline policy file (docs/POLICY.md). Deny by default; the rule for `chain`
+ * is used. JSON {ok, failures, warnings, policy_sha256}. Throws on a bad tx or policy file.
+ */
+export function checkTxPolicy(input: string, chain: string, policy_json: string): string;
+/**
+ * Build an unsigned Solana legacy transfer (one zeroed signature + message; byte-identical to
+ * @solana/kit). `plan` JSON: {from, to, blockhash, priority?:[micro_lamports_str, cu_limit]} plus one of
+ * lamports:"N" | sweep_balance:"N" | token:{mint, amount:"N", decimals, token_program, create_ata}.
+ * Returns hex. Takes no keys; sign elsewhere.
+ */
+export function solBuildTransfer(plan: string): string;
+/**
  * Library version (semver string, same as the `blocktools` crate).
  */
 export function version(): string;
@@ -210,3 +222,13 @@ export function verifySweepRaw(raw_hex: string, owner: string, chain_id: number,
  * The verifier's allowlists: standard sigs/owner slots, pinned contracts, MultiSend, deadline cap.
  */
 export function recoveryTables(): string;
+/**
+ * Unsigned EIP-155 transfer (ETH forks / extra EVM chains, native or ERC-20). Request JSON:
+ * {chainId, nonce, gas, gasPrice, to, value | balance, token?, maxPriorityFeePerGas?, from?}.
+ * Returns {unsigned, sighash, kind, chainId, nonce, gas, gasPrice, to, value, data, fee, ...}.
+ */
+export function buildEvmTransfer(req_json: string): string;
+/**
+ * SwapChan coin selection: own script only, drop value < rate×148×20 (fee > 5%), largest first, max 200 inputs.
+ */
+export function selectUtxos(utxos_json: string, script_hex: string, fee_rate: number): string;
