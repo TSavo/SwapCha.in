@@ -1,4 +1,3 @@
-import { health } from "./scanctx.js";
 import {
   Address,
   API_VERSION,
@@ -47,6 +46,7 @@ import { thorchain } from "./providers/thorchain.js";
 import type { Fetch, ProviderAdapter } from "./providers/types.js";
 import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
+import { health } from "./scanctx.js";
 import { scannerRoutes } from "./scanner.js";
 import { openSeoStore, seoRoutes, startSeoJob } from "./seo.js";
 import { createSimulator, type Simulator } from "./simulate.js";
@@ -401,7 +401,8 @@ export function payoutFor(
     const r = recipient ?? qreq.recipient;
     return r ? { recipient: r } : { error: "cross-VM route: pass recipient" };
   }
-  if (!recipient || recipient.toLowerCase() === taker.toLowerCase()) return { recipient: undefined };
+  if (!recipient || recipient.toLowerCase() === taker.toLowerCase())
+    return { recipient: undefined };
   if (!allowForeign)
     return {
       error:

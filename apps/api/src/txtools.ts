@@ -243,7 +243,10 @@ export function outcomeChecks(
     const got = exp.outToken
       ? (received.get(lc(exp.outToken)) ?? 0n)
       : [...received.values()].reduce((m, x) => (x > m ? x : m), 0n);
-    if (got < min && !(exp.recipient && received.size === 0 && out.some((f) => f.severity === "warn")))
+    if (
+      got < min &&
+      !(exp.recipient && received.size === 0 && out.some((f) => f.severity === "warn"))
+    )
       out.push({
         severity: "high",
         check: "min-out",
@@ -379,7 +382,8 @@ export async function verifyEvm(
               : l.address;
           if (fr === me) changes.set(tok, (changes.get(tok) ?? 0n) - amt);
           if (to === me) changes.set(tok, (changes.get(tok) ?? 0n) + amt);
-          if (to === rcpt && fr !== rcpt) received.set(lc(tok), (received.get(lc(tok)) ?? 0n) + amt);
+          if (to === rcpt && fr !== rcpt)
+            received.set(lc(tok), (received.get(lc(tok)) ?? 0n) + amt);
         }
       simulated = cl.status === "0x1";
       const diff = [...changes].map(([token, delta]) => ({ token, delta: delta.toString() }));
