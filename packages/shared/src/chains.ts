@@ -9,7 +9,8 @@ export type ChainRow = {
   name: string;
   ticker: string;
   title: string;
-  coin_type: number;
+  /** null when the chain has no SLIP-44 entry (wdc, anc) */
+  coin_type: number | null;
   curve: string;
   encoding: string;
   native_seed: boolean;

@@ -47,7 +47,7 @@
     "encoding": "eth",
     "native_seed": false,
     "sign": "standard",
-    "buildable": true,
+    "buildable": false,
     "verified": true,
     "source": "EIP-55, EIP-155, EIP-1559"
   },
@@ -359,7 +359,7 @@
     "encoding": "utxo",
     "native_seed": false,
     "sign": "forkid:0",
-    "buildable": false,
+    "buildable": true,
     "verified": true,
     "source": "same legacy bytes as Bitcoin; SIGHASH_FORKID"
   },
@@ -372,7 +372,7 @@
     "encoding": "utxo",
     "native_seed": false,
     "sign": "forkid:0",
-    "buildable": false,
+    "buildable": true,
     "verified": true,
     "source": "same legacy bytes as Bitcoin; SIGHASH_FORKID"
   },
@@ -385,7 +385,7 @@
     "encoding": "utxo",
     "native_seed": false,
     "sign": "forkid:79",
-    "buildable": false,
+    "buildable": true,
     "verified": true,
     "source": "BTCGPU/BTCGPU src/chainparams.cpp"
   },
@@ -398,7 +398,7 @@
     "encoding": "utxo",
     "native_seed": false,
     "sign": "pos_time",
-    "buildable": false,
+    "buildable": true,
     "verified": true,
     "source": "peercoin/peercoin src/kernel/chainparams.cpp"
   },
@@ -411,7 +411,7 @@
     "encoding": "utxo",
     "native_seed": false,
     "sign": "pos_time",
-    "buildable": false,
+    "buildable": true,
     "verified": true,
     "source": "novacoin-project/novacoin src/base58.h (WIF = 128 + PUBKEY_ADDRESS)"
   },
@@ -424,7 +424,7 @@
     "encoding": "utxo",
     "native_seed": false,
     "sign": "pos_time",
-    "buildable": false,
+    "buildable": true,
     "verified": true,
     "source": "nochowderforyou/clams src/chainparams.cpp"
   },
@@ -450,7 +450,7 @@
     "encoding": "utxo",
     "native_seed": false,
     "sign": "pos_time",
-    "buildable": false,
+    "buildable": true,
     "verified": true,
     "source": "reddcoin-project/reddcoin src/chainparams.cpp"
   },
@@ -497,12 +497,12 @@
     "name": "wdc",
     "ticker": "WDC",
     "title": "Worldcoin",
-    "coin_type": 0,
+    "coin_type": null,
     "curve": "secp256k1",
     "encoding": "utxo",
     "native_seed": false,
     "sign": "standard",
-    "buildable": true,
+    "buildable": false,
     "verified": false,
     "source": "worldcoinproject/worldcoin-v0.8 src/base58.h; no SLIP-44 entry; tx format Bitcoin-legacy confirmed on 4 mainnet txs (tx/tests/wdc.rs)"
   },
@@ -510,12 +510,12 @@
     "name": "anc",
     "ticker": "ANC",
     "title": "Anoncoin",
-    "coin_type": 0,
+    "coin_type": null,
     "curve": "secp256k1",
     "encoding": "utxo",
     "native_seed": false,
     "sign": "standard",
-    "buildable": true,
+    "buildable": false,
     "verified": false,
     "source": "Anoncoin/anoncoin src/chainparams.cpp; no SLIP-44 entry"
   },
