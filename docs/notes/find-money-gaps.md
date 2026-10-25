@@ -36,6 +36,8 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
   fee verdict (2d179f1: per-coin FeeWarn rows incl. measured DOGE/FTC/MONA, high_fee scaled per started 1000 vB) is final:
   any fee warning refuses the sweep (only "unsigned" is expected). SwapChan's own cap still applies on top (row rate x
   legacy size x 1.25; ZEC also ZIP-317 x 1.25), and high_fee_pct never passes.
+  Fee rates: FTC 600 sat/B (blocktools p10 over 100 txs; median 2000; the old 100 was below every sampled tx, so it
+  might not relay); DOGE stays at its 1000 sat/B policy rate (relays, under the measured DOGE row).
   ZEC: blocktools' v5 tx is re-parsed by SwapChan's own parseZecV5 and its branch id must equal the explorer's
   chaintip+nextblock consensus id; immature coinbase UTXOs (<100 conf) are skipped. Amounts above 2^53 (RDD) are now
   passed to blocktools as decimal strings and read back from its amount_str / fee_str twins (2d179f1; replaced bigJson). BCH sweeps accept CashAddr (bitcoincash:q/p...) for from/to;

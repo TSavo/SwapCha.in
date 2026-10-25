@@ -141,6 +141,8 @@ export const COINS = {
     p2sh: [22],
     cg: "dogecoin",
     paprika: "doge-dogecoin",
+    // Dogecoin Core policy rate (0.01 DOGE/kB); relays fine and sits under blocktools 761584e's measured DOGE row
+    // (warn 1.2e6/B), so it stays.
     feeRate: 1000,
     wallet: "Dogecoin Core / Electrum-DOGE",
     src: bb("https://blockbook.doge.zelcore.io"),
@@ -154,7 +156,10 @@ export const COINS = {
     hrp: "fc",
     cg: "feathercoin",
     paprika: "ftc-feathercoin",
-    feeRate: 100,
+    // blocktools 761584e FTC row: median 2,000 sat/vB, p10 600 over 100 txs (blocks 6407004-6408299). 100 was below
+    // anything sampled and risks not relaying; 600 = p10 (paid by real relayed txs), well under blocktools' FTC
+    // warn rate 40,000/B and its builder cap max(2000, 4 x 40,000); our own cap is this rate x size x 1.25.
+    feeRate: 600,
     wallet: "Feathercoin Core / Electrum-FTC",
     src: bb("https://explorer.feathercoin.com"),
     sweep: true,
