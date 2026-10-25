@@ -109,4 +109,17 @@ describe("checkBuilt (audit: swap card trusted API response blindly)", () => {
     ).toEqual([]);
     expect(checkBuilt(ne({ payoutTo: "EvilSo1ana" }), q, ME)).not.toEqual([]);
   });
+  it("caps native value on cross-chain ERC-20 swaps at the quoted bridge fee", () => {
+    const xq = (v?: string) =>
+      ({
+        ...quote({ toChainId: 10 }),
+        tx: v === undefined ? null : { value: v },
+      }) as unknown as Quote;
+    expect(checkBuilt(ok({ value: "1000" }), xq("1000"), ME)).toEqual([]);
+    expect(checkBuilt(ok({ value: "1100" }), xq("1000"), ME)).toEqual([]);
+    expect(checkBuilt(ok({ value: "1101" }), xq("1000"), ME)).not.toEqual([]);
+    expect(checkBuilt(ok({ value: "0" }), xq(), ME)).toEqual([]);
+    expect(checkBuilt(ok({ value: "1" }), xq(), ME)).not.toEqual([]);
+    expect(checkBuilt(ok({ value: "10000000000000000000" }), xq("0"), ME)).not.toEqual([]);
+  });
 });

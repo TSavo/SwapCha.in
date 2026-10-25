@@ -69,7 +69,16 @@ export function checkBuilt(built: BuildResponse, quote: Quote, taker: string): s
     // Same-chain: at most the amount (+1% headroom). Cross-chain: bridge messaging fee headroom 10%.
     const cap = amount + (amount * (crossChain ? 10n : 1n)) / 100n;
     if (value > cap) out.push("tx sends more native coin than the amount you entered");
-  } else if (!crossChain && value !== 0n) out.push("tx sends native coin on a token swap");
+  } else if (!crossChain) {
+    if (value !== 0n) out.push("tx sends native coin on a token swap");
+  } else {
+    // Cross-chain token swap: native value only pays the bridge's messaging fee, which the quote
+    // states in its own tx. Cap at that (+10% for fee drift); no quoted fee means no value allowed.
+    const need = quote.tx ? big(quote.tx.value) : 0n;
+    if (need === null) out.push("bad quoted tx value");
+    else if (value > need + need / 10n)
+      out.push(`tx sends ${value} native on a token swap; the quote requires at most ${need}`);
+  }
 
   const a = built.approval;
   if (a) {
