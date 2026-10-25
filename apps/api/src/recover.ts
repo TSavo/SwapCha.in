@@ -1,3 +1,4 @@
+import { verifyV4 } from "./lpv4.js";
 import type { DatabaseSync } from "node:sqlite";
 import { NATIVE_TOKEN, SOLANA } from "@swapchan/shared";
 import {
@@ -86,6 +87,8 @@ const ABIS = STANDARD_RECOVERY.map((s) => ({ ...s, abi: fn(s.sig) }));
 export type Verdict = { readonly verified: true; readonly call: string } | { readonly verified: false; readonly reason: string };
 export function verifyRecovery(tx: { to: string; data: string; value: string }, owner: string): Verdict {
   if (BigInt(tx.value || "0") !== 0n) return { verified: false, reason: "non-zero value" } as const;
+  const v4 = verifyV4(tx.data, owner);
+  if (v4 !== null) return v4 ? ({ verified: true, call: "modifyLiquidities(DECREASE_LIQUIDITY,TAKE_PAIR→owner)" } as const) : ({ verified: false, reason: "v4 actions other than decrease + take-to-owner" } as const);
   // multicall(bytes[]): every inner call must itself be a verified recovery call
   try {
     const m = decodeFunctionData({ abi: MULTICALL, data: tx.data as `0x${string}` });
