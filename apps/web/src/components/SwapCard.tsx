@@ -14,7 +14,7 @@ import {
 } from "@swapchan/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { erc20Abi, maxUint256 } from "viem";
+import { erc20Abi } from "viem";
 import {
   useAccount,
   useBalance,
@@ -29,6 +29,7 @@ import { waitForTransactionReceipt } from "wagmi/actions";
 import { formatAmount, parseAmount, sanitizeAmountInput } from "@/lib/amount";
 import { API_URL, api, cowExplorer, submitCowOrder } from "@/lib/api";
 import { sendBitcoinPsbt, useBitcoin } from "@/lib/bitcoin";
+import { assertBuilt } from "@/lib/buildCheck";
 import { characterForChain } from "@/lib/characters";
 import { quoteParams, track } from "@/lib/ga";
 import { publishSays, say, unverifiedWarning } from "@/lib/says";
@@ -42,7 +43,6 @@ import { ChainPicker, TokenPicker } from "./Pickers";
 import { RouteList, RoutesLoading } from "./RouteList";
 import { StatusTracker, type TrackParams } from "./StatusTracker";
 
-const PERMIT2 = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
 const SLIPPAGES = [10, 50, 100, 300];
 
 // Prefilled example so the first paint already shows a real quote: 100 USDC Ethereum -> Base.
@@ -118,7 +118,6 @@ export function SwapCard({
   const [toToken, setToToken] = useState<Token | undefined>(() => usdc(8453));
   const [amountStr, setAmountStr] = useState("100");
   const [slippageBps, setSlippage] = useState(50);
-  const [approveMode, setApproveMode] = useState<"exact" | "permit2">("exact");
   const [selected, setSelected] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ k: "idle" });
   const [settled, setSettled] = useState<"done" | "failed">();
@@ -367,12 +366,8 @@ export function SwapCard({
     setPhase({ k: "approving" });
     try {
       await ensureChain();
-      // Permit2 mode: one-time max approval to the canonical Permit2 contract when the
-      // route's spender is Permit2. Otherwise approve exactly the swap amount.
-      const value =
-        approveMode === "permit2" && spender.toLowerCase() === PERMIT2.toLowerCase()
-          ? maxUint256
-          : amount;
+      // Always approve exactly the swap amount (never unlimited, including to Permit2).
+      const value = amount;
       const hash = await writeContractAsync({
         address: fromToken.address,
         abi: erc20Abi,
@@ -391,6 +386,7 @@ export function SwapCard({
   const swapSolana = async (q: Quote, from: string) => {
     if (!sol.provider || !sol.connection) throw new Error("Connect a Solana wallet first");
     const built = await api.build(q, from, false);
+    assertBuilt(built, q, from);
     if (!built.nonEvmTx) throw new Error("Provider returned no Solana transaction");
     const tx = await toSolanaTx(built.nonEvmTx, from, sol.connection);
     const sig = await sol.provider.signAndSendTransaction(tx);
@@ -410,6 +406,7 @@ export function SwapCard({
 
   const swapNonEvm = async (q: Quote, from: string) => {
     const built = await api.build(q, from, false);
+    assertBuilt(built, q, from);
     if (!built.nonEvmTx) throw new Error(`Provider returned no ${VM_NAME[fromVm]} transaction`);
     const txHash =
       fromVm === "bvm"
@@ -460,6 +457,7 @@ export function SwapCard({
       }
       await ensureChain();
       const built = await api.build(quote, address, false);
+      assertBuilt(built, quote, address);
       const evm = evmAddress as `0x${string}`;
       if (built.execution === "order" && built.order) {
         // CoW: sign the EIP-712 order (no gas), submit to CoW's orderbook.
@@ -704,21 +702,6 @@ export function SwapCard({
             </button>
           ))}
         </div>
-        {!isNative(fromToken) && (
-          <div className="flex items-center gap-1">
-            Approval
-            {(["exact", "permit2"] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setApproveMode(m)}
-                className={`rounded-full px-2 py-0.5 ${m === approveMode ? "bg-amber-400 font-bold text-violet-950" : "bg-violet-800"}`}
-              >
-                {m === "exact" ? "Exact" : "Permit2"}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {!compact && request !== null && (

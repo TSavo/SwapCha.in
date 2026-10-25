@@ -80,7 +80,11 @@ export const api = {
       : call("/build", BuildResponseSchema, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ quoteId: quote.id, taker }),
+          body: JSON.stringify({
+            quoteId: quote.id,
+            taker,
+            ...(quote.request.recipient ? { recipient: quote.request.recipient } : {}),
+          }),
         }),
   status: (req: StatusRequest, mocked: boolean): Promise<StatusResponse> =>
     mocked
