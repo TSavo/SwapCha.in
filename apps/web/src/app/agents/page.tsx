@@ -60,6 +60,13 @@ export default function Agents() {
         <code>swapchan-mcp --stdio</code>). SwapChan never holds keys: <code>build_swap_tx</code>{" "}
         returns an unsigned tx for the user's own wallet.
       </p>
+      <p className="mt-2 text-sm text-violet-300">
+        The developer tools also have web pages:{" "}
+        <a href="/tools#developer-tools" className="underline">
+          Developer &amp; chain tools
+        </a>
+        .
+      </p>
 
       <h2 id="earn" className="mt-10 mb-3 scroll-mt-4 text-2xl font-black">
         Earn 5 bp on every swap your agent routes
@@ -146,10 +153,10 @@ export default function Agents() {
         The card auto-quotes on load. Resolve and shorten with <code>GET /links/swap?…</code> or{" "}
         <code>POST /links</code> (<code>{"{url}"}</code>, params, or{" "}
         <code>{"{items: [...], ref}"}</code> for a <code>/batch</code> link). Short links (
-        <code>swapchan.com/s/&lt;id&gt;</code>) for swaps are permanent (they don&apos;t expire), get
-        an unguessable random id, are never reused, only point at swapchan.com, keep{" "}
-        <code>ref</code> and count clicks. Recovery links that carry wallet data are private: don&apos;t
-        share them (old sequential ones with wallet data no longer resolve).
+        <code>swapchan.com/s/&lt;id&gt;</code>) for swaps are permanent (they don&apos;t expire),
+        get an unguessable random id, are never reused, only point at swapchan.com, keep{" "}
+        <code>ref</code> and count clicks. Recovery links that carry wallet data are private:
+        don&apos;t share them (old sequential ones with wallet data no longer resolve).
       </p>
       <pre className="overflow-x-auto rounded-lg bg-black/50 p-3 text-xs">{`curl "${API_URL}/links/swap?fromChain=base&fromToken=ETH&toToken=USDC&amount=0.1&ref=<partnerId>"
 curl "${API_URL}/onchain/money?address=vitalik.eth"`}</pre>

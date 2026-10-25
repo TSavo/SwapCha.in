@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { castOrder } from "@/lib/bios";
+import { DEV_TOOLS } from "@/lib/devTools";
 import { ROUTES, routeHref } from "@/lib/routes";
 import { trendingTokens, trendSlugs } from "@/lib/trending";
 
@@ -21,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/bridge", 0.9),
     page("/agents", 0.8),
     page("/tools", 0.9),
+    ...DEV_TOOLS.map((t) => page(`/tools/${t.slug}`, 0.7)),
     page("/dashboard", 0.9),
     page("/find-money", 0.9),
     page("/find-money/powh3d", 0.8),

@@ -65,6 +65,17 @@ export const TOOLS = [
   ["resolve_name", "ENS, Basenames and .sol names to addresses, and back."],
   ["watch_token", "Price watches with list_watches / check_watches (pull, no push)."],
   ["get_yields", "Top DefiLlama yield pools for an asset, with a swap-in link."],
+  [
+    "address_tool",
+    "Developer tool: detect, validate or convert any address; CashAddr; address ↔ script.",
+  ],
+  [
+    "xpub_addresses",
+    "Developer tool: receive/change addresses from an xpub (public keys only; xprv refused).",
+  ],
+  ["solana_address", "Developer tool: Solana PDA, ATA, on-curve check, Anchor discriminator."],
+  ["substrate_tool", "Developer tool: SS58 decode/encode/convert, storage keys, blake2b, twox128."],
+  ["chain_params", "Developer tool: address version bytes and prefixes for 41 chains."],
 ] as const;
 
 export type Client = {
