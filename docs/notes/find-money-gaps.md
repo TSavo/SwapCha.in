@@ -1,35 +1,48 @@
 # find_money coverage checklist (internal working notes)
 
-Status: covered / partial / missing. Tx = can SwapChan build an owner-only recovery tx.
+Refreshed 2026-10-24. Tx = SwapChan builds an unsigned, owner-only recovery tx (signed by the connected wallet on
+swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = a plain note; only "open protocol" links out.
 
-## Already covered (before this branch)
-- History archaeology (evmArchaeology): any contract the wallet called or got tokens from, on 1/10/534352/43114 keyless (+8453/42161/137/56 with ETHERSCAN_API_KEY). Probes balanceOf, ERC-4626 asset/convertToAssets, Yearn v2 pricePerShare, Uni-v2 LP, reward views. Capped at 400 contracts.
-- Legacy: PoWH3D, Fomo3D, EtherDelta, IDEX v1, Liquity troves + surplus.
-- Lending (Aave v2/v3 on 9 chains, Compound v2/v3, Venus): detect, link out (no tx).
-- Curve 3 hard-coded gauges, Convex cvxCRV rewards; Synthetix; Sablier; vePENDLE; GMX; Rocket Pool deposit pool; OP/Base/Arb L2 withdrawals; Polygon exits; Multichain/Celer (detect); Merkl rewards; merkle airdrops (UNI/ENS/1INCH/OP/ARB; eligibility unknown = BUG); WETH-style unwrap on 7 chains; Lido withdrawal queue; Safes owned (list only); Solana rent + stake + archaeology; BTC xpub; Tron: voting rewards, Stake 2.0 expired unfreeze (tx), frozen v2 (detect), Stake 1.0, JustLend, sTRX/stUSDT/WTRX balances.
+## Rule: parallel by default (applies to every new check)
+- Every source is its own `timed(name, promise, empty, ms)` entry in the single `Promise.all` in `airdropCheck`
+  (apps/api/src/intel.ts). Never `await` one source before another.
+- Every source has its own deadline; on timeout/error it adds its own "X: not checked (reason)" line, never a silent [].
+  Sources that fan out (per chain / per protocol) return `{ items, notChecked }` with per-leg deadlines.
+- Explorer/RPC errors (rate limits included) must surface as "not checked", not as "nothing found".
+- Cold total time should equal the slowest stage, not the sum. Check the timing log after adding a source.
 
-## This branch
-- [x] Vault registry (vaults.ts): Yearn v2/v3 (yDaemon), Beefy, Morpho (API list), sDAI, sUSDS, sfrxETH, scrvUSD, sUSDe on 7 EVM chains, history-independent. redeem/withdraw(shares) tx. Live: Morpho steakUSDC holder ~$1.63M exact; Yearn yvUSDC v2 holder ~$2.23M estimate. ~1-2s.
+## Covered (see `git log --grep=find_money`)
+- History archaeology on EVM/Tron/Solana/BTC; unknown-contract probing (ABIs + selectors, simulated).
+- Legacy: PoWH3D, Fomo3D, EtherDelta, IDEX v1, IronHands/Doublr, P3D clones, Liquity, ENS old-registrar deeds (releaseDeed).
+- Lending: Aave v2/v3 + Spark withdraw tx; Compound/Venus detect.
+- Vault registry (Yearn, Beefy, Morpho, savings 4626) with redeem tx; maxWithdraw-capped.
+- Staked LP: every Curve gauge (7 chains), Convex/Aura, SushiSwap MasterChef; Uniswap v4 exits; Pendle matured PT/LP/SY.
+- Staking: Lido + ether.fi/Frax/Swell/Stader queues, Rocket Pool, EigenLayer deposits + queued withdrawals, beacon validators.
+- Airdrops with per-address eligibility; Merkl.
+- Safes: 1-of-N sweep via execTransaction.
+- Vesting/locks: Sablier Lockup/Flow (withdrawMax), Hedgey plans (redeemPlans, 8 chains), Team Finance (withdrawTokens),
+  UNCX v2 LP locker (withdraw), Superfluid Super Tokens (downgrade / downgradeToETH, 7 chains).
+- Refunds: TheDAO WithdrawDAO (approve, then withdraw; contract-pinned).
+- Canonical bridges: Arbitrum unexecuted L2→L1 messages (Outbox.executeTransaction with NodeInterface proof; ETH and token
+  gateway), Optimism withdrawals (prove / finalize on OptimismPortal). Both contract-pinned in verifyRecovery.
+- Perps: Hyperliquid perp + spot (note only: withdrawals are Hyperliquid-signed), GMX v2 funding fees (claimFundingFees,
+  receiver = owner) + open v2 positions (note), GMX v1 staked/rewards.
+- Solana: rent, stake, Marinade tickets (claim ix), Kamino obligations (detect).
+- Tron: voting rewards, Stake 2.0 unfreeze tx, Stake 1.0, JustLend, sTRX/stUSDT/WTRX (unwrap tx), WIN, BTT, SUN, SUNOLD (note).
+- Other chains: BTC xpub, fork coins + same-key LTC/DOGE/FTC, XRP Ledger, Signum, 12 extra EVM chains (native, tokens, approvals).
 
-## Missing / partial (ranked roughly by money x ease)
-1. [ ] Merkle airdrop eligibility from published trees (UNI/ENS/1INCH) + claim tx; drop "eligibility unknown" items. Tx: yes.
-2. [ ] "Get it back" must never link out; use connected wallet flow on /recover. (web)
-3. [ ] Aave/Compound/Spark supplied-but-idle: build withdraw(asset,max,owner) tx (currently link only). Tx: yes.
-4. [ ] Beacon chain: validators with 0x00 creds (need BLS change, detect only), exited validators, 0x01 balances (auto-swept; detect). Beaconcha.in API.
-5. [ ] EigenLayer: queued withdrawals completable (DelegationManager completeQueuedWithdrawal), strategy shares. Tx: yes.
-6. [ ] LST queues beyond Lido: Rocket Pool rETH burn, ether.fi, Swell, Stader, Frax redemption queue NFTs. Tx: yes mostly.
-7. [ ] Uniswap v3/v4 + Sushi LP NFTs: uncollected fees + liquidity (collect tx already allow-listed). Tx: yes.
-8. [ ] Convex/Aura/Curve: all gauges/reward pools via APIs, not 3 hard-coded. Tx: yes.
-9. [ ] Pendle PT matured redeem, YT interest, LP rewards. Tx: yes.
-10. [ ] Safe-held funds: run find_money on each owned Safe and value it; tx via Safe tx (needs Safe flow).
-11. [ ] HEX ended stakes (stakeEnd) - bug from 0xeb0e run. Tx: yes, low value usually.
-12. [ ] GREED / P3D-clone dividends unpriced (bug). Approval check failing on OP/Polygon/Linea/Scroll (bug). Spam airdrop labels in history (bug). read_chain revert blame (bug).
-13. [ ] Tron: delegated energy/bandwidth (undelegate), SUN.io/SunSwap LP + farms, JustLend withdraw tx, sTRX unstake queue, old WINk/BTT/TRONbet staking, TRC-10 leftovers, Stake 1.0 unfreeze tx.
-14. [ ] Euler v1 redemption, Notional, Gearbox, Sommelier, Idle, Harvest, Pickle, Balancer v2 internal balances. Mostly 4626/pricePerShare -> extend curated list.
-15. [ ] ENS: expired-name registration refunds n/a; old ENS deed (Registrar v1 deeds releaseDeed) - real ETH. Tx: yes.
-16. [ ] ICO refund contracts, DAO refunds (TheDAO WithdrawDAO), old DEX balances (Bancor, Kyber, 0x v1, Ox, Augur v1 REP migration).
-17. [ ] Bridges: Arbitrum retryables unredeemed, zkSync Lite, Hop bonder leftovers, Optimism Gateway old.
-18. [ ] Vesting/locked: Hedgey, Team Finance, Unicrypt, Llamapay, Superfluid deposits.
-19. [ ] Perps/margin: dYdX v3 (L1 exit), GMX v1 positions, Perp v1, Synthetix perps margin.
-20. [ ] Solana: Marinade/Jito unstake tickets, Kamino, Drift, Mango v3 leftovers.
-21. [ ] Off-chain claims (FTX, Celsius, Mt.Gox): not on-chain; info only.
+## Known gaps (honest "not checked" or detect-only)
+1. Base canonical bridge withdrawals: not checked (no free full-history log source; Etherscan v2 free tier excludes Base,
+   Blockscout is Cloudflare-challenged, public RPC rejects full-range logs).
+2. OP withdrawals: no live ready-to-prove example seen yet (statuses verified on waiting-to-finalize ones).
+3. Team Finance: withdrawTokens simulation reverted on a live unlocked lock; shown with no tx.
+4. Kamino: no tx built. Huge Solana wallets hit the balance limit.
+5. Blockscout ABI lookups blocked on non-Ethereum chains. Fantom tokens not checked. Extra EVM chains: no vault/lending.
+6. Sablier on chains without RPC: "not checked".
+7. GMX: ExchangeRouter rotates; perps.ts tries a short router list (first that simulates). Update when GMX redeploys.
+   Closing GMX positions / Hyperliquid withdrawals are notes only.
+8. Arbitrum retryables (unredeemed L1→L2), zkSync Lite, Hop, other third-party bridges: missing.
+9. Tron: SUN.io/SunSwap LP + farms, veSUN, delegated resources, TRC-10 leftovers (old BTT 1002000), WINk staking: missing.
+10. ICO refund contracts beyond TheDAO; old DEX balances (Bancor, Kyber, 0x v1), Augur v1 REP: missing.
+11. dYdX v3 L1 exit, Perp v1, Synthetix perps margin; Drift, Mango v3: missing.
+12. Off-chain claims (FTX, Celsius, Mt.Gox): not on-chain; info only.
