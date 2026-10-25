@@ -18,7 +18,11 @@ describe("legal pages", () => {
     expect(LEGAL_PLACEHOLDERS).toEqual([]);
     expect(all(TERMS)).toContain("evilgenius@nefariousplan.com");
     expect(all(PRIVACY)).toContain("evilgenius@nefariousplan.com");
-    expect(all(TERMS)).toContain("T Savo, doing business as EvilGenius and NefariousPlan.com");
+    expect(all(TERMS)).toContain("T Savo");
+    expect(all(TERMS)).toContain("operated by T Savo.");
+    expect([all(TERMS), all(PRIVACY)].join("\n")).not.toMatch(
+      /doing business as|EvilGenius|NefariousPlan\.com/,
+    );
     expect(all(TERMS)).toContain("State of California, USA");
     expect(all(TERMS)).toContain("state and federal courts located in California");
     expect(TERMS.updated).toBe("October 25, 2026");

@@ -10,7 +10,7 @@ export const TERMS: LegalDoc = {
   title: "Terms of Use",
   updated: "October 25, 2026",
   intro:
-    "SwapChan (swapchan.com, api.swapchan.com and mcp.swapchan.com) is a free, trustless toolkit for people and AI agents working with crypto. It is operated by T Savo, doing business as EvilGenius and NefariousPlan.com. By using it you agree to these terms. If you don't agree, don't use it.",
+    "SwapChan (swapchan.com, api.swapchan.com and mcp.swapchan.com) is a free, trustless toolkit for people and AI agents working with crypto. It is operated by T Savo. By using it you agree to these terms. If you don't agree, don't use it.",
   sections: [
     {
       h: "What SwapChan is",
@@ -72,7 +72,7 @@ export const TERMS: LegalDoc = {
     {
       h: "Limitation of liability",
       p: [
-        "To the fullest extent the law allows, T Savo, doing business as EvilGenius and NefariousPlan.com, is not liable for any loss of funds, tokens, profits or data, or for any indirect, incidental or consequential damages, arising from your use of SwapChan, third-party providers, smart contracts or blockchains.",
+        "To the fullest extent the law allows, T Savo is not liable for any loss of funds, tokens, profits or data, or for any indirect, incidental or consequential damages, arising from your use of SwapChan, third-party providers, smart contracts or blockchains.",
         "Where liability can't be excluded, it is limited to the fees you paid SwapChan in the 12 months before the claim.",
       ],
     },
@@ -91,7 +91,7 @@ export const PRIVACY: LegalDoc = {
   title: "Privacy Policy",
   updated: "October 25, 2026",
   intro:
-    "SwapChan has no accounts and doesn't ask for your name or email. This page explains what the site, API and MCP server do with the data they do see. It is operated by T Savo, doing business as EvilGenius and NefariousPlan.com.",
+    "SwapChan has no accounts and doesn't ask for your name or email. This page explains what the site, API and MCP server do with the data they do see. It is operated by T Savo.",
   sections: [
     {
       h: "Wallet addresses and public data",
