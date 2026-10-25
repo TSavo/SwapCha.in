@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { base58, base58check, bech32 } from "@scure/base";
 import { Transaction } from "bitcoinjs-lib";
 import {
+  btCashToLegacy,
   btConvertFrom,
   btDecode,
   btDetect,
@@ -578,36 +579,9 @@ export function outputScript(addr: string, coin?: Coin): Buffer {
   if (!d) throw new Error("unrecognised address");
   return script(d);
 }
-/** BCH CashAddr (bitcoincash:q.../p..., prefix optional) -> legacy base58, checksum verified; null otherwise. */
-export function cashToLegacy(addr: string): string | null {
-  const CS = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-  const a = addr.toLowerCase();
-  if (addr !== a && addr !== addr.toUpperCase()) return null;
-  const body = a.replace(/^bitcoincash:/, "");
-  if (!/^[qp][02-9ac-hj-np-z]{41}$/.test(body)) return null;
-  const v = [...body].map((ch) => CS.indexOf(ch));
-  const G = [0x98f2bc8e61n, 0x79b76d99e2n, 0xf33e5fb3c4n, 0xae2eabe2a8n, 0x1e4f43e470n];
-  let c = 1n;
-  for (const d of [..."bitcoincash"].map((x) => x.charCodeAt(0) & 31).concat([0], v)) {
-    const c0 = c >> 35n;
-    c = ((c & 0x07ffffffffn) << 5n) ^ BigInt(d);
-    for (let i = 0; i < 5; i++) if ((c0 >> BigInt(i)) & 1n) c ^= G[i]!;
-  }
-  if ((c ^ 1n) !== 0n) return null;
-  let acc = 0,
-    bits = 0;
-  const out: number[] = [];
-  for (const d of v.slice(0, -8)) {
-    acc = (acc << 5) | d;
-    bits += 5;
-    while (bits >= 8) {
-      bits -= 8;
-      out.push((acc >> bits) & 255);
-    }
-  }
-  if (out.length !== 21 || (out[0] !== 0 && out[0] !== 8)) return null;
-  return b58.encode(Uint8Array.from([out[0] === 0 ? 0 : 5, ...out.slice(1)]));
-}
+/** BCH CashAddr (bitcoincash:q.../p..., prefix optional) -> legacy base58, checksum verified; null otherwise.
+ *  blocktools wasm (fails closed: throws if unavailable). */
+export const cashToLegacy = (addr: string): string | null => btCashToLegacy(addr);
 const GRS_RE = /^(F[1-9A-HJ-NP-Za-km-z]{33}|grs1[02-9ac-hj-np-z]{38,58})$/;
 /**
  * Every coin a native (non-BTC) address could belong to. Version bytes collide (DGB/DOGE 30, VIA/VTC 71,

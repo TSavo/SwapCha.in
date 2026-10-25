@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
-import { base58xrp } from "@scure/base";
-import { btDetect } from "./blocktools.js";
+import { btAddrValid, btDetect } from "./blocktools.js";
 import type { NewFound } from "./recover.js";
 import { coinPrices } from "./utxochains.js";
 
@@ -17,18 +16,10 @@ const SIGNUM = [
   "https://us-east.signum.network",
 ];
 
-/** Classic XRP Ledger r-address with a valid checksum (Ripple base58 alphabet). */
-export function isXrpAddress(a: string): boolean {
-  if (!/^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(a)) return false;
-  try {
-    const raw = base58xrp.decode(a);
-    if (raw.length !== 25 || raw[0] !== 0) return false;
-    const ck = sha256(sha256(raw.slice(0, 21)));
-    return ck.subarray(0, 4).equals(Buffer.from(raw.slice(21)));
-  } catch {
-    return false;
-  }
-}
+/** Classic XRP Ledger r-address with a valid checksum, via blocktools wasm (fails closed). blocktools also
+ *  accepts X-addresses (XLS-5d, tag embedded); the scanners need the classic form, so r only. */
+export const isXrpAddress = (a: string): boolean => /^r/.test(a) && btAddrValid("xrp", a);
+
 /** Signum (ex-Burst) Reed-Solomon address S-XXXX-XXXX-XXXX-XXXXX or BURST-...; returns the S- form. */
 export function signumAddress(a: string): string | null {
   const m =

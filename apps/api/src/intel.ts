@@ -1,4 +1,4 @@
-import { base58 } from "@scure/base";
+import { btDetectChains } from "./blocktools.js";
 import { exitDeadline, minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { sablierStreams } from "./vesting.js";
 import { daoRefunds } from "./refunds.js";
@@ -153,13 +153,10 @@ async function resolveAddr(f: F, env: NodeJS.ProcessEnv, input: string) {
   return { address: s, name: null as string | null };
 }
 /** "svm" only for a base58 string that decodes to a 32-byte ed25519 pubkey. BTC/DOGE/LTC legacy, Tron
- *  and XRP addresses also match the base58 charset but decode to 25 bytes; before this check they were
+ *  and XRP addresses also match the base58 charset but decode to 25 bytes (blocktools detectAddress sol = 32-byte key, fails closed); before this check they were
  *  classified "svm" and got Solana/Kamino sources and "Solana rent" lines. */
 export const vmOfAddr = (a: string) =>
-  isAddress(a) ? "evm" : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) && b58len(a) === 32 ? "svm" : "other";
-function b58len(a: string): number {
-  try { return base58.decode(a).length; } catch { return -1; }
-}
+  isAddress(a) ? "evm" : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(a) && btDetectChains(a).includes("sol") ? "svm" : "other";
 
 // ---------- 1. simulate_swap ----------
 const ROUTERS_BY_CHAIN = (chainId: number) =>

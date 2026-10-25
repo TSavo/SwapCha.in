@@ -312,3 +312,26 @@ export type BtSolTx = {
 };
 /** Decode a Solana wire tx (hex or base64; legacy or v0). Throws on malformed input. */
 export const btSolDecodeTx = (raw: string) => JSON.parse(need().solDecodeTx(raw)) as BtSolTx;
+
+/** Address helpers (blocktools 61f1297). Fail closed: throw when the WASM is unavailable; false/null = invalid. */
+export function btAddrValid(chain: string, addr: string): boolean {
+  const w = need();
+  try {
+    w.addressValidate(chain, addr);
+    return true;
+  } catch {
+    return false;
+  }
+}
+/** Every chain the address is valid on. */
+export const btDetectChains = (addr: string): string[] =>
+  (JSON.parse(need().detectAddress(addr)) as { chain: string }[]).map((d) => d.chain);
+/** BCH CashAddr (prefix optional, checksum verified) -> legacy base58; null when not a valid CashAddr. */
+export function btCashToLegacy(addr: string): string | null {
+  const w = need();
+  try {
+    return w.cashAddrToLegacy(addr);
+  } catch {
+    return null;
+  }
+}
