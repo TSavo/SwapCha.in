@@ -431,6 +431,34 @@ module.exports.solBuildTransfer = function(plan) {
 };
 
 /**
+ * Build unsigned Tron `raw_data` (hex; txid = sha256 of it). `plan` JSON: {from, to, ref_block_bytes(hex2),
+ * ref_block_hash(hex8), expiration_ms, timestamp_ms, memo?} plus one of amount_sun:"N" |
+ * sweep:{balance_sun:"N", reserve_sun:"N"} | trc20:{contract, amount:"N", fee_limit_sun:"N"}. No keys.
+ * @param {string} plan
+ * @returns {string}
+ */
+module.exports.tronBuildTransfer = function(plan) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(plan, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.tronBuildTransfer(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+};
+
+/**
  * Library version (semver string, same as the `blocktools` crate).
  * @returns {string}
  */

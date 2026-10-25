@@ -11,6 +11,7 @@ export const describeTx: (a: number, b: number, c: number, d: number) => [number
 export const verifyTx: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => [number, number, number, number];
 export const checkTxPolicy: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
 export const solBuildTransfer: (a: number, b: number) => [number, number, number, number];
+export const tronBuildTransfer: (a: number, b: number) => [number, number, number, number];
 export const version: () => [number, number];
 export const supportedChains: () => [number, number];
 export const unverifiedChains: () => [number, number];

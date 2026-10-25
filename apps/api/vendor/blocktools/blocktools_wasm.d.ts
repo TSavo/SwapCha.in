@@ -48,6 +48,12 @@ export function checkTxPolicy(input: string, chain: string, policy_json: string)
  */
 export function solBuildTransfer(plan: string): string;
 /**
+ * Build unsigned Tron `raw_data` (hex; txid = sha256 of it). `plan` JSON: {from, to, ref_block_bytes(hex2),
+ * ref_block_hash(hex8), expiration_ms, timestamp_ms, memo?} plus one of amount_sun:"N" |
+ * sweep:{balance_sun:"N", reserve_sun:"N"} | trc20:{contract, amount:"N", fee_limit_sun:"N"}. No keys.
+ */
+export function tronBuildTransfer(plan: string): string;
+/**
  * Library version (semver string, same as the `blocktools` crate).
  */
 export function version(): string;
