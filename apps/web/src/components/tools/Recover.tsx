@@ -64,7 +64,12 @@ export function Recover(p: {
   const known = !!call;
   useEffect(() => {
     if (known || !address) return;
-    const q = new URLSearchParams({ to: p.to, data: p.data, value: p.value || "0", owner: address });
+    const q = new URLSearchParams({
+      to: p.to,
+      data: p.data,
+      value: p.value || "0",
+      owner: address,
+    });
     fetch(`https://api.swapchan.com/onchain/recover-verify?${q}`)
       .then((r) => r.json())
       .then(setRemote)
@@ -120,10 +125,10 @@ export function Recover(p: {
           </p>
         )}
         {known && address && !localCallPaysOwner(call, address) && (
-            <p className="mt-2 font-bold text-rose-300">
-              This call pays or moves funds for someone other than the connected wallet. Don't sign.
-            </p>
-          )}
+          <p className="mt-2 font-bold text-rose-300">
+            This call pays or moves funds for someone other than the connected wallet. Don't sign.
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           {!address ? (
             <ConnectButton />

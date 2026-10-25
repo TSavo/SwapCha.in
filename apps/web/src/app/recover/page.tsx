@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { safeNext } from "@/lib/safeNext";
 import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
 import { Recover } from "@/components/tools/Recover";
-import { TronRecover, type TronSpec } from "@/components/tools/TronRecover";
 import { SolRecover, type SolSpec } from "@/components/tools/SolRecover";
 import { SweepRecover } from "@/components/tools/SweepRecover";
+import { TronRecover, type TronSpec } from "@/components/tools/TronRecover";
+import { safeNext } from "@/lib/safeNext";
 
 export const metadata: Metadata = {
   title: "Recover an old crypto wallet (seed, keystore, presale) | SwapChan",
@@ -46,10 +46,21 @@ export default async function Page({
         </main>
       );
   }
-  if ((q.sweep === "utxo" || q.sweep === "fork" || q.sweep === "evm") && q.coin?.match(/^[a-z]{2,10}$/) && q.from?.match(/^[A-Za-z0-9:]{20,100}$/))
+  if (
+    (q.sweep === "utxo" || q.sweep === "fork" || q.sweep === "evm") &&
+    q.coin?.match(/^[a-z]{2,10}$/) &&
+    q.from?.match(/^[A-Za-z0-9:]{20,100}$/)
+  )
     return (
       <main className="flex min-h-screen flex-col items-center px-4 py-10 text-white">
-        <SweepRecover kind={q.sweep} coin={q.coin} {...(q.token?.match(/^0x[0-9a-fA-F]{40}$/) ? { token: q.token } : {})} from={q.from} sym={(q.sym ?? q.coin).slice(0, 8)} title={q.title ?? "Sweep coins"} />
+        <SweepRecover
+          kind={q.sweep}
+          coin={q.coin}
+          {...(q.token?.match(/^0x[0-9a-fA-F]{40}$/) ? { token: q.token } : {})}
+          from={q.from}
+          sym={(q.sym ?? q.coin).slice(0, 8)}
+          title={q.title ?? "Sweep coins"}
+        />
       </main>
     );
   const ok = q.to?.match(/^0x[0-9a-fA-F]{40}$/) && q.data?.match(/^0x[0-9a-fA-F]*$/);
