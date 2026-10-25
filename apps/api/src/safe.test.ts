@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { encodeFunctionData, parseAbiItem } from "viem";
-import { safeSweepTx, verifySafe } from "./safe.js";
+import { safeSweepTx } from "./safe.js";
 import { verifyRecovery } from "./recover.js";
 const own = "0x1111111111111111111111111111111111111111" as const;
 const bad = "0x2222222222222222222222222222222222222222" as const;
@@ -18,5 +18,4 @@ describe("safe sweep", () => {
     expect(verifyRecovery(evil, own).verified).toBe(false);
     expect(verifyRecovery(safeSweepTx(1, S, own, [{ to: bad, value: 5n, data: "0x" }]), own).verified).toBe(false);
   });
-  it("non-safe calldata is not handled", () => expect(verifySafe("0xabcdef01", own)).toBe(null));
 });

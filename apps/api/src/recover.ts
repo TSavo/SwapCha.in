@@ -1,13 +1,9 @@
+import { type BtVerdict, btVerifyRecovery } from "./blocktools.js";
 import { checkSolSpec, encodeSol, type SolIx, type SolSpec } from "./solrecover.js";
 import { tronSpec, verifyTronSpec, encodeSpec } from "./tronrecover.js";
-import { verifySafe } from "./safe.js";
-import { PENDLE_ROUTER } from "./pendle.js";
-import { verifyV4 } from "./lpv4.js";
-import { deadlineOk } from "./exitguard.js";
 import type { DatabaseSync } from "node:sqlite";
 import { NATIVE_TOKEN, SOLANA, SUPPORTED_CHAINS } from "@swapchan/shared";
 import {
-  decodeFunctionData,
   encodeFunctionData,
   formatUnits,
   getAddress,
@@ -95,84 +91,16 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
     owners: [-1],
   },
 ];
-const MULTICALL = fn("multicall(bytes[])");
-const ABIS = STANDARD_RECOVERY.map((s) => ({ ...s, abi: fn(s.sig) }));
 
-/** Decode a recovery tx and prove it can only pay the owner. Fails closed. */
-export type Verdict = { readonly verified: true; readonly call: string } | { readonly verified: false; readonly reason: string };
-export function verifyRecovery(tx: { to: string; data: string; value: string }, owner: string): Verdict {
-  if (BigInt(tx.value || "0") !== 0n) return { verified: false, reason: "non-zero value" } as const;
-  if (tx.data.startsWith("0x095ea7b3") && tx.data.slice(10, 74).toLowerCase() === "0".repeat(24) + PENDLE_ROUTER.slice(2))
-    return { verified: true, call: "approve(Pendle Router) — approval step only" } as const;
-  const sf = verifySafe(tx.data, owner);
-  if (sf !== null) return sf ? ({ verified: true, call: "Safe execTransaction (every leg pays the owner)" } as const) : ({ verified: false, reason: "Safe tx with a leg that does not pay the owner" } as const);
-  const v4 = verifyV4(tx.data, owner);
-  if (v4 !== null) return v4 ? ({ verified: true, call: "modifyLiquidities(DECREASE_LIQUIDITY,TAKE_PAIR→owner)" } as const) : ({ verified: false, reason: "v4 actions other than decrease + take-to-owner" } as const);
-  // TheDAO refund: approve(WithdrawDAO) on the DAO token, then WithdrawDAO.withdraw() (pays msg.sender); both contract-pinned
-  if (tx.to.toLowerCase() === "0xbb9bc244d798123fde783fcc1c72d3bb8c189413" && tx.data.startsWith("0x095ea7b3") && tx.data.slice(10, 74).toLowerCase() === "0".repeat(24) + "bf4ed7b27f1d666546e30d74d50d173d20bca754")
-    return { verified: true, call: "approve(WithdrawDAO) — TheDAO refund step 1" } as const;
-  if (tx.to.toLowerCase() === "0xbf4ed7b27f1d666546e30d74d50d173d20bca754" && tx.data.toLowerCase() === "0x3ccfd60b")
-    return { verified: true, call: "WithdrawDAO.withdraw() (pays the caller)" } as const;
-  // Canonical bridge exits: these only execute a message the L2 initiator already committed (target, value, data are
-  // fixed by the proof), so the caller cannot redirect funds; pinned to the Arbitrum Outbox and the OP Portal.
-  if (tx.to.toLowerCase() === "0x0b9857ae2d4a3dbe74ffe1d7df045bb7f96e4840" && tx.data.toLowerCase().startsWith("0x08635a95"))
-    return { verified: true, call: "Arbitrum Outbox.executeTransaction (executes a proven L2→L1 message)" } as const;
-  if (tx.to.toLowerCase() === "0xbeb5fc579115071764c7423a4f75ededa441ec71" && /^0x(4870496f|43ca1c50)/i.test(tx.data))
-    return { verified: true, call: "OptimismPortal prove/finalize (executes a committed L2→L1 withdrawal)" } as const;
-  // IronHands payout(): pays the queue head; offered only when find_money saw the owner at the head
-  if (tx.data.toLowerCase() === "0x63bd1d4a" && tx.to.toLowerCase() === "0xe58b65d1c0c8e8b2a0e3a3acec633271531084ed")
-    return { verified: true, call: "IronHands payout() (zero value; pays the queue head)" } as const;
-  // multicall(bytes[]): every inner call must itself be a verified recovery call
-  try {
-    const m = decodeFunctionData({ abi: MULTICALL, data: tx.data as `0x${string}` });
-    const inner = m.args[0] as readonly `0x${string}`[];
-    if (!inner.length) return { verified: false, reason: "empty multicall" } as const;
-    for (const d of inner) {
-      const v = verifyRecovery({ to: tx.to, data: d, value: "0" }, owner);
-      if (!v.verified) return { verified: false, reason: `multicall: ${v.reason}` } as const;
-    }
-    return { verified: true, call: "multicall(bytes[])" } as const;
-  } catch {}
-  for (const s of ABIS) {
-    try {
-      const d = decodeFunctionData({ abi: s.abi, data: tx.data as `0x${string}` });
-      const args = (d.args ?? []) as unknown[];
-      const ok = s.owners.every((i) => {
-        const v =
-          i === -1
-            ? (args[0] as { recipient: string }).recipient
-            : i === -2
-              ? (args[0] as { withdrawer: string }).withdrawer
-              : args[i];
-        return typeof v === "string" && v.toLowerCase() === owner.toLowerCase();
-      });
-      if (ok) {
-        const g = exitGuard(s.sig, args);
-        if (g) return { verified: false, reason: `${s.sig}: ${g}` } as const;
-      }
-      return ok
-        ? ({ verified: true, call: s.sig } as const)
-        : ({ verified: false, reason: `${s.sig}: recipient is not the owner` } as const);
-    } catch {}
-  }
-  return { verified: false, reason: "not a standard recovery call" } as const;
-}
-
-/** Sandwich guard: liquidity/Pendle exits need a non-zero quoted minimum and a short deadline. */
-function exitGuard(sig: string, args: unknown[]): string | null {
-  const name = sig.slice(0, sig.indexOf("("));
-  if (name === "removeLiquidity") {
-    if (args[3] === 0n && args[4] === 0n) return "zero minimum outputs (sandwichable)";
-    if (!deadlineOk(args[6] as bigint)) return "deadline too far out";
-  }
-  if (name === "decreaseLiquidity") {
-    const p = args[0] as { liquidity: bigint; amount0Min: bigint; amount1Min: bigint; deadline: bigint };
-    if (p.liquidity > 0n && p.amount0Min === 0n && p.amount1Min === 0n) return "zero minimum outputs (sandwichable)";
-    if (!deadlineOk(p.deadline)) return "deadline too far out";
-  }
-  if (name === "exitPostExpToToken" && (args[4] as readonly unknown[])[1] === 0n) return "zero minTokenOut (sandwichable)";
-  if (sig === "redeem(address,uint256,address,uint256,bool)" && args[3] === 0n) return "zero minTokenOut (sandwichable)";
-  return null;
+/** Decode a recovery tx and prove it can only pay the owner. Fails closed: the blocktools wasm verifier
+ *  (Safe legs, Uniswap v4 actions, multicall, exit sandwich guards, pinned contracts; throws if unavailable). */
+export type Verdict = BtVerdict;
+export function verifyRecovery(
+  tx: { to: string; data: string; value: string },
+  owner: string,
+  nowS = Math.floor(Date.now() / 1000),
+): Verdict {
+  return btVerifyRecovery({ to: tx.to, data: tx.data, value: tx.value }, owner, nowS);
 }
 
 /** Permanent in-app signing page for one recovery step. */

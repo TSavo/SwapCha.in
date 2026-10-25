@@ -1,4 +1,4 @@
-import { concat, decodeFunctionData, encodeFunctionData, encodePacked, getAddress, pad, parseAbiItem, size, type Hex } from "viem";
+import { concat, encodeFunctionData, encodePacked, getAddress, pad, parseAbiItem, size, type Hex } from "viem";
 import { evmClient, walletBalances } from "./onchain.js";
 import type { NewFound } from "./recover.js";
 
@@ -24,33 +24,8 @@ export function safeSweepTx(chainId: number, safe: string, owner: `0x${string}`,
     description: `Move everything this Safe holds (${legs.length} asset${legs.length > 1 ? "s" : ""}) to your wallet`,
   };
 }
-function legOk(l: Leg, owner: string) {
-  if (getAddress(l.to) === getAddress(owner)) return l.data === "0x";
-  if (l.value !== 0n) return false;
-  try { const d = decodeFunctionData({ abi: [XFER], data: l.data }); return getAddress(d.args[0]) === getAddress(owner); } catch { return false; }
-}
-/** Accept only execTransaction whose every leg pays the owner (native to owner, or ERC-20 transfer(owner)). */
-export function verifySafe(data: string, owner: string): boolean | null {
-  if (!data.startsWith("0x6a761202")) return null;
-  try {
-    const { args: [to, value, inner, op, , , gasPrice, gasToken, refund] } = decodeFunctionData({ abi: [EXEC], data: data as Hex });
-    if (gasPrice !== 0n || gasToken !== Z || refund !== Z) return false;
-    if (op === 0) return legOk({ to, value, data: inner }, owner);
-    if (op !== 1 || !MULTISEND_CALL_ONLY.includes(to.toLowerCase())) return false;
-    const blob = decodeFunctionData({ abi: [MS], data: inner }).args[0].slice(2);
-    let i = 0, n = 0;
-    while (i < blob.length) {
-      if (blob.slice(i, i + 2) !== "00") return false;
-      const t = "0x" + blob.slice(i + 2, i + 42), v = BigInt("0x" + blob.slice(i + 42, i + 106)), len = Number(BigInt("0x" + blob.slice(i + 106, i + 170)));
-      const d = ("0x" + blob.slice(i + 170, i + 170 + 2 * len)) as Hex;
-      if (!legOk({ to: t, value: v, data: d }, owner)) return false;
-      i += 170 + 2 * len; n++;
-    }
-    return n > 0;
-  } catch { return false; }
-}
-
 const R = (n: number) => Math.round(n * 100) / 100;
+
 export async function ownedSafes(f: F, env: NodeJS.ProcessEnv, owner: `0x${string}`): Promise<NewFound[]> {
   const out: NewFound[] = [];
   let anyOk = false;

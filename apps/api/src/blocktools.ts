@@ -61,6 +61,8 @@ type Wasm = {
     memoHex: string,
   ): string;
   tronTxId(rawDataHex: string): string;
+  verifyRecovery(txJson: string, owner: string, nowS: number): string;
+  verifySweepTx(txJson: string, owner: string, chainId: number, token: string): string;
   tronDecodeTx(hex: string): string;
   addressesFromXpub(
     xpub: string,
@@ -335,3 +337,16 @@ export function btCashToLegacy(addr: string): string | null {
     return null;
   }
 }
+
+/** EVM recovery / sweep verifiers (blocktools 7a6d945, viem-parity corpus). Fail closed: throw when the WASM
+ *  is unavailable; there is no TS copy. */
+export type BtVerdict =
+  | { readonly verified: true; readonly call: string }
+  | { readonly verified: false; readonly reason: string };
+const big = (o: unknown) => JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
+/** tx = {to, data, value}; nowS = unix seconds (exit deadlines are checked against it). */
+export const btVerifyRecovery = (tx: unknown, owner: string, nowS: number): BtVerdict =>
+  JSON.parse(need().verifyRecovery(big(tx), owner, nowS)) as BtVerdict;
+/** tx = {from, to, value, data?, chainId}; token "" = native sweep. */
+export const btVerifySweepTx = (tx: unknown, owner: string, chainId: number, token = ""): BtVerdict =>
+  JSON.parse(need().verifySweepTx(big(tx), owner, chainId, token)) as BtVerdict;

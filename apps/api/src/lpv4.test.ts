@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { amountsFor, sqrtAtTick, unpackInfo, v4ExitTx, verifyV4 } from "./lpv4.js";
+import { amountsFor, sqrtAtTick, unpackInfo, v4ExitTx } from "./lpv4.js";
 import { verifyRecovery } from "./recover.js";
 const own = "0x1111111111111111111111111111111111111111" as const;
 const bad = "0x2222222222222222222222222222222222222222" as const;
@@ -25,6 +25,5 @@ describe("uniswap v4", () => {
     expect(verifyRecovery(tx, own).verified).toBe(true);
     const evil = v4ExitTx(1, "0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e", 5n, 10n, own, own, bad, [100n, 200n]);
     expect(verifyRecovery(evil, own).verified).toBe(false);
-    expect(verifyV4("0x12345678", own)).toBe(null);
   });
 });
