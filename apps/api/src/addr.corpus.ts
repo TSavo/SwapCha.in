@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { base58, base58xrp } from "@scure/base";
+import { base58, base58xrp, bech32 } from "@scure/base";
 
 /** Deterministic address corpora (sha256 chain) for the CashAddr / XRP / Solana-key parity tests. */
 const h = (s: string) => new Uint8Array(createHash("sha256").update(s).digest());
@@ -84,4 +84,38 @@ export const svmCorpus = (): string[] => {
     "",
     "11111111111111111111111111111111",
   ];
+};
+
+/** Per-coin output-script corpus: base58check p2pkh/p2sh from the coin's version bytes, bech32 v0 (lower, UPPER,
+ *  Mixed), and rejections (bad checksum, wrong version, wrong HRP, truncated, v1). Deterministic. */
+export const scriptCorpus = (
+  coins: [string, { p2pkh: number[]; p2sh: number[]; hrp?: string | null; checksum?: string }][],
+): [string, string][] => {
+  const b58c = (b: Uint8Array) => {
+    const c = sha(sha(b)).slice(0, 4);
+    return base58.encode(Uint8Array.from([...b, ...c]));
+  };
+  const out: [string, string][] = [];
+  for (const [k, c] of coins) {
+    for (let i = 0; i < 12; i++) {
+      const hh = h(`os-${k}-${i}`).slice(0, 20);
+      const h32 = h(`os32-${k}-${i}`);
+      if (c.checksum !== "groestl") {
+        const pk = b58c(Uint8Array.from([...c.p2pkh, ...hh]));
+        const sh = b58c(Uint8Array.from([...c.p2sh, ...hh]));
+        out.push([k, pk], [k, sh], [k, flipLast(pk, "a", "b")], [k, pk.slice(0, -2)]);
+        out.push([k, b58c(Uint8Array.from([0x7f, ...hh]))]);
+      }
+      if (c.hrp) {
+        const a = bech32.encode(c.hrp, [0, ...bech32.toWords(hh)]);
+        const w = bech32.encode(c.hrp, [0, ...bech32.toWords(h32)]);
+        out.push([k, a], [k, w], [k, a.toUpperCase()], [k, w.toUpperCase()]);
+        out.push([k, a.slice(0, -3) + a.slice(-3).toUpperCase()]);
+        out.push([k, bech32.encode("zz", [0, ...bech32.toWords(hh)])]);
+        out.push([k, flipLast(a, "q", "p")]);
+        out.push([k, bech32.encode(c.hrp, [1, ...bech32.toWords(h32)])]);
+      }
+    }
+  }
+  return out;
 };

@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
-import { base58, base58check, bech32 } from "@scure/base";
+import { base58check, bech32 } from "@scure/base";
 import { Transaction } from "bitcoinjs-lib";
 import {
+  btAddressToScript,
   btCashToLegacy,
   btConvertFrom,
   btDecode,
   btDetect,
   btParams,
   btSweep,
-  btValidate,
   btVerify,
   btVersion,
   btXpubAddresses,
@@ -523,30 +523,21 @@ function decodeBech(addr: string, hrp?: string): Decoded | null {
     return null;
   }
 }
-const eq = (a: Uint8Array, v: number[]) => v.every((x, i) => a[i] === x);
-/** Decode an address for one specific coin (its own version bytes / HRP), or null. */
+/** Decode an address for one specific coin (its own version bytes / HRP / checksum), or null. blocktools wasm
+ *  addressToScript (fails closed: throws if unavailable). */
 export function decodeFor(addr: string, coin: Coin): Decoded | null {
-  const c: CoinRow = COINS[coin];
-  if (coin === "bch") addr = addr.replace(/^bitcoincash:/, "");
-  if (c.checksum === "groestl") {
-    // the Groestl-512 checksum is checked by blocktools; the payload bytes are plain base58
-    const kind = BT_PARAMS?.get(coin)?.verified ? btValidate(coin, addr)?.toLowerCase() : null;
-    if (!kind) return null;
-    if (kind === "p2pkh" || kind === "p2sh") {
-      const raw = base58.decode(addr);
-      return { kind, hash: raw.slice(c.p2pkh.length, c.p2pkh.length + 20) };
-    }
-    return decodeBech(addr, c.hrp ?? undefined);
+  if (coin === "bch") {
+    addr = addr.replace(/^bitcoincash:/, "");
+    if (/^[qp][a-z0-9]{41}$/.test(addr)) return null; // CashAddr goes through cashToLegacy first
   }
-  try {
-    const raw = b58.decode(addr);
-    const n = c.p2pkh.length;
-    if (raw.length !== 20 + n) return null;
-    if (eq(raw, c.p2pkh)) return { kind: "p2pkh", hash: raw.slice(n) };
-    if (eq(raw, c.p2sh)) return { kind: "p2sh", hash: raw.slice(n) };
-    return null;
-  } catch {}
-  return c.hrp ? decodeBech(addr, c.hrp) : null;
+  const s = btAddressToScript(coin, addr);
+  if (!s) return null;
+  const b = Buffer.from(s, "hex");
+  if (b.length === 25 && s.startsWith("76a914") && s.endsWith("88ac")) return { kind: "p2pkh", hash: b.subarray(3, 23) };
+  if (b.length === 23 && s.startsWith("a914") && s.endsWith("87")) return { kind: "p2sh", hash: b.subarray(2, 22) };
+  if (b.length === 22 && s.startsWith("0014")) return { kind: "p2wpkh", hash: b.subarray(2) };
+  if (b.length === 34 && s.startsWith("0020")) return { kind: "p2wsh", hash: b.subarray(2) };
+  return null;
 }
 /** Same key/script, encoded for another coin (null when that coin has no such address type or needs a Groestl checksum). */
 export function convert(addr: string, coin: Coin): string | null {
@@ -574,8 +565,9 @@ function script(d: Decoded): Buffer {
   if (d.kind === "p2sh") return Buffer.concat([Buffer.from([0xa9, 0x14]), h, Buffer.from([0x87])]);
   return Buffer.concat([Buffer.from([0x00, h.length]), h]);
 }
-export function outputScript(addr: string, coin?: Coin): Buffer {
-  const d = coin ? decodeFor(addr, coin) : decodeAny(addr);
+/** scriptPubKey for an address of `coin` (blocktools wasm via decodeFor; throws on an invalid address or a missing WASM). */
+export function outputScript(addr: string, coin: Coin): Buffer {
+  const d = decodeFor(addr, coin);
   if (!d) throw new Error("unrecognised address");
   return script(d);
 }

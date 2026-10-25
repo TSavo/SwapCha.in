@@ -23,7 +23,7 @@ describe("bitcoin-family address conversion", () => {
     const tx = Transaction.fromHex(s.unsignedTx);
     expect(tx.ins.length).toBe(2);
     expect(tx.outs.length).toBe(1);
-    expect(Buffer.from(tx.outs[0]!.script).equals(outputScript("LW98ceYNxYki9e9QxDACLn82TtVEPm4qmy"))).toBe(true);
+    expect(Buffer.from(tx.outs[0]!.script).equals(outputScript("LW98ceYNxYki9e9QxDACLn82TtVEPm4qmy", "ltc"))).toBe(true);
     expect(BigInt(tx.outs[0]!.value) + BigInt(s.fee)).toBe(150000n);
     await expect(utxoSweep(f, "ltc", "x", BTC)).rejects.toThrow(/LTC address/);
   });

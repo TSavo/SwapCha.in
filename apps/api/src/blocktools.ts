@@ -350,3 +350,14 @@ export const btVerifyRecovery = (tx: unknown, owner: string, nowS: number): BtVe
 /** tx = {from, to, value, data?, chainId}; token "" = native sweep. */
 export const btVerifySweepTx = (tx: unknown, owner: string, chainId: number, token = ""): BtVerdict =>
   JSON.parse(need().verifySweepTx(big(tx), owner, chainId, token)) as BtVerdict;
+/** Bitcoin-family address -> scriptPubKey hex for one chain (version bytes / HRP / checksum checked, BIP-173 case
+ *  rule: mixed-case bech32 is refused). null when the address is not valid for that chain; throws if the WASM is
+ *  unavailable (fail closed). */
+export function btAddressToScript(chain: string, addr: string): string | null {
+  const w = need();
+  try {
+    return w.addressToScript(chain, addr);
+  } catch {
+    return null;
+  }
+}
