@@ -180,3 +180,24 @@ export function tronTxId(raw_data_hex: string): string;
  * Decode Tron raw_data hex or a full signed Transaction hex. JSON: see EXPORTS.md.
  */
 export function tronDecodeTx(hex: string): string;
+/**
+ * SwapChan verifyRecovery twin. `tx_json` = {"to","data","value"}; `now_s` = unix seconds (required; 0 = bad_now).
+ * Returns {"verified":true,"call"} or {"verified":false,"reason"}.
+ */
+export function verifyRecovery(tx_json_s: string, owner: string, now_s: number): string;
+/**
+ * verifyRecovery on a raw (signed or unsigned) EVM tx hex. Adds "tx":{kind,chainId,signed,from,to,value,data,txid}.
+ */
+export function verifyRecoveryRaw(raw_hex: string, owner: string, chain_id: number, now_s: number): string;
+/**
+ * SwapChan verifySweepTx twin. `tx_json` = {from,to,value,data?,chainId}; `token` = "" for a native sweep.
+ */
+export function verifySweepTx(tx_json_s: string, owner: string, chain_id: number, token: string): string;
+/**
+ * verifySweepTx on a raw EVM tx hex; the sender is recovered from the signature (unsigned fails closed).
+ */
+export function verifySweepRaw(raw_hex: string, owner: string, chain_id: number, token: string): string;
+/**
+ * The verifier's allowlists: standard sigs/owner slots, pinned contracts, MultiSend, deadline cap.
+ */
+export function recoveryTables(): string;

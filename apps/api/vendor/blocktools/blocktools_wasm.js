@@ -1284,6 +1284,151 @@ module.exports.tronDecodeTx = function(hex) {
     }
 };
 
+/**
+ * SwapChan verifyRecovery twin. `tx_json` = {"to","data","value"}; `now_s` = unix seconds (required; 0 = bad_now).
+ * Returns {"verified":true,"call"} or {"verified":false,"reason"}.
+ * @param {string} tx_json_s
+ * @param {string} owner
+ * @param {number} now_s
+ * @returns {string}
+ */
+module.exports.verifyRecovery = function(tx_json_s, owner, now_s) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(tx_json_s, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(owner, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.verifyRecovery(ptr0, len0, ptr1, len1, now_s);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+};
+
+/**
+ * verifyRecovery on a raw (signed or unsigned) EVM tx hex. Adds "tx":{kind,chainId,signed,from,to,value,data,txid}.
+ * @param {string} raw_hex
+ * @param {string} owner
+ * @param {number} chain_id
+ * @param {number} now_s
+ * @returns {string}
+ */
+module.exports.verifyRecoveryRaw = function(raw_hex, owner, chain_id, now_s) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(raw_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(owner, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.verifyRecoveryRaw(ptr0, len0, ptr1, len1, chain_id, now_s);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+};
+
+/**
+ * SwapChan verifySweepTx twin. `tx_json` = {from,to,value,data?,chainId}; `token` = "" for a native sweep.
+ * @param {string} tx_json_s
+ * @param {string} owner
+ * @param {number} chain_id
+ * @param {string} token
+ * @returns {string}
+ */
+module.exports.verifySweepTx = function(tx_json_s, owner, chain_id, token) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const ptr0 = passStringToWasm0(tx_json_s, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(owner, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(token, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.verifySweepTx(ptr0, len0, ptr1, len1, chain_id, ptr2, len2);
+        var ptr4 = ret[0];
+        var len4 = ret[1];
+        if (ret[3]) {
+            ptr4 = 0; len4 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred5_0 = ptr4;
+        deferred5_1 = len4;
+        return getStringFromWasm0(ptr4, len4);
+    } finally {
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+    }
+};
+
+/**
+ * verifySweepTx on a raw EVM tx hex; the sender is recovered from the signature (unsigned fails closed).
+ * @param {string} raw_hex
+ * @param {string} owner
+ * @param {number} chain_id
+ * @param {string} token
+ * @returns {string}
+ */
+module.exports.verifySweepRaw = function(raw_hex, owner, chain_id, token) {
+    let deferred5_0;
+    let deferred5_1;
+    try {
+        const ptr0 = passStringToWasm0(raw_hex, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(owner, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ptr2 = passStringToWasm0(token, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len2 = WASM_VECTOR_LEN;
+        const ret = wasm.verifySweepRaw(ptr0, len0, ptr1, len1, chain_id, ptr2, len2);
+        var ptr4 = ret[0];
+        var len4 = ret[1];
+        if (ret[3]) {
+            ptr4 = 0; len4 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred5_0 = ptr4;
+        deferred5_1 = len4;
+        return getStringFromWasm0(ptr4, len4);
+    } finally {
+        wasm.__wbindgen_free(deferred5_0, deferred5_1, 1);
+    }
+};
+
+/**
+ * The verifier's allowlists: standard sigs/owner slots, pinned contracts, MultiSend, deadline cap.
+ * @returns {string}
+ */
+module.exports.recoveryTables = function() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.recoveryTables();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+};
+
 module.exports.__wbindgen_error_new = function(arg0, arg1) {
     const ret = new Error(getStringFromWasm0(arg0, arg1));
     return ret;
