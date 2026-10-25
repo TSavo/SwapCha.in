@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { SERVER_API } from "@/lib/intel";
 
-/** Permanent short links: swapchan.com/s/<id> → stored swapchan.com URL (302, counts the click). */
+/** Short links (unguessable random ids): swapchan.com/s/<id> → stored swapchan.com URL (302, counts the click). */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const home = new URL("/", "https://swapchan.com");
