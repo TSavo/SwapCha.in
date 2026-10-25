@@ -1,0 +1,23 @@
+import { describe, expect, it } from "vitest";
+import { FEE_RECIPIENT, LEGAL_PLACEHOLDERS, PRIVACY, TERMS } from "./legal";
+
+const all = (d: typeof TERMS) => [d.intro, ...d.sections.flatMap((s) => [s.h, ...s.p])].join("\n");
+
+describe("legal pages", () => {
+  it("never claims SwapChan never broadcasts and never mentions blocktools", () => {
+    for (const d of [TERMS, PRIVACY]) {
+      expect(all(d)).not.toMatch(/never broadcast/i);
+      expect(all(d)).not.toMatch(/blocktools/i);
+    }
+  });
+  it("discloses the swap-only fee and its recipient", () => {
+    expect(all(TERMS)).toContain(FEE_RECIPIENT);
+    expect(all(TERMS)).toMatch(/10 bps/);
+  });
+  it("only uses listed placeholders", () => {
+    const used = new Set(
+      [all(TERMS), all(PRIVACY), TERMS.updated].join("\n").match(/\[[A-Z ]+\]/g),
+    );
+    for (const u of used) expect(LEGAL_PLACEHOLDERS as readonly string[]).toContain(u);
+  });
+});

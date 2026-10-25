@@ -110,6 +110,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <a href="/llms.txt" className="hover:text-amber-300">
               llms.txt
             </a>
+            <Link href="/terms" className="hover:text-amber-300">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-amber-300">
+              Privacy
+            </Link>
           </footer>
         </Providers>
         {GA_ID && (
