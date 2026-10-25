@@ -1,3 +1,4 @@
+import { marinadeTickets, kaminoObligations } from "./solstake.js";
 import { aaveSupplied } from "./aave.js";
 import { eigenLayer } from "./eigen.js";
 import { beaconValidators } from "./beacon.js";
@@ -3616,11 +3617,18 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push("same address on BCH and BTG (fork coins) and LTC/DOGE/FTC (same key) via public Blockbook explorers");
     } else if (vm === "svm") {
       // Tron base58 also matches the Solana pattern, so Tron is tested first.
-      items.push(...(await solanaRent(f, env, address)));
-      items.push(...((await solanaStake(f, env, address).catch(() => [])) as Found[]));
-      items.push(...((await solanaArchaeology(f, env, address).catch(() => [])) as Found[]));
+      // every Solana source in parallel, each under its own deadline (was serial: rent -> stake -> archaeology)
+      const SOL_MS = Number(env.FIND_SOLANA_SOURCE_MS ?? 10_000);
+      const sr = await Promise.all([
+        timed("Solana rent", solanaRent(f, env, address), [] as Found[], SOL_MS),
+        timed("Solana stake accounts", solanaStake(f, env, address) as Promise<Found[]>, [] as Found[], SOL_MS),
+        timed("Solana program archaeology", solanaArchaeology(f, env, address) as Promise<Found[]>, [] as Found[], SOL_MS),
+        timed("Marinade unstake tickets", marinadeTickets(f, env, address), [] as Found[], SOL_MS),
+        timed("Kamino Lend", kaminoObligations(f, address), [] as Found[], SOL_MS),
+      ]);
+      items.push(...sr.flat());
       sources.push(
-        "Solana RPC token accounts (rent reclaim), stake accounts (deactivated = withdrawable + withdraw ix), program archaeology (owned accounts + stake/vote programs)",
+        "Solana RPC token accounts (rent reclaim), stake accounts (deactivated = withdrawable + withdraw ix), program archaeology (owned accounts + stake/vote programs), Marinade delayed-unstake tickets (claim ix), Kamino Lend main-market obligations (no tx yet). mSOL/JitoSOL show as balances (swap to exit).",
       );
     } else
       throw new BadRequest("airdrop_check supports EVM, Solana, Tron and Bitcoin (address/xpub)");
@@ -4579,6 +4587,47 @@ export async function findMoney(
     };
     const ledgerOnly = isXrpAddress(address) || !!signumAddress(address);
     const balP = ledgerOnly ? Promise.resolve(null) : run("balances", () => walletBalances(f, env, address));
+    // tail work gets its own deadline too, so the total is the slowest stage, not stage + tail
+    const cap = async <T,>(n: string, p: Promise<T>, empty: T, ms: number): Promise<T> => {
+      const t0 = Date.now();
+      let to: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([p, new Promise<T>((res) => { to = setTimeout(() => { notChecked.push(`${n}: not checked (timed out after ${ms / 1000}s)`); res(empty); }, ms); })]);
+      } catch {
+        return empty;
+      } finally {
+        clearTimeout(to);
+        fmMs[n] = Date.now() - t0;
+      }
+    };
+    const riskOf = (H: { chainId: number; address: string; symbol: string; balance: string; valueUsd: number | null }[]) => Promise.all(
+      H.filter(
+        (h) =>
+          (h.valueUsd ?? 0) >= 5 &&
+          !isNative(h.chainId, h.address) &&
+          !STABLES.has(h.symbol.toUpperCase()),
+      )
+        .slice(0, 8)
+        .map(async (h) => {
+          const sc = Object.entries({
+            solana: SOLANA,
+            base: 8453,
+            bnb: 56,
+            eth: 1,
+            arbitrum: 42161,
+            polygon: 137,
+            optimism: 10,
+            avalanche: 43114,
+          }).find(([, v]) => v === h.chainId)?.[0] as Parameters<typeof tokenRisk>[2] | undefined;
+          if (!sc) return null;
+          const r = await tokenRisk(f, env, sc, h.address).catch(() => null);
+          return r && (r as { level: string }).level === "high"
+            ? { h, flags: (r as { flags: string[] }).flags }
+            : null;
+        }),
+    );
+    // starts as soon as balances land, concurrent with the other stages
+    const riskP = (balP as Promise<{ holdings?: { chainId: number; address: string; symbol: string; balance: string; valueUsd: number | null }[] } | null>).then((b) => riskOf(b?.holdings ?? [])).catch(() => [] as Awaited<ReturnType<typeof riskOf>>);
     const [balR, air, lend, appr, pools, gasNow] = await Promise.all([
       balP,
       run("claimables", () => airdropCheck(f, env, address)),
@@ -4768,7 +4817,7 @@ export async function findMoney(
     if (dust.length >= 2) {
       const sum = r2(dust.reduce((s, d) => s + (d.valueUsd ?? 0), 0));
       const link = db
-        ? await batchLink(
+        ? await cap("dust batch link", batchLink(
             f,
             env,
             db,
@@ -4779,7 +4828,7 @@ export async function findMoney(
               toToken: usdcOf(d.chainId) ?? nativeOf(d.chainId),
               amount: d.balance,
             })),
-          ).catch(() => null)
+          ).catch(() => null), null, 4_000)
         : null;
       items.push({
         category: "Dust to consolidate",
@@ -4794,32 +4843,7 @@ export async function findMoney(
       });
     }
     // risky tokens to exit
-    const riskChecks = await Promise.all(
-      H.filter(
-        (h) =>
-          (h.valueUsd ?? 0) >= 5 &&
-          !isNative(h.chainId, h.address) &&
-          !STABLES.has(h.symbol.toUpperCase()),
-      )
-        .slice(0, 8)
-        .map(async (h) => {
-          const sc = Object.entries({
-            solana: SOLANA,
-            base: 8453,
-            bnb: 56,
-            eth: 1,
-            arbitrum: 42161,
-            polygon: 137,
-            optimism: 10,
-            avalanche: 43114,
-          }).find(([, v]) => v === h.chainId)?.[0] as Parameters<typeof tokenRisk>[2] | undefined;
-          if (!sc) return null;
-          const r = await tokenRisk(f, env, sc, h.address).catch(() => null);
-          return r && (r as { level: string }).level === "high"
-            ? { h, flags: (r as { flags: string[] }).flags }
-            : null;
-        }),
-    );
+    const riskChecks = await cap("high-risk token checks", riskP, [] as Awaited<typeof riskP>, Number(env.FIND_RISK_MS ?? 6_000));
     for (const x of riskChecks.filter((y): y is NonNullable<typeof y> => !!y))
       items.push({
         category: "High-risk token to exit",
@@ -4898,9 +4922,10 @@ export async function findMoney(
               toToken: q.get("toToken")!,
               ...(q.get("amount") ? { amount: q.get("amount")! } : {}),
             }));
-          return rows.length >= 2 ? batchLink(f, env, db, rows as never).catch(() => null) : null;
+          return rows.length >= 2 ? cap("swap-all batch link", batchLink(f, env, db, rows as never).catch(() => null), null, 4_000) : null;
         })()
       : null;
+    console.log(JSON.stringify({ evt: "find_money_total", ms: fmMs }));
     const total = r2(
       items.filter((i) => i.estimateKind !== "protected").reduce((s, i) => s + (i.estUsd ?? 0), 0),
     );

@@ -1,3 +1,4 @@
+import { checkSolSpec, encodeSol, type SolIx, type SolSpec } from "./solrecover.js";
 import { tronSpec, verifyTronSpec, encodeSpec } from "./tronrecover.js";
 import { verifySafe } from "./safe.js";
 import { PENDLE_ROUTER } from "./pendle.js";
@@ -241,6 +242,15 @@ export function recoveryFlow(
     const q = new URLSearchParams({ tron: encodeSpec(spec), title: it.title.slice(0, 140), next: it.swapUrl });
     rurl = `${SITE}/recover?${q}`;
     steps.push({ step: 1, kind: "recover", label: `Sign: ${(it.claimTx as { description?: string }).description ?? spec.endpoint} (TronLink)`, url: rurl, shortUrl: s(rurl) } as Step);
+  }
+  const st = (it.claimTx as { solanaTx?: { kind?: string; data?: { instructions?: SolIx[] } }; description?: string } | undefined)?.solanaTx;
+  if (!rurl && st?.kind === "svm-instructions" && st.data?.instructions?.length) {
+    const sspec: SolSpec = { owner, ix: st.data.instructions };
+    if (!checkSolSpec(sspec, owner)) {
+      const q = new URLSearchParams({ sol: encodeSol(sspec), title: it.title.slice(0, 140), next: it.swapUrl });
+      rurl = `${SITE}/recover?${q}`;
+      steps.push({ step: 1, kind: "recover", label: `Sign: ${(it.claimTx as { description?: string }).description ?? "Solana recovery"} (Solana wallet)`, url: rurl, shortUrl: s(rurl) } as Step);
+    }
   }
   const sw = (it as { sweep?: Sweep }).sweep;
   if (sw && !rurl) {

@@ -4,6 +4,7 @@ import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
 import { Recover } from "@/components/tools/Recover";
 import { TronRecover, type TronSpec } from "@/components/tools/TronRecover";
+import { SolRecover, type SolSpec } from "@/components/tools/SolRecover";
 import { SweepRecover } from "@/components/tools/SweepRecover";
 
 export const metadata: Metadata = {
@@ -29,6 +30,18 @@ export default async function Page({
       return (
         <main className="flex min-h-screen flex-col items-center px-4 py-10 text-white">
           <TronRecover spec={spec} title={q.title ?? "Recover TRX"} {...(next ? { next } : {})} />
+        </main>
+      );
+  }
+  if (q.sol) {
+    let spec: SolSpec | null = null;
+    try {
+      spec = JSON.parse(Buffer.from(q.sol, "base64url").toString()) as SolSpec;
+    } catch {}
+    if (spec?.owner && Array.isArray(spec.ix))
+      return (
+        <main className="flex min-h-screen flex-col items-center px-4 py-10 text-white">
+          <SolRecover spec={spec} title={q.title ?? "Recover SOL"} {...(next ? { next } : {})} />
         </main>
       );
   }
