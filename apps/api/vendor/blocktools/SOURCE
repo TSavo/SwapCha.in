@@ -1,1 +1,1 @@
-Built from TSavo/blocktools afb2aec (CI green; includes 944b85b, 9d53469, 8dfbe68 and everything since 7a6d945) (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok: no secret code, exports match).
+Built from TSavo/blocktools 2052b30 (CI green; includes a23fc52, e84dff1 and everything since afb2aec) (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok: no secret code, exports match).

@@ -1302,8 +1302,10 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
   let total = take.reduce((s, u) => s + BigInt(u.value), 0n);
   const pos = POS_NTIME.has(coin);
   const zec = coin === "zec";
-  // Legacy P2PKH inputs (and every pos-ntime input) must carry their previous tx: the legacy sighash does not commit
-  // to the amount, so blocktools refuses to build without it (BCH/BSV/BTG included). ZEC v5 commits to amounts.
+  // Legacy P2PKH and bare P2SH inputs (and every pos-ntime input) must carry their previous tx: the legacy sighash does
+  // not commit to the amount, so blocktools refuses to build without it (BCH/BSV/BTG included). P2SH counts as legacy
+  // since blocktools 2052b30: it may wrap any legacy script, and SwapChan never has the redeem script that would prove
+  // wrapped segwit. ZEC v5 commits to amounts.
   let prevNote = "";
   const prevTx = new Map<string, string>();
   // no wasm: refuse before any network fetch (fail closed, no TS fallback)
@@ -1313,7 +1315,7 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
       `blocktools is unavailable, so SwapChan will not offer an unverified ${c.sym} sweep; try again later`,
     );
   }
-  if (!zec && (pos || fromD.kind === "p2pkh")) {
+  if (!zec && (pos || fromD.kind === "p2pkh" || fromD.kind === "p2sh")) {
     const ps = c.prev ?? (c.src && c.src.type !== "cryptoid" ? [c.src] : []);
     if (!ps.length)
       throw new Error(

@@ -175,7 +175,7 @@ export type BtSweep = {
 /** Throws blocktools' error (e.g. unsupported_tx_format:pos-ntime); returns null only when the WASM is unavailable. */
 export function btSweep(
   chain: string,
-  /** prev_tx: raw previous tx hex, required by blocktools for legacy (P2PKH) and every pos-ntime input */
+  /** prev_tx: raw previous tx hex, required by blocktools for legacy (P2PKH), bare P2SH (2052b30) and every pos-ntime input */
   utxos: {
     txid: string;
     vout: number;
