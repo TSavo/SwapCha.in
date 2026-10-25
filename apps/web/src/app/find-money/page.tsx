@@ -23,10 +23,9 @@ export default function FindMoneyHub() {
       </p>
       <p className="mb-4 text-sm text-violet-300">
         Also checks Bitcoin forks and old coins (BCH, BTG, LTC, DOGE, FTC, DASH, DGB, RVN, VTC, VIA,
-        QTUM, MONA, BSV, GRS, PPC, NVC, CLAM, RDD, BLK, Zcash t1, TRC, AUR, XPM, QRK) with an
-        unsigned sweep you sign offline in the coin&apos;s own wallet, and balances on XRP, XLM,
-        ALGO, ATOM, DOT, TON, ADA and Signum. Free, read-only: SwapChan never signs and never holds
-        keys.
+        QTUM, MONA, BSV, GRS, PPC, NVC, CLAM, RDD, BLK, Zcash t1, TRC, AUR, XPM, QRK) with an unsigned
+        sweep you sign offline in the coin&apos;s own wallet, and balances on XRP, XLM, ALGO, ATOM,
+        DOT, TON, ADA and Signum. Free, read-only: SwapChan never signs and never holds keys.
       </p>
       <Suspense>
         <FindMoneyTool />
