@@ -30,6 +30,7 @@ import {
 } from "viem";
 import { normalize } from "viem/ens";
 import { z } from "zod";
+import { blocktools, btB58Decode, btB58Encode, btSolOnCurve, btSolPda } from "./blocktools.js";
 import { verifyRevoke } from "./guard/index.js";
 import { cached, SCAN_CHAINS, type ScanChain, tokenRisk } from "./scanner.js";
 import { CHAINS } from "./simulate.js";
@@ -1259,39 +1260,15 @@ async function explainBtc(f: F, txid: string) {
   };
 }
 
-// ---------- base58 (no deps) ----------
-const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-export function b58encode(bytes: Uint8Array): string {
-  let n = 0n;
-  for (const b of bytes) n = n * 256n + BigInt(b);
-  let s = "";
-  while (n > 0n) {
-    s = B58[Number(n % 58n)] + s;
-    n /= 58n;
-  }
-  for (const b of bytes) {
-    if (b !== 0) break;
-    s = `1${s}`;
-  }
-  return s;
-}
+// ---------- base58 (blocktools wasm; fails closed) ----------
+export const b58encode = (bytes: Uint8Array): string => btB58Encode(bytes);
 export function b58decode(s: string): Uint8Array {
-  let n = 0n;
-  for (const ch of s) {
-    const i = B58.indexOf(ch);
-    if (i < 0) throw new BadRequest("invalid base58");
-    n = n * 58n + BigInt(i);
+  if (!blocktools()) throw new Error("blocktools unavailable");
+  try {
+    return btB58Decode(s);
+  } catch {
+    throw new BadRequest("invalid base58");
   }
-  const out: number[] = [];
-  while (n > 0n) {
-    out.unshift(Number(n % 256n));
-    n /= 256n;
-  }
-  for (const ch of s) {
-    if (ch !== "1") break;
-    out.unshift(0);
-  }
-  return Uint8Array.from(out);
 }
 const sha256 = (...parts: Uint8Array[]) => {
   const h = createHash("sha256");
@@ -1663,45 +1640,10 @@ export async function tokenInfo(f: F, env: NodeJS.ProcessEnv, chainId: number, a
 }
 
 // ---------- 6. names (ENS / Basenames / SNS) ----------
-const P25519 = 2n ** 255n - 19n;
-const D25519 = (-121665n * modInv(121666n)) % P25519;
-function modPow(b: bigint, e: bigint, m = P25519) {
-  let r = 1n;
-  b %= m;
-  if (b < 0n) b += m;
-  while (e > 0n) {
-    if (e & 1n) r = (r * b) % m;
-    b = (b * b) % m;
-    e >>= 1n;
-  }
-  return r;
-}
-function modInv(a: bigint) {
-  return modPow(((a % P25519) + P25519) % P25519, P25519 - 2n);
-}
-/** Is this 32-byte string a valid compressed ed25519 point? (PDAs must NOT be.) */
-export function onCurve(b: Uint8Array): boolean {
-  const c = Uint8Array.from(b);
-  c[31]! &= 0x7f;
-  let y = 0n;
-  for (let i = 31; i >= 0; i--) y = (y << 8n) + BigInt(c[i]!);
-  if (y >= P25519) return false;
-  const y2 = (y * y) % P25519;
-  const u = (y2 - 1n + P25519) % P25519;
-  const v = (((D25519 + P25519) % P25519) * y2 + 1n) % P25519;
-  const x2 = (u * modInv(v)) % P25519;
-  if (x2 === 0n) return (b[31]! & 0x80) === 0;
-  return modPow(x2, (P25519 - 1n) / 2n) === 1n;
-}
-export function findPda(seeds: Uint8Array[], programId: string): string {
-  const prog = b58decode(programId);
-  const tag = new TextEncoder().encode("ProgramDerivedAddress");
-  for (let bump = 255; bump >= 0; bump--) {
-    const h = sha256(...seeds, Uint8Array.of(bump), prog, tag);
-    if (!onCurve(h)) return b58encode(h);
-  }
-  throw new Error("no PDA");
-}
+/** Is this 32-byte string a valid compressed ed25519 point? (PDAs must NOT be.) blocktools wasm. */
+export const onCurve = (b: Uint8Array): boolean => btSolOnCurve(b);
+export const findPda = (seeds: Uint8Array[], programId: string): string =>
+  btSolPda(seeds, programId).address;
 const SNS_PROGRAM = "namesLPneVptA9Z5rqUDD9tMTWEJwofgaYwp8cawRkX";
 const SOL_TLD = "58PwtjSDuFHuUkYjH9BYnnQKHfwo9reZhC2zMJv9JPkx";
 export function snsKey(name: string, parent = SOL_TLD): string {

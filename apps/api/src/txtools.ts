@@ -15,6 +15,7 @@ import {
   recoverTransactionAddress,
   type TransactionSerialized,
 } from "viem";
+import { blocktools, btSolDecodeTx, type BtSolTx } from "./blocktools.js";
 import { recoveryGuide, type Situation } from "./keyrecovery.js";
 import { BadRequest, chainName, EXPLORER, evmClient, json, SITE, solRpc } from "./onchain.js";
 import { verifyRecovery } from "./recover.js";
@@ -440,67 +441,23 @@ export async function verifyEvm(
   };
 }
 
-// ---------- Solana: minimal wire decoder ----------
-const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-export function b58(b: Uint8Array) {
-  let n = 0n;
-  for (const x of b) n = n * 256n + BigInt(x);
-  let s = "";
-  while (n > 0n) {
-    s = B58[Number(n % 58n)] + s;
-    n /= 58n;
-  }
-  for (const x of b) {
-    if (x) break;
-    s = `1${s}`;
-  }
-  return s;
-}
+// ---------- Solana: wire decoder (blocktools wasm; fails closed, no TS fallback) ----------
 export function decodeSolana(b64: string) {
-  const u = Uint8Array.from(Buffer.from(b64, "base64"));
-  let i = 0;
-  const cu16 = () => {
-    let v = 0;
-    let s = 0;
-    for (;;) {
-      const b = u[i++];
-      if (b === undefined) throw new BadRequest("truncated Solana tx");
-      v |= (b & 0x7f) << s;
-      if (!(b & 0x80)) return v;
-      s += 7;
-    }
-  };
-  const nsig = cu16();
-  const sigs: string[] = [];
-  for (let k = 0; k < nsig; k++) {
-    sigs.push(b58(u.slice(i, i + 64)));
-    i += 64;
-  }
-  const versioned = (u[i]! & 0x80) !== 0;
-  if (versioned) i++;
-  const reqSig = u[i++]!;
-  i += 2;
-  const nk = cu16();
-  const keys: string[] = [];
-  for (let k = 0; k < nk; k++) {
-    keys.push(b58(u.slice(i, i + 32)));
-    i += 32;
-  }
-  i += 32;
-  const ni = cu16();
-  const programs = new Set<string>();
-  for (let k = 0; k < ni; k++) {
-    const p = u[i++]!;
-    programs.add(keys[p] ?? `lookup#${p}`);
-    i += cu16();
-    i += cu16();
+  if (!blocktools()) throw new Error("blocktools unavailable");
+  let d: BtSolTx;
+  try {
+    d = btSolDecodeTx(Buffer.from(b64, "base64").toString("hex"));
+  } catch (e) {
+    throw new BadRequest(
+      `cannot decode Solana tx (${String((e as Error)?.message ?? e).slice(0, 60)})`,
+    );
   }
   return {
-    signed: sigs.some((s) => !/^1+$/.test(s)),
-    versioned,
-    signers: keys.slice(0, reqSig),
-    feePayer: keys[0],
-    programs: [...programs],
+    signed: d.signatures.some((s) => s.status !== "unsigned"),
+    versioned: d.version !== "legacy",
+    signers: d.accounts.slice(0, d.num_required_signatures).map((a) => a.pubkey),
+    feePayer: d.fee_payer,
+    programs: [...new Set(d.instructions.map((i) => i.program))],
   };
 }
 const SOL_KNOWN: Record<string, string> = {

@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { ed25519 } from "@noble/curves/ed25519";
+import { btSolAta, btSolPda } from "../blocktools.js";
 import { base58, base64, hex } from "@scure/base";
 
 export const TOKEN = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
@@ -8,29 +7,12 @@ export const ATA_PROGRAM = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 export const SYSTEM = "11111111111111111111111111111111";
 export const WSOL = "So11111111111111111111111111111111111111112";
 
-const onCurve = (b: Uint8Array) => {
-  try {
-    ed25519.ExtendedPoint.fromHex(b);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-/** findProgramAddress (same as @solana/web3.js PublicKey.findProgramAddressSync). */
-export function pda(seeds: Uint8Array[], program: string): string {
-  const pid = base58.decode(program);
-  const tag = new TextEncoder().encode("ProgramDerivedAddress");
-  for (let bump = 255; bump >= 0; bump--) {
-    const buf = new Uint8Array([...seeds.flatMap((s) => [...s]), bump, ...pid, ...tag]);
-    const h = new Uint8Array(createHash("sha256").update(buf).digest());
-    if (!onCurve(h)) return base58.encode(h);
-  }
-  throw new Error("no PDA");
-}
+/** findProgramAddress (same as @solana/web3.js PublicKey.findProgramAddressSync), via blocktools wasm. */
+export const pda = (seeds: Uint8Array[], program: string): string =>
+  btSolPda(seeds, program).address;
 
 export const ata = (owner: string, mint: string, tokenProgram = TOKEN) =>
-  pda([base58.decode(owner), base58.decode(tokenProgram), base58.decode(mint)], ATA_PROGRAM);
+  btSolAta(owner, mint, tokenProgram === TOKEN ? "" : tokenProgram);
 
 export interface Ix {
   programId: string;

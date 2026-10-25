@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { ed25519 } from "@noble/curves/ed25519";
+import { btSolAnchorDisc, btSolPda } from "./blocktools.js";
 import { base58 } from "@scure/base";
 
 /** Solana recovery txs the /recover?sol= page will sign: allowlisted programs, owner is the only signer, money goes to owner. */
@@ -12,27 +11,10 @@ export const MARINADE_STATE = "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC";
 export const CLOCK = "SysvarC1ock11111111111111111111111111111111";
 export const SYSTEM = "11111111111111111111111111111111";
 
-export const anchorDisc = (name: string) => createHash("sha256").update(`global:${name}`).digest().subarray(0, 8).toString("hex");
+export const anchorDisc = (name: string) => btSolAnchorDisc(name);
 
-function onCurve(b: Uint8Array): boolean {
-  try {
-    ed25519.ExtendedPoint.fromHex(b);
-    return true;
-  } catch {
-    return false;
-  }
-}
-export function findPda(seeds: Uint8Array[], program: string): string {
-  const pid = base58.decode(program);
-  for (let bump = 255; bump >= 0; bump--) {
-    const h = createHash("sha256");
-    for (const s of seeds) h.update(s);
-    h.update(Uint8Array.of(bump)).update(pid).update("ProgramDerivedAddress");
-    const d = h.digest();
-    if (!onCurve(d)) return base58.encode(d);
-  }
-  throw new Error("no PDA");
-}
+/** findProgramAddress via blocktools wasm (fails closed). */
+export const findPda = (seeds: Uint8Array[], program: string): string => btSolPda(seeds, program).address;
 export const marinadeReserve = () => findPda([base58.decode(MARINADE_STATE), new TextEncoder().encode("reserve")], MARINADE);
 
 export function marinadeClaimIx(ticket: string, owner: string): SolIx {
