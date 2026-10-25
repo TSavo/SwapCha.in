@@ -244,7 +244,7 @@ export function recoveryFlow(
     rurl = sweepUrl(sw, it.title);
     steps.push({ step: 1, kind: "recover", label: `Build the unsigned ${sw.sym} sweep to your own ${sw.sym} address, then sign it offline`, url: rurl, shortUrl: s(rurl) } as Step);
     // SwapChan has no route for these coins yet: no fake swap link
-    if (!it.swapUrl || /fromChain=(0|61|10001|513100)&/.test(it.swapUrl)) return { steps, recoverUrl: rurl, swapUrl: undefined } as never;
+    if (!it.swapUrl || /fromChain=(0|61|10001|513100)&/.test(it.swapUrl)) return { steps, recoverUrl: rurl, swapUrl: rurl } as never;
   }
   // No buildable, verified tx -> no "Get it back" step. Never send people to an external portal
   // as a recovery step; the protocol link stays informational (protocolUrl) only.

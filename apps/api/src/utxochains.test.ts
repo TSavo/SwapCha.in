@@ -82,6 +82,6 @@ describe("sweep items get a /recover sweep page, never an external link", () => 
     const r = recoveryFlow(null, null, "x", { title: "Dogecoin: 1 DOGE", swapUrl: "https://swapchan.com/?fromChain=0&toChain=0", sweep: { kind: "utxo", coin: "doge", from: "DAddr", sym: "DOGE" } } as never) as { steps: { kind: string; url: string }[]; recoverUrl: string; swapUrl?: string };
     expect(r.recoverUrl).toMatch(/^https:\/\/swapchan\.com\/recover\?sweep=utxo&coin=doge&from=DAddr/);
     expect(r.steps.map((s) => s.kind)).toEqual(["recover"]);
-    expect(r.swapUrl).toBeUndefined();
+    expect(r.swapUrl).toBe(r.recoverUrl);
   });
 });
