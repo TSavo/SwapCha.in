@@ -59,6 +59,7 @@ type Wasm = {
     change: string,
     feeRate: number,
     memoHex: string,
+    rbf?: boolean | null,
   ): string;
   tronTxId(rawDataHex: string): string;
   verifyRecovery(txJson: string, owner: string, nowS: number): string;
@@ -373,4 +374,33 @@ export function btAddressToScript(chain: string, addr: string): string | null {
   } catch {
     return null;
   }
+}
+
+export type BtPsbt = { psbt: string; fee: string; vsize: number; rbf: boolean };
+/** Unsigned BTC PSBT: `amount` to `to` (VOUT0), change to `change` (VOUT1, when above dust), OP_RETURN memo last
+ *  (THORChain order). Non-RBF (nSequence 0xffffffff), like the old btc.ts. Throws blocktools' error; throws if the
+ *  WASM is unavailable (fail closed, no TS fallback). */
+export function btBuildPsbt(
+  chain: string,
+  utxos: { txid: string; vout: number; amount: number | string; address: string }[],
+  to: string,
+  amount: bigint,
+  change: string,
+  feeRate: number,
+  memoHex: string,
+): BtPsbt {
+  const lines = utxos
+    .map((u) =>
+      JSON.stringify({
+        txid: u.txid,
+        vout: u.vout,
+        amount: BigInt(u.amount).toString(),
+        address: u.address,
+      }),
+    )
+    .join("\n");
+  // amounts in this output are decimal strings already (EXPORTS.md)
+  return JSON.parse(
+    need().buildPsbtWithMemo(chain, lines, to, amount.toString(), change, feeRate, memoHex, false),
+  ) as BtPsbt;
 }
