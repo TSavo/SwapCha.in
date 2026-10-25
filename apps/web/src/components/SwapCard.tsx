@@ -122,6 +122,7 @@ export function SwapCard({
   const [phase, setPhase] = useState<Phase>({ k: "idle" });
   const [settled, setSettled] = useState<"done" | "failed">();
   const [recipientInput, setRecipientInput] = useState("");
+  const [recipientFromLink, setRecipientFromLink] = useState(false);
 
   const fromVm = vmOf(fromChain);
   const toVm = vmOf(toChain);
@@ -169,7 +170,10 @@ export function SwapCard({
       const amt = sp.get("amount");
       if (amt && /^\d+(\.\d+)?$/.test(amt)) setAmountStr(amt);
       const rcp = sp.get("recipient");
-      if (rcp) setRecipientInput(rcp);
+      if (rcp) {
+        setRecipientInput(rcp);
+        setRecipientFromLink(true);
+      }
       const ft = sp.get("fromToken") ?? undefined;
       const tt = sp.get("toToken") ?? undefined;
       if (ft || tt) {
@@ -682,9 +686,19 @@ export function SwapCard({
             data-testid="recipient"
             placeholder={ownOnDest ?? `Your ${VM_NAME[toVm]} address`}
             value={recipientInput}
-            onChange={(e) => setRecipientInput(e.target.value)}
+            onChange={(e) => {
+              setRecipientInput(e.target.value);
+              setRecipientFromLink(false);
+            }}
             className={`mt-2 w-full rounded-xl bg-violet-950/70 px-3 py-2 font-mono text-xs outline-none ${recipientInvalid ? "text-rose-400" : "text-violet-100"}`}
           />
+        )}
+        {needsRecipient && recipientFromLink && recipient !== "" && recipient !== ownOnDest && (
+          <p className="mt-2 text-xs font-bold text-amber-300" data-testid="recipient-link-warning">
+            Heads up: this link sets the receiving address to {recipient}
+            {ownOnDest ? `, not your connected wallet ${ownOnDest}` : ""}. Only continue if that
+            address is yours or you meant to send there.
+          </p>
         )}
       </section>
 
