@@ -137,4 +137,26 @@ describe("partners", () => {
     );
     expect(r.status).toBe(400);
   });
+  it("CORS preflight allows the X-Partner-Token header from swapchan.com", async () => {
+    const { app, p } = await setup();
+    const r = await app.request(`/partners/${p.id}`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: "https://swapchan.com",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "x-partner-token",
+      },
+    });
+    expect(r.status).toBe(204);
+    expect(r.headers.get("access-control-allow-origin")).toBeTruthy();
+    expect((r.headers.get("access-control-allow-headers") ?? "").toLowerCase()).toContain(
+      "x-partner-token",
+    );
+    expect((r.headers.get("access-control-allow-methods") ?? "").toUpperCase()).toContain("GET");
+    const g = await app.request(`/partners/${p.id}`, {
+      headers: { Origin: "https://swapchan.com", "X-Partner-Token": p.token },
+    });
+    expect(g.status).toBe(200);
+    expect(g.headers.get("access-control-allow-origin")).toBeTruthy();
+  });
 });

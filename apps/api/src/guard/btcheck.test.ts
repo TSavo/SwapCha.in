@@ -47,3 +47,37 @@ describe("blocktools cross-check of non-EVM payloads (fail closed)", () => {
     expect(crossCheckSvm("AA==", t.feePayer, progs)).not.toEqual([]);
   });
 });
+
+describe("PSBT inputs without witness_utxo", () => {
+  const prev = (to: string) => {
+    const t = new bitcoin.Transaction();
+    t.addInput(Buffer.alloc(32, 3), 0);
+    t.addOutput(bitcoin.address.toOutputScript(to), 100000n);
+    return t;
+  };
+  const build = (input: Parameters<bitcoin.Psbt["addInput"]>[0]) => {
+    const p = new bitcoin.Psbt();
+    p.addInput(input);
+    p.addOutput({ address: VAULT, value: 50000n });
+    p.addOutput({ address: ME, value: 49000n });
+    return p.toBase64();
+  };
+  it("non_witness_utxo only, paying the taker: accepted", () => {
+    const t = prev(ME);
+    const r = crossCheckPsbt(
+      build({ hash: t.getId(), index: 0, nonWitnessUtxo: t.toBuffer() }),
+      outs,
+      ME,
+    );
+    expect(r).toEqual([]);
+  });
+  it("non_witness_utxo only, foreign prevout: refused", () => {
+    const t = prev(VAULT);
+    expect(
+      crossCheckPsbt(build({ hash: t.getId(), index: 0, nonWitnessUtxo: t.toBuffer() }), outs, ME),
+    ).not.toEqual([]);
+  });
+  it("no utxo info at all: refused (fail closed)", () => {
+    expect(crossCheckPsbt(build({ hash: "22".repeat(32), index: 0 }), outs, ME)).not.toEqual([]);
+  });
+});
