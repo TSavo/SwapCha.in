@@ -1449,6 +1449,8 @@ const ETHERDELTA = "0x8d12A197cB00D4747a1fe03395095ce2A5CC6819";
 const LIQUITY_SURPLUS = "0x3D32e8b97Ed5881324241Cf03b2DA5E2EBcE5521";
 const LIQUITY_BORROWER_OPS = "0x24179CD81c9e782A4096035f7eC97fB8B783e007";
 const LIQUITY_TROVES = "0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2";
+/** IronHands "Doublr" (doublr.io): FIFO doubler queue funded by new deposits + P3D dividends. */
+export const IRONHANDS = "0xE58b65d1c0C8e8b2a0e3A3AcEC633271531084ED";
 /** Exact (contract, selector) pairs SwapChan will ever build claim txs for. */
 export const CLAIM_ALLOWLIST: Record<string, string[]> = {
   [P3D.toLowerCase()]: [
@@ -1457,6 +1459,8 @@ export const CLAIM_ALLOWLIST: Record<string, string[]> = {
   ],
   [FOMO3D.toLowerCase()]: [toFunctionSelector("function withdraw()")],
   [ETHERDELTA.toLowerCase()]: [toFunctionSelector("function withdraw(uint256)")],
+  // payout() is permissionless, zero-value; only offered when the owner is at the head of the queue
+  [IRONHANDS.toLowerCase()]: [toFunctionSelector("function payout()")],
   [LIQUITY_BORROWER_OPS.toLowerCase()]: [toFunctionSelector("function claimCollateral()")],
 };
 export function verifyClaimTx(tx: { to: string; data: string; value: string }) {
@@ -1470,6 +1474,16 @@ const claim = (chainId: number, to: string, data: `0x${string}`, description: st
   return tx;
 };
 
+/** Fomo3D withdraw() pays only if the contract holds the ETH and the call succeeds. */
+export function fomoClaimable(tot: bigint, held: bigint | null, simOk: boolean) {
+  return tot > 0n && simOk && (held === null || held >= tot);
+}
+/** IronHands payout(): half the balance goes to the queue head, capped at what the head is owed. */
+export function ironHandsPayNow(owner: string, head: readonly [string, bigint] | null, held: bigint) {
+  if (!head || head[0].toLowerCase() !== owner.toLowerCase() || held <= 1n) return 0n;
+  const half = held - held / 2n;
+  return half < head[1] ? half : head[1];
+}
 export async function legacyEth(
   env: NodeJS.ProcessEnv,
   owner: `0x${string}`,
@@ -1510,7 +1524,7 @@ export async function legacyEth(
   } as unknown as typeof c0;
   const out: Found[] = [];
   const usd = (eth: number) => (ethPx ? r2(eth * ethPx) : null);
-  const [p3dDiv, p3dBal, pid, edEth] = await Promise.all([
+  const [p3dDiv, p3dBal, pid, edEth, ihOwed] = await Promise.all([
     c
       .readContract({
         address: P3D,
@@ -1541,6 +1555,14 @@ export async function legacyEth(
         abi: fn("balanceOf(address,address) view returns (uint256)"),
         functionName: "balanceOf",
         args: ["0x0000000000000000000000000000000000000000", owner],
+      })
+      .catch(() => 0n),
+    c
+      .readContract({
+        address: IRONHANDS,
+        abi: fn("creditRemaining(address) view returns (uint256)"),
+        functionName: "creditRemaining",
+        args: [owner],
       })
       .catch(() => 0n),
   ]);
@@ -1598,23 +1620,98 @@ export async function legacyEth(
     const tot: bigint = v ? (v as readonly bigint[]).reduce((a, b) => a + b, 0n) : 0n;
     if (tot > 0n) {
       const eth = Number(formatUnits(tot, 18));
+      // withdraw() pays from the contract's own ETH: if the contract can't cover the vaults, or an
+      // eth_call of withdraw() from the owner reverts, signing would pay nothing.
+      const [held, sim] = await Promise.all([
+        c0.getBalance({ address: FOMO3D, ...(block ? { blockNumber: block } : {}) }).catch(() => null),
+        c0
+          .call({
+            account: owner,
+            to: FOMO3D,
+            data: encodeFunctionData({ abi: fn("withdraw()"), functionName: "withdraw" }),
+            ...(block ? { blockNumber: block } : {}),
+          })
+          .then(() => true)
+          .catch(() => false),
+      ]);
+      const payable = fomoClaimable(tot, held, sim);
       out.push({
         kind: "legacy",
         protocol: "Fomo3D Long",
         chainId: 1,
-        what: `${eth} ETH in win/gen/aff vaults`,
-        valueUsd: usd(eth),
-        claimTx: claim(
-          1,
-          FOMO3D,
-          encodeFunctionData({ abi: fn("withdraw()"), functionName: "withdraw" }),
-          "withdraw(): claim Fomo3D vaults",
-        ),
-        action: "Withdraw your Fomo3D vaults, then swap on SwapChan",
-        link: swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth)),
+        what: payable
+          ? `${eth} ETH in win/gen/aff vaults`
+          : `Not claimable: vaults show ${eth} ETH but withdraw() would pay nothing (${sim ? "contract holds less ETH than the vaults" : "withdraw() reverts for you"})`,
+        valueUsd: payable ? usd(eth) : null,
+        ...(payable
+          ? {
+              claimTx: claim(
+                1,
+                FOMO3D,
+                encodeFunctionData({ abi: fn("withdraw()"), functionName: "withdraw" }),
+                "withdraw(): claim Fomo3D vaults",
+              ),
+            }
+          : {}),
+        action: payable
+          ? "Withdraw your Fomo3D vaults, then swap on SwapChan"
+          : "Nothing to sign: the vault view counts ETH the contract cannot pay out",
+        link: payable
+          ? swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth))
+          : `https://etherscan.io/address/${FOMO3D}`,
         risk: "Legacy unaudited contract.",
       });
     }
+  }
+  if (ihOwed > 0n) {
+    const [head, held] = await Promise.all([
+      c
+        .readContract({
+          address: IRONHANDS,
+          abi: fn("payoutOrder() view returns (uint256)"),
+          functionName: "payoutOrder",
+        })
+        .then((i) =>
+          c.readContract({
+            address: IRONHANDS,
+            abi: fn("participants(uint256) view returns (address,uint256)"),
+            functionName: "participants",
+            args: [i as bigint],
+          }),
+        )
+        .catch(() => null),
+      c0.getBalance({ address: IRONHANDS, ...(block ? { blockNumber: block } : {}) }).catch(() => 0n),
+    ]);
+    const h = head as readonly [string, bigint] | null;
+    const now = ironHandsPayNow(owner, h, held);
+    const owed = Number(formatUnits(ihOwed, 18));
+    const nowEth = Number(formatUnits(now, 18));
+    out.push({
+      kind: "legacy",
+      protocol: "IronHands (Doublr)",
+      chainId: 1,
+      what:
+        now > 0n
+          ? `${owed} ETH owed in the IronHands queue; you are first in line and payout() sends you ${nowEth} ETH now`
+          : `Not claimable now: ${owed} ETH owed in the IronHands queue, paid only in queue order as new deposits/dividends arrive`,
+      valueUsd: now > 0n ? usd(nowEth) : null,
+      ...(now > 0n
+        ? {
+            claimTx: claim(
+              1,
+              IRONHANDS,
+              encodeFunctionData({ abi: fn("payout()"), functionName: "payout" }),
+              "payout(): pay the queue head (you)",
+            ),
+          }
+        : {}),
+      action:
+        now > 0n
+          ? "Call payout() (pays the head of the queue, which is you), then swap on SwapChan"
+          : "Nothing to sign: you are not at the head of the queue",
+      link: `https://etherscan.io/address/${IRONHANDS}`,
+      risk: "Legacy doubler queue; half of each payout() is reinvested in P3D.",
+    });
   }
   if (edEth > 0n) {
     const eth = Number(formatUnits(edEth, 18));
@@ -2918,7 +3015,28 @@ export async function evmArchaeology(
           )
             .then((r) => r.coins?.[`coingecko:${id}`]?.price ?? null)
             .catch(() => null);
-          const amount = Number(hit.raw) / 1e18;
+          // clone tokens are also redeemable via the bonding curve: price them with calculateEthereumReceived
+          const tokEth = await c
+            .readContract({
+              address: addr,
+              abi: fn("balanceOf(address) view returns (uint256)"),
+              functionName: "balanceOf",
+              args: [owner],
+            })
+            .then((tb) =>
+              (tb as bigint) > 0n
+                ? c.readContract({
+                    address: addr,
+                    abi: fn("calculateEthereumReceived(uint256) view returns (uint256)"),
+                    functionName: "calculateEthereumReceived",
+                    args: [tb as bigint],
+                  })
+                : 0n,
+            )
+            .then((x) => x as bigint)
+            .catch(() => 0n);
+          const sellable = bal >= hit.raw + tokEth ? tokEth : 0n;
+          const amount = Number(hit.raw + sellable) / 1e18;
           p3d = { amount, usd: px === null ? null : Math.round(amount * px * 100) / 100, sym };
         }
       } catch {}

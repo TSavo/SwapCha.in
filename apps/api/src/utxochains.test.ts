@@ -54,3 +54,24 @@ describe("recovery_guide additions", () => {
     expect(g.situations.find((s) => s.id === "electrum")?.pointers?.length).toBeGreaterThan(1);
   });
 });
+
+import { fomoClaimable, ironHandsPayNow, verifyClaimTx, IRONHANDS } from "./intel";
+describe("legacy: Fomo3D not-claimable + IronHands queue", () => {
+  it("fomo withdraw pays only when the call succeeds and the contract covers the vaults", () => {
+    expect(fomoClaimable(10n, 100n, true)).toBe(true);
+    expect(fomoClaimable(10n, 5n, true)).toBe(false);
+    expect(fomoClaimable(10n, 100n, false)).toBe(false);
+    expect(fomoClaimable(0n, 100n, true)).toBe(false);
+  });
+  it("ironhands pays half the balance capped at the head's payout, only to the head", () => {
+    const me = "0x00000000000000000000000000000000000000aa";
+    expect(ironHandsPayNow(me, [me, 10n ** 18n], 4n * 10n ** 17n)).toBe(2n * 10n ** 17n);
+    expect(ironHandsPayNow(me, [me, 10n ** 16n], 10n ** 18n)).toBe(10n ** 16n);
+    expect(ironHandsPayNow(me, ["0x00000000000000000000000000000000000000bb", 1n], 10n ** 18n)).toBe(0n);
+    expect(ironHandsPayNow(me, null, 10n ** 18n)).toBe(0n);
+  });
+  it("payout() on IronHands is allowlisted with zero value", () => {
+    expect(verifyClaimTx({ to: IRONHANDS, data: "0x63bd1d4a", value: "0" }).verified).toBe(true);
+    expect(verifyClaimTx({ to: IRONHANDS, data: "0x63bd1d4a", value: "1" }).verified).toBe(false);
+  });
+});
