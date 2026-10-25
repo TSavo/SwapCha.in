@@ -301,3 +301,163 @@ export async function xlmScan(
     };
   }
 }
+
+/** GET JSON from the first endpoint that answers (each with its own timeout); 404 → null. */
+async function firstOk<T>(f: F, bases: string[], path: string, label: string, ms = 5000): Promise<T | null> {
+  let last: unknown;
+  for (const b of bases) {
+    try {
+      const r = await f(`${b}${path}`, { signal: AbortSignal.timeout(ms) });
+      if (r.status === 404) return null;
+      if (r.ok) return (await r.json()) as T;
+      last = r.status;
+    } catch (e) {
+      last = (e as Error).message;
+    }
+  }
+  throw new Error(`${label} unavailable (${String(last).slice(0, 40)})`);
+}
+const fmt = (v: bigint, d: number) => {
+  const s = v.toString().padStart(d + 1, "0");
+  const w = s.slice(0, -d),
+    fr = s.slice(-d).replace(/0+$/, "");
+  return fr ? `${w}.${fr}` : w;
+};
+const usdOf = (p: number | undefined, v: bigint, d: number) =>
+  p ? Math.round((Number(v) / 10 ** d) * p * 100) / 100 : null;
+
+export const ALGOD = ["https://mainnet-api.algonode.cloud", "https://mainnet-api.4160.nodely.dev"];
+/** ALGO balance minus the account's minimum balance (exact, from algod); ASAs are only counted. */
+export async function algoScan(f: F, account: string): Promise<{ items: NewFound[]; notChecked: string[] }> {
+  try {
+    const [a, px] = await Promise.all([
+      firstOk<{ amount: number; "min-balance": number; "auth-addr"?: string; "total-assets-opted-in"?: number; assets?: unknown[] }>(
+        f,
+        ALGOD,
+        `/v2/accounts/${account}?exclude=all`,
+        "algod",
+      ),
+      coinPrices(f, ["algorand"]),
+    ]);
+    if (!a || !a.amount) return { items: [], notChecked: [] };
+    const bal = BigInt(a.amount),
+      min = BigInt(a["min-balance"] ?? 100000);
+    const spend = bal > min ? bal - min : 0n;
+    const asas = a["total-assets-opted-in"] ?? 0;
+    const ev = [{ chainId: 0, address: account, call: "algod /v2/accounts", args: [], raw: `${a.amount} microAlgos, min-balance ${a["min-balance"]}` }];
+    const items: NewFound[] = [];
+    if (spend > 0n)
+      items.push({
+        kind: "balance",
+        protocol: "Algorand",
+        chainId: 0,
+        what: `${fmt(spend, 6)} ALGO spendable on ${account} (balance ${fmt(bal, 6)} ALGO minus ${fmt(min, 6)} ALGO minimum balance, which stays locked while the account${asas ? ` and its ${asas} asset opt-in(s) exist` : " exists"}${a["auth-addr"] ? `; rekeyed: transactions must be signed by ${a["auth-addr"]}` : ""}; exact balance, USD estimate)`,
+        valueUsd: usdOf(px.algorand, spend, 6),
+        action:
+          "Send it from an Algorand wallet you control (Pera, Defly, Ledger). Never type a 25-word mnemonic into a website. SwapChan never sees keys.",
+        confidence: "high",
+        evidence: ev,
+      } as NewFound);
+    return { items, notChecked: [] };
+  } catch (e) {
+    return { items: [], notChecked: [`Algorand (algod): not checked (${String((e as Error).message).slice(0, 60)})`] };
+  }
+}
+
+export const COSMOS_LCD = [
+  "https://cosmos-rest.publicnode.com",
+  "https://rest.cosmos.directory/cosmoshub",
+  "https://cosmos-api.polkachu.com",
+  "https://lcd-cosmoshub.keplr.app",
+];
+const uatom = (s: string) => BigInt(s.split(".")[0]!);
+/** Cosmos Hub: liquid ATOM (spendable), staking rewards (claimable), staked and unbonding ATOM (leads, not liquid). */
+export async function atomScan(f: F, account: string): Promise<{ items: NewFound[]; notChecked: string[] }> {
+  try {
+    type Coin = { denom: string; amount: string };
+    const q = <T>(p: string) => firstOk<T>(f, COSMOS_LCD, p, "Cosmos LCD");
+    const [bank, del, unb, rew, px] = await Promise.all([
+      q<{ balances: Coin[] }>(`/cosmos/bank/v1beta1/balances/${account}?pagination.limit=200`),
+      q<{ delegation_responses: { balance: Coin }[] }>(`/cosmos/staking/v1beta1/delegations/${account}`),
+      q<{ unbonding_responses: { entries: { balance: string; completion_time: string }[] }[] }>(
+        `/cosmos/staking/v1beta1/delegators/${account}/unbonding_delegations`,
+      ),
+      q<{ total: Coin[] }>(`/cosmos/distribution/v1beta1/delegators/${account}/rewards`),
+      coinPrices(f, ["cosmos"]),
+    ]);
+    const p = px.cosmos;
+    const liquid = uatom(bank?.balances.find((c) => c.denom === "uatom")?.amount ?? "0");
+    const others = (bank?.balances ?? []).filter((c) => c.denom !== "uatom" && c.amount !== "0").length;
+    const staked = (del?.delegation_responses ?? []).reduce((s, d) => s + (d.balance.denom === "uatom" ? uatom(d.balance.amount) : 0n), 0n);
+    const unbE = (unb?.unbonding_responses ?? []).flatMap((u) => u.entries);
+    const unbonding = unbE.reduce((s, e) => s + uatom(e.balance), 0n);
+    const reward = uatom(rew?.total?.find((c) => c.denom === "uatom")?.amount ?? "0");
+    const ev = [
+      {
+        chainId: 0,
+        address: account,
+        call: "Cosmos LCD bank/staking/distribution",
+        args: [],
+        raw: `liquid ${liquid} uatom, staked ${staked}, unbonding ${unbonding}, rewards ${reward}`,
+      },
+    ];
+    const wallet =
+      "Use a Cosmos wallet you control (Keplr, Leap, Ledger). Never type a mnemonic into a website. SwapChan never sees keys.";
+    const items: NewFound[] = [];
+    if (liquid > 0n)
+      items.push({
+        kind: "balance",
+        protocol: "Cosmos Hub",
+        chainId: 0,
+        what: `${fmt(liquid, 6)} ATOM spendable on ${account} (liquid bank balance; a small amount is needed for fees; exact balance, USD estimate)`,
+        valueUsd: usdOf(p, liquid, 6),
+        action: `Send it from ${wallet.slice(4)}`,
+        confidence: "high",
+        evidence: ev,
+      } as NewFound);
+    if (reward > 0n)
+      items.push({
+        kind: "claimable",
+        protocol: "Cosmos Hub staking rewards",
+        chainId: 0,
+        what: `${fmt(reward, 6)} ATOM in unclaimed staking rewards on ${account} (exact, USD estimate)`,
+        valueUsd: usdOf(p, reward, 6),
+        action: `Claim (withdraw rewards) in your wallet. ${wallet}`,
+        confidence: "high",
+        evidence: ev,
+      } as NewFound);
+    if (staked > 0n)
+      items.push({
+        kind: "lead",
+        protocol: "Cosmos Hub staked",
+        chainId: 0,
+        what: `${fmt(staked, 6)} ATOM staked (delegated) from ${account}; not liquid: undelegating takes 21 days`,
+        valueUsd: null,
+        action: `Undelegate in your wallet if you want it liquid. ${wallet}`,
+        evidence: ev,
+      } as unknown as NewFound);
+    if (unbonding > 0n)
+      items.push({
+        kind: "lead",
+        protocol: "Cosmos Hub unbonding",
+        chainId: 0,
+        what: `${fmt(unbonding, 6)} ATOM unbonding on ${account}; liquid after ${unbE.map((e) => e.completion_time.slice(0, 10)).sort().at(-1)}`,
+        valueUsd: null,
+        action: "Nothing to sign: it returns to the liquid balance automatically when unbonding completes.",
+        evidence: ev,
+      } as unknown as NewFound);
+    if (others)
+      items.push({
+        kind: "lead",
+        protocol: "Cosmos Hub tokens",
+        chainId: 0,
+        what: `${others} other token denom(s) (IBC/factory) on ${account}; not priced`,
+        valueUsd: null,
+        action: "Check each denom in your wallet before moving it.",
+        evidence: ev,
+      } as unknown as NewFound);
+    return { items, notChecked: [] };
+  } catch (e) {
+    return { items: [], notChecked: [`Cosmos Hub (LCD): not checked (${String((e as Error).message).slice(0, 60)})`] };
+  }
+}

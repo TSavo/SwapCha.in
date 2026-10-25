@@ -14,7 +14,7 @@ import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
 import { ensDeeds } from "./ensdeed.js";
 import { coinOf, decodeAny, utxoSources, utxoSweep, COINS, type Coin } from "./utxochains.js";
-import { isXlmAddress, isXrpAddress, RECOGNISED_ONLY, recognisedOnly, signumAddress, signumScan, xlmScan, xrpScan } from "./ledgers.js";
+import { algoScan, atomScan, isXlmAddress, isXrpAddress, RECOGNISED_ONLY, recognisedOnly, signumAddress, signumScan, xlmScan, xrpScan } from "./ledgers.js";
 import { extraEvmScan, evmSweep } from "./extraevm.js";
 import { blockscoutAbi, bytecodeSelectors, resolveSelectors, recoveryCandidates } from "./abiprobe.js";
 import { ethForkScan, forkSweep, ETH_FORKS, type EthFork } from "./ethforks.js";
@@ -3646,10 +3646,30 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       notChecked.push(...r.notChecked);
       sources.push("Stellar Horizon (horizon.stellar.org): XLM balance minus base reserve, other assets as leads");
     } else if (recognisedOnly(address).length) {
-      // every candidate is checked (never just the first); none has a balance source yet
-      for (const k of recognisedOnly(address))
-        notChecked.push(`${RECOGNISED_ONLY[k]}: address recognised (blocktools), balance not checked (no source wired yet)`);
-      sources.push(`blocktools detectAddress: ${recognisedOnly(address).map((k) => RECOGNISED_ONLY[k]).join(", ")}`);
+      // every candidate is checked (never just the first), each as its own timed stage
+      const cands = recognisedOnly(address);
+      const SCAN: Record<string, { run: () => Promise<{ items: unknown[]; notChecked: string[] }>; src: string }> = {
+        algo: { run: () => algoScan(f, address), src: "Algorand algod (algonode.cloud, nodely.dev): ALGO balance minus minimum balance" },
+        atom: {
+          run: () => atomScan(f, address),
+          src: "Cosmos Hub LCD (publicnode, cosmos.directory, polkachu, keplr): liquid ATOM, staking rewards, staked, unbonding",
+        },
+      };
+      const rs = await Promise.all(
+        cands.map((k) =>
+          SCAN[k]
+            ? timed(RECOGNISED_ONLY[k]!, SCAN[k].run(), { items: [], notChecked: [] })
+            : Promise.resolve({
+                items: [],
+                notChecked: [`${RECOGNISED_ONLY[k]}: address recognised (blocktools), balance not checked (no source wired yet)`],
+              }),
+        ),
+      );
+      for (const r of rs) {
+        items.push(...(r.items as Found[]));
+        notChecked.push(...r.notChecked);
+      }
+      sources.push(...cands.map((k) => SCAN[k]?.src ?? `blocktools detectAddress: ${RECOGNISED_ONLY[k]}`));
     } else if (signumAddress(address)) {
       const r = await timed("Signum", signumScan(f, address), { items: [], notChecked: [] });
       items.push(...(r.items as Found[]));

@@ -798,6 +798,8 @@ export async function coinUtxos(
 const PAPRIKA: Record<string, string> = {
   ripple: "xrp-xrp",
   stellar: "xlm-stellar",
+  algorand: "algo-algorand",
+  cosmos: "atom-cosmos",
   "ethereum-classic": "etc-ethereum-classic",
   ...Object.fromEntries(ROWS.filter(([, c]) => c.paprika).map(([, c]) => [c.cg, c.paprika!])),
 };

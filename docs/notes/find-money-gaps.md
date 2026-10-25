@@ -69,6 +69,12 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
     + sponsoring - sponsored) x base reserve - selling liabilities; other assets are leads. No sweep tx built; claimable
     balances, LP shares and offers not listed yet.
     XLM and XRP spendable amounts are listed as "Spendable balance" (not rewards); Horizon/XRPL nodes appear in sources/checked.
-15. Cosmos Hub (ATOM), Algorand (ALGO), Polkadot (DOT), TON, Cardano (ADA): recognised via blocktools detectAddress (only when
-    every candidate is one of these); balances "not checked" (no source wired). Cheap next steps: Algorand algonode
-    /v2/accounts, Cosmos LCD bank balances; DOT/TON/ADA need an indexer.
+15. Algorand (ALGO) and Cosmos Hub (ATOM): CHECKED, keyless, own parallel stage + timeout + "not checked" fallback.
+    ALGO: algod /v2/accounts (algonode.cloud, fallback nodely.dev); spendable = amount - min-balance; notes opt-ins and
+    rekey (auth-addr). ATOM: LCD bank/delegations/unbonding/rewards (publicnode, cosmos.directory, polkachu, keplr);
+    liquid = balance, rewards = claimable, staked/unbonding/other denoms = lead. No sweeps or tx building.
+    Polkadot (DOT), TON, Cardano (ADA): still recognised-only, "not checked". Keyless options (probed 2026-10-24, 200 OK):
+    TON toncenter.com/api/v2/getAddressBalance (rate-limited ~1 rps without key) or tonapi.io/v2/accounts;
+    ADA Koios api.koios.rest address_info / account_info (stake + rewards); DOT Parity public sidecar
+    /accounts/{a}/balance-info (free/reserved/frozen) or rpc.polkadot.io JSON-RPC (needs SCALE decoding).
+    Subscan needs an API key (400 without).

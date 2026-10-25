@@ -26,7 +26,7 @@ describe("recognised-only chains", () => {
     ])
       expect(recognisedOnly(a), a).toEqual([]);
   });
-  it.each(Object.entries(A))("/onchain/money %s → not checked, no source queried for the address", async (_k, [a, name]) => {
+  it.each(Object.entries(A))("/onchain/money %s → not checked, only its own source is queried", async (_k, [a, name]) => {
     const urls: string[] = [];
     const f = (async (i: RequestInfo | URL, init?: RequestInit) => {
       urls.push(String(i instanceof Request ? i.url : i) + String(init?.body ?? ""));
@@ -36,9 +36,15 @@ describe("recognised-only chains", () => {
     const res = await app.request(`/onchain/money?address=${a}`);
     expect(res.status).toBe(200);
     const b = (await res.json()) as { notChecked: string[]; checked: string[]; items: unknown[] };
+    if (_k === "algo" || _k === "atom") {
+      // wired: its own source is listed; a 404 everywhere is a measured empty account, not "not checked"
+      expect(b.checked.join()).toMatch(_k === "algo" ? /Algorand algod/ : /Cosmos Hub LCD/);
+      expect(b.notChecked.some((n) => n.startsWith(name))).toBe(false);
+      return;
+    }
     expect(b.notChecked.some((n) => n.startsWith(name) && /not checked/.test(n))).toBe(true);
     expect(b.checked.join()).toMatch(/blocktools detectAddress/);
-    // no source is asked about this address (shared gas/price lookups are not address scans)
-    expect(urls.filter((u) => u.includes(a))).toEqual([]);
+    // only the chain's own source is asked about this address (shared gas/price lookups are not address scans)
+    expect(urls.filter((u) => u.includes(a) && !/algonode|nodely|cosmos|polkachu|keplr|publicnode/.test(u))).toEqual([]);
   }, 20_000);
 });
