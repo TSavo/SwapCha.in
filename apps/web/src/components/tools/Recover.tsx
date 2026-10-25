@@ -5,6 +5,7 @@ import { decodeFunctionData, formatEther, parseAbi } from "viem";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { SpeechBubble } from "@/components/Character";
 import { ConnectButton } from "@/components/ConnectButton";
+import { localCallPaysOwner } from "@/lib/recoverCheck";
 
 const ABI = parseAbi([
   "function withdraw()",
@@ -69,7 +70,8 @@ export function Recover(p: {
       .then(setRemote)
       .catch(() => setRemote({ verified: false, reason: "verifier unreachable" }));
   }, [known, address, p.to, p.data, p.value]);
-  const safe = (known || !!remote?.verified) && p.value === "0";
+  // Locally decoded calls still need every receiver/holder to be the connected wallet.
+  const safe = (known ? localCallPaysOwner(call, address) : !!remote?.verified) && p.value === "0";
   return (
     <div className="flex w-full max-w-2xl flex-col gap-4" data-testid="recover">
       <div className="flex items-end gap-3">
@@ -117,11 +119,9 @@ export function Recover(p: {
             I don't recognise this call as a withdraw-to-you, so I won't let you sign it here.
           </p>
         )}
-        {call?.functionName === "redeem" &&
-          address &&
-          (call.args?.[1] as string)?.toLowerCase() !== address.toLowerCase() && (
+        {known && address && !localCallPaysOwner(call, address) && (
             <p className="mt-2 font-bold text-rose-300">
-              This redeem pays someone other than the connected wallet. Don't sign.
+              This call pays or moves funds for someone other than the connected wallet. Don't sign.
             </p>
           )}
         <div className="mt-3 flex flex-wrap gap-2">
