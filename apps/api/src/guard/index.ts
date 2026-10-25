@@ -21,6 +21,7 @@ import {
   SVM_PROGRAMS,
   TVM_CONTRACTS,
 } from "./allowlist.js";
+import { crossCheckPsbt, crossCheckSvm } from "./btcheck.js";
 import type { GuardCtx } from "./ctx.js";
 import { type Decoded, decodeApprove, decodeEvm, lifiNonEvm } from "./evm.js";
 import { checkRelayOrder, type RelayOrder } from "./relay.js";
@@ -452,6 +453,12 @@ async function checkSvm(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
       const t = parseSvmBase64(String(n.data));
       c.test("feePayer", t.feePayer === taker, `fee payer ${t.feePayer} != taker`);
       ixs = t.ixs;
+      const x = crossCheckSvm(
+        String(n.data),
+        t.feePayer,
+        t.ixs.map((i) => i.programId),
+      );
+      c.test("blocktools", x.length === 0, x.join("; "));
     } else ixs = parseSvmInstructions(n.data as never);
   } catch (e) {
     return c.bad("decode", `cannot parse Solana tx: ${(e as Error).message}`);
@@ -528,6 +535,18 @@ async function checkBtc(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
     const v = await thorVault(ctx, p.req.fromChainId);
     allowedTo = v ? [v.address] : [];
   }
+  const outs = psbt.txOutputs.map((o) => {
+    try {
+      return {
+        address: bitcoin.address.fromOutputScript(o.script, bitcoin.networks.bitcoin),
+        value: BigInt(o.value),
+      };
+    } catch {
+      return { address: null, value: BigInt(o.value) };
+    }
+  });
+  const x = crossCheckPsbt(s, outs, taker);
+  c.test("blocktools", x.length === 0, x.join("; "));
   let out = 0n;
   let memo: string | null = null;
   const bad: string[] = [];

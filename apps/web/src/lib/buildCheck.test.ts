@@ -94,6 +94,7 @@ describe("checkBuilt (audit: swap card trusted API response blindly)", () => {
   });
   it("non-EVM: needs verification and payout to the requested recipient", () => {
     const q = quote({
+      fromChainId: 792703809,
       toChainId: 792703809,
       recipient: "So1anaRecipient111111111111111111111111111",
     });
@@ -102,6 +103,7 @@ describe("checkBuilt (audit: swap card trusted API response blindly)", () => {
         execution: "nonevm",
         nonEvmTx: { vm: "svm", kind: "svm-base64", data: "x" },
         verified: true,
+        verification: { verified: true, level: "full", checks: [{ name: "blocktools", ok: true }] },
         ...o,
       }) as unknown as BuildResponse;
     expect(
@@ -121,5 +123,40 @@ describe("checkBuilt (audit: swap card trusted API response blindly)", () => {
     expect(checkBuilt(ok({ value: "0" }), xq(), ME)).toEqual([]);
     expect(checkBuilt(ok({ value: "1" }), xq(), ME)).not.toEqual([]);
     expect(checkBuilt(ok({ value: "10000000000000000000" }), xq("0"), ME)).not.toEqual([]);
+  });
+  it("non-EVM: VM must match the origin chain and the blocktools cross-check must have passed", () => {
+    const sq = quote({ fromChainId: 792703809, fromToken: "11111111111111111111111111111111" });
+    const nb = (o: Partial<BuildResponse> = {}) =>
+      ({
+        execution: "nonevm",
+        verified: true,
+        payoutTo: ME,
+        nonEvmTx: { vm: "svm", kind: "svm-base64", data: "x" },
+        verification: { verified: true, level: "full", checks: [{ name: "blocktools", ok: true }] },
+        ...o,
+      }) as BuildResponse;
+    expect(checkBuilt(nb(), sq, ME)).toEqual([]);
+    expect(
+      checkBuilt(nb({ nonEvmTx: { vm: "bvm", kind: "bvm-psbt", data: "x" } }), sq, ME),
+    ).not.toEqual([]);
+    expect(
+      checkBuilt(nb({ verification: { verified: true, level: "full", checks: [] } }), sq, ME),
+    ).not.toEqual([]);
+    expect(
+      checkBuilt(
+        nb({
+          verification: {
+            verified: true,
+            level: "full",
+            checks: [
+              { name: "blocktools", ok: true },
+              { name: "x", ok: false },
+            ],
+          },
+        }),
+        sq,
+        ME,
+      ),
+    ).not.toEqual([]);
   });
 });

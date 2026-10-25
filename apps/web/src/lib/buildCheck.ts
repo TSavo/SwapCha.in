@@ -1,4 +1,4 @@
-import type { BuildResponse, Quote } from "@swapchan/shared";
+import { type BuildResponse, type Quote, vmOf } from "@swapchan/shared";
 import { decodeFunctionData, erc20Abi } from "viem";
 
 const NATIVE = new Set([
@@ -34,7 +34,21 @@ export function checkBuilt(built: BuildResponse, quote: Quote, taker: string): s
   if (built.execution === "nonevm") {
     // Solana/Tron/Bitcoin payloads are opaque here; the checks above (API verification of the
     // decoded payload, payout pinned to you) are what's feasible client-side.
-    if (!built.nonEvmTx) out.push("no transaction in response");
+    const n = built.nonEvmTx;
+    if (!n) out.push("no transaction in response");
+    else if (n.vm !== vmOf(r.fromChainId))
+      out.push(`a ${n.vm} transaction for a ${vmOf(r.fromChainId)} chain`);
+    // The API's blocktools cross-decode (guard "blocktools" check) must have run and passed.
+    const v = built.verification?.checks ?? [];
+    if (v.some((c) => !c.ok)) out.push("a server check failed");
+    if (
+      n &&
+      n.kind !== "tvm-deposit" &&
+      n.kind !== "tvm-json" &&
+      n.kind !== "svm-instructions" &&
+      !v.some((c) => c.name === "blocktools" && c.ok)
+    )
+      out.push("transaction was not cross-checked by blocktools");
     return out;
   }
 
