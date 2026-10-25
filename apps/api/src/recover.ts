@@ -99,6 +99,9 @@ export function verifyRecovery(tx: { to: string; data: string; value: string }, 
   if (sf !== null) return sf ? ({ verified: true, call: "Safe execTransaction (every leg pays the owner)" } as const) : ({ verified: false, reason: "Safe tx with a leg that does not pay the owner" } as const);
   const v4 = verifyV4(tx.data, owner);
   if (v4 !== null) return v4 ? ({ verified: true, call: "modifyLiquidities(DECREASE_LIQUIDITY,TAKE_PAIR→owner)" } as const) : ({ verified: false, reason: "v4 actions other than decrease + take-to-owner" } as const);
+  // IronHands payout(): pays the queue head; offered only when find_money saw the owner at the head
+  if (tx.data.toLowerCase() === "0x63bd1d4a" && tx.to.toLowerCase() === "0xe58b65d1c0c8e8b2a0e3a3acec633271531084ed")
+    return { verified: true, call: "IronHands payout() (zero value; pays the queue head)" } as const;
   // multicall(bytes[]): every inner call must itself be a verified recovery call
   try {
     const m = decodeFunctionData({ abi: MULTICALL, data: tx.data as `0x${string}` });

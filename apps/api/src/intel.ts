@@ -4829,7 +4829,8 @@ export async function findMoney(
         it.estimateKind === "protected" ||
         it.estimateKind === "lead" ||
         it.category === "Cheaper gas" ||
-        it.category === "Idle stablecoins"
+        it.category === "Idle stablecoins" ||
+        /: Not claimable/.test(it.title)
       )
         continue;
       Object.assign(it, recoveryFlow(db, shorten, address, it as never));

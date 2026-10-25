@@ -85,3 +85,11 @@ describe("sweep items get a /recover sweep page, never an external link", () => 
     expect(r.swapUrl).toBe(r.recoverUrl);
   });
 });
+
+import { verifyRecovery } from "./recover";
+describe("IronHands payout() is a verified recovery only on the IronHands contract", () => {
+  it("pins the contract", () => {
+    expect(verifyRecovery({ to: "0xe58b65d1c0c8e8b2a0e3a3acec633271531084ed", data: "0x63bd1d4a", value: "0" }, "0x1").verified).toBe(true);
+    expect(verifyRecovery({ to: "0x0000000000000000000000000000000000000001", data: "0x63bd1d4a", value: "0" }, "0x1").verified).toBe(false);
+  });
+});
