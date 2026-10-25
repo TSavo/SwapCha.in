@@ -111,9 +111,9 @@ export const PRIVACY: LegalDoc = {
       h: "What SwapChan stores",
       p: [
         "Batch find-money jobs: the addresses you submit and the results, kept up to 6 hours so the job can be resumed, then deleted.",
-        "Short links: when SwapChan makes a short link, it stores the full link (which can contain an address or transaction) and a click count. These are kept with no set expiry.",
-        "Price watches you create: the tokens, thresholds and watch id, until the watch is removed.",
-        "Partners: if you register as a partner, the name, site URL and payout address you give, plus each referred quote and swap (provider, chains, amounts, fee, the swap's transaction hash and the taker address) so the payout can be calculated.",
+        "Short links: when SwapChan makes a short link, it stores the full link (which can contain an address or transaction), a click count and the time of the last click. A link not clicked for 12 months is deleted, along with its row in the daily backups once those roll over (14 days).",
+        "Price watches you create: the tokens, thresholds and watch id, until you remove the watch or 12 months after it was created, whichever comes first.",
+        "Partners: if you register as a partner, the name, site URL and payout address you give, plus each referred quote and swap (provider, chains, amounts, fee, the swap's transaction hash and the taker address) so the payout can be calculated. After 24 months the taker address is deleted and the transaction hash is replaced with a one-way digest; the amounts stay so payout totals don't change.",
         "Server logs record timings and errors, not request bodies. The developer-tools API doesn't log what you send it.",
       ],
     },

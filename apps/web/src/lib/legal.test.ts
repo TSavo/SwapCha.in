@@ -20,4 +20,12 @@ describe("legal pages", () => {
     );
     for (const u of used) expect(LEGAL_PLACEHOLDERS as readonly string[]).toContain(u);
   });
+  it("states the exact retention periods", () => {
+    const t = all(PRIVACY);
+    expect(t).toMatch(/not clicked for 12 months is deleted/);
+    expect(t).toMatch(/12 months after it was created/);
+    expect(t).toMatch(/After 24 months the taker address is deleted/);
+    expect(t).toMatch(/kept up to 6 hours/);
+    expect(t).not.toMatch(/no set expiry/);
+  });
 });
