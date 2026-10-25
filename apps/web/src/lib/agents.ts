@@ -1,3 +1,4 @@
+import { CHAIN_COUNT, UTXO_CHAIN_COUNT } from "@swapchan/shared";
 export const MCP_URL = "https://mcp.swapchan.com/mcp";
 export const API_URL = "https://api.swapchan.com";
 export const CURSOR_INSTALL =
@@ -77,7 +78,7 @@ export const TOOLS = [
   ["substrate_tool", "Developer tool: SS58 decode/encode/convert, storage keys, blake2b, twox128."],
   [
     "chain_params",
-    "Developer tool: address version bytes and prefixes for 30 Bitcoin-family chains (41 chains in the table).",
+    `Developer tool: address version bytes and prefixes for ${UTXO_CHAIN_COUNT} Bitcoin-family chains (${CHAIN_COUNT} chains in the table).`,
   ],
 ] as const;
 

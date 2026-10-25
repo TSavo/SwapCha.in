@@ -248,5 +248,6 @@ export const toBaseUnits = (amount: string, decimals: number): bigint =>
 export const fromBaseUnits = (amount: bigint | string, decimals: number): string =>
   formatUnits(BigInt(amount), decimals);
 
+export * from "./chains.js";
 export * from "./cow.js";
 export * from "./playbook.js";

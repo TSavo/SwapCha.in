@@ -3,9 +3,10 @@
  * blocktools wasm behind POST /tools/:fn. Never keys, seeds, signing or recovery.
  * SEO copy (titles, meta, H1) follows audits/tools-directory-plan.md §4.
  */
-export const CHAIN_COUNT = 41; // chainParams() rows in the vendored wasm (asserted in api devtools.test.ts)
-/** rows with Base58 version bytes (Bitcoin-family / UTXO); the other 11 are account chains (eth, sol, dot...). */
-export const UTXO_CHAIN_COUNT = 30;
+// counts derived from the chain table (blocktools chainTable() + zec, as listChains() does); see @swapchan/shared chains.ts
+import { CHAIN_COUNT, UTXO_CHAIN_COUNT } from "@swapchan/shared";
+
+export { CHAIN_COUNT, UTXO_CHAIN_COUNT };
 export const POWERED_BY = "This tool is powered by blocktools.";
 
 export type Field = {

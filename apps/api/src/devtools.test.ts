@@ -1,3 +1,4 @@
+import { CHAIN_COUNT, UTXO_CHAIN_COUNT } from "@swapchan/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEV_TOOLS, devToolRoutes, MAX_BODY, refuseSecrets, runDevTool } from "./devtools.js";
 
@@ -154,10 +155,10 @@ describe("dev tools (blocktools, public input only)", () => {
       "bddd813c634239723171ef3fee98579b94964e3bb1cb3e427262c8c068d52319",
     );
     expect(ok("twox128", { text: "System" }).hash).toBe("26aa394eea5630e07c48ae0c9558cef7");
-    expect(ok("chain-params", {}).count).toBe(41);
-    // web copy: CHAIN_COUNT=41 rows, UTXO_CHAIN_COUNT=30 with version bytes (apps/web/src/lib/devTools.ts)
+    // displayed counts come from @swapchan/shared CHAIN_TABLE (asserted in blocktools.chaintable.test.ts)
+    expect(ok("chain-params", {}).count).toBe(CHAIN_COUNT);
     const rows = ok("chain-params", {}).chains as { p2pkh: number[] | null }[];
-    expect(rows.filter((r) => (r.p2pkh?.length ?? 0) > 0).length).toBe(30);
+    expect(rows.filter((r) => (r.p2pkh?.length ?? 0) > 0).length).toBe(UTXO_CHAIN_COUNT);
     expect(ok("chain-params", { chain: "btc" })).toMatchObject({ ticker: "BTC" });
   });
 

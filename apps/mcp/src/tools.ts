@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import {
+  CHAIN_COUNT,
   COW_NETWORK,
   fromBaseUnits,
   isAnyAddress,
@@ -11,6 +12,7 @@ import {
   type QuoteRequest,
   type Token,
   toBaseUnits,
+  UTXO_CHAIN_COUNT,
   vmOf,
 } from "@swapchan/shared";
 import {
@@ -2327,7 +2329,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "chain_params",
     {
       title: "UTXO chain parameters table (dev tool)",
-      description: `Chain parameter table: 41 chains; Base58 version bytes, bech32 HRP and WIF byte for the 30 Bitcoin-family ones, checksum/SLIP-44/tx format for all. chain=<ticker> for one, omit for all. ${OFFLINE}`,
+      description: `Chain parameter table: ${CHAIN_COUNT} chains; Base58 version bytes, bech32 HRP and WIF byte for the ${UTXO_CHAIN_COUNT} Bitcoin-family ones, checksum/SLIP-44/tx format for all. chain=<ticker> for one, omit for all. ${OFFLINE}`,
       inputSchema: z.object({ chain: z.string().max(16).optional() }),
       annotations: devAnn,
     },
