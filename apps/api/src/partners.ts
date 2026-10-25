@@ -242,8 +242,16 @@ export function partnerRoutes(
   });
   // Private dashboard: needs the token from signup.
   app.get("/:id", (c) => {
+    if (c.req.query("t") !== undefined)
+      return c.json(
+        {
+          error:
+            "the dashboard token is no longer accepted as ?t= (it ends up in server logs); send it in the X-Partner-Token header",
+        },
+        400,
+      );
     const p = getPartner(s, c.req.param("id"));
-    if (!p || c.req.query("t") !== p.token)
+    if (!p || c.req.header("x-partner-token") !== p.token)
       return c.json({ error: "unknown partner or bad link" }, 404);
     return c.json({
       partner: {

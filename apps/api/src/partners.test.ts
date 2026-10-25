@@ -70,7 +70,9 @@ describe("partners", () => {
       json({ quoteId: id, txHash: "0xabc12345", taker: USER }),
     );
     expect(await sw.json()).toMatchObject({ recorded: true, counted: true, partnerUsd: 0.5 });
-    const dash = await (await app.request(`/partners/${p.id}?t=${p.token}`)).json();
+    const dash = await (
+      await app.request(`/partners/${p.id}`, { headers: { "X-Partner-Token": p.token } })
+    ).json();
     expect(dash).toMatchObject({
       quotes: 1,
       swaps: 1,
@@ -85,11 +87,23 @@ describe("partners", () => {
       `/partners/${p.id}/swaps`,
       json({ quoteId: id, txHash: "0xabc12345", taker: USER }),
     );
-    expect((await (await app.request(`/partners/${p.id}?t=${p.token}`)).json()).swaps).toBe(1);
+    expect(
+      (
+        await (
+          await app.request(`/partners/${p.id}`, { headers: { "X-Partner-Token": p.token } })
+        ).json()
+      ).swaps,
+    ).toBe(1);
   });
   it("dashboard needs the token", async () => {
     const { app, p } = await setup();
-    expect((await app.request(`/partners/${p.id}?t=wrong`)).status).toBe(404);
+    expect(
+      (await app.request(`/partners/${p.id}`, { headers: { "X-Partner-Token": "wrong" } })).status,
+    ).toBe(404);
+    expect((await app.request(`/partners/${p.id}`)).status).toBe(404);
+    const viaQuery = await app.request(`/partners/${p.id}?t=${p.token}`);
+    expect(viaQuery.status).toBe(400);
+    expect((await viaQuery.json()).error).toMatch(/X-Partner-Token/);
     expect((await app.request(`/partners/${p.id}/public`)).status).toBe(200);
   });
   it("no self-referral, no unverified fees, no unattributed quotes", async () => {

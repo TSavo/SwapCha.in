@@ -17,5 +17,5 @@ Low severity, done: widget `postMessage` targets the embedding origin (ancestorO
 
 Remaining:
 - GA admin: turn off Enhanced Measurement "page changes based on browser history events" (would duplicate page_views) and consider "outbound clicks" (link_url can carry explorer URLs with addresses). Code can't disable these.
-- Partner API still takes the token as `?t=` on api.swapchan.com (server logs); move to a header later.
+- Done: the partner API refuses `?t=` (400) and reads the token only from the `X-Partner-Token` header; the dashboard takes it from `#t=` (old `?t=` links are rewritten to `#t=`).
 - Cross-chain EVM swaps from an ERC-20 allow a non-zero native value (bridge messaging fee) with no cap.

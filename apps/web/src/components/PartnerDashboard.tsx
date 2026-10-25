@@ -46,23 +46,26 @@ const chain = (id: number) => SUPPORTED_CHAINS[id as keyof typeof SUPPORTED_CHAI
 
 export function PartnerDashboard({ id }: { id: string }) {
   const [token, setToken] = useState<string | null>(null);
-  useEffect(
-    () =>
-      setToken(
-        new URLSearchParams(window.location.hash.slice(1)).get("t") ??
-          new URLSearchParams(window.location.search).get("t") ?? // old ?t= links still work
-          "",
-      ),
-    [],
-  );
+  useEffect(() => {
+    const old = new URLSearchParams(window.location.search).get("t"); // old ?t= links
+    const t = new URLSearchParams(window.location.hash.slice(1)).get("t") ?? old ?? "";
+    // Move an old ?t= link to the #t= form so the token stops riding in URLs sent to servers.
+    if (old)
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}#t=${encodeURIComponent(t)}`,
+      );
+    setToken(t);
+  }, []);
   const q = useQuery({
     queryKey: ["partner", id, token],
     enabled: token !== null,
     refetchInterval: 60_000,
     queryFn: async (): Promise<Dash> => {
-      const res = await fetch(
-        `${API_URL}/partners/${encodeURIComponent(id)}?t=${encodeURIComponent(token ?? "")}`,
-      );
+      const res = await fetch(`${API_URL}/partners/${encodeURIComponent(id)}`, {
+        headers: { "X-Partner-Token": token ?? "" },
+      });
       if (!res.ok)
         throw new Error(
           "Unknown partner or wrong link. Use the private link you got when you registered.",
