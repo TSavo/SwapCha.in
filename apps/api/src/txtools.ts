@@ -33,6 +33,8 @@ export interface Expected {
   maxValue?: string;
   minOut?: string;
   quotedOut?: string;
+  /** Token whose simulated receipt is checked against minOut (default: the largest receipt). */
+  outToken?: string;
 }
 
 const MAX_HALF = 2n ** 255n;
@@ -201,6 +203,56 @@ export function calldataChecks(
   return { findings: out, ...(call ? { call } : {}) };
 }
 
+const NO_PAYOUT = new Set(["approve", "increaseAllowance", "setApprovalForAll", "permit"]);
+/**
+ * expected.recipient / expected.minOut checked against the simulated outcome, fail closed:
+ * if they were given and cannot be shown to hold, the finding is high.
+ */
+export function outcomeChecks(
+  exp: Expected,
+  call: string | undefined,
+  data: Hex,
+  simulated: boolean,
+  received: Map<string, bigint>,
+): Finding[] {
+  const out: Finding[] = [];
+  if (!exp.recipient && !exp.minOut) return out;
+  if (call && NO_PAYOUT.has(call)) return out;
+  if (!simulated) {
+    out.push({
+      severity: "high",
+      check: "outcome-unverified",
+      message:
+        "expected.recipient / minOut could not be checked: the tx was not simulated (pass `from`, or the node lacks eth_simulateV1, or it reverts).",
+    });
+    return out;
+  }
+  const who = exp.recipient ?? "the sender";
+  if (exp.recipient && received.size === 0) {
+    const inData = data.toLowerCase().includes(lc(exp.recipient).slice(2));
+    out.push({
+      severity: inData ? "warn" : "high",
+      check: "recipient",
+      message: inData
+        ? `Nothing reaches ${exp.recipient} on this chain in the simulation; the address is in the calldata (cross-chain delivery?). Confirm on the destination.`
+        : `The simulation pays nothing to the expected recipient ${exp.recipient}.`,
+    });
+  }
+  if (exp.minOut) {
+    const min = BigInt(exp.minOut);
+    const got = exp.outToken
+      ? (received.get(lc(exp.outToken)) ?? 0n)
+      : [...received.values()].reduce((m, x) => (x > m ? x : m), 0n);
+    if (got < min && !(exp.recipient && received.size === 0 && out.some((f) => f.severity === "warn")))
+      out.push({
+        severity: "high",
+        check: "min-out",
+        message: `Simulated receipt for ${who} is ${got}, below expected.minOut ${min}.`,
+      });
+  }
+  return out;
+}
+
 export const verdictOf = (fs: Finding[]) =>
   fs.some((f) => f.severity === "critical" || f.severity === "high")
     ? "danger"
@@ -288,6 +340,9 @@ export async function verifyEvm(
   if (src && isContract && !src.verified)
     add("warn", "verified-source", "Contract source is NOT verified on the explorer.");
   let simulation: Record<string, unknown> = { method: "none" };
+  // What the expected recipient (default: the sender) receives in the simulation.
+  const received = new Map<string, bigint>();
+  let simulated = false;
   if (tx.from) {
     try {
       const r = (await c.request({
@@ -311,6 +366,7 @@ export async function verifyEvm(
       }[];
       const cl = r[0]!.calls[0]!;
       const me = lc(tx.from);
+      const rcpt = lc(exp.recipient || tx.from);
       const changes = new Map<string, bigint>();
       for (const l of cl.logs)
         if (l.topics[0] === TRANSFER && l.topics.length === 3) {
@@ -323,7 +379,9 @@ export async function verifyEvm(
               : l.address;
           if (fr === me) changes.set(tok, (changes.get(tok) ?? 0n) - amt);
           if (to === me) changes.set(tok, (changes.get(tok) ?? 0n) + amt);
+          if (to === rcpt && fr !== rcpt) received.set(lc(tok), (received.get(lc(tok)) ?? 0n) + amt);
         }
+      simulated = cl.status === "0x1";
       const diff = [...changes].map(([token, delta]) => ({ token, delta: delta.toString() }));
       simulation = {
         method: "eth_simulateV1",
@@ -355,6 +413,7 @@ export async function verifyEvm(
       }
     }
   } else add("info", "simulation", "Pass `from` to simulate and diff balance changes.");
+  findings.push(...outcomeChecks(exp, call, data, simulated, received));
   const verdict = verdictOf(findings);
   const ex = EXPLORER[chainId];
   const top = findings.filter((x) => x.severity !== "info").map((x) => x.message);

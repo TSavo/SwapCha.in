@@ -5219,6 +5219,7 @@ export function intelRoutes(
         maxValue: z.string(),
         minOut: z.string(),
         quotedOut: z.string(),
+        outToken: z.string(),
       })
       .partial()
       .optional(),
