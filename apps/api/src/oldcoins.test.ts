@@ -151,7 +151,7 @@ describe("old coins: unsigned sweeps", () => {
       expect((s as { txFormat?: string }).txFormat).toBe(k === "bsv" ? "forkid" : "legacy");
     });
   }
-  it("dgb: many inputs at the row fee rate trip blocktools' BTC-scale high_fee but pass the TS fee cap", async () => {
+  it("dgb: a 150-input sweep at the row fee rate passes blocktools' size-scaled verdict and the TS fee cap", async () => {
     const many = Array.from({ length: 150 }, (_, n) => ({
       txid: n.toString(16).padStart(64, "0"),
       vout: 0,
@@ -179,8 +179,8 @@ describe("old coins: unsigned sweeps", () => {
     const dust = (async () => json([mixed[0]])) as unknown as typeof fetch;
     await expect(utxoSweep(dust, "via", a, a)).rejects.toThrow(/too small to spend/);
   });
-  it("refuses the formats still off (QRK unknown format, WDC unverified)", async () => {
-    for (const k of ["qrk", "wdc"] as Coin[])
+  it("refuses the format still off (WDC unverified)", async () => {
+    for (const k of ["wdc"] as Coin[])
       await expect(utxoSweep(fetch, k, "x", "y")).rejects.toThrow(/does not build/);
   });
 });
@@ -196,7 +196,7 @@ describe("old coins: cryptoid UTXO lists (keyed)", () => {
           {
             tx_hash: "ef".repeat(32),
             tx_ouput_n: 3,
-            value: 741860555700,
+            value: 741860555000,
             confirmations: 9,
             addr: A,
           },
@@ -206,9 +206,13 @@ describe("old coins: cryptoid UTXO lists (keyed)", () => {
     for (const k of ["xpm", "clam", "nvc", "aur", "wdc", "qrk"] as Coin[]) {
       resetCryptoid();
       const u = await coinUtxos(f, k, A, { CRYPTOID_API_KEY: "k" });
-      // cryptoid reports 1e8 units for every coin; NVC has 6 decimals
+      // cryptoid reports 1e8 units for every coin; NVC has 6 decimals, QRK 5
       expect(u).toEqual([
-        { txid: "ef".repeat(32), vout: 3, value: k === "nvc" ? "7418605557" : "741860555700" },
+        {
+          txid: "ef".repeat(32),
+          vout: 3,
+          value: k === "nvc" ? "7418605550" : k === "qrk" ? "741860555" : "741860555000",
+        },
       ]);
     }
     expect(seen.every((u) => u.includes("q=unspent"))).toBe(true);

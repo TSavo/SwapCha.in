@@ -54,11 +54,28 @@ export type BtParams = {
   fee_warn?: { fee: number; rate: number; basis: string };
 };
 /**
- * JSON.parse that keeps integers above 2^53 exact: blocktools emits amounts as JSON numbers, and big-supply
- * coins (RDD: 33,979,404,789,171,950 units) exceed float precision. Bare integer tokens of 16+ digits become strings.
+ * blocktools (7b70ba4+) emits a decimal-string twin `amount_str` / `fee_str` beside every integer `amount` / `fee`
+ * (any depth) because JSON.parse rounds integers above 2^53 (RDD: 33,979,404,789,171,950 units). This parses the
+ * output and replaces each `amount` / `fee` with its exact twin; a missing twin throws (fail closed). This replaced
+ * SwapChan's own regex quoting (bigJson) of 16+ digit integer tokens.
  */
-export function bigJson<T>(raw: string): T {
-  return JSON.parse(raw.replace(/([:\[,]\s*)(\d{16,})(?=\s*[,\]}])/g, '$1"$2"')) as T;
+export function exactJson<T>(raw: string): T {
+  const fix = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(fix);
+    if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>;
+      for (const k of ["amount", "fee"])
+        if (k in o && (typeof o[k] === "number" || typeof o[k] === "string")) {
+          const t = o[`${k}_str`];
+          if (typeof t !== "string" || !/^\d+$/.test(t))
+            throw new Error(`blocktools output has ${k} without ${k}_str`);
+          o[k] = t;
+        }
+      for (const k of Object.keys(o)) o[k] = fix(o[k]);
+    }
+    return v;
+  };
+  return fix(JSON.parse(raw)) as T;
 }
 let wasm: Wasm | null | undefined;
 export function blocktools(): Wasm | null {
@@ -107,16 +124,17 @@ export type BtSweep = {
   unsigned_tx: string;
   /** pos-ntime: the tx timestamp and the prevouts verifyTx/decodeTx need for amounts */
   time?: number;
-  pos_prevouts?: { amount: number | string; script: string }[];
+  pos_prevouts?: { amount: string; amount_str: string; script: string }[];
   /** zcash-v5: consensus branch id (hex), expiry height and the prevouts (ZIP-244 commits to amounts) */
   branch_id?: string;
   expiry_height?: number;
-  zec_prevouts?: { amount: number | string; script: string }[];
+  zec_prevouts?: { amount: string; amount_str: string; script: string }[];
   /** the raw JSON line blocktools returned (decode/verify input for pos-ntime) */
   envelope?: string;
   inputs: unknown[];
-  amount: string | number;
-  fee: string | number;
+  /** exact decimal strings (from amount_str / fee_str) */
+  amount: string;
+  fee: string;
 };
 /** Throws blocktools' error (e.g. unsupported_tx_format:pos-ntime); returns null only when the WASM is unavailable. */
 export function btSweep(
@@ -129,33 +147,39 @@ export function btSweep(
 ): BtSweep | null {
   const w = blocktools();
   if (!w) return null;
-  // amount as an exact integer token (Number() would round amounts above 2^53)
+  // amount as a decimal string (accepted since 7b70ba4; per-UTXO limit 2^63-1), never a rounded Number
   const lines = utxos
-    .map(
-      (u) =>
-        `{"txid":${JSON.stringify(u.txid)},"vout":${u.vout},"amount":${BigInt(u.amount)},"address":${JSON.stringify(u.address)}}`,
+    .map((u) =>
+      JSON.stringify({
+        txid: u.txid,
+        vout: u.vout,
+        amount: BigInt(u.amount).toString(),
+        address: u.address,
+      }),
     )
     .join("\n");
   const raw =
     time === undefined
       ? w.buildUnsignedSweep(chain, lines, to, feeRate)
       : w.buildUnsignedSweepAt(chain, lines, to, feeRate, time);
-  return { ...bigJson<BtSweep>(raw), envelope: raw };
+  return { ...exactJson<BtSweep>(raw), envelope: raw };
 }
 
 export type BtDecoded = {
   role: string;
-  fee?: number | string;
+  /** exact decimal string (from fee_str) */
+  fee?: string;
   inputs?: number;
   outputs?: number;
   txid?: string;
   address?: string;
-  amount?: number | string;
+  /** exact decimal string (from amount_str) */
+  amount?: string;
 }[];
 /** decodeTx lines (summary, inputs, outputs) for a built tx/PSBT. Throws on a decode error. */
 export function btDecode(tx: string, chain: string): BtDecoded | null {
   const w = blocktools();
-  return w ? bigJson<BtDecoded>(w.decodeTx(tx, chain)) : null;
+  return w ? exactJson<BtDecoded>(w.decodeTx(tx, chain)) : null;
 }
 /** verifyTx: every output pays `to`, fee is known and at most `maxFee` (decimal base units). The "unsigned" warning is expected. */
 export function btVerify(tx: string, chain: string, to: string, maxFee: string) {
@@ -183,7 +207,13 @@ export function btXpubAddresses(
   if (!w) return null;
   try {
     return JSON.parse(
-      w.addressesFromXpub(xpub, chain, kinds, Uint32Array.from(branches), Uint32Array.from(indices)),
+      w.addressesFromXpub(
+        xpub,
+        chain,
+        kinds,
+        Uint32Array.from(branches),
+        Uint32Array.from(indices),
+      ),
     );
   } catch {
     return null;

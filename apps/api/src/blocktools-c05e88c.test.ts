@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { bigJson, btDetect } from "./blocktools.js";
+import { btDetect, exactJson } from "./blocktools.js";
 import { recognisedOnly } from "./ledgers.js";
 import {
   COINS,
@@ -26,12 +26,18 @@ const GRS1P = "grs1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dpsm7geds";
 const XMR =
   "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A";
 
-describe("bigJson keeps amounts above 2^53 exact", () => {
-  it("quotes 16+ digit integers only", () => {
-    const r = bigJson<{ a: string; b: number; c: string[] }>(
-      '{"a":33979404789171954,"b":5,"c":[12345678901234567]}',
+describe("exactJson keeps amounts above 2^53 exact (blocktools amount_str / fee_str)", () => {
+  it("takes the string twins at any depth and leaves other numbers alone", () => {
+    const r = exactJson<{ amount: string; fee: string; n: number; p: { amount: string }[] }>(
+      '{"amount":33979404789171954,"amount_str":"33979404789171950","fee":7,"fee_str":"7","n":5,"p":[{"amount":12345678901234567,"amount_str":"12345678901234567"}]}',
     );
-    expect(r).toEqual({ a: "33979404789171954", b: 5, c: ["12345678901234567"] });
+    expect(r.amount).toBe("33979404789171950");
+    expect(r.fee).toBe("7");
+    expect(r.n).toBe(5);
+    expect(r.p[0]!.amount).toBe("12345678901234567");
+  });
+  it("fails closed when a twin is missing", () => {
+    expect(() => exactJson('{"amount":1}')).toThrow(/amount_str/);
   });
 });
 
@@ -75,7 +81,7 @@ describe("ZEC transparent sweep (blocktools zcash-v5, independently parsed)", ()
 describe("XPM / AUR / TRC sweeps on measured rates", () => {
   for (const [k, rate] of [
     ["aur", 103],
-    ["trc", 15],
+    ["trc", 20],
   ] as [Coin, number][]) {
     it(`${k} at ${rate}`, async () => {
       expect(COINS[k].feeRate).toBe(rate);
@@ -117,12 +123,8 @@ describe("XPM / AUR / TRC sweeps on measured rates", () => {
       }
     });
   }
-  it("XPM stays off: blocktools caps fee_rate at 2000", () => {
-    expect(COINS.xpm.sweep).toBeFalsy();
-  });
-  it("WDC and QRK stay off", () => {
+  it("WDC stays off (XPM and QRK sweep since 2d179f1: see blocktools-2d179f1.test.ts)", () => {
     expect(COINS.wdc.sweep).toBeFalsy();
-    expect(COINS.qrk.sweep).toBeFalsy();
   });
 });
 

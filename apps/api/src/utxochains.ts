@@ -243,7 +243,9 @@ export const COINS = {
     hrp: "mona",
     cg: "monacoin",
     paprika: "mona-monacoin",
-    feeRate: 220,
+    // blocktools 761584e MONA verdict: chain median 2.54 sat/vB, p75/p90 100 (Monacoin Core DEFAULT_TRANSACTION_MINFEE
+    // 100,000/kB) over 100 txs; no sampled tx paid 220. 100 = the wallet default (was 220).
+    feeRate: 100,
     wallet: "Monacoin Core / Electrum-MONA",
     src: { type: "insight", urls: ["https://mona.insight.monaco-ex.org/insight-api-monacoin"] },
     sweep: true,
@@ -258,10 +260,12 @@ export const COINS = {
     wallet: "Terracoin Core",
     src: { type: "insight", urls: ["https://insight.terracoin.io/api"] },
     native: false,
-    // blocktools docs/CHAINS.md: median 14.8 sat/B (14 txs, blocks 3327566-3327865, insight.terracoin.io); default FeeWarn
-    feeRate: 15,
+    // blocktools 2d179f1 docs/CHAINS.md: re-measured median 20.0 sat/B (p10 1.32, p90 20.1) over 100 txs, blocks
+    // 3325168-3327910, insight.terracoin.io, txid-checked (was 15 from the earlier 14-tx 14.8 figure); default FeeWarn
+    feeRate: 20,
     sweep: true,
-    txNote: "Terracoin sweeps are built and checked by blocktools; sign them offline in Terracoin Core.",
+    txNote:
+      "Terracoin sweeps are built and checked by blocktools; sign them offline in Terracoin Core.",
   }),
   grs: row({
     name: "Groestlcoin",
@@ -334,10 +338,13 @@ export const COINS = {
     paprika: "xpm-primecoin",
     wallet: "Primecoin Core",
     src: cid("xpm"),
-    // blocktools d4e4ea8: median 100312 sat/B over 30 mainnet txs (exact size), blocks 7064002-7064118 (chainz.cryptoid.info)
-    // blocktools c05e88c buildUnsignedSweep refuses fee_rate > 2000 (crates/tx/src/build.rs:44), so XPM stays off.
+    // blocktools d4e4ea8: median 100312 sat/B over 30 mainnet txs (exact size), blocks 7064002-7064118 (chainz.cryptoid.info).
+    // blocktools 7b70ba4: the builder's rate cap is per coin (max(2000, 4 x FeeWarn rate) = 8,000,000 for XPM), so the
+    // measured median is now buildable (c05e88c refused anything over 2000).
+    feeRate: 100312,
+    sweep: true,
     txNote:
-      "SwapChan does not build Primecoin transactions yet (its fee rate is above what the transaction builder accepts); import the key into Primecoin Core to move it.",
+      "Primecoin sweeps are built and checked by blocktools; sign them offline in Primecoin Core.",
   }),
   aur: row({
     name: "Auroracoin",
@@ -351,7 +358,8 @@ export const COINS = {
     // blocktools d4e4ea8: median 102.8 sat/B over 30 mainnet txs (exact size), blocks 5913204-5913347 (chainz.cryptoid.info)
     feeRate: 103,
     sweep: true,
-    txNote: "Auroracoin sweeps are built and checked by blocktools; sign them offline in Auroracoin Core.",
+    txNote:
+      "Auroracoin sweeps are built and checked by blocktools; sign them offline in Auroracoin Core.",
   }),
   clam: row({
     name: "Clams",
@@ -418,8 +426,14 @@ export const COINS = {
     paprika: "qrk-quark",
     wallet: "Quark Core",
     src: cid("qrk"),
-    txNote:
-      "Quark's transaction format is not verified; SwapChan does not build it. Import the key into Quark Core to move it.",
+    // Quark src/amount.h: COIN = 100000 (blocktools 761584e; this row said 8 until 2d179f1)
+    decimals: 5,
+    // blocktools 761584e: Bitcoin-legacy tx format, COIN = 1e5 (5 decimals), confirmed on 10 mainnet txs. Fee: Quark
+    // src/main.cpp minRelayTxFee = CFeeRate(100) (100 units/kB) and wallet minTxFee = CFeeRate(10); 1 unit/B is 10x
+    // the relay minimum (the builder takes whole units/B). Not measured from chain data.
+    feeRate: 1,
+    sweep: true,
+    txNote: "Quark sweeps are built and checked by blocktools; sign them offline in Quark Core.",
   }),
   nmc: row({
     name: "Namecoin",
@@ -575,7 +589,8 @@ export function cashToLegacy(addr: string): string | null {
     for (let i = 0; i < 5; i++) if ((c0 >> BigInt(i)) & 1n) c ^= G[i]!;
   }
   if ((c ^ 1n) !== 0n) return null;
-  let acc = 0, bits = 0;
+  let acc = 0,
+    bits = 0;
   const out: number[] = [];
   for (const d of v.slice(0, -8)) {
     acc = (acc << 5) | d;
@@ -596,7 +611,8 @@ const GRS_RE = /^(F[1-9A-HJ-NP-Za-km-z]{33}|grs1[02-9ac-hj-np-z]{38,58})$/;
  */
 /** A Groestlcoin extended public key (Groestl-512 base58 checksum, so it never validates as a BTC xpub). */
 export const isGrsXpub = (a: string) =>
-  /^[xyzt]pub[1-9A-HJ-NP-Za-km-z]{100,112}$/.test(a) && !!btXpubAddresses(a, "grs", ["p2pkh"], [0], [0]);
+  /^[xyzt]pub[1-9A-HJ-NP-Za-km-z]{100,112}$/.test(a) &&
+  !!btXpubAddresses(a, "grs", ["p2pkh"], [0], [0]);
 export function coinsOf(addr: string): Coin[] {
   if (isGrsXpub(addr)) return ["grs"];
   if (/^(bitcoincash:)?[qp][a-z0-9]{41}$/.test(addr)) return ["bch"];
@@ -766,13 +782,21 @@ export async function coinUtxos(
   switch (c.src?.type) {
     case "blockbook":
       return (
-        await getJson<
-          { txid: string; vout: number; value: string; coinbase?: boolean; confirmations?: number }[]
-        >(f, u, `/api/v2/utxo/${a}`, c.sym)
-      )
-        // immature coinbase (under 100 confirmations) cannot be spent yet; a sweep including it would be rejected
-        .filter((x) => !x.coinbase || (x.confirmations ?? 0) >= 100)
-        .map((x) => ({ txid: x.txid, vout: x.vout, value: String(x.value) }));
+        (
+          await getJson<
+            {
+              txid: string;
+              vout: number;
+              value: string;
+              coinbase?: boolean;
+              confirmations?: number;
+            }[]
+          >(f, u, `/api/v2/utxo/${a}`, c.sym)
+        )
+          // immature coinbase (under 100 confirmations) cannot be spent yet; a sweep including it would be rejected
+          .filter((x) => !x.coinbase || (x.confirmations ?? 0) >= 100)
+          .map((x) => ({ txid: x.txid, vout: x.vout, value: String(x.value) }))
+      );
     case "insight":
       return (
         await getJson<{ txid: string; vout: number; satoshis: number }[]>(
@@ -1031,9 +1055,12 @@ function grsXpubSource(
           const base = BigInt(t.balance ?? "0");
           if (base <= 0n) continue;
           const m = /(\d+)\/(\d+)$/.exec(t.path ?? "");
-          const mine = m && btXpubAddresses(xpub, "grs", [kind], [Number(m[1])], [Number(m[2])])?.[0];
+          const mine =
+            m && btXpubAddresses(xpub, "grs", [kind], [Number(m[1])], [Number(m[2])])?.[0];
           if (!mine || mine.address !== t.name)
-            throw new Error(`explorer address ${t.name.slice(0, 12)} does not match blocktools derivation`);
+            throw new Error(
+              `explorer address ${t.name.slice(0, 12)} does not match blocktools derivation`,
+            );
           found.push({ kind, path: mine.path, address: t.name, base });
         }
       }
@@ -1053,7 +1080,15 @@ function grsXpubSource(
             : `Build an unsigned sweep with /onchain/utxo-sweep?coin=grs&from=${address}&to=<your GRS address>, then sign it offline. ${SIGN_GUIDE("grs")}`,
           confidence: "high",
           ...(tr ? {} : { sweep: { kind: "utxo", coin: "grs", from: address, sym: c.sym } }),
-          evidence: [{ chainId: 0, address, call: `blockbook xpub ${kind}; blocktools addressesFromXpub ${path}`, args: [], raw: base.toString() }],
+          evidence: [
+            {
+              chainId: 0,
+              address,
+              call: `blockbook xpub ${kind}; blocktools addressesFromXpub ${path}`,
+              args: [],
+              raw: base.toString(),
+            },
+          ],
         } as NewFound;
       });
     },
@@ -1111,6 +1146,8 @@ export const BT_ONLY_SWEEP = new Set<string>([
   "trc",
   "aur",
   "zec",
+  "xpm",
+  "qrk",
 ]);
 /** Proof-of-stake nTime chains: built with buildUnsignedSweepAt, no PSBT. */
 export const POS_NTIME = new Set<string>(["ppc", "nvc", "clam", "rdd"]);
@@ -1225,7 +1262,8 @@ async function zecBranch(f: F): Promise<{ chaintip: string; nextblock: string }>
     "ZEC",
   );
   const c = r.backend?.consensus;
-  if (!c?.chaintip || !c.nextblock) throw new Error("ZEC explorer did not report the consensus branch id");
+  if (!c?.chaintip || !c.nextblock)
+    throw new Error("ZEC explorer did not report the consensus branch id");
   return { chaintip: c.chaintip, nextblock: c.nextblock };
 }
 
@@ -1240,7 +1278,9 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
   if (!c.sweep || (c.checksum === "groestl" && !BT_PARAMS?.get(coin)?.sweep_build))
     throw new Error(c.txNote ?? `SwapChan does not build ${c.sym} transactions yet`);
   if (coin === "grs" && /^grs1p/i.test(from))
-    throw new Error("Groestlcoin taproot (grs1p) inputs are recognised but not spendable through SwapChan; use Electrum-GRS");
+    throw new Error(
+      "Groestlcoin taproot (grs1p) inputs are recognised but not spendable through SwapChan; use Electrum-GRS",
+    );
   const toD = decodeFor(to, coin);
   if (!toD) throw new Error(`to must be a ${c.sym} address`);
   const fromD = decodeFor(from, coin);
@@ -1292,16 +1332,15 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     const sum = d?.find((l) => l.role === "summary");
     const outs = d?.filter((l) => l.role === "output") ?? [];
     // Fee checks. Our own cap always applies: row fee rate x legacy size estimate x 1.25 (ZEC: also ZIP-317 x 1.25).
-    // blocktools' per-coin FeeWarn limits (d4e4ea8): where a coin has a measured row (DGB/RVN/QTUM/XPM/VTC/AUR),
-    // high_fee_rate is now a hard failure. Where it still has the Bitcoin-tuned default (500/vB), high_fee_rate is
-    // tolerated under our cap (DOGE pays 1000/B by policy). high_fee (absolute, not scaled by input count) is tolerated
-    // under our cap on every coin: a 147-input VTC sweep at the measured median rate is over VTC's 2,000,000 limit.
-    // high_fee_pct (fee over 5% of the output) is never accepted.
+    // blocktools 7b70ba4/761584e own the fee verdict: high_fee is size-scaled (FeeWarn fee per started 1000 vB) and
+    // high_fee_rate uses the coin's measured row (DOGE/FTC/MONA now measured), so every fee warning is a hard failure;
+    // only "unsigned" is expected. (Until c05e88c SwapChan tolerated high_fee on every coin and high_fee_rate on
+    // default-row coins because the absolute limit did not scale with input count and DOGE had no row.)
     const rateCap = Math.ceil(rate * (148 * take.length + 34 + 10) * 1.25);
-    const feeCap = BigInt(zec ? Math.max(rateCap, Math.ceil(5000 * Math.max(2, take.length + 1) * 1.25)) : rateCap);
-    const fw = BT_PARAMS?.get(coin)?.fee_warn;
-    const tunedRate = !!fw && !fw.basis.startsWith("default");
-    const okWarn = new Set(["unsigned", "high_fee", ...(tunedRate ? [] : ["high_fee_rate"])]);
+    const feeCap = BigInt(
+      zec ? Math.max(rateCap, Math.ceil(5000 * Math.max(2, take.length + 1) * 1.25)) : rateCap,
+    );
+    const okWarn = new Set(["unsigned"]);
     const verifiedOk =
       BigInt(bt.fee) <= feeCap &&
       !!v &&
@@ -1323,12 +1362,16 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
           t.ins.length === take.length &&
           t.ins.every(
             (i, n) =>
-              i.txid === take[n]!.txid && i.vout === take[n]!.vout && i.script.length === 0 && i.sequence === 0xffffffff,
+              i.txid === take[n]!.txid &&
+              i.vout === take[n]!.vout &&
+              i.script.length === 0 &&
+              i.sequence === 0xffffffff,
           ) &&
           prev.length === take.length &&
           prev.every(
             (x, n) =>
-              String(x.amount) === String(take[n]!.value) && x.script === script(fromD).toString("hex"),
+              String(x.amount) === String(take[n]!.value) &&
+              x.script === script(fromD).toString("hex"),
           ) &&
           t.outs.length === 1 &&
           t.outs[0]!.script.equals(script(toD)) &&
@@ -1394,7 +1437,13 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
       txFormat: bt.tx_format,
       ...(pos ? { txTime: txTime!, posPrevouts: bt.pos_prevouts } : {}),
       ...(zec
-        ? { zcash: { branchId: bt.branch_id, expiryHeight: bt.expiry_height, prevouts: bt.zec_prevouts } }
+        ? {
+            zcash: {
+              branchId: bt.branch_id,
+              expiryHeight: bt.expiry_height,
+              prevouts: bt.zec_prevouts,
+            },
+          }
         : {}),
       builtBy: `blocktools ${BLOCKTOOLS_VERSION}`,
       verified: { by: "blocktools decodeTx+verifyTx", txid: sum.txid, warnings: v!.warnings },
