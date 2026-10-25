@@ -75,6 +75,7 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "burnRedemptionTicketNft(uint256,address)", owners: [1] },
   { sig: "finalizeWithdrawal(uint256)", owners: [] },
   { sig: "claim(uint256)", owners: [] },
+  { sig: "withdrawMax(uint256,address)", owners: [1] },
   { sig: "claimCollateral()", owners: [] },
   { sig: "releaseDeed(bytes32)", owners: [] },
   { sig: "claim(uint256,address,uint256,bytes32[])", owners: [1] },
