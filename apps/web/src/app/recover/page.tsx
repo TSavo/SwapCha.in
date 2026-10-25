@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { safeNext } from "@/lib/safeNext";
 import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
 import { Recover } from "@/components/tools/Recover";
@@ -20,7 +21,7 @@ export default async function Page({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const q = await searchParams;
-  const next = q.next?.startsWith("https://swapchan.com/") || q.next?.startsWith("/") ? q.next : undefined;
+  const next = safeNext(q.next);
   if (q.tron) {
     let spec: TronSpec | null = null;
     try {
@@ -61,11 +62,7 @@ export default async function Page({
           data={q.data as `0x${string}`}
           value={q.value ?? "0"}
           title={q.title ?? "Recover funds"}
-          next={
-            q.next?.startsWith("https://swapchan.com/") || q.next?.startsWith("/")
-              ? q.next
-              : undefined
-          }
+          next={next}
         />
       </main>
     );
