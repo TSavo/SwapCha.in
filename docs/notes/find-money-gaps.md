@@ -30,6 +30,15 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
 - Solana: rent, stake, Marinade tickets (claim ix), Kamino obligations (detect).
 - Tron: voting rewards, Stake 2.0 unfreeze tx, Stake 1.0, JustLend, sTRX/stUSDT/WTRX (unwrap tx), WIN, BTT, SUN, SUNOLD (note).
 - Other chains: BTC xpub, fork coins + same-key LTC/DOGE/FTC, XRP Ledger, Signum, 12 extra EVM chains (native, tokens, approvals).
+- Old coins, unsigned sweep (blocktools buildUnsignedSweep only, no TS fallback): DASH, DGB, RVN, VTC, VIA, QTUM, MONA,
+  BSV (forkid), GRS (legacy-sha256). Every sweep is decoded twice before it is offered: blocktools decodeTx+verifyTx and an
+  independent bitcoinjs decode (same inputs in order, one output to the destination, amount + fee = inputs). blocktools'
+  BTC-scale high_fee (>1,000,000 base units) / high_fee_rate warnings are accepted only when the fee is under a TS cap
+  (row rate x legacy size x 1.25) and high_fee_pct (>5%) is not raised. UTXOs are taken largest first; inputs whose own fee
+  would be over 5% of their value are skipped. Live-built 2026-10-24 ~21:40 PDT from real funded addresses (scripts/live-sweeps.ts).
+- Old coins, balance (+ UTXO list with the cryptoid key): XPM, CLAM, NVC, AUR, WDC, QRK, BLK via cryptoid; TRC via Insight
+  (balance + UTXOs measured 2026-10-24). Cryptoid's `{"addresses":[]}` for a never-seen address is now a measured zero
+  (was the unexplained "no answer for address" line on BTC fan-out).
 
 ## Known gaps (honest "not checked" or detect-only)
 1. Base canonical bridge withdrawals: not checked (no free full-history log source; Etherscan v2 free tier excludes Base,
@@ -46,3 +55,9 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
 10. ICO refund contracts beyond TheDAO; old DEX balances (Bancor, Kyber, 0x v1), Augur v1 REP: missing.
 11. dYdX v3 L1 exit, Perp v1, Synthetix perps margin; Drift, Mango v3: missing.
 12. Off-chain claims (FTX, Celsius, Mt.Gox): not on-chain; info only.
+13. Old coins with balance but no sweep yet:
+    - PoS-timestamp format (PPC, NVC, BLK, CLAM, RDD): blocked on blocktools pos-ntime sweep_build.
+    - ZEC transparent: blocked on blocktools zcash-v5 tx build. QRK: blocktools tx_format "unknown". WDC: blocktools row unverified.
+    - XPM, AUR, TRC: blocktools marks legacy sweep_build, but SwapChan has no measured relay fee rate for them (cryptoid
+      txinfo is not available on the key tier), so the sweep stays off until a fee rate is measured.
+    - NMC, POT, MEC, ANC: no public explorer; "not checked".

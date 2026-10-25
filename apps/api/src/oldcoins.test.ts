@@ -11,6 +11,8 @@ import {
   resetCryptoid,
   utxoScan,
   utxoSweep,
+  coinUtxos,
+  coinBalance,
 } from "./utxochains.js";
 
 const BTC = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
@@ -163,5 +165,33 @@ describe("old coins: unsigned sweeps", () => {
   it("refuses PoS / Zcash / Groestl / unverified formats", async () => {
     for (const k of ["ppc", "rdd", "zec", "xpm", "clam"] as Coin[])
       await expect(utxoSweep(fetch, k, "x", "y")).rejects.toThrow(/does not build/);
+  });
+});
+describe("old coins: cryptoid UTXO lists (keyed)", () => {
+  const A = "Aass1uKyBJGeKKocrKmeznUweuYwmxQ9FW";
+  it("maps unspent_outputs (cryptoid's tx_ouput_n spelling) and needs the key", async () => {
+    resetCryptoid();
+    const seen: string[] = [];
+    const f = (async (u: string) => {
+      seen.push(u);
+      return json({
+        unspent_outputs: [{ tx_hash: "ef".repeat(32), tx_ouput_n: 3, value: 741860555779, confirmations: 9, addr: A }],
+      });
+    }) as unknown as typeof fetch;
+    for (const k of ["xpm", "clam", "nvc", "aur", "wdc", "qrk"] as Coin[]) {
+      resetCryptoid();
+      const u = await coinUtxos(f, k, A, { CRYPTOID_API_KEY: "k" });
+      expect(u).toEqual([{ txid: "ef".repeat(32), vout: 3, value: "741860555779" }]);
+    }
+    expect(seen.every((u) => u.includes("q=unspent"))).toBe(true);
+    await expect(coinUtxos(f, "xpm", A, {})).rejects.toThrow(/cryptoid key/);
+  });
+  it("an address cryptoid has never seen is a measured zero, not 'no answer'", async () => {
+    resetCryptoid();
+    const f = (async () => json({ addresses: [], txs: [] })) as unknown as typeof fetch;
+    expect(await coinBalance(f, "xpm", A, { CRYPTOID_API_KEY: "k" })).toBe(0n);
+    resetCryptoid();
+    const bad = (async () => json({ error: "x" })) as unknown as typeof fetch;
+    await expect(coinBalance(bad, "xpm", A, { CRYPTOID_API_KEY: "k" })).rejects.toThrow(/bad answer/);
   });
 });
