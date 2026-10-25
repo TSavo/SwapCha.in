@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { base58check, bech32 } from "@scure/base";
-import { Transaction } from "bitcoinjs-lib";
+import { crypto as bjsCrypto, Transaction } from "bitcoinjs-lib";
 import {
   blocktools,
   btAddressToScript,
@@ -580,6 +580,15 @@ function script(d: Decoded): Buffer {
     return Buffer.concat([Buffer.from([0x76, 0xa9, 0x14]), h, Buffer.from([0x88, 0xac])]);
   if (d.kind === "p2sh") return Buffer.concat([Buffer.from([0xa9, 0x14]), h, Buffer.from([0x87])]);
   return Buffer.concat([Buffer.from([0x00, h.length]), h]);
+}
+/** True when `hex` is a bare P2PK script (<33|65-byte pubkey> OP_CHECKSIG) whose key hashes to `d` (a P2PKH address). */
+export function p2pkOf(hex: string | undefined, d: Pick<Decoded, "kind" | "hash">): boolean {
+  if (!hex || d.kind !== "p2pkh") return false;
+  const b = Buffer.from(hex, "hex");
+  const n = b[0];
+  if (!((n === 33 && b.length === 35) || (n === 65 && b.length === 67)) || b[b.length - 1] !== 0xac)
+    return false;
+  return Buffer.from(bjsCrypto.hash160(b.subarray(1, 1 + n))).equals(Buffer.from(d.hash));
 }
 /** scriptPubKey for an address of `coin` (blocktools wasm via decodeFor; throws on an invalid address or a missing WASM). */
 export function outputScript(addr: string, coin: Coin): Buffer {
@@ -1266,8 +1275,12 @@ export function pickSweepUtxos<U extends { value: string; script?: string }>(
   all: U[],
   own: string,
   rate: number,
+  /** extra scripts accepted besides `own` (pos-ntime: P2PK of the same key, since blocktools 4f6445a) */
+  alsoOk?: (script: string) => boolean,
 ) {
-  const utxos = all.filter((u) => u.script === undefined || u.script === own);
+  const utxos = all.filter(
+    (u) => u.script === undefined || u.script === own || (!!alsoOk && alsoOk(u.script)),
+  );
   const economic = [...utxos]
     .sort((a, b) =>
       BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0,
@@ -1296,14 +1309,16 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
   if (!fromD) throw new Error(`from must be a ${c.sym} address`);
   const all = await coinUtxos(f, coin, from);
   if (!all.length) throw new Error("no UTXOs on this address");
-  // only outputs paying this address's own script: a P2PK output (same key, pubkey in the prevout) would be
-  // described with the wrong scriptPubKey, and blocktools cannot verify P2PK inputs. QRK fails closed without scripts.
+  // only outputs paying this address's own script. Exception, pos-ntime coins (NVC/PPC/...): a bare P2PK output of the
+  // same key (coinstake rewards) is spendable since blocktools 4f6445a, which adopts P2PK only from the prev_tx output
+  // and only when hash160(key) is this address; prev_tx is always required here. QRK fails closed without scripts.
   const own = script(fromD).toString("hex");
+  const p2pkOk = POS_NTIME.has(coin) ? (s: string) => p2pkOf(s, fromD) : undefined;
   if (coin === "qrk" && all.some((u) => u.script === undefined))
     throw new Error(
       "the Quark UTXO list has no output scripts, so P2PK outputs cannot be told apart; not built (use Quark Core)",
     );
-  const { utxos, economic, take: picked } = pickSweepUtxos(all, own, feeRate ?? c.feeRate);
+  const { utxos, economic, take: picked } = pickSweepUtxos(all, own, feeRate ?? c.feeRate, p2pkOk);
   const notOwn = all.length - utxos.length;
   if (!utxos.length)
     throw new Error(
@@ -1451,7 +1466,7 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
         prev.every(
           (x, n) =>
             String(x.amount) === String(take[n]!.value) &&
-            x.script === script(fromD).toString("hex"),
+            (x.script === own || p2pkOf(x.script, fromD)),
         ) &&
         t.outs.length === 1 &&
         t.outs[0]!.script.equals(script(toD)) &&

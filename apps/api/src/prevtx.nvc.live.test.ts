@@ -132,9 +132,8 @@ describe.skipIf(!live)("NVC live unsigned sweep build", () => {
     }) as typeof fetch;
     const t0 = Date.now();
     try {
-      // All 38 are coinstake P2PK outputs. Production's cryptoid list carries no script, so they pass the own-script
-      // filter, the 38 prev txs are fetched, and blocktools then refuses them ("prev_tx output differs"): fail closed.
-      // This asserts the fetch stage (the 503 failure) is fixed; the build itself is expected to be refused.
+      // All 38 are coinstake P2PK outputs of this address's key. Since blocktools 4f6445a the sweep adopts P2PK from
+      // each fetched prev_tx (hash160(key) must equal the address), so the build succeeds with or without scripts.
       let s: any = null;
       let err = "";
       try {
@@ -155,8 +154,8 @@ describe.skipIf(!live)("NVC live unsigned sweep build", () => {
         }),
       );
       expect(err).not.toMatch(/could not fetch the previous transactions/);
-      if (s) expect(BigInt(s.amount) + BigInt(s.fee)).toBeLessThanOrEqual(total);
-      else expect(err).toMatch(/P2PK|prev_tx output differs/);
+      expect(err).toBe("");
+      expect(BigInt(s.amount) + BigInt(s.fee)).toBe(total);
     } finally {
       if (key === undefined) delete process.env.CRYPTOID_API_KEY;
       else process.env.CRYPTOID_API_KEY = key;
