@@ -1,4 +1,5 @@
 import { sablierStreams } from "./vesting.js";
+import { hedgeyPlans, teamFinanceLocks, uncxLocks, superfluidBalances } from "./locks.js";
 import { marinadeTickets, kaminoObligations } from "./solstake.js";
 import { aaveSupplied } from "./aave.js";
 import { eigenLayer } from "./eigen.js";
@@ -3529,7 +3530,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
       const archChains = env.ETHERSCAN_API_KEY ? [1, 42161, 10, 137, 43114, 534352, 59144] : [1, 10, 534352, 43114, 59144];
       const noArch = { items: [] as Found[], stats: { error: "not checked (timeout)" } as Record<string, number | string> };
-      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, forkR, xevmR, stuck, sablierR, ...arch] = await Promise.all([
+      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, forkR, xevmR, stuck, sablierR, hedgeyR, teamR, uncxR, sfR, ...arch] = await Promise.all([
         timed("Merkl", merklP, [] as Found[]),
         timed("legacy contracts", legacyP, [] as Found[]),
         timed("wrapped native", wrappedNative(f, env, own), []),
@@ -3550,6 +3551,10 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         timed("extra EVM chains", extraEvmScan(f, own).then((r) => (notChecked.push(...r.notChecked), r.items)), []),
         timed("contract registry", stuckMoneyRegistry(f, env, own), []),
         timed("Sablier vesting streams", sablierStreams(f, env, own), [] as Found[]),
+        timed("Hedgey vesting/lockup plans", hedgeyPlans(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[]),
+        timed("Team Finance locks", teamFinanceLocks(f, env, own), [] as Found[]),
+        timed("UNCX LP locks", uncxLocks(f, env, own), [] as Found[]),
+        timed("Superfluid balances", superfluidBalances(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[]),
         ...archChains.map((id) => timed(`history ${chainName(id)}`, evmArchaeology(f, env, id, own), noArch, Number(env.FIND_ARCH_TIMEOUT_MS ?? 15_000))),
       ]);
       items.push(...(merklR as Found[]), ...(legacyR as Found[]));
@@ -3562,7 +3567,8 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push(
         "unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains",
       );
-      items.push(...(stuck as Found[]), ...(sablierR as Found[]));
+      items.push(...(stuck as Found[]), ...(sablierR as Found[]), ...(hedgeyR as Found[]), ...(teamR as Found[]), ...(uncxR as Found[]), ...(sfR as Found[]));
+      sources.push("vesting/locks: Hedgey plans (8 chains), Team Finance, UNCX v2 LP locker, Superfluid Super Tokens (7 chains)");
       sources.push(
         "known-contract registry: Curve/Convex, Synthetix, Sablier, Pendle, GMX, Rocket Pool rETH, OP/Base/Arb L2 withdrawals, Polygon PoS exits, Multichain/Celer (detect), merkle airdrops (UNI/ENS/1INCH/OP/ARB)",
       );
