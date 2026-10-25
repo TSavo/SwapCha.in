@@ -81,6 +81,7 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "withdraw(address,uint256,uint256,uint256)", owners: [] },
   { sig: "downgrade(uint256)", owners: [] },
   { sig: "downgradeToETH(uint256)", owners: [] },
+  { sig: "claimFundingFees(address[],address[],address)", owners: [2] },
   { sig: "claimCollateral()", owners: [] },
   { sig: "releaseDeed(bytes32)", owners: [] },
   { sig: "claim(uint256,address,uint256,bytes32[])", owners: [1] },

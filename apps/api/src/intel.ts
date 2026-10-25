@@ -1,6 +1,7 @@
 import { sablierStreams } from "./vesting.js";
 import { daoRefunds } from "./refunds.js";
 import { bridgeWithdrawals } from "./bridges.js";
+import { perpsBalances } from "./perps.js";
 import { hedgeyPlans, teamFinanceLocks, uncxLocks, superfluidBalances } from "./locks.js";
 import { marinadeTickets, kaminoObligations } from "./solstake.js";
 import { aaveSupplied } from "./aave.js";
@@ -3532,7 +3533,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
       const archChains = env.ETHERSCAN_API_KEY ? [1, 42161, 10, 137, 43114, 534352, 59144] : [1, 10, 534352, 43114, 59144];
       const noArch = { items: [] as Found[], stats: { error: "not checked (timeout)" } as Record<string, number | string> };
-      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, forkR, xevmR, stuck, sablierR, hedgeyR, teamR, uncxR, sfR, daoR, brR, ...arch] = await Promise.all([
+      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, forkR, xevmR, stuck, sablierR, hedgeyR, teamR, uncxR, sfR, daoR, brR, perpR, ...arch] = await Promise.all([
         timed("Merkl", merklP, [] as Found[]),
         timed("legacy contracts", legacyP, [] as Found[]),
         timed("wrapped native", wrappedNative(f, env, own), []),
@@ -3559,6 +3560,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         timed("TheDAO refund", daoRefunds(f, env, own), [] as Found[]),
         timed("Superfluid balances", superfluidBalances(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[]),
         timed("canonical bridge withdrawals", bridgeWithdrawals(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[], 14_000),
+        timed("perps balances", perpsBalances(f, env, own).then((r) => (notChecked.push(...r.notChecked), r.items)), [] as Found[], 11_000),
         ...archChains.map((id) => timed(`history ${chainName(id)}`, evmArchaeology(f, env, id, own), noArch, Number(env.FIND_ARCH_TIMEOUT_MS ?? 15_000))),
       ]);
       items.push(...(merklR as Found[]), ...(legacyR as Found[]));
@@ -3571,9 +3573,10 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push(
         "unwrapped WETH/WBNB/WPOL/WAVAX on 7 chains, Lido withdrawal queue (finalized unstakes), Gnosis Safes you own on 6 chains",
       );
-      items.push(...(stuck as Found[]), ...(sablierR as Found[]), ...(hedgeyR as Found[]), ...(teamR as Found[]), ...(uncxR as Found[]), ...(sfR as Found[]), ...(daoR as Found[]), ...(brR as Found[]));
+      items.push(...(stuck as Found[]), ...(sablierR as Found[]), ...(hedgeyR as Found[]), ...(teamR as Found[]), ...(uncxR as Found[]), ...(sfR as Found[]), ...(daoR as Found[]), ...(brR as Found[]), ...(perpR as Found[]));
       sources.push("vesting/locks: Hedgey plans (8 chains), Team Finance, UNCX v2 LP locker, Superfluid Super Tokens (7 chains)");
       sources.push("bridges: Arbitrum Outbox (unexecuted L2→L1), Optimism Portal (prove/finalize); Base not checked");
+      sources.push("perps: Hyperliquid perp+spot (note only), GMX v2 funding fees + open positions (Arbitrum)");
       sources.push(
         "known-contract registry: Curve/Convex, Synthetix, Sablier, Pendle, GMX, Rocket Pool rETH, OP/Base/Arb L2 withdrawals, Polygon PoS exits, Multichain/Celer (detect), merkle airdrops (UNI/ENS/1INCH/OP/ARB)",
       );
