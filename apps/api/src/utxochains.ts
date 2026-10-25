@@ -1337,170 +1337,138 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     txTime,
   );
   if (!bt && c.checksum === "groestl") throw new Error(c.txNote!);
-  // these coins are offered only as a blocktools-built, decode+verify-checked sweep; no unverified TS fallback
-  if (!bt && BT_ONLY_SWEEP.has(coin))
+  // every sweep is a blocktools-built, decode+verify-checked transaction; no unverified TS fallback (fail closed)
+  if (!bt)
     throw new Error(
       `blocktools is unavailable, so SwapChan will not offer an unverified ${c.sym} sweep; try again later`,
     );
-  if (bt) {
-    if (BigInt(bt.amount) <= 546n) throw new Error("balance does not cover the fee");
-    // decode + verify the built PSBT before offering it: inputs are ours, every output pays `to`, fee as built
-    // pos-ntime has no PSBT: blocktools checks its JSON envelope (unsigned tx + pos_prevouts carrying the amounts)
-    const checkInput = pos || zec ? bt.envelope : bt.psbt;
-    if (!checkInput) throw new Error(`built ${c.sym} sweep has nothing to verify; not offered`);
-    const v = btVerify(checkInput, coin, to, String(bt.fee));
-    const d = btDecode(checkInput, coin);
-    const sum = d?.find((l) => l.role === "summary");
-    const outs = d?.filter((l) => l.role === "output") ?? [];
-    // Fee checks. Our own cap always applies: row fee rate x legacy size estimate x 1.25 (ZEC: also ZIP-317 x 1.25).
-    // blocktools 7b70ba4/761584e own the fee verdict: high_fee is size-scaled (FeeWarn fee per started 1000 vB) and
-    // high_fee_rate uses the coin's measured row (DOGE/FTC/MONA now measured), so every fee warning is a hard failure;
-    // only "unsigned" is expected. (Until c05e88c SwapChan tolerated high_fee on every coin and high_fee_rate on
-    // default-row coins because the absolute limit did not scale with input count and DOGE had no row.)
-    const rateCap = Math.ceil(rate * (148 * take.length + 34 + 10) * 1.25);
-    const feeCap = BigInt(
-      zec ? Math.max(rateCap, Math.ceil(5000 * Math.max(2, take.length + 1) * 1.25)) : rateCap,
-    );
-    const okWarn = new Set(["unsigned"]);
-    const verifiedOk =
-      BigInt(bt.fee) <= feeCap &&
-      !!v &&
-      !v.warnings.includes("high_fee_pct") &&
-      (v.ok ||
-        (v.failures.every((x) => x === "has_warnings") && v.warnings.every((x) => okWarn.has(x))));
-    // independent second decode (bitcoinjs, not blocktools): same inputs in order, one output paying `to` the built amount
-    let tsOk = false;
-    try {
-      if (zec) {
-        const t = parseZecV5(bt.unsigned_tx);
-        const prev = bt.zec_prevouts ?? [];
-        tsOk =
-          !!t &&
-          !!branch &&
-          t.branchId === bt.branch_id &&
-          t.branchId === branch.chaintip &&
-          t.branchId === branch.nextblock &&
-          t.ins.length === take.length &&
-          t.ins.every(
-            (i, n) =>
-              i.txid === take[n]!.txid &&
-              i.vout === take[n]!.vout &&
-              i.script.length === 0 &&
-              i.sequence === 0xffffffff,
-          ) &&
-          prev.length === take.length &&
-          prev.every(
-            (x, n) =>
-              String(x.amount) === String(take[n]!.value) &&
-              x.script === script(fromD).toString("hex"),
-          ) &&
-          t.outs.length === 1 &&
-          t.outs[0]!.script.equals(script(toD)) &&
-          String(t.outs[0]!.value) === String(bt.amount) &&
-          total - BigInt(bt.amount) === BigInt(bt.fee);
-      } else if (pos) {
-        const t = parsePosTx(coin, bt.unsigned_tx);
-        const prev = bt.pos_prevouts ?? [];
-        tsOk =
-          !!t &&
-          t.time === txTime &&
-          bt.time === txTime &&
-          t.ins.length === take.length &&
-          t.ins.every(
-            (i, n) => i.txid === take[n]!.txid && i.vout === take[n]!.vout && i.script.length === 0,
-          ) &&
-          prev.length === take.length &&
-          prev.every(
-            (x, n) =>
-              String(x.amount) === String(take[n]!.value) &&
-              x.script === script(fromD).toString("hex"),
-          ) &&
-          t.outs.length === 1 &&
-          t.outs[0]!.script.equals(script(toD)) &&
-          String(t.outs[0]!.value) === String(bt.amount) &&
-          total - BigInt(bt.amount) === BigInt(bt.fee);
-      } else {
-        const t = Transaction.fromHex(bt.unsigned_tx);
-        tsOk =
-          t.ins.length === take.length &&
-          t.ins.every(
-            (i, n) =>
-              Buffer.from(i.hash).reverse().toString("hex") === take[n]!.txid &&
-              i.index === take[n]!.vout,
-          ) &&
-          t.outs.length === 1 &&
-          Buffer.from(t.outs[0]!.script).equals(script(toD)) &&
-          String(t.outs[0]!.value) === String(bt.amount) &&
-          total - BigInt(bt.amount) === BigInt(bt.fee);
-      }
-    } catch {
-      tsOk = false;
+  if (BigInt(bt.amount) <= 546n) throw new Error("balance does not cover the fee");
+  // decode + verify the built PSBT before offering it: inputs are ours, every output pays `to`, fee as built
+  // pos-ntime has no PSBT: blocktools checks its JSON envelope (unsigned tx + pos_prevouts carrying the amounts)
+  const checkInput = pos || zec ? bt.envelope : bt.psbt;
+  if (!checkInput) throw new Error(`built ${c.sym} sweep has nothing to verify; not offered`);
+  const v = btVerify(checkInput, coin, to, String(bt.fee));
+  const d = btDecode(checkInput, coin);
+  const sum = d?.find((l) => l.role === "summary");
+  const outs = d?.filter((l) => l.role === "output") ?? [];
+  // Fee checks. Our own cap always applies: row fee rate x legacy size estimate x 1.25 (ZEC: also ZIP-317 x 1.25).
+  // blocktools 7b70ba4/761584e own the fee verdict: high_fee is size-scaled (FeeWarn fee per started 1000 vB) and
+  // high_fee_rate uses the coin's measured row (DOGE/FTC/MONA now measured), so every fee warning is a hard failure;
+  // only "unsigned" is expected. (Until c05e88c SwapChan tolerated high_fee on every coin and high_fee_rate on
+  // default-row coins because the absolute limit did not scale with input count and DOGE had no row.)
+  const rateCap = Math.ceil(rate * (148 * take.length + 34 + 10) * 1.25);
+  const feeCap = BigInt(
+    zec ? Math.max(rateCap, Math.ceil(5000 * Math.max(2, take.length + 1) * 1.25)) : rateCap,
+  );
+  const okWarn = new Set(["unsigned"]);
+  const verifiedOk =
+    BigInt(bt.fee) <= feeCap &&
+    !!v &&
+    !v.warnings.includes("high_fee_pct") &&
+    (v.ok ||
+      (v.failures.every((x) => x === "has_warnings") && v.warnings.every((x) => okWarn.has(x))));
+  // independent second decode (bitcoinjs, not blocktools): same inputs in order, one output paying `to` the built amount
+  let tsOk = false;
+  try {
+    if (zec) {
+      const t = parseZecV5(bt.unsigned_tx);
+      const prev = bt.zec_prevouts ?? [];
+      tsOk =
+        !!t &&
+        !!branch &&
+        t.branchId === bt.branch_id &&
+        t.branchId === branch.chaintip &&
+        t.branchId === branch.nextblock &&
+        t.ins.length === take.length &&
+        t.ins.every(
+          (i, n) =>
+            i.txid === take[n]!.txid &&
+            i.vout === take[n]!.vout &&
+            i.script.length === 0 &&
+            i.sequence === 0xffffffff,
+        ) &&
+        prev.length === take.length &&
+        prev.every(
+          (x, n) =>
+            String(x.amount) === String(take[n]!.value) &&
+            x.script === script(fromD).toString("hex"),
+        ) &&
+        t.outs.length === 1 &&
+        t.outs[0]!.script.equals(script(toD)) &&
+        String(t.outs[0]!.value) === String(bt.amount) &&
+        total - BigInt(bt.amount) === BigInt(bt.fee);
+    } else if (pos) {
+      const t = parsePosTx(coin, bt.unsigned_tx);
+      const prev = bt.pos_prevouts ?? [];
+      tsOk =
+        !!t &&
+        t.time === txTime &&
+        bt.time === txTime &&
+        t.ins.length === take.length &&
+        t.ins.every(
+          (i, n) => i.txid === take[n]!.txid && i.vout === take[n]!.vout && i.script.length === 0,
+        ) &&
+        prev.length === take.length &&
+        prev.every(
+          (x, n) =>
+            String(x.amount) === String(take[n]!.value) &&
+            x.script === script(fromD).toString("hex"),
+        ) &&
+        t.outs.length === 1 &&
+        t.outs[0]!.script.equals(script(toD)) &&
+        String(t.outs[0]!.value) === String(bt.amount) &&
+        total - BigInt(bt.amount) === BigInt(bt.fee);
+    } else {
+      const t = Transaction.fromHex(bt.unsigned_tx);
+      tsOk =
+        t.ins.length === take.length &&
+        t.ins.every(
+          (i, n) =>
+            Buffer.from(i.hash).reverse().toString("hex") === take[n]!.txid &&
+            i.index === take[n]!.vout,
+        ) &&
+        t.outs.length === 1 &&
+        Buffer.from(t.outs[0]!.script).equals(script(toD)) &&
+        String(t.outs[0]!.value) === String(bt.amount) &&
+        total - BigInt(bt.amount) === BigInt(bt.fee);
     }
-    if (
-      !tsOk ||
-      !verifiedOk ||
-      !sum ||
-      sum.inputs !== take.length ||
-      String(sum.fee) !== String(bt.fee) ||
-      outs.length !== 1 ||
-      outs[0]!.address !== to ||
-      String(outs[0]!.amount) !== String(bt.amount)
-    )
-      throw new Error(
-        `built ${c.sym} sweep failed verification (${[...(v?.failures ?? []), ...(v?.warnings ?? [])].join(", ") || "decode mismatch"}); not offered`,
-      );
-    return {
-      coin,
-      from,
-      to,
-      unsignedTx: bt.unsigned_tx,
-      psbt: bt.psbt,
-      txFormat: bt.tx_format,
-      ...(pos ? { txTime: txTime!, posPrevouts: bt.pos_prevouts } : {}),
-      ...(zec
-        ? {
-            zcash: {
-              branchId: bt.branch_id,
-              expiryHeight: bt.expiry_height,
-              prevouts: bt.zec_prevouts,
-            },
-          }
-        : {}),
-      builtBy: `blocktools ${BLOCKTOOLS_VERSION}`,
-      verified: { by: "blocktools decodeTx+verifyTx", txid: sum.txid, warnings: v!.warnings },
-      fee: String(bt.fee),
-      amount: String(bt.amount),
-      inputs: take.map((u) => ({
-        txid: u.txid,
-        vout: u.vout,
-        value: u.value,
-        scriptPubKey: script(fromD).toString("hex"),
-      })),
-      signing: SIGN_GUIDE(coin),
-      note:
-        [
-          utxos.length > take.length
-            ? `largest ${take.length} of ${utxos.length} UTXOs${economic.length < utxos.length ? ` (${utxos.length - economic.length} too small to spend economically skipped)` : ""}; run again after this confirms`
-            : "",
-          notOwn ? `${notOwn} P2PK/other-script UTXOs skipped (move them in ${c.wallet})` : "",
-        ]
-          .filter(Boolean)
-          .join("; ") || undefined,
-    };
+  } catch {
+    tsOk = false;
   }
-  const fee = BigInt(Math.ceil(rate * (148 * take.length + 34 + 10)));
-  if (total <= fee + 546n) throw new Error("balance does not cover the fee");
-  const tx = new Transaction();
-  tx.version = coin === "btg" || coin === "bch" ? 2 : 1;
-  for (const u of take) tx.addInput(Buffer.from(u.txid, "hex").reverse(), u.vout, 0xffffffff);
-  tx.addOutput(script(toD), total - fee);
+  if (
+    !tsOk ||
+    !verifiedOk ||
+    !sum ||
+    sum.inputs !== take.length ||
+    String(sum.fee) !== String(bt.fee) ||
+    outs.length !== 1 ||
+    outs[0]!.address !== to ||
+    String(outs[0]!.amount) !== String(bt.amount)
+  )
+    throw new Error(
+      `built ${c.sym} sweep failed verification (${[...(v?.failures ?? []), ...(v?.warnings ?? [])].join(", ") || "decode mismatch"}); not offered`,
+    );
   return {
     coin,
     from,
     to,
-    unsignedTx: tx.toHex(),
-    fee: fee.toString(),
-    amount: (total - fee).toString(),
+    unsignedTx: bt.unsigned_tx,
+    psbt: bt.psbt,
+    txFormat: bt.tx_format,
+    ...(pos ? { txTime: txTime!, posPrevouts: bt.pos_prevouts } : {}),
+    ...(zec
+      ? {
+          zcash: {
+            branchId: bt.branch_id,
+            expiryHeight: bt.expiry_height,
+            prevouts: bt.zec_prevouts,
+          },
+        }
+      : {}),
+    builtBy: `blocktools ${BLOCKTOOLS_VERSION}`,
+    verified: { by: "blocktools decodeTx+verifyTx", txid: sum.txid, warnings: v!.warnings },
+    fee: String(bt.fee),
+    amount: String(bt.amount),
     inputs: take.map((u) => ({
       txid: u.txid,
       vout: u.vout,
@@ -1510,7 +1478,9 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     signing: SIGN_GUIDE(coin),
     note:
       [
-        utxos.length > take.length ? `largest ${take.length} of ${utxos.length} UTXOs; run again after this confirms` : "",
+        utxos.length > take.length
+          ? `largest ${take.length} of ${utxos.length} UTXOs${economic.length < utxos.length ? ` (${utxos.length - economic.length} too small to spend economically skipped)` : ""}; run again after this confirms`
+          : "",
         notOwn ? `${notOwn} P2PK/other-script UTXOs skipped (move them in ${c.wallet})` : "",
       ]
         .filter(Boolean)
