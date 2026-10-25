@@ -4426,7 +4426,10 @@ export async function findMoney(
                 APPROVAL_CHAINS.map((id) =>
                   // per-chain deadline: one slow explorer degrades only its own chain, never the whole stage
                   Promise.race([
-                    approvals(f, env, address, id),
+                    approvals(f, env, address, id).then((r) => {
+                      if (r.coverage.includes("known spenders only")) notChecked.push(`approvals on ${chainName(id)}: checked known spenders only (unusual spenders not covered)`);
+                      return r;
+                    }),
                     new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout")), Number(env.FIND_APPROVAL_CHAIN_MS ?? 13_000))),
                   ]).catch((e) => {
                     notChecked.push(`approvals not checked on ${chainName(id)}${(e as Error).message === "timeout" ? " (explorer too slow)" : ""}`);

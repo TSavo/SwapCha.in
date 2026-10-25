@@ -604,6 +604,7 @@ export async function walletBalances(
   };
 }
 
+import { knownSpenderAllowances, spendersFor, KNOWN_ONLY_NOTE } from "./knownspenders.js";
 // ---------- 2. approvals ----------
 const APPROVAL_TOPIC = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -679,7 +680,8 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
       f,
       `https://api.gopluslabs.io/api/v2/token_approval_security/${chainId}?addresses=${o}`,
       undefined,
-      20_000,
+      // no log history on this chain: leave time for the known-spender scan inside find_money's per-chain deadline
+      ROUTESCAN.has(chainId) || APPROVAL_EXPLORER[chainId] || FULL_RANGE_LOG_RPC[chainId] || ETHERSCAN_FREE.has(chainId) ? 20_000 : 6_000,
     ),
   ).catch(() => null);
   if (gp?.code === 1) {
@@ -777,6 +779,23 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
     }
     break;
   }
+  // No full Approval-log history here: read allowance() for held tokens against known spenders.
+  let knownOnly = false;
+  if (!sources.some((x) => x.includes("logs") || x.includes("log scan"))) {
+    const bal = (await walletBalances(f, env, o, [chainId]).catch(() => null)) as { holdings?: { chainId: number; address: string }[] } | null;
+    const toks = (bal?.holdings ?? []).filter((h) => h.chainId === chainId && isAddress(h.address) && !isNativeAddr(chainId, h.address)).map((h) => h.address);
+    if (bal) {
+      const found = await knownSpenderAllowances(evmClient(chainId, env), chainId, o, toks).catch(() => null);
+      if (found) {
+        knownOnly = true;
+        sources.push(`known-spender allowance scan (${toks.length} held tokens × ${Object.keys(spendersFor(chainId)).length} spenders)`);
+        for (const x of found) {
+          const k = `${x.token.toLowerCase()}:${x.spender.toLowerCase()}`;
+          if (!pairs.has(k)) pairs.set(k, { token: x.token, spender: x.spender, info: { contract_name: x.name, is_contract: 1 } });
+        }
+      }
+    }
+  }
   if (!sources.length)
     throw new Error(
       `approvals not checked on ${chainName(chainId)}: no free approval source for this chain answered`,
@@ -862,7 +881,9 @@ export async function approvals(f: F, env: NodeJS.ProcessEnv, owner: string, cha
     unlimited: out.filter((x) => x.allowance === "unlimited").length,
     approvals: out.slice(0, 100),
     sources: [...sources, "live allowance() via public RPC multicall"],
-    coverage: ROUTESCAN.has(chainId)
+    coverage: knownOnly
+      ? `${sources.some((x) => x.startsWith("GoPlus")) ? "GoPlus index plus " : ""}${KNOWN_ONLY_NOTE}. No result here does NOT mean no approvals.`
+      : ROUTESCAN.has(chainId)
       ? "Full Approval-log history (Routescan) plus GoPlus, each re-checked on-chain."
       : "GoPlus approval index (can miss very old or obscure approvals), each re-checked on-chain.",
     note: "Revoking = approve(spender, 0). revokeTx is unsigned: the owner's wallet signs and sends it (costs a little gas).",
