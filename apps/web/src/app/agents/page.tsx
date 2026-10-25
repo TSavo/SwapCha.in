@@ -146,10 +146,10 @@ export default function Agents() {
         The card auto-quotes on load. Resolve and shorten with <code>GET /links/swap?…</code> or{" "}
         <code>POST /links</code> (<code>{"{url}"}</code>, params, or{" "}
         <code>{"{items: [...], ref}"}</code> for a <code>/batch</code> link). Short links (
-        <code>swapchan.com/s/&lt;id&gt;</code>) get an unguessable random id, are never reused,
-        only point at swapchan.com, keep <code>ref</code> and count clicks. Plain swap links keep
-        working; treat recovery links that carry wallet data as private and don&apos;t share them
-        (old sequential links with wallet data no longer resolve).
+        <code>swapchan.com/s/&lt;id&gt;</code>) for swaps are permanent (they don&apos;t expire), get
+        an unguessable random id, are never reused, only point at swapchan.com, keep{" "}
+        <code>ref</code> and count clicks. Recovery links that carry wallet data are private: don&apos;t
+        share them (old sequential ones with wallet data no longer resolve).
       </p>
       <pre className="overflow-x-auto rounded-lg bg-black/50 p-3 text-xs">{`curl "${API_URL}/links/swap?fromChain=base&fromToken=ETH&toToken=USDC&amount=0.1&ref=<partnerId>"
 curl "${API_URL}/onchain/money?address=vitalik.eth"`}</pre>

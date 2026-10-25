@@ -25,7 +25,7 @@ export const TOOLS = [
   ],
   [
     "build_swap_link",
-    "Prefilled swapchan.com link (and unguessable swapchan.com/s/… short link) from chain names, symbols, amount or max; batch links too.",
+    "Prefilled swapchan.com link (and permanent, unguessable swapchan.com/s/… short link) from chain names, symbols, amount or max; batch links too.",
   ],
   ["simulate_swap", "Dry-run a quote or raw tx: balance changes, approvals, revert reason."],
   ["wallet_history", "Recent swaps for an EVM or Solana wallet."],
