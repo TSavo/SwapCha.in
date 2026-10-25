@@ -16,6 +16,8 @@ Your agent asks in plain English → SwapChan fans out to every router, ranks by
 
 Paste wallet addresses into your agent → `find_money` scans every chain and contract the wallet touched, ranks what's recoverable, and builds **unsigned** recovery txs (unwrap, withdraw, redeem) plus one swap-to-USDC link. Real numbers from a live run on vitalik.eth, plus an archive replay of a real P3D recovery.
 
+Coverage goes beyond EVM: Solana, Tron, Bitcoin, Bitcoin forks and old coins (BCH, BTG, LTC, DOGE and FTC, DASH, DGB, RVN, VTC, VIA, QTUM, MONA, BSV, GRS, PPC, NVC, CLAM, RDD, BLK, Zcash transparent (t1), TRC, AUR, XPM and QRK), each with an unsigned sweep you sign offline in the coin's own wallet (old-coin sweeps are offered only after a Rust/WASM transaction library has built and verified them and an independent second decode agrees), and balances on XRP, XLM, ALGO, ATOM (Cosmos Hub), DOT, TON, ADA and Signum. Exits from liquidity and Pendle positions carry live-quoted minimums and a 20-minute deadline. Short links use unguessable ids.
+
 ![SwapChan find_money: paste addresses, scan chains, "I found $4,538 for you", ranked recovery steps, swap all to USDC](https://raw.githubusercontent.com/TSavo/SwapCha.in/main/docs/find-money.gif)
 
 ## Use it as an MCP server

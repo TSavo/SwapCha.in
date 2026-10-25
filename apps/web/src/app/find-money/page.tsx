@@ -8,7 +8,7 @@ import { SwapTabs } from "@/components/SwapTabs";
 export const metadata: Metadata = {
   title: "Find forgotten crypto money in your wallets (free, read-only) | SwapChan",
   description:
-    "Paste one or hundreds of wallet addresses on Ethereum, Base, Arbitrum, Solana, Tron and Bitcoin. Find unclaimed rewards, old dividends (PoWH3D, Fomo3D), vault shares, dust and risky approvals, then recover and swap to USDC.",
+    "Paste one or hundreds of wallet addresses on Ethereum and 20 more EVM chains, Solana, Tron, Bitcoin, 25+ old coins (DOGE, LTC, BCH, DASH, ZEC and more) and XRP, XLM, ADA, DOT, TON. Find unclaimed rewards, old dividends (PoWH3D, Fomo3D), vault shares, dust and risky approvals, then recover and swap to USDC.",
   alternates: { canonical: "/find-money" },
 };
 
@@ -20,6 +20,12 @@ export default function FindMoneyHub() {
         One scan checks wallet balances, unclaimed rewards, legacy contracts, vaults, LPs, lending,
         Lido withdrawals, Safes, dust and risky approvals across every chain SwapChan supports. Each
         find comes with an unsigned recovery transaction and a swap to USDC.
+      </p>
+      <p className="mb-4 text-sm text-violet-300">
+        Also checks Bitcoin forks and old coins (BCH, BTG, LTC, DOGE, FTC, DASH, DGB, RVN, VTC, VIA,
+        QTUM, MONA, BSV, GRS, PPC, NVC, CLAM, RDD, BLK, Zcash t1, TRC, AUR, XPM, QRK) with an unsigned
+        sweep you sign offline in the coin&apos;s own wallet, and balances on XRP, XLM, ALGO, ATOM,
+        DOT, TON, ADA and Signum. Free, read-only: SwapChan never signs and never holds keys.
       </p>
       <Suspense>
         <FindMoneyTool />

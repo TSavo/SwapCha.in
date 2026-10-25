@@ -6,7 +6,7 @@ import { SpeechBubble } from "@/components/Character";
 export const metadata: Metadata = {
   title: "Where crypto money gets stuck, and how to get it back (free) | SwapChan",
   description:
-    "A field guide to forgotten crypto: unclaimed dividends (PoWH3D, Fomo3D), vault shares, LP fees, Lido withdrawals, wrapped ETH, Safes, Solana stake and rent, airdrops. Free checker, ready-to-sign recovery, then swap to USDC.",
+    "A field guide to forgotten crypto: unclaimed dividends (PoWH3D, Fomo3D), vault shares, LP fees, Lido withdrawals, wrapped ETH, Safes, Solana stake and rent, airdrops, old altcoins (DOGE, LTC, DASH, ZEC and 20+ more) and XRP, XLM, ADA, DOT, TON balances. Free checker, ready-to-sign recovery, then swap to USDC.",
   alternates: { canonical: "/find-money/guide" },
 };
 
@@ -157,6 +157,41 @@ const ROWS: Row[] = [
     "xpub / bc1 / legacy addresses",
     "blockchain.info multiaddr + mempool.space UTXO + DefiLlama BTC USD",
     "Covered",
+  ],
+  [
+    "Bitcoin forks & same-key coins",
+    "BCH, BTG, LTC, DOGE, FTC, ETC, ETHW",
+    "Coins you held at a fork, or the same key on a sister chain",
+    "Public Blockbooks / RPC balances + unsigned sweep to your address with replay guidance",
+    "Covered",
+  ],
+  [
+    "Old Bitcoin-family coins",
+    "DASH, DGB, RVN, VTC, VIA, QTUM, MONA, BSV, GRS, PPC, NVC, CLAM, RDD, BLK, ZEC (t1), TRC, AUR, XPM, QRK",
+    "Forgotten 2013-2018 altcoin balances (NMC, POT, MEC, ANC: balance only)",
+    "Explorer balances; unsigned sweep offered only after a Rust/WASM transaction library builds and verifies it and an independent decode agrees; sign offline in the coin's wallet",
+    "New",
+  ],
+  [
+    "Non-EVM balances",
+    "XRP, XLM, ALGO, ATOM, DOT, TON, ADA, Signum",
+    "Spendable vs reserved balance (XRP/XLM reserves, ALGO minimum), Cosmos staked + rewards + unbonding",
+    "Keyless public nodes and indexers",
+    "New",
+  ],
+  [
+    "Extra EVM chains",
+    "zkSync, Gnosis, Mantle, Celo, Blast, Berachain, Sonic, Unichain, Fantom, Monad, Katana, HyperEVM",
+    "Native balance, listed tokens, approvals to known spenders",
+    "Public RPC + LI.FI token lists; unsigned EVM sweep",
+    "New",
+  ],
+  [
+    "Monero",
+    "XMR",
+    "Recognised addresses",
+    "View-key scanning is not supported",
+    "Not yet",
   ],
   [
     "Unknown contract archaeology",

@@ -8,6 +8,13 @@
 - REST mirrors: https://api.swapchan.com/onchain/{balances,approvals,revoke,tx,gas,token,name,yields,watches}
 - Setup guide: https://swapchan.com/agents
 
+## find_money (free wallet scan)
+- MCP tool find_money / GET https://api.swapchan.com/onchain/money?address= : ranked forgotten money with unsigned recovery transactions. SwapChan never signs, never holds keys, and cannot move funds.
+- Coverage: Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea and Scroll; 12 more EVM chains (zkSync, Gnosis, Mantle, Celo, Blast, Berachain, Sonic, Unichain, Fantom, Monad, Katana and HyperEVM: native, listed tokens, known-spender approvals); ETH forks ETC and ETHW; Solana; Tron; Bitcoin; Bitcoin forks and same-key coins BCH, BTG, LTC, DOGE and FTC; old coins DASH, DGB, RVN, VTC, VIA, QTUM, MONA, BSV, GRS, PPC, NVC, CLAM, RDD, BLK, Zcash transparent (t1), TRC, AUR, XPM and QRK, plus balances for NMC, POT, MEC and ANC; and balances on XRP, XLM, ALGO, ATOM (Cosmos Hub), DOT, TON, ADA and Signum. For Bitcoin-family coins it builds an unsigned sweep to an address you choose, which you sign offline in the coin's own wallet; old-coin sweeps are offered only after a Rust transaction library compiled to WebAssembly has built and verified them and an independent second decode agrees. Monero addresses are recognised but not checked.
+- Unsigned sweeps: GET https://api.swapchan.com/onchain/utxo-sweep?coin=&from=&to= , page https://swapchan.com/recover?sweep=utxo&coin=&from=
+- Liquidity/Pendle exits carry live-quoted minimum outputs (1% slippage) and a 20-minute deadline; submitting through a private RPC is recommended.
+- Guide: https://swapchan.com/find-money/guide
+
 ## Earn with SwapChan (agent builders, bots, sites)
 - 5 bp (half of SwapChan's 0.1% fee) on every swap routed with your partner id, when the provider verifies the fee.
 - Register: POST https://api.swapchan.com/partners with JSON {"name","siteUrl","evmAddress","solanaAddress"?} -> {id, token, dashboardUrl}. Use the operator's own payout address; never invent one. Self-referrals don't count.
