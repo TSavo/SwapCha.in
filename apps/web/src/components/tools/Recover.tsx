@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { decodeFunctionData, formatEther, parseAbi } from "viem";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { SpeechBubble } from "@/components/Character";
@@ -54,7 +54,19 @@ export function Recover(p: {
   try {
     call = decodeFunctionData({ abi: ABI, data: p.data });
   } catch {}
-  const safe = !!call && p.value === "0";
+  // calls outside the local ABI (Pendle exit, v4, Safe sweep, ENS deed...) are checked by the API's recovery
+  // verifier against the connected wallet: only calls whose every output pays you are signable.
+  const [remote, setRemote] = useState<{ verified: boolean; call?: string; reason?: string }>();
+  const known = !!call;
+  useEffect(() => {
+    if (known || !address) return;
+    const q = new URLSearchParams({ to: p.to, data: p.data, value: p.value || "0", owner: address });
+    fetch(`https://api.swapchan.com/onchain/recover-verify?${q}`)
+      .then((r) => r.json())
+      .then(setRemote)
+      .catch(() => setRemote({ verified: false, reason: "verifier unreachable" }));
+  }, [known, address, p.to, p.data, p.value]);
+  const safe = (known || !!remote?.verified) && p.value === "0";
   return (
     <div className="flex w-full max-w-2xl flex-col gap-4" data-testid="recover">
       <div className="flex items-end gap-3">
@@ -78,7 +90,11 @@ export function Recover(p: {
           <dd data-testid="call">
             {call
               ? `${call.functionName}(${(call.args ?? []).map(show).join(", ")})`
-              : "unrecognised calldata"}
+              : remote?.verified
+                ? `${remote.call} (verified: pays your wallet)`
+                : address
+                  ? `not verified${remote?.reason ? `: ${remote.reason}` : ""}`
+                  : "connect your wallet to verify this call"}
           </dd>
           <dt className="text-violet-400">value</dt>
           <dd>{formatEther(BigInt(p.value || "0"))} (sends nothing)</dd>

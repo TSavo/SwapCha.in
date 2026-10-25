@@ -75,6 +75,7 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "finalizeWithdrawal(uint256)", owners: [] },
   { sig: "claim(uint256)", owners: [] },
   { sig: "claimCollateral()", owners: [] },
+  { sig: "releaseDeed(bytes32)", owners: [] },
   { sig: "claim(uint256,address,uint256,bytes32[])", owners: [1] },
   { sig: "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)", owners: [5] },
   { sig: "exitPostExpToToken(address,address,uint256,uint256,(address,uint256,address,address,(uint8,address,bytes,bool)))", owners: [0] },
