@@ -418,8 +418,8 @@ export const COINS = {
       { type: "iquidus", urls: ["https://mainnet.blackcoin.nl"] },
       { type: "pbcx", urls: ["https://projectblackcoin.org"] },
     ],
-    sweep: false,
-    txNote: NO_RAWTX("Blackcoin More"),
+    // live unsigned build verified 2026-10-25 (prevtx.blk.live.test.ts); nothing signed or broadcast
+    sweep: true,
   }),
   wdc: row({
     name: "Worldcoin (WDC)",

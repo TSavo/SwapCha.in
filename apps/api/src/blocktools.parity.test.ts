@@ -118,6 +118,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
     expect(sweepers.sort()).toEqual(
       [
         "bch",
+        "blk",
         "bsv",
         "btg",
         "dash",

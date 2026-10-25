@@ -240,7 +240,7 @@ describe("old coins: cryptoid UTXO lists (keyed)", () => {
 });
 
 describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
-  const cidCoins = new Set(["nvc", "clam", "blk"]);
+  const cidCoins = new Set(["nvc", "clam"]); // cryptoid-only, no raw-tx source: refused
   for (const k of ["ppc", "nvc", "clam", "rdd", "blk"] as Coin[]) {
     it(`${k}: blocktools-built with prev_tx, verified by blocktools and the TS parser (cryptoid coins refused)`, async () => {
       resetCryptoid();
@@ -256,11 +256,12 @@ describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
         );
         const f = withPrev(prevTx, () =>
           json(
-            cidCoins.has(k)
+            cidCoins.has(k) || k === "blk"
               ? {
                   unspent_outputs: [
                     {
-                      tx_hash: "ab".repeat(32),
+                      // BLK: cryptoid UTXOs, prev txs from the Blackcoin explorers
+                      tx_hash: k === "blk" ? utxos[0]!.txid : "ab".repeat(32),
                       tx_ouput_n: 1,
                       value: 1000000000,
                       confirmations: 99,

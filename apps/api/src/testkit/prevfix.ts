@@ -64,7 +64,8 @@ export function withPrev(prev: Map<string, string>, inner: (u: string) => unknow
       /\/api\/v2\/tx\/([0-9a-f]{64})/.exec(u) ??
       /\/rawtx\/([0-9a-f]{64})/.exec(u) ??
       /\/raw-tx\/([0-9a-f]{64})/.exec(u) ??
-      /\/tx\/([0-9a-f]{64})\/hex/.exec(u);
+      /\/tx\/([0-9a-f]{64})\/hex/.exec(u) ??
+      /\/getrawtransaction\?txid=([0-9a-f]{64})/.exec(u);
     if (m) {
       const h = prev.get(m[1]!);
       if (!h) return new Response("not found", { status: 404 });

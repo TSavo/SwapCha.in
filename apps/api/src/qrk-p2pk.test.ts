@@ -42,7 +42,7 @@ describe("QRK sweeps: off (cryptoid has no raw-transaction endpoint for prev_tx)
 });
 
 describe("cryptoid-only coins: balance shown, no sweep offered", () => {
-  for (const k of ["qrk", "xpm", "aur", "nvc", "clam", "blk"] as const) {
+  for (const k of ["qrk", "xpm", "aur", "nvc", "clam"] as const) {
     it(`${k}: scan row has a balance, no sweep, and the plain note`, async () => {
       expect(COINS[k].sweep).toBe(false);
       resetCryptoid();
