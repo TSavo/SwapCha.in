@@ -31,6 +31,15 @@ services:
       SWAPCHAN_PARTNER_SHARE_BPS: ${SWAPCHAN_PARTNER_SHARE_BPS:-5000} # partner share of our fee (5000 = 50%)
     volumes: ["api-data:/data"]
     ports: ["127.0.0.1:8787:8787"]
+    # /healthz is 503 when scans time out en masse, heap nears the limit, or the event loop stalls.
+    # Compose does not restart on "unhealthy"; the in-process watchdog exits after ~2 min unhealthy and
+    # restart: unless-stopped brings up a clean process. This healthcheck makes the state visible in `docker ps`.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
   web:
     build:
       context: ..

@@ -59,6 +59,8 @@ export function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Pro
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < ttlMs) return hit.v as Promise<T>;
   const v = fn();
+  // sweep expired entries so one-off keys (every scanned address) don't accumulate forever
+  if (cache.size > 2000) for (const [k, e] of cache) if (Date.now() - e.at > 6 * 3600_000 || (k.startsWith("money:") || k.startsWith("air:")) && Date.now() - e.at > 600_000) cache.delete(k);
   cache.set(key, { at: Date.now(), v });
   v.catch(() => cache.delete(key));
   return v;

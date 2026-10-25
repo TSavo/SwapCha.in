@@ -83,6 +83,9 @@ import {
   wrappedNative,
 } from "./recover.js";
 import { cached, tokenRisk } from "./scanner.js";
+import { BusyError, gate, recordScan, withScanScope } from "./scanctx.js";
+// at most N full scans at once; the rest queue (and get a 503 after the wait) instead of piling up abandoned work
+const scanGate = gate(Number(process.env.FIND_MAX_CONCURRENT ?? 4), Number(process.env.FIND_QUEUE_WAIT_MS ?? 30_000));
 import { btcXpubScan, logPromoteCandidate, stuckMoneyRegistry } from "./stuck.js";
 import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 
@@ -4572,7 +4575,9 @@ export async function findMoney(
   input: string,
 ) {
   const { address, name } = await resolveAddr(f, env, input);
-  return cached(`money:${address}`, 180_000, async () => {
+  const STAGE_HARD_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000) + 6_000;
+  return cached(`money:${address}`, 180_000, () => scanGate.run(() => withScanScope(STAGE_HARD_MS, async () => {
+    const t0scan = Date.now();
     const vm = vmOfAddr(address);
     const isTron = /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address);
     type Item = {
@@ -4957,6 +4962,14 @@ export async function findMoney(
         })()
       : null;
     console.log(JSON.stringify({ evt: "find_money_total", ms: fmMs }));
+    {
+      const srcMs = ((air as { timingsMs?: Record<string, number> } | null)?.timingsMs ?? {}) as Record<string, number>;
+      recordScan({
+        ms: Date.now() - t0scan,
+        checks: Object.keys(fmMs).length + Object.keys(srcMs).length,
+        timeouts: notChecked.filter((n) => n.includes("timed out")).length,
+      });
+    }
     const total = r2(
       items.filter((i) => i.estimateKind !== "protected").reduce((s, i) => s + (i.estUsd ?? 0), 0),
     );
@@ -5016,7 +5029,7 @@ export async function findMoney(
         ? cta(`#1: ${items[0].title}`, items[0].swapUrl)
         : cta("Nothing found to recover. Swap at the best price on SwapChan", SITE),
     };
-  });
+  })));
 }
 
 // ---------- routes ----------
@@ -5038,13 +5051,14 @@ export function intelRoutes(
     }
   }
   const run = async (
-    c: { json: (b: unknown, s?: 200 | 400 | 404 | 502) => Response },
+    c: { json: (b: unknown, s?: 200 | 400 | 404 | 502 | 503) => Response },
     fnc: () => Promise<unknown> | unknown,
   ) => {
     try {
       const r = await fnc();
       return r === null ? c.json({ error: "not found" }, 404) : c.json(r);
     } catch (e) {
+      if (e instanceof BusyError) return c.json({ error: e.message }, 503);
       const bad = e instanceof BadRequest || e instanceof z.ZodError;
       return c.json({ error: (e as Error).message.slice(0, 300) }, bad ? 400 : 502);
     }
@@ -5189,7 +5203,7 @@ export function intelRoutes(
     ),
   );
   app.get("/airdrops", (c) =>
-    run(c, () => airdropCheck(f, env, need(c.req.query("address"), "address"))),
+    run(c, () => scanGate.run(() => withScanScope(20_000, () => airdropCheck(f, env, need(c.req.query("address"), "address"))))),
   );
   app.get("/market", (c) => run(c, () => marketContext(f)));
   app.post("/rebalance", (c) =>
@@ -5329,13 +5343,14 @@ export function linkRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync) {
     setInterval(backup, 6 * 3_600_000).unref();
   }
   const run = async (
-    c: { json: (b: unknown, s?: 200 | 400 | 404 | 502) => Response },
+    c: { json: (b: unknown, s?: 200 | 400 | 404 | 502 | 503) => Response },
     fnc: () => Promise<unknown> | unknown,
   ) => {
     try {
       const r = await fnc();
       return r === null ? c.json({ error: "not found" }, 404) : c.json(r);
     } catch (e) {
+      if (e instanceof BusyError) return c.json({ error: e.message }, 503);
       const bad = e instanceof BadRequest || e instanceof z.ZodError;
       return c.json({ error: (e as Error).message.slice(0, 300) }, bad ? 400 : 502);
     }

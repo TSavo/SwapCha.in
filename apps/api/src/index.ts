@@ -1,3 +1,4 @@
+import { health } from "./scanctx.js";
 import {
   Address,
   API_VERSION,
@@ -134,6 +135,11 @@ export function createApp(
       : c.json({ error: err.message }, 500),
   );
 
+  // liveness for the docker healthcheck / watchdog: 503 when scans time out en masse, heap is near the limit or the loop is stalled
+  app.get("/healthz", (c) => {
+    const h = health();
+    return c.json(h, h.ok ? 200 : 503);
+  });
   app.get("/health", (c) =>
     c.json({
       ok: true,
