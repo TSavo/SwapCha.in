@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { btDetect, exactJson } from "./blocktools.js";
 import { recognisedOnly } from "./ledgers.js";
+import { prevUtxos, withPrev } from "./testkit/prevfix.js";
 import {
   COINS,
   type Coin,
@@ -89,12 +90,14 @@ describe("XPM / AUR / TRC sweeps on measured rates", () => {
       const prev = process.env.CRYPTOID_API_KEY;
       process.env.CRYPTOID_API_KEY = "k";
       try {
-        const f = (async () =>
+        const a = convert(BTC, k)!;
+        const { utxos, prev: prevTx } = prevUtxos(k, a, ["5000000000"], 1);
+        const f = withPrev(prevTx, () =>
           json(
             k === "trc"
               ? [
                   {
-                    txid: "ab".repeat(32),
+                    txid: utxos[0]!.txid,
                     vout: 1,
                     satoshis: 5000000000,
                     amount: 50,
@@ -111,8 +114,13 @@ describe("XPM / AUR / TRC sweeps on measured rates", () => {
                     },
                   ],
                 },
-          )) as unknown as typeof fetch;
-        const a = convert(BTC, k)!;
+          ),
+        );
+        // AUR's UTXO source is cryptoid, which has no raw-transaction endpoint: refused (prev_tx proves amounts)
+        if (k === "aur") {
+          await expect(utxoSweep(f, k, a, a)).rejects.toThrow(/no raw-transaction endpoint/);
+          return;
+        }
         const s = await utxoSweep(f, k, a, a);
         expect(BigInt(s.amount) + BigInt(s.fee)).toBe(
           k === "xpm" || k === "aur" ? 5000000000n : 5000000000n,
@@ -223,8 +231,8 @@ describe("BCH CashAddr destination", () => {
     expect(cashToLegacy("bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6b")).toBeNull();
   });
   it("sweep accepts a cashaddr to and from", async () => {
-    const f = (async () =>
-      json([{ txid: "ab".repeat(32), vout: 0, value: "100000000" }])) as unknown as typeof fetch;
+    const { utxos, prev } = prevUtxos("bch", "1BpEi6DfDAUFd7GtittLSdBeYJvcoaVggu", ["100000000"]);
+    const f = withPrev(prev, () => json(utxos));
     const s = await utxoSweep(
       f,
       "bch",

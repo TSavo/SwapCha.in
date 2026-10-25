@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { base58check, bech32 } from "@scure/base";
 import { Transaction } from "bitcoinjs-lib";
 import {
+  blocktools,
   btAddressToScript,
   btCashToLegacy,
   btConvertFrom,
@@ -13,6 +14,7 @@ import {
   btVersion,
   btXpubAddresses,
 } from "./blocktools.js";
+import { fetchPrevTxs } from "./prevtx.js";
 import type { NewFound } from "./recover.js";
 
 type F = typeof fetch;
@@ -533,8 +535,10 @@ export function decodeFor(addr: string, coin: Coin): Decoded | null {
   const s = btAddressToScript(coin, addr);
   if (!s) return null;
   const b = Buffer.from(s, "hex");
-  if (b.length === 25 && s.startsWith("76a914") && s.endsWith("88ac")) return { kind: "p2pkh", hash: b.subarray(3, 23) };
-  if (b.length === 23 && s.startsWith("a914") && s.endsWith("87")) return { kind: "p2sh", hash: b.subarray(2, 22) };
+  if (b.length === 25 && s.startsWith("76a914") && s.endsWith("88ac"))
+    return { kind: "p2pkh", hash: b.subarray(3, 23) };
+  if (b.length === 23 && s.startsWith("a914") && s.endsWith("87"))
+    return { kind: "p2sh", hash: b.subarray(2, 22) };
   if (b.length === 22 && s.startsWith("0014")) return { kind: "p2wpkh", hash: b.subarray(2) };
   if (b.length === 34 && s.startsWith("0020")) return { kind: "p2wsh", hash: b.subarray(2) };
   return null;
@@ -1286,10 +1290,46 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     throw new Error(
       "every UTXO on this address is too small to spend economically (its fee would be over 5% of its value)",
     );
-  const take = economic.slice(0, 200);
-  const total = take.reduce((s, u) => s + BigInt(u.value), 0n);
+  let take = economic.slice(0, 200);
+  let total = take.reduce((s, u) => s + BigInt(u.value), 0n);
   const pos = POS_NTIME.has(coin);
   const zec = coin === "zec";
+  // Legacy P2PKH inputs (and every pos-ntime input) must carry their previous tx: the legacy sighash does not commit
+  // to the amount, so blocktools refuses to build without it (BCH/BSV/BTG included). ZEC v5 commits to amounts.
+  let prevNote = "";
+  const prevTx = new Map<string, string>();
+  // no wasm: refuse before any network fetch (fail closed, no TS fallback)
+  if (!blocktools()) {
+    if (c.checksum === "groestl") throw new Error(c.txNote!);
+    throw new Error(
+      `blocktools is unavailable, so SwapChan will not offer an unverified ${c.sym} sweep; try again later`,
+    );
+  }
+  if (!zec && (pos || fromD.kind === "p2pkh")) {
+    if (!c.src || c.src.type === "cryptoid")
+      throw new Error(
+        `${c.sym}: the UTXO source has no raw-transaction endpoint, so the input amounts cannot be proven; not built (use ${c.wallet})`,
+      );
+    const { got, failed } = await fetchPrevTxs(
+      f,
+      coin,
+      c.src,
+      take.map((u) => u.txid),
+      c.checksum === "groestl",
+    );
+    const kept = take.filter((u) => got.has(u.txid.toLowerCase()));
+    const keptTotal = kept.reduce((s, u) => s + BigInt(u.value), 0n);
+    // build only if at least 90% of the selected value can be proven; otherwise fail with a plain reason
+    if (!kept.length || keptTotal * 10n < total * 9n)
+      throw new Error(
+        `could not fetch the previous transactions for ${take.length - kept.length} of ${take.length} inputs (${[...new Set(failed.values())].slice(0, 2).join("; ") || "explorer unavailable"}); they prove the input amounts, so the ${c.sym} sweep was not built; try again later`,
+      );
+    if (kept.length < take.length)
+      prevNote = `${take.length - kept.length} inputs left out (previous transaction unavailable); run again later for them`;
+    for (const [t, h] of got) prevTx.set(t, h);
+    take = kept;
+    total = keptTotal;
+  }
   if (zec && (fromD.kind !== "p2pkh" || toD.kind !== "p2pkh"))
     throw new Error("Zcash sweeps support transparent P2PKH (t1) addresses only");
   // ZEC: check blocktools' embedded branch id against the live chain before building (independent of blocktools)
@@ -1297,7 +1337,13 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
   const txTime = pos ? Math.floor(Date.now() / 1000) : undefined;
   const bt = btSweep(
     coin,
-    take.map((u) => ({ txid: u.txid, vout: u.vout, amount: u.value, address: from })),
+    take.map((u) => ({
+      txid: u.txid,
+      vout: u.vout,
+      amount: u.value,
+      address: from,
+      prev_tx: prevTx.get(u.txid.toLowerCase()),
+    })),
     to,
     rate,
     txTime,
@@ -1448,6 +1494,7 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
           ? `largest ${take.length} of ${utxos.length} UTXOs${economic.length < utxos.length ? ` (${utxos.length - economic.length} too small to spend economically skipped)` : ""}; run again after this confirms`
           : "",
         notOwn ? `${notOwn} P2PK/other-script UTXOs skipped (move them in ${c.wallet})` : "",
+        prevNote,
       ]
         .filter(Boolean)
         .join("; ") || undefined,

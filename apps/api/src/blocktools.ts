@@ -172,7 +172,14 @@ export type BtSweep = {
 /** Throws blocktools' error (e.g. unsupported_tx_format:pos-ntime); returns null only when the WASM is unavailable. */
 export function btSweep(
   chain: string,
-  utxos: { txid: string; vout: number; amount: number | string; address: string }[],
+  /** prev_tx: raw previous tx hex, required by blocktools for legacy (P2PKH) and every pos-ntime input */
+  utxos: {
+    txid: string;
+    vout: number;
+    amount: number | string;
+    address: string;
+    prev_tx?: string | undefined;
+  }[],
   to: string,
   feeRate: number,
   /** unix seconds; when set, builds with buildUnsignedSweepAt (required by pos-ntime chains ppc/nvc/clam/rdd) */
@@ -188,6 +195,7 @@ export function btSweep(
         vout: u.vout,
         amount: BigInt(u.amount).toString(),
         address: u.address,
+        ...(u.prev_tx ? { prev_tx: u.prev_tx } : {}),
       }),
     )
     .join("\n");
@@ -343,13 +351,18 @@ export function btCashToLegacy(addr: string): string | null {
 export type BtVerdict =
   | { readonly verified: true; readonly call: string }
   | { readonly verified: false; readonly reason: string };
-const big = (o: unknown) => JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
+const big = (o: unknown) =>
+  JSON.stringify(o, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
 /** tx = {to, data, value}; nowS = unix seconds (exit deadlines are checked against it). */
 export const btVerifyRecovery = (tx: unknown, owner: string, nowS: number): BtVerdict =>
   JSON.parse(need().verifyRecovery(big(tx), owner, nowS)) as BtVerdict;
 /** tx = {from, to, value, data?, chainId}; token "" = native sweep. */
-export const btVerifySweepTx = (tx: unknown, owner: string, chainId: number, token = ""): BtVerdict =>
-  JSON.parse(need().verifySweepTx(big(tx), owner, chainId, token)) as BtVerdict;
+export const btVerifySweepTx = (
+  tx: unknown,
+  owner: string,
+  chainId: number,
+  token = "",
+): BtVerdict => JSON.parse(need().verifySweepTx(big(tx), owner, chainId, token)) as BtVerdict;
 /** Bitcoin-family address -> scriptPubKey hex for one chain (version bytes / HRP / checksum checked, BIP-173 case
  *  rule: mixed-case bech32 is refused). null when the address is not valid for that chain; throws if the WASM is
  *  unavailable (fail closed). */

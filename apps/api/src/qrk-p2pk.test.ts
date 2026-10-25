@@ -27,23 +27,21 @@ const cidF = (rows: { value: number; script?: string }[]) =>
 
 describe("QRK sweeps (5 decimals, P2PKH only)", () => {
   const a = convert(BTC, "qrk")!;
-  it("skips P2PK outputs and builds from the P2PKH ones", () =>
+  it("with P2PKH outputs left after the P2PK filter, still refuses: cryptoid has no raw-transaction endpoint", () =>
     withKey(async () => {
       const own = outputScript(a, "qrk").toString("hex");
       const pk = `21${"02".padEnd(66, "1")}ac`;
-      const s = await utxoSweep(
-        cidF([
-          { value: 100000000, script: own },
-          { value: 900000000, script: pk },
-        ]),
-        "qrk",
-        a,
-        a,
-      );
-      expect(s.inputs.length).toBe(1);
-      // cryptoid 1e8 units -> 5-decimal base units: 1 QRK = 100000
-      expect(BigInt(s.amount) + BigInt(s.fee)).toBe(100000n);
-      expect(s.note).toMatch(/1 P2PK/);
+      await expect(
+        utxoSweep(
+          cidF([
+            { value: 100000000, script: own },
+            { value: 900000000, script: pk },
+          ]),
+          "qrk",
+          a,
+          a,
+        ),
+      ).rejects.toThrow(/no raw-transaction endpoint.*Quark Core/);
     }));
   it("refuses when the UTXO list has no scripts", () =>
     withKey(async () => {

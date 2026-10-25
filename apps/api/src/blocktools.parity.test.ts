@@ -2,6 +2,7 @@ import { base58 } from "@scure/base";
 import { Transaction } from "bitcoinjs-lib";
 import { describe, expect, it } from "vitest";
 import { blocktools, btConvertFrom, btDetect, btSweep, btValidate } from "./blocktools.js";
+import { fakePrev } from "./testkit/prevfix.js";
 import {
   BT_PARAMS,
   COINS,
@@ -156,16 +157,29 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
       grs: "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX",
     };
     for (const [k, a] of Object.entries(addr) as [Coin, string][]) {
+      const p1 = fakePrev(k, a, 150_000_000n, 1, 0xaa);
+      const p2 = fakePrev(k, a, 2500n, 0, 0xbb);
       const u = [
-        { txid: "aa".repeat(32), vout: 1, amount: 150_000_000, address: a },
-        { txid: "bb".repeat(32), vout: 0, amount: 2500, address: a },
+        { txid: p1.txid, vout: 1, amount: 150_000_000, address: a, prev_tx: p1.hex },
+        { txid: p2.txid, vout: 0, amount: 2500, address: a, prev_tx: p2.hex },
       ];
+      // legacy P2PKH inputs without their previous tx are refused (blocktools 5efe3ff; BCH/BSV/BTG too)
+      expect(
+        () =>
+          btSweep(
+            k,
+            u.map(({ prev_tx: _, ...x }) => x),
+            a,
+            10,
+          ),
+        k,
+      ).toThrow(/legacy_input_needs_prev_tx/);
       const r = btSweep(k, u, a, 10)!;
       const tx = Transaction.fromHex(r.unsigned_tx);
       expect(
         tx.ins.map((i) => `${Buffer.from(i.hash).reverse().toString("hex")}:${i.index}`),
         k,
-      ).toEqual([`${"aa".repeat(32)}:1`, `${"bb".repeat(32)}:0`]);
+      ).toEqual([`${p1.txid}:1`, `${p2.txid}:0`]);
       expect(tx.outs.length).toBe(1);
       expect(Buffer.from(tx.outs[0]!.script).toString("hex"), k).toBe(
         outputScript(a, k).toString("hex"),

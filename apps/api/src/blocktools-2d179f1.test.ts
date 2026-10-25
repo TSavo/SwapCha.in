@@ -1,6 +1,7 @@
 import { Transaction } from "bitcoinjs-lib";
 import { describe, expect, it } from "vitest";
 import { btSweep } from "./blocktools.js";
+import { fakePrev, prevUtxos, withPrev } from "./testkit/prevfix.js";
 import {
   BT_PARAMS,
   COINS,
@@ -53,41 +54,44 @@ describe("blocktools 2d179f1 rows", () => {
   });
 });
 
-describe("QRK and XPM sweeps via blocktools (cryptoid, keyed)", () => {
-  it("QRK: cryptoid 1e8 units scaled to 5 decimals, legacy tx at 1 unit/B, verified clean", async () => {
+describe("QRK and XPM sweeps (cryptoid, keyed): refused, cryptoid has no raw-transaction endpoint", () => {
+  it("QRK: legacy P2PKH inputs need prev_tx, so nothing is built", async () => {
     resetCryptoid();
     const a = convert(BTC, "qrk")!;
-    // 12.5 QRK = 1,250,000,000 in cryptoid's 1e8 units = 1,250,000 QRK units
-    const s = await withKey(() => utxoSweep(cid(1_250_000_000, 1, outputScript(a, "qrk").toString("hex")), "qrk", a, a));
-    expect(BigInt(s.amount) + BigInt(s.fee)).toBe(1_250_000n);
-    const tx = Transaction.fromHex(s.unsignedTx);
-    expect(tx.ins.length).toBe(1);
-    expect(Buffer.from(tx.outs[0]!.script).equals(outputScript(a, "qrk"))).toBe(true);
-    expect(Number(s.fee)).toBeLessThan(400);
-    expect((s as { builtBy?: string }).builtBy).toMatch(/^blocktools /);
-    expect((s as { verified?: { warnings: string[] } }).verified?.warnings).toEqual(["unsigned"]);
+    await expect(
+      withKey(() =>
+        utxoSweep(cid(1_250_000_000, 1, outputScript(a, "qrk").toString("hex")), "qrk", a, a),
+      ),
+    ).rejects.toThrow(/no raw-transaction endpoint.*not built/);
   });
-  it("XPM: builds at 100312/B (over the old 2000 cap), verified clean", async () => {
+  it("XPM: refused the same way", async () => {
     resetCryptoid();
     const a = convert(BTC, "xpm")!;
-    const s = await withKey(() => utxoSweep(cid(5_000_000_000), "xpm", a, a));
-    expect(BigInt(s.amount) + BigInt(s.fee)).toBe(5_000_000_000n);
-    expect(Number(s.fee)).toBeGreaterThan(100312 * 180);
-    expect((s as { verified?: { warnings: string[] } }).verified?.warnings).toEqual(["unsigned"]);
+    await expect(withKey(() => utxoSweep(cid(5_000_000_000), "xpm", a, a))).rejects.toThrow(
+      /no raw-transaction endpoint/,
+    );
+  });
+  it("XPM at 100312/B still builds through btSweep when prev_tx is supplied", () => {
+    const a = convert(BTC, "xpm")!;
+    const p = fakePrev("xpm", a, 5_000_000_000n, 1);
+    const r = btSweep(
+      "xpm",
+      [{ txid: p.txid, vout: 1, amount: "5000000000", address: a, prev_tx: p.hex }],
+      a,
+      100312,
+    )!;
+    expect(BigInt(r.amount) + BigInt(r.fee)).toBe(5_000_000_000n);
+    expect(Number(r.fee)).toBeGreaterThan(100312 * 180);
   });
 });
 
 describe("size-scaled high_fee: many-input sweeps verify clean with no TS tolerance", () => {
   for (const k of ["vtc", "rvn", "via", "doge"] as Coin[]) {
     it(`${k}: 147 inputs at the row rate`, async () => {
-      const many = Array.from({ length: 147 }, (_, n) => ({
-        txid: (n + 1).toString(16).padStart(64, "0"),
-        vout: 0,
-        value: "5000000000",
-        satoshis: 5000000000,
-      }));
-      const f = (async () => json(many)) as unknown as typeof fetch;
       const a = convert(BTC, k)!;
+      const { utxos, prev } = prevUtxos(k, a, Array(147).fill("5000000000"));
+      const many = utxos.map((u) => ({ ...u, satoshis: 5000000000 }));
+      const f = withPrev(prev, () => json(many));
       const s = await utxoSweep(f, k, a, a);
       expect(s.inputs.length).toBe(147);
       expect((s as { verified?: { warnings: string[] } }).verified?.warnings).toEqual(["unsigned"]);
@@ -99,9 +103,10 @@ describe("string amounts above 2^53", () => {
   it("a UTXO of 2^53+1 units builds, and amount + fee is exact", () => {
     const a = convert(BTC, "dgb")!;
     const big = 2n ** 53n + 1n;
+    const p = fakePrev("dgb", a, big);
     const r = btSweep(
       "dgb",
-      [{ txid: "aa".repeat(32), vout: 0, amount: big.toString(), address: a }],
+      [{ txid: p.txid, vout: 0, amount: big.toString(), address: a, prev_tx: p.hex }],
       a,
       120,
     )!;

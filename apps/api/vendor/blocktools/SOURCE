@@ -1,1 +1,1 @@
-Built from TSavo/blocktools 7a6d945 (d0f612c verifyRecovery/verifySweepTx stricter EVM verifier + recoveryTables; 0b48cd3 outputScript zec + uppercase bech32; 7a6d945 buildPsbtWithMemo fee/order fixes; plus everything from e586f0c) (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok: no secret code, exports match).
+Built from TSavo/blocktools afb2aec (CI green; includes 944b85b, 9d53469, 8dfbe68 and everything since 7a6d945) (bindings/wasm pkg/node) via scripts/wasm-check.sh (ok: no secret code, exports match).

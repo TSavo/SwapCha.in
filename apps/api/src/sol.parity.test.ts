@@ -78,9 +78,19 @@ describe("decodeSolana (txtools) on 150 mainnet txs vs RPC json ground truth", (
       ]);
     }
   });
-  it("v1 txs are refused (blocktools has no v1 decoder yet), never misparsed", () => {
-    for (const t of fx.txs.filter((t) => t.version === 1))
-      expect(() => decodeSolana(t.tx)).toThrow(/cannot decode Solana tx/);
+  it("v1 txs (blocktools af2723f decoder): fee payer, signers, programs match the RPC", () => {
+    const v1 = fx.txs.filter((t) => t.version === 1);
+    expect(v1.length).toBe(10);
+    for (const t of v1) {
+      const d = decodeSolana(t.tx);
+      expect([d.feePayer, d.signers, d.programs, d.versioned, d.signed]).toEqual([
+        t.feePayer,
+        t.signers,
+        t.programs,
+        true,
+        true,
+      ]);
+    }
   });
   it("truncated / garbage refused", () => {
     const t = Buffer.from(ok[0]!.tx, "base64");

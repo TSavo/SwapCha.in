@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { Transaction } from "bitcoinjs-lib";
 import { describe, expect, it } from "vitest";
+import { prevUtxos, withPrev } from "./testkit/prevfix.js";
 import {
   COINS,
   type Coin,
@@ -95,14 +96,14 @@ describe("old coins: GRS sweep via blocktools (Groestl checksum, single-SHA-256 
     const from = "Fr5m2irs9vNWSAFXJK6KPtxqW9YWg384FX";
     const to = convert(BTC, "grs")!;
     expect(to.startsWith("F")).toBe(true);
-    const f = (async () =>
-      json([{ txid: "cd".repeat(32), vout: 0, value: "250000000" }])) as unknown as typeof fetch;
+    const { utxos, prev } = prevUtxos("grs", from, ["250000000"]);
+    const f = withPrev(prev, () => json(utxos));
     const s = await utxoSweep(f, "grs", from, to, 2);
     expect(s.txFormat).toBe("legacy-sha256");
     expect(s.builtBy).toMatch(/^blocktools /);
     const tx = Transaction.fromHex(s.unsignedTx);
     expect(tx.ins.length).toBe(1);
-    expect(Buffer.from(tx.ins[0]!.hash).reverse().toString("hex")).toBe("cd".repeat(32));
+    expect(Buffer.from(tx.ins[0]!.hash).reverse().toString("hex")).toBe(utxos[0]!.txid);
     expect(tx.outs.length).toBe(1);
     expect(Buffer.from(tx.outs[0]!.script).equals(outputScript(to, "grs"))).toBe(true);
     expect(BigInt(tx.outs[0]!.value) + BigInt(s.fee)).toBe(250000000n);
@@ -123,10 +124,11 @@ describe("old coins: GRS sweep via blocktools (Groestl checksum, single-SHA-256 
   });
 });
 describe("old coins: unsigned sweeps", () => {
-  const utx = [{ txid: "ab".repeat(32), vout: 1, value: "100000000" }];
   for (const k of ["dash", "dgb", "rvn", "vtc", "via", "qtum", "mona", "bsv"] as Coin[]) {
     it(`${k}: legacy tx, one output paying the ${k} destination`, async () => {
-      const f = (async (u: string) =>
+      const a = convert(BTC, k)!;
+      const { utxos: utx, prev } = prevUtxos(k, a, ["100000000"], 1);
+      const f = withPrev(prev, (u: string) =>
         json(
           u.includes("qtum.info")
             ? utx.map((x) => ({ transactionId: x.txid, outputIndex: x.vout, value: x.value }))
@@ -135,12 +137,12 @@ describe("old coins: unsigned sweeps", () => {
               : u.includes("whatsonchain")
                 ? utx.map((x) => ({ tx_hash: x.txid, tx_pos: x.vout, value: Number(x.value) }))
                 : utx,
-        )) as unknown as typeof fetch;
-      const a = convert(BTC, k)!;
+        ),
+      );
       const s = await utxoSweep(f, k, a, a);
       const tx = Transaction.fromHex(s.unsignedTx);
       expect(tx.ins.length).toBe(1);
-      expect(Buffer.from(tx.ins[0]!.hash).reverse().toString("hex")).toBe("ab".repeat(32));
+      expect(Buffer.from(tx.ins[0]!.hash).reverse().toString("hex")).toBe(utx[0]!.txid);
       expect(Buffer.from(tx.outs[0]!.script).equals(outputScript(a, k))).toBe(true);
       expect(BigInt(tx.outs[0]!.value) + BigInt(s.fee)).toBe(100000000n);
       // built by blocktools and checked by its decodeTx+verifyTx before being offered (no unverified TS fallback)
@@ -152,13 +154,9 @@ describe("old coins: unsigned sweeps", () => {
     });
   }
   it("dgb: a 150-input sweep at the row fee rate passes blocktools' size-scaled verdict and the TS fee cap", async () => {
-    const many = Array.from({ length: 150 }, (_, n) => ({
-      txid: n.toString(16).padStart(64, "0"),
-      vout: 0,
-      value: "50000000",
-    }));
-    const f = (async () => json(many)) as unknown as typeof fetch;
     const a = convert(BTC, "dgb")!;
+    const { utxos: many, prev } = prevUtxos("dgb", a, Array(150).fill("50000000"));
+    const f = withPrev(prev, () => json(many));
     const s = (await utxoSweep(f, "dgb", a, a)) as {
       fee: string;
       verified?: { warnings: string[] };
@@ -168,14 +166,11 @@ describe("old coins: unsigned sweeps", () => {
     expect(s.verified?.warnings).toEqual(["unsigned"]);
   });
   it("skips UTXOs too small to spend economically, largest first", async () => {
-    const mixed = [
-      { txid: "01".repeat(32), vout: 0, value: "20000" },
-      { txid: "02".repeat(32), vout: 0, value: "90000000" },
-    ];
-    const f = (async () => json(mixed)) as unknown as typeof fetch;
     const a = convert(BTC, "via")!;
+    const { utxos: mixed, prev } = prevUtxos("via", a, ["20000", "90000000"]);
+    const f = withPrev(prev, () => json(mixed));
     const s = await utxoSweep(f, "via", a, a);
-    expect(s.inputs.map((i) => i.txid)).toEqual(["02".repeat(32)]);
+    expect(s.inputs.map((i) => i.txid)).toEqual([mixed[1]!.txid]);
     const dust = (async () => json([mixed[0]])) as unknown as typeof fetch;
     await expect(utxoSweep(dust, "via", a, a)).rejects.toThrow(/too small to spend/);
   });
@@ -247,12 +242,19 @@ describe("old coins: cryptoid UTXO lists (keyed)", () => {
 describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
   const cidCoins = new Set(["nvc", "clam", "blk"]);
   for (const k of ["ppc", "nvc", "clam", "rdd", "blk"] as Coin[]) {
-    it(`${k}: blocktools-built, verified by blocktools and the independent TS parser`, async () => {
+    it(`${k}: blocktools-built with prev_tx, verified by blocktools and the TS parser (cryptoid coins refused)`, async () => {
       resetCryptoid();
       const prev = process.env.CRYPTOID_API_KEY;
       process.env.CRYPTOID_API_KEY = "k";
       try {
-        const f = (async () =>
+        const a = convert(BTC, k)!;
+        const { utxos, prev: prevTx } = prevUtxos(
+          k,
+          a,
+          [COINS[k].decimals === 6 ? "10000000" : "1000000000"],
+          1,
+        );
+        const f = withPrev(prevTx, () =>
           json(
             cidCoins.has(k)
               ? {
@@ -267,13 +269,18 @@ describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
                 }
               : [
                   {
-                    txid: "ab".repeat(32),
+                    txid: utxos[0]!.txid,
                     vout: 1,
                     value: COINS[k].decimals === 6 ? "10000000" : "1000000000",
                   },
                 ],
-          )) as unknown as typeof fetch;
-        const a = convert(BTC, k)!;
+          ),
+        );
+        // cryptoid has no raw-transaction endpoint: the input amounts cannot be proven, so nothing is built
+        if (cidCoins.has(k)) {
+          await expect(utxoSweep(f, k, a, a)).rejects.toThrow(/no raw-transaction endpoint/);
+          return;
+        }
         const s = (await utxoSweep(f, k, a, a)) as Awaited<ReturnType<typeof utxoSweep>> & {
           txFormat?: string;
           txTime?: number;
@@ -302,9 +309,9 @@ describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
   }
   it("parsePosTx rejects trailing bytes and a wrong layout", async () => {
     const { parsePosTx } = await import("./utxochains.js");
-    const f = (async () =>
-      json([{ txid: "ab".repeat(32), vout: 1, value: "10000000" }])) as unknown as typeof fetch;
     const a = convert(BTC, "ppc")!;
+    const { utxos, prev } = prevUtxos("ppc", a, ["10000000"], 1);
+    const f = withPrev(prev, () => json(utxos));
     const s = await utxoSweep(f, "ppc", a, a);
     expect(parsePosTx("ppc", s.unsignedTx)).not.toBeNull();
     expect(parsePosTx("ppc", s.unsignedTx + "00")).toBeNull();
