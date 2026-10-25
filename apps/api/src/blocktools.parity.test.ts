@@ -118,9 +118,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
     expect(sweepers.sort()).toEqual(
       [
         "bch",
-        "blk",
         "bsv",
-        "clam",
         "btg",
         "dash",
         "dgb",
@@ -129,7 +127,6 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         "grs",
         "ltc",
         "mona",
-        "nvc",
         "ppc",
         "qtum",
         "rdd",
@@ -137,10 +134,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         "via",
         "vtc",
         "trc",
-        "aur",
         "zec",
-        "xpm",
-        "qrk",
       ].sort(),
     );
     const addr: Partial<Record<Coin, string>> = {
@@ -205,7 +199,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
   });
   it("PoS-nTime coins refuse the plain (no-nTime) builder", () => {
     for (const k of ["ppc", "rdd", "nvc", "clam"] as Coin[]) {
-      expect(COINS[k].sweep).toBe(true);
+      expect(COINS[k].sweep).toBe(k === "ppc" || k === "rdd");
       expect(
         () => btSweep(k, [{ txid: "aa".repeat(32), vout: 0, amount: 1e8, address: "x" }], "x", 10),
         k,

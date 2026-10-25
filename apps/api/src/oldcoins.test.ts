@@ -278,7 +278,9 @@ describe("PoS nTime sweeps (blocktools buildUnsignedSweepAt) and BLK", () => {
         );
         // cryptoid has no raw-transaction endpoint: the input amounts cannot be proven, so nothing is built
         if (cidCoins.has(k)) {
-          await expect(utxoSweep(f, k, a, a)).rejects.toThrow(/no raw-transaction endpoint/);
+          await expect(utxoSweep(f, k, a, a)).rejects.toThrow(
+            /sweeping this coin isn't available yet/,
+          );
           return;
         }
         const s = (await utxoSweep(f, k, a, a)) as Awaited<ReturnType<typeof utxoSweep>> & {

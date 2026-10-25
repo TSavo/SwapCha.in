@@ -86,7 +86,7 @@ describe("XPM / AUR / TRC sweeps on measured rates", () => {
   ] as [Coin, number][]) {
     it(`${k} at ${rate}`, async () => {
       expect(COINS[k].feeRate).toBe(rate);
-      expect(COINS[k].sweep).toBe(true);
+      expect(COINS[k].sweep).toBe(k !== "aur");
       const prev = process.env.CRYPTOID_API_KEY;
       process.env.CRYPTOID_API_KEY = "k";
       try {
@@ -118,7 +118,9 @@ describe("XPM / AUR / TRC sweeps on measured rates", () => {
         );
         // AUR's UTXO source is cryptoid, which has no raw-transaction endpoint: refused (prev_tx proves amounts)
         if (k === "aur") {
-          await expect(utxoSweep(f, k, a, a)).rejects.toThrow(/no raw-transaction endpoint/);
+          await expect(utxoSweep(f, k, a, a)).rejects.toThrow(
+            /sweeping this coin isn't available yet/,
+          );
           return;
         }
         const s = await utxoSweep(f, k, a, a);

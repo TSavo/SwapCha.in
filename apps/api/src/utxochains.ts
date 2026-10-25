@@ -28,6 +28,10 @@ const b58 = base58check((d: Uint8Array) => new Uint8Array(createHash("sha256").u
  * get a plain note until blocktools builds them. `sameKey` = also checked when a BTC address is scanned.
  * `native` = an address in this coin's own encoding is recognised (false for version-0/5 coins, which are BTC-shaped).
  */
+/** Cryptoid-only coins: balances and detection work, but cryptoid has no raw-transaction endpoint, so blocktools
+ *  cannot prove legacy input amounts (prev_tx) and no sweep is offered. */
+const NO_RAWTX = (wallet: string) =>
+  `balance found; sweeping this coin isn't available yet - use the coin's own wallet (${wallet}).`;
 export type SrcType = "blockbook" | "insight" | "qtuminfo" | "woc" | "cryptoid";
 export type CoinRow = {
   name: string;
@@ -350,9 +354,8 @@ export const COINS = {
     // blocktools 7b70ba4: the builder's rate cap is per coin (max(2000, 4 x FeeWarn rate) = 8,000,000 for XPM), so the
     // measured median is now buildable (c05e88c refused anything over 2000).
     feeRate: 100312,
-    sweep: true,
-    txNote:
-      "Primecoin sweeps are built and checked by blocktools; sign them offline in Primecoin Core.",
+    sweep: false,
+    txNote: NO_RAWTX("Primecoin Core"),
   }),
   aur: row({
     name: "Auroracoin",
@@ -365,9 +368,8 @@ export const COINS = {
     src: cid("aur"),
     // blocktools d4e4ea8: median 102.8 sat/B over 30 mainnet txs (exact size), blocks 5913204-5913347 (chainz.cryptoid.info)
     feeRate: 103,
-    sweep: true,
-    txNote:
-      "Auroracoin sweeps are built and checked by blocktools; sign them offline in Auroracoin Core.",
+    sweep: false,
+    txNote: NO_RAWTX("Auroracoin Core"),
   }),
   clam: row({
     name: "Clams",
@@ -380,8 +382,8 @@ export const COINS = {
     src: cid("clam"),
     // Clam Core GetMinFee: MIN_TX_FEE 10000 sat per started kB; 53/B covers that for any tx of 190+ bytes
     feeRate: 53,
-    sweep: true,
-    txNote: `${POS_SIGN} Clam Core.`,
+    sweep: false,
+    txNote: NO_RAWTX("Clam Core"),
   }),
   nvc: row({
     name: "Novacoin",
@@ -395,8 +397,8 @@ export const COINS = {
     src: cid("nvc"),
     // Novacoin GetMinFee: MIN_TX_FEE = CENT/10 = 1000 units per started kB (6 decimals); 6/B covers it for 190+ bytes
     feeRate: 6,
-    sweep: true,
-    txNote: `${POS_SIGN} Novacoin Core.`,
+    sweep: false,
+    txNote: NO_RAWTX("Novacoin Core"),
   }),
   blk: row({
     name: "Blackcoin",
@@ -409,9 +411,8 @@ export const COINS = {
     src: cid("blk"),
     // BLK is the plain Bitcoin layout (no nTime). Measured mainnet fees: 10000 sat per started kB; 53/B covers it
     feeRate: 53,
-    sweep: true,
-    txNote:
-      "Blackcoin sweeps are built and checked by blocktools; sign them offline in Blackcoin More.",
+    sweep: false,
+    txNote: NO_RAWTX("Blackcoin More"),
   }),
   wdc: row({
     name: "Worldcoin (WDC)",
@@ -440,8 +441,8 @@ export const COINS = {
     // src/main.cpp minRelayTxFee = CFeeRate(100) (100 units/kB) and wallet minTxFee = CFeeRate(10); 1 unit/B is 10x
     // the relay minimum (the builder takes whole units/B). Not measured from chain data.
     feeRate: 1,
-    sweep: true,
-    txNote: "Quark sweeps are built and checked by blocktools; sign them offline in Quark Core.",
+    sweep: false,
+    txNote: NO_RAWTX("Quark Core"),
   }),
   nmc: row({
     name: "Namecoin",

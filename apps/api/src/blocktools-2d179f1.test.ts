@@ -42,8 +42,8 @@ describe("blocktools 2d179f1 rows", () => {
   it("QRK: 5 decimals, legacy format, sweeps; XPM sweeps at its measured rate; TRC 20; MONA 100", () => {
     expect(COINS.qrk.decimals).toBe(5);
     expect(BT_PARAMS!.get("qrk")!.tx_format).toBe("legacy");
-    expect(COINS.qrk.sweep).toBe(true);
-    expect(COINS.xpm.sweep).toBe(true);
+    expect(COINS.qrk.sweep).toBe(false); // cryptoid-only: no raw-tx source for prev_tx
+    expect(COINS.xpm.sweep).toBe(false);
     expect(COINS.xpm.feeRate).toBe(100312);
     expect(COINS.trc.feeRate).toBe(20);
     expect(COINS.mona.feeRate).toBe(100);
@@ -62,13 +62,13 @@ describe("QRK and XPM sweeps (cryptoid, keyed): refused, cryptoid has no raw-tra
       withKey(() =>
         utxoSweep(cid(1_250_000_000, 1, outputScript(a, "qrk").toString("hex")), "qrk", a, a),
       ),
-    ).rejects.toThrow(/no raw-transaction endpoint.*not built/);
+    ).rejects.toThrow(/sweeping this coin isn't available yet/);
   });
   it("XPM: refused the same way", async () => {
     resetCryptoid();
     const a = convert(BTC, "xpm")!;
     await expect(withKey(() => utxoSweep(cid(5_000_000_000), "xpm", a, a))).rejects.toThrow(
-      /no raw-transaction endpoint/,
+      /sweeping this coin isn't available yet/,
     );
   });
   it("XPM at 100312/B still builds through btSweep when prev_tx is supplied", () => {

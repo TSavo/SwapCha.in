@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { convert, outputScript, resetCryptoid, utxoSweep } from "./utxochains.js";
+import { COINS, convert, resetCryptoid, utxoSources, utxoSweep } from "./utxochains.js";
 
 const json = (b: unknown) => new Response(JSON.stringify(b), { status: 200 });
 const BTC = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2";
@@ -25,32 +25,44 @@ const cidF = (rows: { value: number; script?: string }[]) =>
       })),
     })) as unknown as typeof fetch;
 
-describe("QRK sweeps (5 decimals, P2PKH only)", () => {
+describe("QRK sweeps: off (cryptoid has no raw-transaction endpoint for prev_tx)", () => {
   const a = convert(BTC, "qrk")!;
-  it("with P2PKH outputs left after the P2PK filter, still refuses: cryptoid has no raw-transaction endpoint", () =>
+  it("refuses with the plain note before any UTXO fetch", () =>
     withKey(async () => {
-      const own = outputScript(a, "qrk").toString("hex");
-      const pk = `21${"02".padEnd(66, "1")}ac`;
-      await expect(
-        utxoSweep(
-          cidF([
-            { value: 100000000, script: own },
-            { value: 900000000, script: pk },
-          ]),
-          "qrk",
-          a,
-          a,
-        ),
-      ).rejects.toThrow(/no raw-transaction endpoint.*Quark Core/);
+      let n = 0;
+      const f = (async () => {
+        n++;
+        return new Response("{}");
+      }) as unknown as typeof fetch;
+      await expect(utxoSweep(f, "qrk", a, a)).rejects.toThrow(
+        "balance found; sweeping this coin isn't available yet - use the coin's own wallet (Quark Core).",
+      );
+      expect(n).toBe(0);
     }));
-  it("refuses when the UTXO list has no scripts", () =>
-    withKey(async () => {
-      await expect(utxoSweep(cidF([{ value: 100000000 }]), "qrk", a, a)).rejects.toThrow(/P2PK/);
-    }));
-  it("refuses when every UTXO is P2PK", () =>
-    withKey(async () => {
-      await expect(
-        utxoSweep(cidF([{ value: 100000000, script: `21${"02".padEnd(66, "1")}ac` }]), "qrk", a, a),
-      ).rejects.toThrow(/P2PK/);
-    }));
+});
+
+describe("cryptoid-only coins: balance shown, no sweep offered", () => {
+  for (const k of ["qrk", "xpm", "aur", "nvc", "clam", "blk"] as const) {
+    it(`${k}: scan row has a balance, no sweep, and the plain note`, async () => {
+      expect(COINS[k].sweep).toBe(false);
+      resetCryptoid();
+      const a = convert(BTC, k)!;
+      const f = (async (u: string | URL) =>
+        String(u).includes("coingecko")
+          ? new Response("{}")
+          : new Response("12.5")) as unknown as typeof fetch;
+      const { sources } = utxoSources(f, a, {});
+      const rows = (await sources.find((x) => x.coin === k)!.run()) as {
+        sweep?: unknown;
+        action: string;
+        what: string;
+      }[];
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.what).toMatch(/^12\.5 /);
+      expect(rows[0]!.sweep).toBeUndefined();
+      expect(rows[0]!.action).toContain(
+        "balance found; sweeping this coin isn't available yet - use the coin's own wallet",
+      );
+    });
+  }
 });
