@@ -188,7 +188,7 @@ export function createApp(
           Number(env.SWAPCHAN_PARTNER_SHARE_BPS ?? 5000),
         );
   if (partners && opts.partners === undefined)
-    scheduleSweep(env, () => sweepPartnerSwaps(partners.db));
+    scheduleSweep(env, "partner_swaps", "redacted", () => sweepPartnerSwaps(partners.db));
   const quotePartner = new Map<string, string>();
   if (partners) app.route("/partners", partnerRoutes(partners, cache, quotePartner));
   const quotes = async (query: Record<string, string>) => {
@@ -263,10 +263,8 @@ export function createApp(
       env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/links.db` : ":memory:",
     );
     migrateStrayLinks(watchDb, linksDb);
-    scheduleSweep(env, () => {
-      sweepLinks(linksDb);
-      sweepWatches(watchDb);
-    });
+    scheduleSweep(env, "links", "removed", () => sweepLinks(linksDb));
+    scheduleSweep(env, "watches", "removed", () => sweepWatches(watchDb));
     app.route("/onchain", intelRoutes(opts.scannerFetch ?? fetch, env, watchDb, quoteFn, linksDb));
     app.route("/links", linkRoutes(opts.scannerFetch ?? fetch, env, linksDb));
     app.route("/onchain", onchainRoutes(opts.scannerFetch ?? fetch, env, watchDb, bestOut));

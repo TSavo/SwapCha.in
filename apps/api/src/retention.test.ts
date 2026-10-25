@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { initLinksDb, resolveShort, shorten } from "./intel.js";
 import { openWatchDb } from "./onchain.js";
 import { openPartnerStore } from "./partners.js";
-import { DAY_MS, sweepLinks, sweepPartnerSwaps, sweepWatches } from "./retention.js";
+import { DAY_MS, runSweep, sweepLinks, sweepPartnerSwaps, sweepWatches } from "./retention.js";
 
 const NOW = Date.UTC(2027, 0, 1);
 const ago = (d: number) => NOW - d * DAY_MS;
@@ -87,5 +87,51 @@ describe("partner swap retention", () => {
     expect(rows[0]?.taker).toBeNull();
     expect(rows[0]?.partner_usd).toBe(0.5);
     expect(rows[1]).toEqual({ tx_hash: "0xnew", taker: "0xtaker", partner_usd: 0.5 });
+  });
+});
+
+describe("sweep logging", () => {
+  it("logs one count/timing line on success and a message-only line on failure", () => {
+    const lines: string[] = [];
+    runSweep(
+      "links",
+      "removed",
+      () => 3,
+      (l) => lines.push(l),
+    );
+    runSweep(
+      "partner_swaps",
+      "redacted",
+      () => {
+        throw new Error("database is locked");
+      },
+      (l) => lines.push(l),
+    );
+    const [ok, bad] = lines.map((l) => JSON.parse(l));
+    expect(ok).toMatchObject({ evt: "retention_sweep", name: "links", removed: 3 });
+    expect(typeof ok.ms).toBe("number");
+    expect(Object.keys(ok).sort()).toEqual(["evt", "ms", "name", "removed"]);
+    expect(bad).toEqual({
+      evt: "retention_sweep_error",
+      name: "partner_swaps",
+      error: "database is locked",
+    });
+  });
+  it("never logs link URLs or addresses from a real sweep", () => {
+    const db = new DatabaseSync(":memory:");
+    initLinksDb(db);
+    db.prepare(
+      "INSERT INTO links (id, url, created) VALUES ('x', 'https://swapchan.com/wallet/0xabc', ?)",
+    ).run(ago(400));
+    const lines: string[] = [];
+    runSweep(
+      "links",
+      "removed",
+      () => sweepLinks(db, NOW),
+      (l) => lines.push(l),
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).not.toMatch(/0xabc|swapchan\.com|"x"/);
+    expect(JSON.parse(lines[0] ?? "{}").removed).toBe(1);
   });
 });

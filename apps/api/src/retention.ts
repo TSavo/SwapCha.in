@@ -61,14 +61,32 @@ export function sweepPartnerSwaps(db: DatabaseSync, now = Date.now()) {
   return n;
 }
 
+/** Run one sweep and log one JSON line: counts and timing only, never addresses, URLs or hashes. */
+export function runSweep(
+  name: string,
+  kind: "removed" | "redacted",
+  fn: () => number,
+  log: (line: string) => void = console.log,
+) {
+  const t0 = Date.now();
+  try {
+    const n = fn();
+    log(JSON.stringify({ evt: "retention_sweep", name, [kind]: n, ms: Date.now() - t0 }));
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "unknown error";
+    log(JSON.stringify({ evt: "retention_sweep_error", name, error: error.slice(0, 200) }));
+  }
+}
+
 /** Run a sweep at startup and then daily (not under tests). */
-export function scheduleSweep(env: NodeJS.ProcessEnv, fn: () => unknown) {
+export function scheduleSweep(
+  env: NodeJS.ProcessEnv,
+  name: string,
+  kind: "removed" | "redacted",
+  fn: () => number,
+) {
   if (env.VITEST) return;
-  const run = () => {
-    try {
-      fn();
-    } catch {}
-  };
+  const run = () => runSweep(name, kind, fn);
   run();
   setInterval(run, DAY_MS).unref();
 }
