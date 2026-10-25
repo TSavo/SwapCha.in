@@ -9,6 +9,10 @@ export function validateAddress(chain: string, address: string): string;
  */
 export function listChains(): string;
 /**
+ * The chain registry as data: JSON array of {name,ticker,coin_type,curve,encoding,...,sign,verified,source}.
+ */
+export function chainTable(): string;
+/**
  * Watch-only addresses from an account-level xpub: JSON [{chain,kind,path,address}].
  */
 export function addressesFromXpub(xpub_str: string, chain: string, kinds: string[], branches: Uint32Array, indices: Uint32Array): string;

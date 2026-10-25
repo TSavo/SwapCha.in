@@ -3,6 +3,7 @@
 export const memory: WebAssembly.Memory;
 export const validateAddress: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const listChains: () => [number, number];
+export const chainTable: () => [number, number];
 export const addressesFromXpub: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number, number];
 export const explainPlan: (a: number, b: number) => [number, number, number, number];
 export const decodeTx: (a: number, b: number, c: number, d: number) => [number, number, number, number];

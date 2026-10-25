@@ -142,6 +142,23 @@ module.exports.listChains = function() {
     }
 };
 
+/**
+ * The chain registry as data: JSON array of {name,ticker,coin_type,curve,encoding,...,sign,verified,source}.
+ * @returns {string}
+ */
+module.exports.chainTable = function() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.chainTable();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+};
+
 function addToExternrefTable0(obj) {
     const idx = wasm.__externref_table_alloc();
     wasm.__wbindgen_export_0.set(idx, obj);
