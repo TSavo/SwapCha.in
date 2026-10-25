@@ -61,12 +61,16 @@ export const wagmiAdapter = hasAppKit
     })
   : null;
 
-/** Without a Reown project id we fall back to injected wallets only (e.g. MetaMask). */
+/**
+ * Without a Reown project id we fall back to browser wallets: every EIP-6963-announced wallet
+ * becomes its own connector (multiInjectedProviderDiscovery) and ConnectButton lets the user pick.
+ */
 export const wagmiConfig =
   wagmiAdapter?.wagmiConfig ??
   createConfig({
     chains: [wMain, wBase, wArb, wOp, wPoly, wBsc, wAvax, wLinea, wScroll],
     connectors: [injected()],
+    multiInjectedProviderDiscovery: true,
     ssr: true,
     storage: createStorage({ storage: cookieStorage }),
     transports: {
