@@ -606,9 +606,10 @@ async function cryptoidBalance(
     const j = (await r.json()) as {
       addresses?: { address: string; final_balance: number | string }[];
     };
-    const e = j.addresses?.find((x) => x.address === a);
-    if (!e) throw new Error("cryptoid: no answer for address");
-    v = BigInt(e.final_balance);
+    if (!Array.isArray(j.addresses)) throw new Error("cryptoid: bad answer");
+    // cryptoid answers {"addresses":[]} for an address it has never seen on chain: that is a measured zero, not an error
+    const e = j.addresses.find((x) => x.address === a);
+    v = e ? BigInt(e.final_balance) : 0n;
   } else {
     const r = await f(`${base}/api.dws?q=getbalance&a=${encodeURIComponent(a)}`, {
       headers: UA,
@@ -679,7 +680,12 @@ export async function coinBalance(
 }
 type Utxo = { txid: string; vout: number; value: string };
 /** Spendable UTXOs from the coin's source adapter (immature Qtum stakes excluded). */
-export async function coinUtxos(f: F, coin: Coin, a: string): Promise<Utxo[]> {
+export async function coinUtxos(
+  f: F,
+  coin: Coin,
+  a: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<Utxo[]> {
   const c: CoinRow = COINS[coin];
   const u = c.src?.urls ?? [];
   switch (c.src?.type) {
@@ -724,6 +730,24 @@ export async function coinUtxos(f: F, coin: Coin, a: string): Promise<Utxo[]> {
           c.sym,
         )
       ).map((x) => ({ txid: x.tx_hash, vout: x.tx_pos, value: String(x.value) }));
+    case "cryptoid": {
+      // needs the cryptoid key (keyless cryptoid has no unspent endpoint); shares the cryptoid rate queue
+      const key = env.CRYPTOID_API_KEY;
+      if (!key) throw new Error(`${c.sym}: UTXO list needs the cryptoid key`);
+      await cidSlot(true, Date.now() + 8000);
+      const r = await f(
+        `${u[0]!}/api.dws?q=unspent&active=${encodeURIComponent(a)}&key=${encodeURIComponent(key)}`,
+        { headers: UA, signal: AbortSignal.timeout(7000) },
+      );
+      if (!r.ok) throw new Error(`cryptoid ${r.status}`);
+      const j = (await r.json()) as {
+        unspent_outputs?: { tx_hash: string; tx_ouput_n: number; value: number | string; addr?: string; confirmations?: number }[];
+      };
+      if (!Array.isArray(j.unspent_outputs)) throw new Error("cryptoid: bad answer");
+      return j.unspent_outputs
+        .filter((x) => !x.addr || x.addr === a)
+        .map((x) => ({ txid: x.tx_hash, vout: x.tx_ouput_n, value: String(x.value) }));
+    }
     default:
       throw new Error(`${c.sym}: no UTXO source`);
   }
