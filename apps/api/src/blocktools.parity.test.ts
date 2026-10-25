@@ -135,6 +135,9 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
         "rvn",
         "via",
         "vtc",
+        "trc",
+        "aur",
+        "zec",
       ].sort(),
     );
     const addr: Partial<Record<Coin, string>> = {
@@ -176,7 +179,7 @@ live("blocktools parity (WASM vs SwapChan TS)", () => {
     }
   });
   it("blocktools refuses the formats SwapChan refuses", () => {
-    for (const k of ["zec", "qrk"] as Coin[]) {
+    for (const k of ["qrk", "wdc"] as Coin[]) {
       expect(COINS[k].sweep).toBe(false);
       expect(
         () => btSweep(k, [{ txid: "aa".repeat(32), vout: 0, amount: 1e8, address: "x" }], "x", 10),

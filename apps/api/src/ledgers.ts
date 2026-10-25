@@ -202,6 +202,7 @@ export const RECOGNISED_ONLY: Record<string, string> = {
   dot: "Polkadot (DOT)",
   ton: "TON",
   ada: "Cardano (ADA)",
+  xmr: "Monero (XMR)",
 };
 export function recognisedOnly(a: string): string[] {
   const c = btDetect(a) ?? [];

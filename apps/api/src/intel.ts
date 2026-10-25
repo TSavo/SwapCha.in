@@ -3671,7 +3671,11 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
             ? timed(RECOGNISED_ONLY[k]!, SCAN[k].run(), { items: [], notChecked: [] })
             : Promise.resolve({
                 items: [],
-                notChecked: [`${RECOGNISED_ONLY[k]}: address recognised (blocktools), balance not checked (no source wired yet)`],
+                notChecked: [
+                  k === "xmr"
+                    ? `${RECOGNISED_ONLY[k]}: address recognised (blocktools), balance not checked: a Monero balance needs the private view key, which SwapChan never takes`
+                    : `${RECOGNISED_ONLY[k]}: address recognised (blocktools), balance not checked (no source wired yet)`,
+                ],
               }),
         ),
       );

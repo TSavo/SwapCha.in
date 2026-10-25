@@ -164,7 +164,8 @@ describe("old coins: unsigned sweeps", () => {
       verified?: { warnings: string[] };
     };
     expect(BigInt(s.fee)).toBeGreaterThan(1_000_000n);
-    expect(s.verified?.warnings).toContain("high_fee");
+    // blocktools c05e88c has a measured DGB FeeWarn row, so this no longer warns
+    expect(s.verified?.warnings).toEqual(["unsigned"]);
   });
   it("skips UTXOs too small to spend economically, largest first", async () => {
     const mixed = [
@@ -178,8 +179,8 @@ describe("old coins: unsigned sweeps", () => {
     const dust = (async () => json([mixed[0]])) as unknown as typeof fetch;
     await expect(utxoSweep(dust, "via", a, a)).rejects.toThrow(/too small to spend/);
   });
-  it("refuses PoS / Zcash / Groestl / unverified formats", async () => {
-    for (const k of ["zec", "xpm", "aur", "trc"] as Coin[])
+  it("refuses the formats still off (QRK unknown format, WDC unverified)", async () => {
+    for (const k of ["qrk", "wdc"] as Coin[])
       await expect(utxoSweep(fetch, k, "x", "y")).rejects.toThrow(/does not build/);
   });
 });

@@ -31,10 +31,14 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
 - Tron: voting rewards, Stake 2.0 unfreeze tx, Stake 1.0, JustLend, sTRX/stUSDT/WTRX (unwrap tx), WIN, BTT, SUN, SUNOLD (note).
 - Other chains: BTC xpub, fork coins + same-key LTC/DOGE/FTC, XRP Ledger, Signum, 12 extra EVM chains (native, tokens, approvals).
 - Old coins, unsigned sweep (blocktools buildUnsignedSweep only, no TS fallback): DASH, DGB, RVN, VTC, VIA, QTUM, MONA,
-  BSV (forkid), GRS (legacy-sha256). Every sweep is decoded twice before it is offered: blocktools decodeTx+verifyTx and an
+  BSV (forkid), GRS (legacy-sha256), TRC (15 sat/B), AUR (103 sat/B), ZEC transparent P2PKH (zcash-v5). Every sweep is decoded twice before it is offered: blocktools decodeTx+verifyTx and an
   independent bitcoinjs decode (same inputs in order, one output to the destination, amount + fee = inputs). blocktools'
-  BTC-scale high_fee (>1,000,000 base units) / high_fee_rate warnings are accepted only when the fee is under a TS cap
-  (row rate x legacy size x 1.25) and high_fee_pct (>5%) is not raised. UTXOs are taken largest first; inputs whose own fee
+  per-coin FeeWarn limits (c05e88c): high_fee_rate is a hard failure on coins with a measured row (DGB/RVN/QTUM/VTC/AUR/XPM)
+  and tolerated under the TS cap only on default-row coins (DOGE pays 1000/B by policy); high_fee (absolute, does not scale
+  with inputs) is tolerated under the TS cap (row rate x legacy size x 1.25; ZEC also ZIP-317 x 1.25); high_fee_pct never.
+  ZEC: blocktools' v5 tx is re-parsed by SwapChan's own parseZecV5 and its branch id must equal the explorer's
+  chaintip+nextblock consensus id; immature coinbase UTXOs (<100 conf) are skipped. Amounts above 2^53 (RDD) are now
+  passed to and read from blocktools exactly (bigJson). UTXOs are taken largest first; inputs whose own fee
   would be over 5% of their value are skipped. Live-built 2026-10-24 ~21:40 PDT from real funded addresses (scripts/live-sweeps.ts).
 - Old coins, balance (+ UTXO list with the cryptoid key): XPM, CLAM, NVC, AUR, WDC, QRK, BLK via cryptoid; TRC via Insight
   (balance + UTXOs measured 2026-10-24). Cryptoid's `{"addresses":[]}` for a never-seen address is now a measured zero
@@ -60,10 +64,12 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
       PSBT; checked by verifyTx/decodeTx on the envelope plus SwapChan's own parsePosTx). BLK sweeps as legacy. Fee rates:
       PPC 11 and RDD 110 units/B (measured from real txs); NVC 6, CLAM 53, BLK 53 (node min fee per started kB).
       NVC balances via cryptoid were reported 100x high (key API is always 1e8 units); fixed.
-    - ZEC transparent: held. blocktools has zec verified in chainParams but keeps it out of supportedChains (needs an
-      independent v5 KAT per its DESIGN.md). QRK: blocktools tx_format "unknown". WDC: blocktools row unverified.
-    - XPM, AUR, TRC: blocktools marks legacy sweep_build, but SwapChan has no measured relay fee rate for them (cryptoid
-      txinfo is not available on the key tier), so the sweep stays off until a fee rate is measured.
+    - Done 2026-10-25: TRC (15, CHAINS.md 14.8 over 14 txs), AUR (103, blocktools-measured 102.8), ZEC transparent t1 only
+      (untested: broadcast, v6 / NU7, t3/P2SH, shielded). GRS xpub (Groestl-checksum; receive 0-9 + change 0-4, P2PKH/
+      P2WPKH/P2TR, 45 Blockbook lookups) and grs1p detection; taproot spend refused. Monero: classify only (balance needs
+      the private view key, which SwapChan never takes).
+    - Still off: XPM (blocktools buildUnsignedSweep caps fee_rate at 2000; measured rate is 100312 sat/B). QRK: tx_format
+      "unknown". WDC: blocktools row unverified.
     - NMC, POT, MEC, ANC: no public explorer; "not checked".
 14. Stellar: G-addresses (blocktools detectAddress "xlm") read from Horizon: spendable XLM = balance - (2 + subentries
     + sponsoring - sponsored) x base reserve - selling liabilities; other assets are leads. No sweep tx built; claimable
