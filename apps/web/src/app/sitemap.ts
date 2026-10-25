@@ -58,6 +58,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/how-it-works", 0.6),
     page("/widget", 0.6),
     page("/partners", 0.5),
+    page("/terms", 0.3),
+    page("/privacy", 0.3),
     page("/earn", 0.7),
     page("/cast", 0.6),
     ...castOrder.map((k) => page(`/cast/${k}`, 0.5)),
