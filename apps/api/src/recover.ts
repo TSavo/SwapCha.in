@@ -106,6 +106,11 @@ export function verifyRecovery(tx: { to: string; data: string; value: string }, 
   if (sf !== null) return sf ? ({ verified: true, call: "Safe execTransaction (every leg pays the owner)" } as const) : ({ verified: false, reason: "Safe tx with a leg that does not pay the owner" } as const);
   const v4 = verifyV4(tx.data, owner);
   if (v4 !== null) return v4 ? ({ verified: true, call: "modifyLiquidities(DECREASE_LIQUIDITY,TAKE_PAIR→owner)" } as const) : ({ verified: false, reason: "v4 actions other than decrease + take-to-owner" } as const);
+  // TheDAO refund: approve(WithdrawDAO) on the DAO token, then WithdrawDAO.withdraw() (pays msg.sender); both contract-pinned
+  if (tx.to.toLowerCase() === "0xbb9bc244d798123fde783fcc1c72d3bb8c189413" && tx.data.startsWith("0x095ea7b3") && tx.data.slice(10, 74).toLowerCase() === "0".repeat(24) + "bf4ed7b27f1d666546e30d74d50d173d20bca754")
+    return { verified: true, call: "approve(WithdrawDAO) — TheDAO refund step 1" } as const;
+  if (tx.to.toLowerCase() === "0xbf4ed7b27f1d666546e30d74d50d173d20bca754" && tx.data.toLowerCase() === "0x3ccfd60b")
+    return { verified: true, call: "WithdrawDAO.withdraw() (pays the caller)" } as const;
   // IronHands payout(): pays the queue head; offered only when find_money saw the owner at the head
   if (tx.data.toLowerCase() === "0x63bd1d4a" && tx.to.toLowerCase() === "0xe58b65d1c0c8e8b2a0e3a3acec633271531084ed")
     return { verified: true, call: "IronHands payout() (zero value; pays the queue head)" } as const;
