@@ -1257,6 +1257,25 @@ async function zecBranch(f: F): Promise<{ chaintip: string; nextblock: string }>
   return { chaintip: c.chaintip, nextblock: c.nextblock };
 }
 
+/**
+ * SwapChan sweep coin selection: own script (or no script reported), then largest first, skipping UTXOs whose own
+ * input fee would exceed 5% of their value (dust farms on VIA/DGB hold thousands; blocktools rejects a sweep whose
+ * fee is over 5% of the output, high_fee_pct), at most 200. Pure; compared against blocktools selectUtxos.
+ */
+export function pickSweepUtxos<U extends { value: string; script?: string }>(
+  all: U[],
+  own: string,
+  rate: number,
+) {
+  const utxos = all.filter((u) => u.script === undefined || u.script === own);
+  const economic = [...utxos]
+    .sort((a, b) =>
+      BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0,
+    )
+    .filter((u) => BigInt(u.value) >= BigInt(Math.ceil(rate * 148 * 20)));
+  return { utxos, economic, take: economic.slice(0, 200) };
+}
+
 /** Unsigned legacy-format sweep of every UTXO on `from` to `to` (one output, fee = feeRate x size estimate). Only coins with `sweep`. */
 export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeRate?: number) {
   // BCH: accept CashAddr for either side; the builder and both decoders work on the legacy form (same hash)
@@ -1284,25 +1303,18 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     throw new Error(
       "the Quark UTXO list has no output scripts, so P2PK outputs cannot be told apart; not built (use Quark Core)",
     );
-  const utxos = all.filter((u) => u.script === undefined || u.script === own);
+  const { utxos, economic, take: picked } = pickSweepUtxos(all, own, feeRate ?? c.feeRate);
   const notOwn = all.length - utxos.length;
   if (!utxos.length)
     throw new Error(
       `all ${all.length} UTXOs on this address are P2PK or another script type SwapChan cannot verify; use ${c.wallet}`,
     );
   const rate = feeRate ?? c.feeRate;
-  // largest first, skipping UTXOs where the input's own fee would exceed 5% of its value (dust farms on VIA/DGB
-  // hold thousands); blocktools rejects a sweep whose fee is over 5% of the output (high_fee_pct)
-  const economic = [...utxos]
-    .sort((a, b) =>
-      BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0,
-    )
-    .filter((u) => BigInt(u.value) >= BigInt(Math.ceil(rate * 148 * 20)));
   if (!economic.length)
     throw new Error(
       "every UTXO on this address is too small to spend economically (its fee would be over 5% of its value)",
     );
-  let take = economic.slice(0, 200);
+  let take = picked;
   let total = take.reduce((s, u) => s + BigInt(u.value), 0n);
   const pos = POS_NTIME.has(coin);
   const zec = coin === "zec";
