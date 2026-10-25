@@ -1,3 +1,4 @@
+import { PENDLE_ROUTER } from "./pendle.js";
 import { verifyV4 } from "./lpv4.js";
 import type { DatabaseSync } from "node:sqlite";
 import { NATIVE_TOKEN, SOLANA } from "@swapchan/shared";
@@ -74,6 +75,8 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   { sig: "claimCollateral()", owners: [] },
   { sig: "claim(uint256,address,uint256,bytes32[])", owners: [1] },
   { sig: "removeLiquidity(address,address,uint256,uint256,uint256,address,uint256)", owners: [5] },
+  { sig: "exitPostExpToToken(address,address,uint256,uint256,(address,uint256,address,address,(uint8,address,bytes,bool)))", owners: [0] },
+  { sig: "redeem(address,uint256,address,uint256,bool)", owners: [0] },
   { sig: "decreaseLiquidity((uint256 tokenId,uint128 liquidity,uint256 amount0Min,uint256 amount1Min,uint256 deadline))", owners: [] },
   {
     sig: "collect((uint256 tokenId,address recipient,uint128 amount0Max,uint128 amount1Max))",
@@ -87,6 +90,8 @@ const ABIS = STANDARD_RECOVERY.map((s) => ({ ...s, abi: fn(s.sig) }));
 export type Verdict = { readonly verified: true; readonly call: string } | { readonly verified: false; readonly reason: string };
 export function verifyRecovery(tx: { to: string; data: string; value: string }, owner: string): Verdict {
   if (BigInt(tx.value || "0") !== 0n) return { verified: false, reason: "non-zero value" } as const;
+  if (tx.data.startsWith("0x095ea7b3") && tx.data.slice(10, 74).toLowerCase() === "0".repeat(24) + PENDLE_ROUTER.slice(2))
+    return { verified: true, call: "approve(Pendle Router) — approval step only" } as const;
   const v4 = verifyV4(tx.data, owner);
   if (v4 !== null) return v4 ? ({ verified: true, call: "modifyLiquidities(DECREASE_LIQUIDITY,TAKE_PAIR→owner)" } as const) : ({ verified: false, reason: "v4 actions other than decrease + take-to-owner" } as const);
   // multicall(bytes[]): every inner call must itself be a verified recovery call
