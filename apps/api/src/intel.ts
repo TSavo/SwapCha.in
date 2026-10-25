@@ -4527,7 +4527,7 @@ export async function findMoney(
                     : "Unclaimed rewards",
         title: `${it.protocol}: ${it.what}`,
         estUsd: it.kind === "lead" ? null : it.valueUsd,
-        estimateKind: it.kind === "lead" ? "lead" : it.valueUsd === null ? "estimate" : "exact",
+        estimateKind: it.kind === "lead" ? "lead" : it.valueUsd === null || /\bestimate\b/i.test(it.what ?? "") ? "estimate" : "exact",
         detail: it.risk ?? "",
         action: it.action,
         swapUrl: it.link?.startsWith(SITE)
