@@ -5,6 +5,8 @@ import { lstQueues } from "./lst.js";
 import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
 import { ensDeeds } from "./ensdeed.js";
+import { coinOf, decodeAny, utxoScan, utxoSweep, COINS, type Coin } from "./utxochains.js";
+import { ethForkScan, forkSweep, ETH_FORKS, type EthFork } from "./ethforks.js";
 import { maturedPendle } from "./pendle.js";
 import { tronExtras, tronV1Account } from "./tron2.js";
 import { stakedLp, sushiChef } from "./gauges.js";
@@ -3375,7 +3377,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
       const archChains = env.ETHERSCAN_API_KEY ? [1, 42161, 10, 137, 43114, 534352, 59144] : [1, 10, 534352, 43114, 59144];
       const noArch = { items: [] as Found[], stats: { error: "not checked (timeout)" } as Record<string, number | string> };
-      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, stuck, ...arch] = await Promise.all([
+      const [merklR, legacyR, wn, lido, safes, vaults, aaveS, eigen, beacon, lstQ, lp, gaugeR, chefR, v4R, pendleR, ensR, forkR, stuck, ...arch] = await Promise.all([
         timed("Merkl", merklP, [] as Found[]),
         timed("legacy contracts", legacyP, [] as Found[]),
         timed("wrapped native", wrappedNative(f, env, own), []),
@@ -3392,13 +3394,14 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         timed("Uniswap v4 positions", v4Positions(f, env, own), []),
         timed("matured Pendle", maturedPendle(f, env, own), []),
         timed("ENS old-registrar deeds", ensDeeds(f, env, own), []),
+        timed("ETH fork chains (ETC, ETHW, EtherFair)", ethForkScan(f, own).then((r) => (notChecked.push(...r.notChecked), r.items)), []),
         timed("contract registry", stuckMoneyRegistry(f, env, own), []),
         ...archChains.map((id) => timed(`history ${chainName(id)}`, evmArchaeology(f, env, id, own), noArch, Number(env.FIND_ARCH_TIMEOUT_MS ?? 15_000))),
       ]);
       items.push(...(merklR as Found[]), ...(legacyR as Found[]));
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
-      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]), ...(eigen as Found[]), ...(beacon as Found[]), ...(lstQ as Found[]), ...(lp as Found[]), ...(gaugeR as Found[]), ...(chefR as Found[]), ...(v4R as Found[]), ...(pendleR as Found[]), ...(ensR as Found[]));
+      items.push(...(wn as Found[]), ...(lido as Found[]), ...(safes as Found[]), ...(vaults as Found[]), ...(aaveS as Found[]), ...(eigen as Found[]), ...(beacon as Found[]), ...(lstQ as Found[]), ...(lp as Found[]), ...(gaugeR as Found[]), ...(chefR as Found[]), ...(v4R as Found[]), ...(pendleR as Found[]), ...(ensR as Found[]), ...(forkR as Found[]));
       sources.push("staked LP: every Curve gauge on 7 chains (Curve gauge list), every Convex and Aura pool, SushiSwap MasterChef v1/v2");
       sources.push("concentrated-liquidity positions (principal + fees, exact): Uniswap v3 on 7 chains, Sushi v3, PancakeSwap v3");
       sources.push("withdrawal queues: ether.fi, Frax, Swell, Stader; EigenLayer; beacon validators; Aave/Spark supplied; vault registry: Yearn v2/v3, Beefy, Morpho, sDAI/sUSDS/sfrxETH/scrvUSD/sUSDe on 7 EVM chains");
@@ -3430,10 +3433,29 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push(
         "contract archaeology: full explorer history → every contract called/token received, probed with balanceOf/earned/dividendsOf/claimable/pendingRewards, ERC-4626 & Yearn vault shares, Uniswap-v2 LP shares, Uniswap v3 positions + simulated collect() fees, EtherDelta/IDEX ERC-20 balances, NFTs still held",
       );
+    } else if (coinOf(address)) {
+      const r = await timed(`${COINS[coinOf(address)!].name} balance`, utxoScan(f, address), { items: [], notChecked: [] });
+      items.push(...(r.items as Found[]));
+      notChecked.push(...r.notChecked);
+      sources.push("public Blockbook explorers (BCH, BTG, LTC, DOGE, FTC)");
     } else if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(address)) {
       // JustLend supply is covered (with a redeem tx) by tronExtras inside tronMoney
       items.push(...(await tronMoney(f, address, env)));
       sources.push("TronGrid (rewards, unfreezes, contract probes, JustLend supplied jTokens)");
+    } else if (
+      /^(xpub|ypub|zpub|xprv)/i.test(address) ||
+      (/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address) && !!decodeAny(address))
+    ) {
+      const [bx, fork] = await Promise.all([
+        btcXpubScan(f, address).catch(() => []),
+        /^(xpub|ypub|zpub|xprv)/i.test(address)
+          ? { items: [], notChecked: ["fork coins (BCH/BTG) and same-key LTC/DOGE/FTC: checked for single addresses only, not xpubs"] }
+          : timed("fork + same-key coins", utxoScan(f, address), { items: [], notChecked: [] }),
+      ]);
+      items.push(...(bx as Found[]), ...(fork.items as Found[]));
+      notChecked.push(...fork.notChecked);
+      sources.push("Bitcoin xpub/address UTXO scan (blockchain.info multiaddr + mempool.space)");
+      sources.push("same address on BCH and BTG (fork coins) and LTC/DOGE/FTC (same key) via public Blockbook explorers");
     } else if (vm === "svm") {
       // Tron base58 also matches the Solana pattern, so Tron is tested first.
       items.push(...(await solanaRent(f, env, address)));
@@ -3442,12 +3464,6 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push(
         "Solana RPC token accounts (rent reclaim), stake accounts (deactivated = withdrawable + withdraw ix), program archaeology (owned accounts + stake/vote programs)",
       );
-    } else if (
-      /^(xpub|ypub|zpub|xprv)/i.test(address) ||
-      /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address)
-    ) {
-      items.push(...((await btcXpubScan(f, address).catch(() => [])) as Found[]));
-      sources.push("Bitcoin xpub/address UTXO scan (blockchain.info multiaddr + mempool.space)");
     } else
       throw new BadRequest("airdrop_check supports EVM, Solana, Tron and Bitcoin (address/xpub)");
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
@@ -4880,6 +4896,25 @@ export function intelRoutes(
         c.req.query("owner") ?? "",
       ),
     ),
+  );
+  app.get("/utxo-sweep", (c) =>
+    run(c, async () => {
+      const coin = c.req.query("coin") as Coin;
+      if (!COINS[coin]) throw new BadRequest(`coin must be one of ${Object.keys(COINS).join(", ")}`);
+      const fr = c.req.query("feeRate");
+      return utxoSweep(f, coin, c.req.query("from") ?? "", c.req.query("to") ?? "", fr ? Number(fr) : undefined).catch((e) => {
+        throw new BadRequest((e as Error).message);
+      });
+    }),
+  );
+  app.get("/fork-sweep", (c) =>
+    run(c, async () => {
+      const k = c.req.query("chain") as EthFork;
+      if (!ETH_FORKS[k]) throw new BadRequest(`chain must be one of ${Object.keys(ETH_FORKS).join(", ")}`);
+      return forkSweep(f, k, c.req.query("from") ?? "", c.req.query("to") ?? "").catch((e) => {
+        throw new BadRequest((e as Error).message);
+      });
+    }),
   );
   app.get("/recovery-guide", (c) =>
     run(c, async () => recoveryGuide(c.req.query("situation") ?? "full")),

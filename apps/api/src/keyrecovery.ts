@@ -45,7 +45,19 @@ export const DERIVATION_PATHS = [
     path: "m/84'/0'/0'/0/{i}",
   },
   { wallet: "Bitcoin Taproot (bc1p…)", chain: "btc", path: "m/86'/0'/0'/0/{i}" },
+  { wallet: "Litecoin legacy (L…; Electrum-LTC BIP39, Trezor, Ledger, Exodus)", chain: "ltc", path: "m/44'/2'/0'/0/{i}" },
+  { wallet: "Litecoin native SegWit (ltc1q…; Trezor, Ledger, Exodus)", chain: "ltc", path: "m/84'/2'/0'/0/{i}" },
+  { wallet: "Dogecoin (D…; Trezor, Ledger, Exodus, Trust)", chain: "doge", path: "m/44'/3'/0'/0/{i}" },
+  { wallet: "Bitcoin Cash (Electron Cash BIP39, Exodus, Trezor)", chain: "bch", path: "m/44'/145'/0'/0/{i}" },
+  { wallet: "Bitcoin Gold (Trezor, Ledger)", chain: "btg", path: "m/44'/156'/0'/0/{i}" },
+  { wallet: "Exodus: one BIP39 phrase, account 0 on each coin (BTC m/84'/0'/0', ETH m/44'/60'/0'/0/0, LTC m/84'/2'/0', DOGE m/44'/3'/0', SOL m/44'/501'/0'/0'); use index 0 first, then the GAP", chain: "multi", path: "see the coin rows" },
 ];
+
+/** Pre-2012 Bitcoin keys were often UNCOMPRESSED (WIF starting with 5; bitaddress.org, early Bitcoin-Qt, blockchain.info). The same key gives a different 1… address in compressed form, and fork/same-key coins (BCH, BTG, LTC, DOGE) follow the same rule. */
+export const UNCOMPRESSED_KEYS = {
+  rule: "Derive BOTH the uncompressed and the compressed address of every old key and send both to find_money. A WIF starting with 5 is uncompressed; K or L is compressed. Paper wallets, brainwallets and wallets made before 2012 are usually uncompressed.",
+  offlineCode: "import { secp256k1 } from '@noble/curves/secp256k1'; import * as btc from '@scure/btc-signer'; // offline only\nconst pkU = secp256k1.getPublicKey(priv, false), pkC = secp256k1.getPublicKey(priv, true);\nconsole.log(btc.p2pkh(pkU).address, btc.p2pkh(pkC).address); // both PUBLIC -> find_money",
+};
 
 /** Offline multi-chain deriver: every path below, GAP addresses each, optional passphrase candidates; prints labeled PUBLIC addresses for find_money_batch. Verified against the public "abandon x11 about" test vectors. */
 export const SCAN_JS = String.raw`// npm i @scure/bip39 @scure/bip32 @scure/btc-signer @noble/hashes @noble/curves @scure/base   (then go OFFLINE)
@@ -97,6 +109,9 @@ const BTC = {
   84: (pk) => btc.p2wpkh(pk).address,
   86: (pk) => btc.p2tr(pk.slice(1)).address,
 };
+// same-key coins: p2pkh/p2wpkh with each coin's version bytes (Exodus/Trezor/Ledger paths)
+const NET = { ltc: { bech32: "ltc", pubKeyHash: 0x30, scriptHash: 0x32, wif: 0xb0 }, doge: { bech32: "doge", pubKeyHash: 0x1e, scriptHash: 0x16, wif: 0x9e }, bch: { bech32: "bc", pubKeyHash: 0x00, scriptHash: 0x05, wif: 0x80 }, btg: { bech32: "btg", pubKeyHash: 0x26, scriptHash: 0x17, wif: 0x80 } };
+Object.assign(BTC, { ltc44: (pk) => btc.p2pkh(pk, NET.ltc).address, ltc84: (pk) => btc.p2wpkh(pk, NET.ltc).address, doge44: (pk) => btc.p2pkh(pk, NET.doge).address, bch44: (pk) => btc.p2pkh(pk, NET.bch).address, btg44: (pk) => btc.p2pkh(pk, NET.btg).address });
 const PATHS = [
   ["MetaMask/Trezor/Trust/Exodus/Rabby EVM", "m/44'/60'/0'/0/{i}", "evm"],
   ["Ledger Live EVM", "m/44'/60'/{i}'/0/0", "evm"],
@@ -108,6 +123,11 @@ const PATHS = [
   ["BTC nested SegWit (3...)", "m/49'/0'/0'/0/{i}", "btc49"],
   ["BTC native SegWit (bc1q...) Exodus/Trezor/Ledger", "m/84'/0'/0'/0/{i}", "btc84"],
   ["BTC Taproot (bc1p...)", "m/86'/0'/0'/0/{i}", "btc86"],
+  ["LTC legacy (L...)", "m/44'/2'/0'/0/{i}", "c.ltc44"],
+  ["LTC SegWit (ltc1q...)", "m/84'/2'/0'/0/{i}", "c.ltc84"],
+  ["DOGE (D...)", "m/44'/3'/0'/0/{i}", "c.doge44"],
+  ["BCH (legacy-format 1...)", "m/44'/145'/0'/0/{i}", "c.bch44"],
+  ["BTG (G...)", "m/44'/156'/0'/0/{i}", "c.btg44"],
 ];
 const out = [];
 for (const [pi, pass] of passes.entries()) {
@@ -117,7 +137,7 @@ for (const [pi, pass] of passes.entries()) {
   for (const [name, tpl, kind] of PATHS)
     for (let i = 0; i < GAP; i++) {
       const p = tpl.replace("{i}", String(i));
-      const a = kind === "sol" ? slip10(seed, p) : kind === "evm" ? evm(root.derive(p)) : kind === "tron" ? tron(root.derive(p)) : BTC[kind.slice(3)](root.derive(p).publicKey);
+      const a = kind === "sol" ? slip10(seed, p) : kind === "evm" ? evm(root.derive(p)) : kind === "tron" ? tron(root.derive(p)) : BTC[kind.startsWith("c.") ? kind.slice(2) : kind.slice(3)](root.derive(p).publicKey);
       out.push(name + " " + p + tag + " " + a);
     }
 }
@@ -242,6 +262,7 @@ export type Situation =
   | "password-hints";
 
 export interface RecoveryBranch {
+  pointers?: string[];
   id: Situation | string;
   title: string;
   when: string;
@@ -333,7 +354,12 @@ export const RECOVERY_BRANCHES: RecoveryBranch[] = [
       "Export addresses (public) -> find_money for BTC.",
     ],
     code: ELECTRUM,
-    tools: ["Electrum", "btcrecover"],
+    tools: ["Electrum", "btcrecover", "Electrum-LTC", "Electron Cash"],
+    pointers: [
+      "Electrum 1.x 'old' seeds are 12 words from a 1626-word list (not BIP39); Electrum 2.0+ seeds carry a version prefix (standard / segwit / 2fa). Restore both kinds in Electrum with 'I already have a seed'; pick 'Options -> BIP39' only for real BIP39 phrases.",
+      "The same Electrum seed restores in Electrum-LTC (Litecoin) and Electron Cash (BCH fork coins), each offline; export their PUBLIC addresses to find_money too.",
+      "Electrum wallet files (default_wallet) with a forgotten password: btcrecover --wallet default_wallet.",
+    ],
   },
   {
     id: "wallet-dat",
@@ -437,6 +463,7 @@ export function recoveryGuide(situation: Situation | string = "full") {
     warnings: KEY_WARNINGS,
     decisionTree: DECISION_TREE,
     derivationPaths: DERIVATION_PATHS,
+    uncompressedKeys: UNCOMPRESSED_KEYS,
     gapPolicy: GAP_POLICY,
     situations: branches,
     nextSteps: [
