@@ -18,7 +18,7 @@ import { blocktools } from "./blocktools.js";
 
 // solBuildTransfer (blocktools 51a1844+) vs an independent reference: @solana/web3.js legacy Transaction
 // + @solana/spl-token instructions. Program IDs come from the spl-token constants, never literals.
-// solVerifyTx `to` for token transfers is the destination token account (ATA), not the owner wallet.
+// solVerifyTx `to` for token transfers: the destination ATA, or (50eed50+) the recipient wallet; both checked.
 const w = blocktools() as any;
 let seed = 0x50a1;
 const rnd = () => {
@@ -31,7 +31,12 @@ const blockhash = () => new PublicKey(bytes(32)).toBase58();
 const int = (lo: number, hi: number) => Math.floor(lo + rnd() * (hi - lo));
 const ZERO_SIG = `01${"00".repeat(64)}`;
 
-type Case = { plan: Record<string, unknown>; ref: string; expect: Record<string, unknown> };
+type Case = {
+  plan: Record<string, unknown>;
+  ref: string;
+  expect: Record<string, unknown>;
+  alt?: Record<string, unknown>;
+};
 
 function refHex(
   from: PublicKey,
@@ -111,6 +116,13 @@ function tokenCases(n: number): Case[] {
         mint: mint.toBase58(),
         amount: String(amount),
       },
+      // 50eed50+: the recipient wallet is accepted as to= (matched via its derived ATA)
+      alt: {
+        owner: from.toBase58(),
+        to: to.toBase58(),
+        mint: mint.toBase58(),
+        amount: String(amount),
+      },
     });
   }
   return out;
@@ -151,6 +163,7 @@ function solCases(n: number): Case[] {
 function run(cases: Case[]) {
   let same = 0;
   let verified = 0;
+  let altOk = 0;
   const diffs: string[] = [];
   for (const c of cases) {
     const hex = w.solBuildTransfer(JSON.stringify(c.plan)) as string;
@@ -159,9 +172,14 @@ function run(cases: Case[]) {
     const v = JSON.parse(w.solVerifyTx(hex, JSON.stringify(c.expect)));
     if (v.ok) verified++;
     else if (diffs.length < 3) diffs.push(JSON.stringify({ verify: v.failures }));
+    if (c.alt) {
+      const a = JSON.parse(w.solVerifyTx(hex, JSON.stringify(c.alt)));
+      if (a.ok) altOk++;
+      else if (diffs.length < 3) diffs.push(JSON.stringify({ verifyWallet: a.failures }));
+    }
     JSON.parse(w.solDecodeTx(hex));
   }
-  return { same, verified, diffs };
+  return { same, verified, altOk, diffs };
 }
 
 describe("solBuildTransfer parity with web3.js + spl-token", { timeout: 60_000 }, () => {
@@ -173,6 +191,6 @@ describe("solBuildTransfer parity with web3.js + spl-token", { timeout: 60_000 }
   it("180 SPL Token / Token-2022 cases: byte-identical messages, solVerifyTx ok", () => {
     const r = run(tokenCases(180));
     expect(r.diffs).toEqual([]);
-    expect(r).toMatchObject({ same: 180, verified: 180 });
+    expect(r).toMatchObject({ same: 180, verified: 180, altOk: 180 });
   });
 });
