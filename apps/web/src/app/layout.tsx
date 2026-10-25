@@ -3,10 +3,12 @@ import Link from "next/link";
 import Script from "next/script";
 import type { ReactNode } from "react";
 import { ConnectButton } from "@/components/ConnectButton";
+import { GaPageView } from "@/components/GaPageView";
 import { Providers } from "@/components/Providers";
 import { RefCapture } from "@/components/RefCapture";
 import { DashboardPrompt } from "@/components/tools/DashboardPrompt";
 import { GA_ID } from "@/lib/ga";
+import { sanitizeGaUrl } from "@/lib/gaUrl";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -116,8 +118,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
               strategy="afterInteractive"
             />
+            <GaPageView />
             <Script id="ga4" strategy="afterInteractive">
-              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${GA_ID}');`}
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());var __s=(${sanitizeGaUrl.toString()});var __r='';try{var __u=new URL(document.referrer);__r=__u.origin===location.origin?__s(document.referrer):__u.origin;}catch(e){}gtag('set',{page_location:__s(location.href),page_referrer:__r,page_title:'SwapChan '+__s(location.pathname)});gtag('config','${GA_ID}',{send_page_view:false});gtag('event','page_view');`}
             </Script>
           </>
         )}
