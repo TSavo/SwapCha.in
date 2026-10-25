@@ -2188,14 +2188,18 @@ export async function tronMoney(
     addr: string;
     name: string;
     dec: number;
-    kind: "unwrap" | "stable" | "stake" | "farm";
+    kind: "unwrap" | "stable" | "stake" | "farm" | "token" | "legacy";
   }[] = [
     { addr: "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", name: "WTRX", dec: 6, kind: "unwrap" },
     { addr: "TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9", name: "JST", dec: 18, kind: "farm" },
     { addr: "TMwFHYXLJaRUPeW6421aqXL4ZEzPRFGkGT", name: "USDJ", dec: 18, kind: "stable" },
     { addr: "TThzxDN6Yy1RoeQkTdBBqNqDcMfKzS6x6s", name: "stUSDT", dec: 18, kind: "stake" },
     { addr: "TSSMHYeV2uE9qYH95DqyoKmUkGSsCGWHz2", name: "SUN", dec: 18, kind: "farm" },
+    { addr: "TKkeiboTkxXKJpbmVFbv4a8ov5rAfRDMf9", name: "SUNOLD", dec: 18, kind: "legacy" },
+    { addr: "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7", name: "WIN", dec: 6, kind: "token" },
+    { addr: "TAFjULxiVgT4qWk6UZwjqwZXTSaGaqnVp4", name: "BTT", dec: 18, kind: "token" },
   ];
+  const knownPx = await prices(f, KNOWN.filter((k) => k.kind === "token" || k.kind === "farm").map((k) => ({ chainId: TRON, address: k.addr }))).catch(() => new Map());
   const hex = (await import("./onchain.js")).b58decode(owner);
   const me = Buffer.from(hex.slice(1, 21)).toString("hex").padStart(64, "0");
   const v1 = await tronV1Account(f, owner, env.TRONGRID_API_KEY ? { "TRON-PRO-API-KEY": env.TRONGRID_API_KEY } : {});
@@ -2219,14 +2223,22 @@ export async function tronMoney(
               ? "(check unstake queue on JustLend/SUN)"
               : k.kind === "stable"
                 ? "(JustStables / USDJ)"
-                : "(SUN.io / farm — check claim)"
+                : k.kind === "token"
+                  ? "(sellable TRC-20)"
+                  : k.kind === "legacy"
+                    ? "(pre-2021 SUN; SUN.io converts old SUN to new SUN)"
+                    : "(SUN.io / farm — check claim)"
         }`,
-        valueUsd: k.name === "WTRX" && trxPx ? r2(amt * trxPx) : null,
+        valueUsd: k.name === "WTRX" && trxPx ? r2(amt * trxPx) : (() => { const p = pxOf(knownPx, TRON, k.addr)?.price; return p ? r2(amt * p) : null; })(),
         confidence: "high",
         action:
           k.kind === "unwrap"
             ? "Call WTRX.withdraw(amount), then swap TRX on SwapChan"
-            : `Open the ${k.name} dApp to unstake/claim, then swap on SwapChan`,
+            : k.kind === "token"
+              ? `Swap ${k.name} on SwapChan`
+              : k.kind === "legacy"
+                ? "Old SUN must be converted on SUN.io first; SwapChan cannot build that conversion"
+                : `Open the ${k.name} dApp to unstake/claim, then swap on SwapChan`,
         link: toUsdc(TRON, k.addr, String(amt)),
         evidence: [
           {
