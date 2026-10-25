@@ -5,6 +5,7 @@ import { decodeFunctionData, formatEther, parseAbi } from "viem";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { SpeechBubble } from "@/components/Character";
 import { ConnectButton } from "@/components/ConnectButton";
+import { describeCall } from "@/lib/callSummary";
 import { localCallPaysOwner } from "@/lib/recoverCheck";
 
 const ABI = parseAbi([
@@ -76,6 +77,7 @@ export function Recover(p: {
       .catch(() => setRemote({ verified: false, reason: "verifier unreachable" }));
   }, [known, address, p.to, p.data, p.value]);
   // Locally decoded calls still need every receiver/holder to be the connected wallet.
+  const sig = describeCall(p.to, p.data);
   const safe = (known ? localCallPaysOwner(call, address) : !!remote?.verified) && p.value === "0";
   return (
     <div className="flex w-full max-w-2xl flex-col gap-4" data-testid="recover">
@@ -96,6 +98,10 @@ export function Recover(p: {
           </dd>
           <dt className="text-violet-400">to</dt>
           <dd data-testid="to">{p.to}</dd>
+          <dt className="text-violet-400">function</dt>
+          <dd data-testid="function">
+            {sig.fn ?? (remote?.verified && remote.call) ?? "unknown"} [{sig.selector}]
+          </dd>
           <dt className="text-violet-400">call</dt>
           <dd data-testid="call">
             {call
@@ -127,6 +133,16 @@ export function Recover(p: {
         {known && address && !localCallPaysOwner(call, address) && (
           <p className="mt-2 font-bold text-rose-300">
             This call pays or moves funds for someone other than the connected wallet. Don't sign.
+          </p>
+        )}
+        {address && safe && !hash && (
+          <p
+            className="mt-3 rounded-lg bg-violet-900 p-2 font-mono text-xs break-all"
+            data-testid="sign-prompt"
+          >
+            You are about to sign <b>{sig.fn ?? remote?.call ?? sig.selector}</b> on contract{" "}
+            <b>{p.to}</b> ({CHAINS[p.chain] ?? p.chain}). Check your wallet shows the same contract
+            and function.
           </p>
         )}
         <div className="mt-3 flex flex-wrap gap-2">

@@ -8,6 +8,7 @@ import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { SpeechBubble } from "@/components/Character";
 import { ConnectButton } from "@/components/ConnectButton";
 import { API_URL } from "@/lib/api";
+import { describeCall } from "@/lib/callSummary";
 import { useSolana } from "@/lib/useSolana";
 import { DataView } from "./DataView";
 
@@ -126,11 +127,73 @@ function SignStep({
   const { sendTransactionAsync } = useSendTransaction();
   const [st, setSt] = useState<string>();
   const [wantConnect, setWantConnect] = useState(false);
+  const [review, setReview] = useState(false);
   if (!address && wantConnect)
     return (
       <span className="flex items-center gap-2 text-xs font-bold text-emerald-200">
         Connect your wallet to sign: <ConnectButton />
       </span>
+    );
+  const call = describeCall(tx.to, tx.data);
+  const sign = async () => {
+    try {
+      if (chainId !== tx.chainId) await switchChainAsync({ chainId: tx.chainId });
+      setSt("Confirm in wallet…");
+      const h = await sendTransactionAsync({
+        to: tx.to,
+        data: tx.data,
+        value: BigInt(tx.value ?? "0"),
+        chainId: tx.chainId,
+      });
+      setSt(`Sent ${h.slice(0, 10)}…`);
+    } catch (e) {
+      setSt(e instanceof Error ? e.message.split("\n")[0] : "Failed");
+    }
+  };
+  if (review && address)
+    return (
+      <div
+        data-testid="sign-review"
+        className="flex w-full flex-col gap-1 rounded-lg border-2 border-emerald-400 bg-emerald-950 p-2 font-mono text-xs break-all text-emerald-100"
+      >
+        <span>
+          <b>You will sign a call to contract</b>{" "}
+          <span data-testid="sign-contract">{call.contract}</span> (chain {tx.chainId})
+        </span>
+        <span>
+          <b>function</b>{" "}
+          <span data-testid="sign-function">
+            {call.fn ?? "unknown"}
+            {call.selector ? ` [${call.selector}]` : ""}
+          </span>
+        </span>
+        <span>
+          <b>value</b> {tx.value ?? "0"} wei
+        </span>
+        <span className="text-emerald-300">
+          Check your wallet shows this same contract and function before you approve.
+        </span>
+        <span className="flex gap-2">
+          <button
+            type="button"
+            data-testid="step-sign"
+            disabled={!!st}
+            onClick={sign}
+            className="rounded-lg border-2 border-emerald-400 bg-emerald-500 px-3 py-1 font-black text-emerald-950 disabled:opacity-60"
+          >
+            {st ?? "Sign in my wallet"}
+          </button>
+          {!st && (
+            <button
+              type="button"
+              onClick={() => setReview(false)}
+              className="px-2 text-emerald-300"
+            >
+              cancel
+            </button>
+          )}
+        </span>
+      </div>
     );
   return (
     <button
@@ -138,24 +201,9 @@ function SignStep({
       data-testid="step-recover"
       title={tx.description}
       className="rounded-lg border-2 border-emerald-400 px-3 py-1 text-xs font-black text-emerald-200"
-      onClick={async () => {
-        if (!address) return setWantConnect(true);
-        try {
-          if (chainId !== tx.chainId) await switchChainAsync({ chainId: tx.chainId });
-          setSt("Confirm in wallet…");
-          const h = await sendTransactionAsync({
-            to: tx.to,
-            data: tx.data,
-            value: BigInt(tx.value ?? "0"),
-            chainId: tx.chainId,
-          });
-          setSt(`Sent ${h.slice(0, 10)}…`);
-        } catch (e) {
-          setSt(e instanceof Error ? e.message.split("\n")[0] : "Failed");
-        }
-      }}
+      onClick={() => (address ? setReview(true) : setWantConnect(true))}
     >
-      {st ?? `${step}. Get it back →`}
+      {`${step}. Get it back →`}
     </button>
   );
 }
