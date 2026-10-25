@@ -9,7 +9,8 @@ import { createHash } from "node:crypto";
 
 type F = typeof fetch;
 export type PrevSource = {
-  type: "blockbook" | "insight" | "qtuminfo" | "woc" | "cryptoid";
+  // iquidus: Iquidus explorer /api/getrawtransaction (plain hex); pbcx: projectblackcoin.org explorer (JSON data.hex)
+  type: "blockbook" | "insight" | "qtuminfo" | "woc" | "cryptoid" | "iquidus" | "pbcx";
   urls: string[];
 };
 
@@ -107,9 +108,14 @@ async function wocSlot() {
 const UA = { "user-agent": "Mozilla/5.0 swapchan" };
 const HEX = /^[0-9a-f]+$/i;
 
-async function fetchOne(f: F, src: PrevSource, txid: string, signal: AbortSignal): Promise<string> {
+async function fetchOne(
+  f: F,
+  srcs: PrevSource[],
+  txid: string,
+  signal: AbortSignal,
+): Promise<string> {
   let last: unknown = "no source";
-  for (const base of src.urls) {
+  for (const [src, base] of srcs.flatMap((s) => s.urls.map((u) => [s, u] as const))) {
     try {
       if (signal.aborted) throw new Error("deadline");
       if (src.type === "woc") await wocSlot();
@@ -120,7 +126,11 @@ async function fetchOne(f: F, src: PrevSource, txid: string, signal: AbortSignal
             ? `/rawtx/${txid}`
             : src.type === "qtuminfo"
               ? `/raw-tx/${txid}`
-              : `/tx/${txid}/hex`;
+              : src.type === "iquidus"
+                ? `/api/getrawtransaction?txid=${txid}&decrypt=0`
+                : src.type === "pbcx"
+                  ? `/api/explorer/tx/${txid}/hex`
+                  : `/tx/${txid}/hex`;
       const r = await f(`${base}${path}`, {
         headers: UA,
         signal: AbortSignal.any([signal, AbortSignal.timeout(PREV_LIMITS.perRequestMs)]),
@@ -139,14 +149,13 @@ async function fetchOne(f: F, src: PrevSource, txid: string, signal: AbortSignal
         body.startsWith('"')
       ) {
         const j = JSON.parse(body) as unknown;
+        const o = j as { hex?: unknown; rawtx?: unknown; data?: { hex?: unknown; txid?: unknown } };
+        if (src.type === "pbcx" && String(o.data?.txid ?? "").toLowerCase() !== txid)
+          throw new Error("explorer answered for another tx");
         hex =
           typeof j === "string"
             ? j
-            : String(
-                (j as { hex?: unknown; rawtx?: unknown }).hex ??
-                  (j as { rawtx?: unknown }).rawtx ??
-                  "",
-              );
+            : String(o.hex ?? o.rawtx ?? (src.type === "pbcx" ? o.data?.hex : "") ?? "");
       }
       if (!hex || hex.length % 2 || !HEX.test(hex)) throw new Error("not hex");
       return hex.toLowerCase();
@@ -164,14 +173,15 @@ async function fetchOne(f: F, src: PrevSource, txid: string, signal: AbortSignal
 export async function fetchPrevTxs(
   f: F,
   coin: string,
-  src: PrevSource,
+  src: PrevSource | PrevSource[],
   txids: string[],
   singleSha = false,
 ): Promise<{ got: Map<string, string>; failed: Map<string, string> }> {
   const got = new Map<string, string>();
   const failed = new Map<string, string>();
   const want = [...new Set(txids.map((t) => t.toLowerCase()))];
-  if (src.type === "cryptoid") {
+  const srcs = (Array.isArray(src) ? src : [src]).filter((s) => s.type !== "cryptoid");
+  if (!srcs.length) {
     for (const t of want) failed.set(t, "no raw-transaction source");
     return { got, failed };
   }
@@ -189,7 +199,7 @@ export async function fetchPrevTxs(
   const worker = async () => {
     for (let t = queue.shift(); t !== undefined; t = queue.shift()) {
       try {
-        let hex = await fetchOne(f, src, t, deadline);
+        let hex = await fetchOne(f, srcs, t, deadline);
         const n = hex.length / 2;
         if (n > PREV_LIMITS.maxTxBytes) throw new Error("previous tx over 400 KB");
         if (total + n > PREV_LIMITS.maxTotalBytes) throw new Error("previous txs over 8 MB total");

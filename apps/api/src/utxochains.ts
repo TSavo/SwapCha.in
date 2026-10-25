@@ -14,7 +14,7 @@ import {
   btVersion,
   btXpubAddresses,
 } from "./blocktools.js";
-import { fetchPrevTxs } from "./prevtx.js";
+import { fetchPrevTxs, type PrevSource } from "./prevtx.js";
 import type { NewFound } from "./recover.js";
 
 type F = typeof fetch;
@@ -47,6 +47,8 @@ export type CoinRow = {
   forkid: boolean;
   wallet: string;
   src: { type: SrcType; urls: string[] } | null;
+  /** raw previous-tx sources when the UTXO source (src) has none, e.g. cryptoid-only coins; each answer is hash-checked */
+  prev?: PrevSource[];
   sweep: boolean;
   txNote?: string;
   sameKey: boolean;
@@ -411,6 +413,11 @@ export const COINS = {
     src: cid("blk"),
     // BLK is the plain Bitcoin layout (no nTime). Measured mainnet fees: 10000 sat per started kB; 53/B covers it
     feeRate: 53,
+    // cryptoid lists the UTXOs; previous txs come from the Blackcoin explorers (hash-checked, witness stripped)
+    prev: [
+      { type: "iquidus", urls: ["https://mainnet.blackcoin.nl"] },
+      { type: "pbcx", urls: ["https://projectblackcoin.org"] },
+    ],
     sweep: false,
     txNote: NO_RAWTX("Blackcoin More"),
   }),
@@ -1307,14 +1314,15 @@ export async function utxoSweep(f: F, coin: Coin, from: string, to: string, feeR
     );
   }
   if (!zec && (pos || fromD.kind === "p2pkh")) {
-    if (!c.src || c.src.type === "cryptoid")
+    const ps = c.prev ?? (c.src && c.src.type !== "cryptoid" ? [c.src] : []);
+    if (!ps.length)
       throw new Error(
         `${c.sym}: the UTXO source has no raw-transaction endpoint, so the input amounts cannot be proven; not built (use ${c.wallet})`,
       );
     const { got, failed } = await fetchPrevTxs(
       f,
       coin,
-      c.src,
+      ps,
       take.map((u) => u.txid),
       c.checksum === "groestl",
     );
