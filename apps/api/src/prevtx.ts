@@ -6,11 +6,13 @@
  * No signing or key handling: public raw transactions only.
  */
 import { createHash } from "node:crypto";
+import { blocktools } from "./blocktools.js";
 
 type F = typeof fetch;
 export type PrevSource = {
-  // iquidus: Iquidus explorer /api/getrawtransaction (plain hex); pbcx: projectblackcoin.org explorer (JSON data.hex)
-  type: "blockbook" | "insight" | "qtuminfo" | "woc" | "cryptoid" | "iquidus" | "pbcx";
+  // iquidus: Iquidus explorer /api/getrawtransaction (plain hex); pbcx: projectblackcoin.org explorer (JSON data.hex);
+  // novacoin: api.novaco.in /gettransaction/<txid> (decoded JSON only; blocktools serializes it and checks the hash)
+  type: "blockbook" | "insight" | "qtuminfo" | "woc" | "cryptoid" | "iquidus" | "pbcx" | "novacoin";
   urls: string[];
 };
 
@@ -130,7 +132,9 @@ async function fetchOne(
                 ? `/api/getrawtransaction?txid=${txid}&decrypt=0`
                 : src.type === "pbcx"
                   ? `/api/explorer/tx/${txid}/hex`
-                  : `/tx/${txid}/hex`;
+                  : src.type === "novacoin"
+                    ? `/gettransaction/${txid}`
+                    : `/tx/${txid}/hex`;
       const r = await f(`${base}${path}`, {
         headers: UA,
         signal: AbortSignal.any([signal, AbortSignal.timeout(PREV_LIMITS.perRequestMs)]),
@@ -142,7 +146,17 @@ async function fetchOne(
       const body = (await r.text()).trim();
       if (body.length > PREV_LIMITS.maxTxBytes * 2 + 64) throw new Error("too large");
       let hex = body;
-      if (
+      if (src.type === "novacoin") {
+        // No TypeScript serializer: blocktools rebuilds the raw tx from the JSON and returns hex only if its
+        // double-SHA256 equals txid (and the JSON's own txid/size agree). Any throw fails this source closed.
+        const w = blocktools();
+        if (!w?.serializeNvcTxFromJson) throw new Error("blocktools unavailable");
+        try {
+          hex = w.serializeNvcTxFromJson(body, txid);
+        } catch (e) {
+          throw new Error(`novacoin json refused: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      } else if (
         src.type === "blockbook" ||
         src.type === "insight" ||
         body.startsWith("{") ||
