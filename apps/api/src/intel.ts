@@ -5,6 +5,7 @@ import { lstQueues } from "./lst.js";
 import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
 import { maturedPendle } from "./pendle.js";
+import { tronExtras } from "./tron2.js";
 import { stakedLp, sushiChef } from "./gauges.js";
 import { vaultPositions } from "./vaults.js";
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
@@ -2055,43 +2056,7 @@ async function tronMoney(
       ],
     });
   }
-  // Stake 2.0 still frozen
-  const frozen2 = (acct.frozenV2 ?? []).reduce((s, x) => s + (x.amount ?? 0), 0) / 1e6;
-  if (frozen2 > 0)
-    out.push({
-      kind: "tron",
-      protocol: "Tron Stake 2.0 freeze",
-      chainId: TRON,
-      what: `${frozen2} TRX still frozen (Stake 2.0) — unfreeze then withdrawExpireUnfreeze after wait`,
-      valueUsd: trxPx ? r2(frozen2 * trxPx) : null,
-      confidence: "high",
-      action: "UnfreezeBandwidth/UnfreezeEnergy in TronLink, wait, then withdraw",
-      link: toUsdc(TRON, nativeOf(TRON)),
-      evidence: [
-        {
-          chainId: TRON,
-          address: owner,
-          call: "getaccount.frozenV2",
-          args: [],
-          raw: JSON.stringify(acct.frozenV2 ?? []),
-        },
-      ],
-    });
-  const v1Ready =
-    (acct.frozen ?? [])
-      .filter((x) => x.expire_time <= now)
-      .reduce((s, x) => s + x.frozen_balance, 0) / 1e6;
-  if (v1Ready > 0)
-    out.push({
-      kind: "tron",
-      protocol: "Tron Stake 1.0",
-      chainId: TRON,
-      what: `${v1Ready} TRX in expired Stake 1.0 freeze (unfreezable)`,
-      valueUsd: trxPx ? r2(v1Ready * trxPx) : null,
-      confidence: "high",
-      action: "Unfreeze in your Tron wallet (UnfreezeBalance), then swap on SwapChan",
-      link: toUsdc(TRON, nativeOf(TRON)),
-    });
+  out.push(...((await tronExtras(f, env, owner, acct as never, trxPx, async (a) => pxOf(await prices(f, [{ chainId: TRON, address: a }]), TRON, a)).catch(() => [])) as Found[]));
   const v1Locked =
     (acct.frozen ?? [])
       .filter((x) => x.expire_time > now)
@@ -2107,27 +2072,6 @@ async function tronMoney(
       action: "Wait for expire_time, then UnfreezeBalance",
       link: toUsdc(TRON, nativeOf(TRON)),
     });
-  // Delegated resources
-  const delBw =
-    (acct.delegated_frozenV2_balance_for_bandwidth ??
-      acct.account_resource?.delegated_frozenV2_balance_for_bandwidth ??
-      0) / 1e6;
-  const delEn =
-    (acct.delegated_frozenV2_balance_for_energy ??
-      acct.account_resource?.delegated_frozenV2_balance_for_energy ??
-      0) / 1e6;
-  if (delBw + delEn > 0)
-    out.push({
-      kind: "tron",
-      protocol: "Tron delegated resources",
-      chainId: TRON,
-      what: `${delBw} TRX bandwidth + ${delEn} TRX energy delegated — undelegate to reclaim`,
-      valueUsd: trxPx ? r2((delBw + delEn) * trxPx) : null,
-      confidence: "medium",
-      action: "UndelegateResource in TronLink, then unfreeze/withdraw",
-      link: toUsdc(TRON, nativeOf(TRON)),
-    });
-
   // Known Tron tokens: WTRX, JST, USDJ, sTRX, stUSDT, SUN
   const KNOWN: {
     addr: string;
@@ -2138,7 +2082,6 @@ async function tronMoney(
     { addr: "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", name: "WTRX", dec: 6, kind: "unwrap" },
     { addr: "TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9", name: "JST", dec: 18, kind: "farm" },
     { addr: "TMwFHYXLJaRUPeW6421aqXL4ZEzPRFGkGT", name: "USDJ", dec: 18, kind: "stable" },
-    { addr: "TU3kjFun7CMfHPC4G34jWYdGCTKvQh6k7R", name: "sTRX", dec: 18, kind: "stake" }, // approx — may vary
     { addr: "TThzxDN6Yy1RoeQkTdBBqNqDcMfKzS6x6s", name: "stUSDT", dec: 18, kind: "stake" },
     { addr: "TSSMHYeV2uE9qYH95DqyoKmUkGSsCGWHz2", name: "SUN", dec: 18, kind: "farm" },
   ];
