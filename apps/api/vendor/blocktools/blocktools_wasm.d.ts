@@ -110,3 +110,73 @@ export function polkadotAccountStorageKey(account: string): string;
  * SCALE AccountInfo (80 bytes hex, as returned by state_getStorage) -> JSON {nonce,consumers,providers,sufficients,data:{free,reserved,frozen,flags}}; u128 as decimal strings.
  */
 export function decodeAccountInfo(hex: string): string;
+/**
+ * Base58 (Bitcoin alphabet, no checksum) of hex bytes.
+ */
+export function base58Encode(hex: string): string;
+/**
+ * Hex bytes of a base58 string; throws bad_base58.
+ */
+export function base58Decode(s: string): string;
+/**
+ * true if a base58 Solana pubkey is an ed25519 curve point (wallet), false if off-curve (PDA); throws on bad input.
+ */
+export function solIsOnCurve(addr: string): boolean;
+/**
+ * findProgramAddress. `seeds_json` = JSON array of hex strings (each <= 32 bytes, <= 15 seeds). Returns {address, bump}.
+ */
+export function solFindProgramAddress(seeds_json: string, program: string): string;
+/**
+ * Associated token account. `token_program` "" = classic SPL Token. Returns {address, bump}.
+ */
+export function solAssociatedTokenAddress(owner: string, mint: string, token_program: string): string;
+/**
+ * Anchor discriminator sha256("global:"+name)[..8] as hex.
+ */
+export function solAnchorDiscriminator(name: string): string;
+/**
+ * Decode a wire transaction (hex or base64; legacy or v0). JSON: see EXPORTS.md.
+ */
+export function solDecodeTx(raw: string): string;
+/**
+ * Verify a wire transaction against `expect_json` {owner?, to?, lamports?, mint?, amount?, allow_programs?}. Returns {ok, failures, warnings, txid, lamports, token_amount}; fails closed.
+ */
+export function solVerifyTx(raw: string, expect_json: string): string;
+/**
+ * Decode a CashAddr (prefix optional, default "bitcoincash"). Returns {prefix, type:"p2pkh"|"p2sh"|<n>, hash}.
+ */
+export function cashAddrDecode(addr: string): string;
+/**
+ * Encode a CashAddr. `kind` "p2pkh" | "p2sh"; `hash_hex` 20 (or 24..64 spec sizes) bytes.
+ */
+export function cashAddrEncode(prefix: string, kind: string, hash_hex: string): string;
+/**
+ * CashAddr -> legacy base58 address.
+ */
+export function cashAddrToLegacy(addr: string): string;
+/**
+ * Legacy base58 BCH address -> CashAddr with `prefix` ("" = bitcoincash).
+ */
+export function legacyToCashAddr(addr: string, prefix: string): string;
+/**
+ * Output script (hex) paying `addr` on UTXO `chain` (bch also takes CashAddr). Throws unknown_chain / bad_address.
+ */
+export function addressToScript(chain: string, addr: string): string;
+/**
+ * Standard output script -> {kind, address}, or null for non-standard scripts.
+ */
+export function scriptToAddress(chain: string, script_hex: string): string;
+/**
+ * Unsigned PSBT paying `to` with an OP_RETURN `memo_hex` (1..80 bytes) and change.
+ * `amount` "" = sweep all UTXOs to `to` (no change). `utxos` = JSON lines {txid,vout,amount,address}.
+ * Returns {psbt (base64), fee, vsize, outputs:[{address|null, script, value}]}; amounts are decimal strings.
+ */
+export function buildPsbtWithMemo(chain: string, utxos: string, to: string, amount: string, change: string, fee_rate: number, memo_hex: string): string;
+/**
+ * Tron txID (hex) = sha256(raw_data). Input is raw_data hex (tronweb raw_data_hex).
+ */
+export function tronTxId(raw_data_hex: string): string;
+/**
+ * Decode Tron raw_data hex or a full signed Transaction hex. JSON: see EXPORTS.md.
+ */
+export function tronDecodeTx(hex: string): string;

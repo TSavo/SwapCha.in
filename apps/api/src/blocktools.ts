@@ -2,8 +2,8 @@ import { createRequire } from "node:module";
 
 /**
  * TSavo/blocktools public API (WASM, default features: no secrets/signing), vendored in ../vendor/blocktools
- * (see vendor/blocktools/SOURCE). Loaded once; if it fails to load, every helper returns null and callers fall
- * back to the TypeScript implementation, so a bad build can never take the scanner down.
+ * (see vendor/blocktools/SOURCE). Loaded once; if it fails to load, the try-helpers return null and the need()
+ * helpers (Polkadot, Solana, ...) throw, so callers fail closed rather than fall back to unverified TS.
  */
 type Wasm = {
   version(): string;
@@ -37,6 +37,31 @@ type Wasm = {
   ss58Decode(addr: string): string;
   polkadotAccountStorageKey(account: string): string;
   decodeAccountInfo(hex: string): string;
+  base58Encode(hex: string): string;
+  base58Decode(s: string): string;
+  solIsOnCurve(addr: string): boolean;
+  solFindProgramAddress(seedsJson: string, program: string): string;
+  solAssociatedTokenAddress(owner: string, mint: string, tokenProgram: string): string;
+  solAnchorDiscriminator(name: string): string;
+  solDecodeTx(raw: string): string;
+  solVerifyTx(raw: string, expectJson: string): string;
+  cashAddrDecode(addr: string): string;
+  cashAddrEncode(prefix: string, kind: string, hashHex: string): string;
+  cashAddrToLegacy(addr: string): string;
+  legacyToCashAddr(addr: string, prefix: string): string;
+  addressToScript(chain: string, addr: string): string;
+  scriptToAddress(chain: string, scriptHex: string): string;
+  buildPsbtWithMemo(
+    chain: string,
+    utxos: string,
+    to: string,
+    amount: string,
+    change: string,
+    feeRate: number,
+    memoHex: string,
+  ): string;
+  tronTxId(rawDataHex: string): string;
+  tronDecodeTx(hex: string): string;
   addressesFromXpub(
     xpub: string,
     chain: string,
@@ -253,3 +278,37 @@ export function btDecodeAccountInfo(hex: string): {
     frozen: BigInt(j.data.frozen),
   };
 }
+
+/** Solana / base58 helpers (blocktools 66dc76c). Fail closed: throw when the WASM is unavailable, no TS fallback. */
+const hexOf = (b: Uint8Array) => Buffer.from(b).toString("hex");
+/** Bitcoin-alphabet base58 of raw bytes. */
+export const btB58Encode = (b: Uint8Array) => need().base58Encode(hexOf(b));
+/** Raw bytes of a bitcoin-alphabet base58 string; throws bad_base58. */
+export const btB58Decode = (s: string) =>
+  Uint8Array.from(Buffer.from(need().base58Decode(s), "hex"));
+/** Is this 32-byte string a valid ed25519 point (a wallet key)? PDAs are off-curve. */
+export const btSolOnCurve = (b: Uint8Array) => need().solIsOnCurve(btB58Encode(b));
+/** findProgramAddress: highest-bump off-curve sha256(seeds|bump|program|"ProgramDerivedAddress"). */
+export function btSolPda(seeds: Uint8Array[], program: string): { address: string; bump: number } {
+  return JSON.parse(need().solFindProgramAddress(JSON.stringify(seeds.map(hexOf)), program));
+}
+/** Associated token account of owner for mint (tokenProgram omitted = classic SPL Token). */
+export const btSolAta = (owner: string, mint: string, tokenProgram = "") =>
+  (JSON.parse(need().solAssociatedTokenAddress(owner, mint, tokenProgram)) as { address: string })
+    .address;
+/** Anchor instruction discriminator: first 8 bytes (hex) of sha256("global:<name>"). */
+export const btSolAnchorDisc = (name: string) => need().solAnchorDiscriminator(name);
+export type BtSolTx = {
+  version: "legacy" | 0;
+  txid: string;
+  fee_payer: string;
+  recent_blockhash: string;
+  num_required_signatures: number;
+  accounts: { pubkey: string; signer: boolean; writable: boolean }[];
+  address_table_lookups: { table: string; writable: number[]; readonly: number[] }[];
+  instructions: ({ program: string; kind: string } & Record<string, unknown>)[];
+  signatures: { signer: string; status: "valid" | "invalid" | "unsigned" }[];
+  message_hex: string;
+};
+/** Decode a Solana wire tx (hex or base64; legacy or v0). Throws on malformed input. */
+export const btSolDecodeTx = (raw: string) => JSON.parse(need().solDecodeTx(raw)) as BtSolTx;
