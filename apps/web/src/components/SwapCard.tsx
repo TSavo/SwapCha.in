@@ -126,7 +126,7 @@ export function SwapCard({
 
   const fromVm = vmOf(fromChain);
   const toVm = vmOf(toChain);
-  // Who signs: EVM (wagmi), Solana + Bitcoin (AppKit), Tron (TronLink injected).
+  // Who signs: EVM (wagmi), Solana + Bitcoin (AppKit), Tron (tronwallet-adapters, loaded on demand).
   const addrFor = (vm: Vm) =>
     vm === "evm"
       ? evmAddress
@@ -138,6 +138,11 @@ export function SwapCard({
   const address: string | undefined = addrFor(fromVm);
   const ownOnDest = addrFor(toVm);
   const needsRecipient = toVm !== fromVm;
+  // Load Tron wallet adapters only once the user actually picks Tron.
+  const loadTron = tron.load;
+  useEffect(() => {
+    if (fromVm === "tvm") loadTron();
+  }, [fromVm, loadTron]);
   const recipient = needsRecipient ? recipientInput.trim() || ownOnDest || "" : "";
   const recipientInvalid = needsRecipient && recipient !== "" && !isVmAddress(recipient, toVm);
 
@@ -574,7 +579,7 @@ export function SwapCard({
           ? { label: "Connect a Bitcoin wallet", action: btc.open }
           : fromVm === "tvm"
             ? {
-                label: tron.available ? "Connect TronLink" : "Install TronLink to send TRX",
+                label: "Connect a Tron wallet",
                 action: tron.open,
               }
             : { label: "Connect wallet to swap" };

@@ -4,6 +4,7 @@ import { createAppKit } from "@reown/appkit/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { WagmiProvider } from "wagmi";
+import { TronPicker } from "@/components/TronPicker";
 import { appKitOptions } from "@/lib/appkitConfig";
 import {
   bitcoinAdapter,
@@ -27,7 +28,10 @@ export function Providers({ children }: { children: ReactNode }) {
   const [qc] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1 } } }));
   return (
     <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+      <QueryClientProvider client={qc}>
+        {children}
+        <TronPicker />
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }
