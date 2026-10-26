@@ -9,13 +9,12 @@ import {
   formatEther,
   type Hex,
   isAddress,
-  keccak256,
   parseAbi,
   parseTransaction,
   recoverTransactionAddress,
   type TransactionSerialized,
 } from "viem";
-import { type BtSolTx, blocktools, btSolDecodeTx } from "./blocktools.js";
+import { type BtSolTx, blocktools, btKeccak256, btSolDecodeTx } from "./blocktools.js";
 import { recoveryGuide, type Situation } from "./keyrecovery.js";
 import { BadRequest, chainName, EXPLORER, evmClient, json, SITE, solRpc } from "./onchain.js";
 import { verifyRecovery } from "./recover.js";
@@ -692,7 +691,7 @@ export async function broadcastTx(
     throw new BadRequest(`signed for chain ${p.chainId}, not ${chainId}`);
   if (!p.r || !p.s) throw new BadRequest("tx is not signed");
   const from = await recoverTransactionAddress({ serializedTransaction: raw as never });
-  const hash = keccak256(raw);
+  const hash = btKeccak256(raw);
   const v = p.to
     ? await verifyEvm(f, env, chainId, {
         from,

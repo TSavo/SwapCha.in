@@ -1,5 +1,6 @@
 import { NATIVE_TOKEN } from "@swapchan/shared";
-import { encodeFunctionData, formatEther, getAddress, keccak256, parseAbiItem, toHex } from "viem";
+import { encodeFunctionData, formatEther, getAddress, parseAbiItem } from "viem";
+import { btTopic } from "./blocktools.js";
 import { evmClient, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
 
@@ -7,7 +8,7 @@ type F = typeof fetch;
 /** ENS auction registrar (2017-2019). Each .eth bid locked ETH in a Deed contract; after the 2019 migration the deed
  *  owner can still call releaseDeed(labelHash) on this registrar to get the whole deposit back. */
 export const OLD_REGISTRAR = "0x6090A6e47849629b7245Dfa1Ca21D94cd15878Ef";
-export const HASH_REGISTERED = keccak256(toHex("HashRegistered(bytes32,address,uint256,uint256)"));
+export const HASH_REGISTERED = btTopic("HashRegistered(bytes32,address,uint256,uint256)");
 const ENTRIES = parseAbiItem(
   "function entries(bytes32) view returns (uint8, address, uint256, uint256, uint256)",
 );

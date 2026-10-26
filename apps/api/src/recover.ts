@@ -1,14 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { NATIVE_TOKEN, SOLANA, SUPPORTED_CHAINS } from "@swapchan/shared";
-import {
-  encodeFunctionData,
-  formatUnits,
-  getAddress,
-  parseAbiItem,
-  toFunctionSelector,
-  toHex,
-} from "viem";
-import { type BtVerdict, btVerifyRecovery } from "./blocktools.js";
+import { encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
+import { type BtVerdict, btSelector, btVerifyRecovery } from "./blocktools.js";
 import {
   chainName,
   evmClient,
@@ -162,7 +155,7 @@ export function recoveryInfo(
   const tx = it.claimTx as RecoveryTx | undefined;
   if (!tx || !("data" in (tx as object))) return undefined;
   const sel = tx.data.slice(0, 10).toLowerCase();
-  const m = STANDARD_RECOVERY.find((r) => toFunctionSelector(`function ${r.sig}`) === sel);
+  const m = STANDARD_RECOVERY.find((r) => btSelector(r.sig) === sel);
   const ex = EXPLORERS[tx.chainId];
   return {
     contract: {

@@ -239,3 +239,15 @@ export function buildEvmTransfer(req_json: string): string;
  * SwapChan coin selection: own script only, drop value < rate×148×20 (fee > 5%), largest first, max 200 inputs.
  */
 export function selectUtxos(utxos_json: string, script_hex: string, fee_rate: number): string;
+/**
+ * keccak256 of hex bytes -> "0x" + 64 hex.
+ */
+export function evmKeccak256(data_hex: string): string;
+/**
+ * Selector / topic of one Solidity signature. JSON: see EXPORTS.md.
+ */
+export function evmSigHash(signature: string): string;
+/**
+ * Reverse lookup of a selector/topic among caller-supplied signatures (ABI JSON or one per line).
+ */
+export function evmSigLookup(hash_hex: string, sigs_text: string): string;

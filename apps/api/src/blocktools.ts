@@ -37,6 +37,10 @@ type Wasm = {
   ): string;
   decodeTx(input: string, chain: string): string;
   blake2b(dataHex: string, outLen: number, personal: string): string;
+  /** 7a2f4c7: keccak-256 of hex bytes -> 0x + 64 hex */
+  evmKeccak256(dataHex: string): string;
+  /** 7a2f4c7: selector/topic JSON of one Solidity signature */
+  evmSigHash(signature: string): string;
   twox128(text: string): string;
   ss58Encode(accountHex: string, prefix: number): string;
   ss58Decode(addr: string): string;
@@ -314,6 +318,24 @@ export const btSolAta = (owner: string, mint: string, tokenProgram = "") =>
   (JSON.parse(need().solAssociatedTokenAddress(owner, mint, tokenProgram)) as { address: string })
     .address;
 /** Anchor instruction discriminator: first 8 bytes (hex) of sha256("global:<name>"). */
+/** EVM hashing (blocktools 7a2f4c7). Fail closed: throw when the WASM is unavailable, no TS fallback. */
+type Hex = `0x${string}`;
+/** keccak-256 of hex bytes (0x optional). */
+export const btKeccak256 = (dataHex: string): Hex => need().evmKeccak256(dataHex) as Hex;
+const sigHash = (sig: string) =>
+  JSON.parse(need().evmSigHash(sig)) as { kind: string; selector?: Hex; topic?: Hex };
+/** 4-byte function selector of a signature ("transfer(address,uint256)" or "function ..."). */
+export const btSelector = (sig: string): Hex => {
+  const r = sigHash(sig);
+  if (!r.selector) throw new Error(`no selector for ${sig}`);
+  return r.selector;
+};
+/** 32-byte event topic of an event signature (without the "event " keyword). */
+export const btTopic = (sig: string): Hex => {
+  const r = sigHash(`event ${sig}`);
+  if (!r.topic) throw new Error(`no topic for ${sig}`);
+  return r.topic;
+};
 export const btSolAnchorDisc = (name: string) => need().solAnchorDiscriminator(name);
 export type BtSolTx = {
   version: "legacy" | 0;
