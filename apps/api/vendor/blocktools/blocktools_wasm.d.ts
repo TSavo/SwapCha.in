@@ -251,3 +251,27 @@ export function evmSigHash(signature: string): string;
  * Reverse lookup of a selector/topic among caller-supplied signatures (ABI JSON or one per line).
  */
 export function evmSigLookup(hash_hex: string, sigs_text: string): string;
+/**
+ * Decode calldata / returndata / revert data / one log. Request JSON {input, sig?, abi?, types?, output?}.
+ */
+export function evmAbiDecode(request_json: string): string;
+/**
+ * ABI-encode calldata or a bare type list. Request JSON {sig, args:[..]}.
+ */
+export function evmAbiEncode(request_json: string): string;
+/**
+ * CREATE / CREATE2 contract address. Request JSON {deployer, nonce} or {deployer, salt, init_code_hash | init_code}; a tx (from, nonce) also works.
+ */
+export function evmCreateAddress(request_json: string): string;
+/**
+ * Inspect an ABI (JSON or signature lines): items with selectors/topics, selector collisions, ERC-165/ERC-20 interfaces.
+ */
+export function evmAbiInspect(abi_text: string): string;
+/**
+ * Classify runtime bytecode (EIP-1167 / EIP-7702 / EOF), EIP-170 size, Solidity metadata, opcode counts, selector candidates.
+ */
+export function evmBytecodeInspect(code_hex: string): string;
+/**
+ * EIP-712 typed data: encodeType, domain separator, message hash, digest; with a signature (65-byte or EIP-2098 64-byte) the recovered signer; with an expected signer a verdict.
+ */
+export function evmTypedDataVerify(typed_data_json: string, sig_hex?: string | null, signer?: string | null): string;

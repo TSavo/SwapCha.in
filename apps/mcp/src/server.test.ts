@@ -142,6 +142,10 @@ describe("swapchan mcp over streamable http", () => {
         "hash_tool",
         "chain_params",
         "tron_tx",
+        "evm_abi",
+        "create_address",
+        "bytecode_inspect",
+        "typed_data_verify",
         "supported_chains",
       ].sort(),
     );
@@ -390,10 +394,14 @@ describe("swapchan mcp over streamable http", () => {
         "hash_tool",
         "chain_params",
         "tron_tx",
+        "evm_abi",
+        "create_address",
+        "bytecode_inspect",
+        "typed_data_verify",
         "supported_chains",
       ].includes(t.name),
     );
-    expect(dev).toHaveLength(8);
+    expect(dev).toHaveLength(12);
     for (const t of dev) {
       expect(t.annotations?.readOnlyHint).toBe(true);
       expect(t.annotations?.destructiveHint).toBe(false);

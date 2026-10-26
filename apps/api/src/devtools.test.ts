@@ -217,10 +217,16 @@ describe("dev tools (blocktools, public input only)", () => {
   });
 
   it("no signing, recovery, raw-tx or secret functionality is exposed", () => {
-    for (const k of Object.keys(DEV_TOOLS))
+    // One named exception: typed-data-verify checks a PUBLIC signature over PUBLIC EIP-712 data
+    // (digest + signer recovery run in blocktools). It never signs, takes no key, and no tx.
+    const PUBLIC_SIG_CHECK = new Set(["typed-data-verify"]);
+    for (const k of Object.keys(DEV_TOOLS).filter((k) => !PUBLIC_SIG_CHECK.has(k)))
       expect(k).not.toMatch(
         /sign|sweep|recover|seed|key(?!$)|keystore|decode-tx|verify|psbt|wif|derive-priv/,
       );
+    expect(
+      runDevTool("typed-data-verify", { typed_data: "{}", private_key: "00".repeat(32) }),
+    ).toMatchObject({ ok: false, error_code: "secret_input_refused" });
     expect(runDevTool("buildUnsignedSweep", {})).toMatchObject({
       ok: false,
       error_code: "unknown_tool",

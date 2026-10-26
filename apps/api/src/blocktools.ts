@@ -41,6 +41,15 @@ type Wasm = {
   evmKeccak256(dataHex: string): string;
   /** 7a2f4c7: selector/topic JSON of one Solidity signature */
   evmSigHash(signature: string): string;
+  /** 4e4a404: ABI encode/decode/inspect and CREATE/CREATE2 addresses (request JSON in, JSON out) */
+  evmAbiEncode(requestJson: string): string;
+  evmAbiDecode(requestJson: string): string;
+  evmAbiInspect(abiText: string): string;
+  evmCreateAddress(requestJson: string): string;
+  /** 5dd2037: runtime bytecode classification (EIP-1167 / EIP-7702 / EOF), EIP-170 size, keccak256 */
+  evmBytecodeInspect(codeHex: string): string;
+  /** 69e09b9: EIP-712 digest; with a signature the recovered signer; with an expected signer a verdict */
+  evmTypedDataVerify(typedDataJson: string, sigHex?: string | null, signer?: string | null): string;
   twox128(text: string): string;
   ss58Encode(accountHex: string, prefix: number): string;
   ss58Decode(addr: string): string;

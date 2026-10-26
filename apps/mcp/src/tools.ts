@@ -2355,6 +2355,72 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
   );
 
   server.registerTool(
+    "evm_abi",
+    {
+      title: "EVM ABI encode / decode / inspect (dev tool)",
+      description: `Solidity ABI work on public data: op=encode (sig like transfer(address,uint256) + args as a JSON list → selector + calldata), decode (input hex + sig or abi → named args; with types like (uint256,address) decodes return data; output=true decodes a function's return data; reverts and panics are recognised), inspect (abi JSON or one human-readable signature per line → functions/events/errors with selectors, selector collisions, ERC-165/20/721/1155 detection). Strict: non-canonical encodings are refused. ${OFFLINE}`,
+      inputSchema: z.object({
+        op: z.enum(["encode", "decode", "inspect"]),
+        sig: pub(512).optional(),
+        args: pub(12000).optional().describe("JSON list of arguments"),
+        input: pub(12000).optional(),
+        abi: pub(12000).optional(),
+        types: pub(512).optional(),
+        output: z.boolean().optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({
+      encode: ["evm-abi", "encode"],
+      decode: ["evm-abi", "decode"],
+      inspect: ["evm-abi", "inspect"],
+    }),
+  );
+
+  server.registerTool(
+    "create_address",
+    {
+      title: "CREATE / CREATE2 contract address (dev tool)",
+      description: `Predict a contract's deployment address: deployer + nonce (CREATE), or deployer (factory) + 32-byte salt + init_code or init_code_hash (CREATE2, EIP-1014). Returns the EIP-55 address. ${OFFLINE}`,
+      inputSchema: z.object({
+        deployer: pub(64),
+        nonce: z.union([z.number().int().nonnegative(), pub(24)]).optional(),
+        salt: pub(80).optional(),
+        init_code_hash: pub(80).optional(),
+        init_code: pub(12000).optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({ "": ["create-address"] }),
+  );
+
+  server.registerTool(
+    "bytecode_inspect",
+    {
+      title: "Inspect EVM runtime bytecode (dev tool)",
+      description: `Classify contract runtime code (eth_getCode hex): EIP-1167 minimal proxy + implementation, EIP-7702 delegation + delegate, EOF, size vs the EIP-170 24576-byte limit, code keccak-256, Solidity metadata (compiler, IPFS hash), notable opcode counts, and heuristic function-selector candidates. ${OFFLINE}`,
+      inputSchema: z.object({ code: pub(59000) }),
+      annotations: devAnn,
+    },
+    dev({ "": ["bytecode-inspect"] }),
+  );
+
+  server.registerTool(
+    "typed_data_verify",
+    {
+      title: "EIP-712 typed data hash / signer check (dev tool)",
+      description: `Hash EIP-712 typed data (typed_data as JSON text, as passed to eth_signTypedData_v4): encoded type, domain separator, struct hash and digest. With an existing public signature (65-byte or EIP-2098 64-byte) it recovers the signer address and low_s flag; with signer it reports valid or signer_mismatch. Checks existing signatures only; never signs. ${OFFLINE}`,
+      inputSchema: z.object({
+        typed_data: pub(15000),
+        signature: pub(140).optional(),
+        signer: pub(64).optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({ "": ["typed-data-verify"] }),
+  );
+
+  server.registerTool(
     "supported_chains",
     {
       title: "Supported chains: verified / unverified (dev tool)",
