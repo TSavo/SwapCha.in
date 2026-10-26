@@ -5,7 +5,7 @@ import { decodeFunctionData, formatEther, parseAbi } from "viem";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { SpeechBubble } from "@/components/Character";
 import { ConnectButton } from "@/components/ConnectButton";
-import { describeCall } from "@/lib/callSummary";
+import { describeCall, explorerAddressUrl } from "@/lib/callSummary";
 import { localCallPaysOwner } from "@/lib/recoverCheck";
 import { RelatedTools } from "./RelatedTools";
 
@@ -98,7 +98,23 @@ export function Recover(p: {
             {CHAINS[p.chain] ?? p.chain} ({p.chain})
           </dd>
           <dt className="text-violet-400">to</dt>
-          <dd data-testid="to">{p.to}</dd>
+          <dd data-testid="to">
+            {p.to}
+            {explorerAddressUrl(Number(p.chain), p.to) && (
+              <>
+                {" "}
+                <a
+                  href={explorerAddressUrl(Number(p.chain), p.to)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                  data-testid="to-explorer"
+                >
+                  explorer
+                </a>
+              </>
+            )}
+          </dd>
           <dt className="text-violet-400">function</dt>
           <dd data-testid="function">
             {sig.fn ?? (remote?.verified && remote.call) ?? "unknown"} [{sig.selector}]

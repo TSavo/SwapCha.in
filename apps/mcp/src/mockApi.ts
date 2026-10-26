@@ -172,6 +172,26 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
               estimateKind: "exact",
               swapUrl: "https://swapchan.com/?fromChain=1",
               shortUrl: "https://swapchan.com/s/100",
+              steps: [
+                {
+                  step: 1,
+                  kind: "recover",
+                  label: "Sign the recovery",
+                  call: {
+                    chainId: 1,
+                    chain: "Ethereum",
+                    contract: "0xB3775fB83F7D12A36E0475aBdD1FCA35c091efBe",
+                    contractExplorerUrl:
+                      "https://etherscan.io/address/0xB3775fB83F7D12A36E0475aBdD1FCA35c091efBe",
+                    selector: "0x3ccfd60b",
+                    function: "withdraw",
+                    signature: "withdraw()",
+                    args: [],
+                    plain:
+                      "Calls withdraw() [selector 0x3ccfd60b] on contract 0xB3775fB83F7D12A36E0475aBdD1FCA35c091efBe on Ethereum with no arguments.",
+                  },
+                },
+              ],
             },
           ],
           next: { label: "#1: PoWH3D", swapUrl: "https://swapchan.com/?fromChain=1" },

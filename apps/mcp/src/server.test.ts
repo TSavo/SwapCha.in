@@ -156,6 +156,11 @@ describe("swapchan mcp over streamable http", () => {
     const c = await connect();
     const m = data(await c.callTool({ name: "find_money", arguments: { address: "vitalik.eth" } }));
     expect(m.items[0].shortUrl).toBe("https://swapchan.com/s/100");
+    expect(m.items[0].steps[0].call).toMatchObject({
+      selector: "0x3ccfd60b",
+      signature: "withdraw()",
+    });
+    expect(JSON.stringify(m)).toContain("signing it: Calls withdraw() [selector 0x3ccfd60b]");
     expect(m.swapUrl).toContain("swapchan.com");
     const l = data(
       await c.callTool({
