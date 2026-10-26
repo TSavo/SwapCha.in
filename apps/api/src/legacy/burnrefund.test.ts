@@ -11,7 +11,13 @@ import {
   validBurnRefund,
   verifyApproval,
 } from "./burnrefund.js";
-import { REGISTRY, REGISTRY_ALLOWLIST, REGISTRY_APPROVALS, scanned, scanRegistry } from "./registry.js";
+import {
+  REGISTRY,
+  REGISTRY_ALLOWLIST,
+  REGISTRY_APPROVALS,
+  scanned,
+  scanRegistry,
+} from "./registry.js";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as const;
 const pr2 = () => scanned().filter((e) => !["etherdelta-dex", "fomo3d"].includes(e.family));
@@ -60,26 +66,53 @@ describe("PR 2 families: data", () => {
     const dgd = BURN_SPECS.digixdao!.token;
     const ap = (sp: `0x${string}`, amt: bigint) =>
       encodeFunctionData({ abi: [APPROVE], functionName: "approve", args: [sp, amt] });
-    expect(verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "0" }).verified).toBe(true);
-    expect(verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, maxUint256), value: "0" }).verified).toBe(false);
-    expect(verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 0n), value: "0" }).verified).toBe(false);
+    expect(
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "0" }).verified,
+    ).toBe(true);
+    expect(
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, maxUint256), value: "0" }).verified,
+    ).toBe(false);
+    expect(
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 0n), value: "0" }).verified,
+    ).toBe(false);
     expect(verifyClaimTx({ to: dgd, data: ap(OWNER, 5n), value: "0" }).verified).toBe(false);
-    expect(verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "1" }).verified).toBe(false);
-    expect(verifyApproval(REGISTRY_APPROVALS, { to: OWNER, data: ap(acid as `0x${string}`, 5n), value: "0" })).toBe(false);
+    expect(
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "1" }).verified,
+    ).toBe(false);
+    expect(
+      verifyApproval(REGISTRY_APPROVALS, {
+        to: OWNER,
+        data: ap(acid as `0x${string}`, 5n),
+        value: "0",
+      }),
+    ).toBe(false);
     const v = pr2().find((e) => e.family === "refund-claim")!;
-    expect(verifyClaimTx({ to: v.address, data: btSelector("claimRefund()"), value: "0" }).verified).toBe(true);
-    expect(verifyClaimTx({ to: v.vault!, data: btSelector("claimRefund()"), value: "0" }).verified).toBe(false);
+    expect(
+      verifyClaimTx({ to: v.address, data: btSelector("claimRefund()"), value: "0" }).verified,
+    ).toBe(true);
+    expect(
+      verifyClaimTx({ to: v.vault!, data: btSelector("claimRefund()"), value: "0" }).verified,
+    ).toBe(false);
   });
   it("owed amounts come from the on-chain rate", () => {
-    expect(burnOwed(BURN_SPECS.digixdao!, 9992152664310n, 193054178n)).toBe(1929026819058876987180n);
-    expect(burnOwed(BURN_SPECS.delphi_redemption!, 322952n * 10n ** 18n, 2410n)).toBe(134004979253112033195n);
-    expect(burnOwed(BURN_SPECS.quantfury_qdt!, 10668979849728n, 4715436n)).toBe(50308891666682001408n);
+    expect(burnOwed(BURN_SPECS.digixdao!, 9992152664310n, 193054178n)).toBe(
+      1929026819058876987180n,
+    );
+    expect(burnOwed(BURN_SPECS.delphi_redemption!, 322952n * 10n ** 18n, 2410n)).toBe(
+      134004979253112033195n,
+    );
+    expect(burnOwed(BURN_SPECS.quantfury_qdt!, 10668979849728n, 4715436n)).toBe(
+      50308891666682001408n,
+    );
     expect(burnOwed(BURN_SPECS.aave_v1!, 7n, null)).toBe(7n);
     expect(burnOwed(BURN_SPECS.digixdao!, 1n, null)).toBeNull(); // failed rate read fails closed
   });
 });
 
-type MC = { contracts: { address: string; functionName: string; args?: unknown[] }[]; blockNumber?: bigint };
+type MC = {
+  contracts: { address: string; functionName: string; args?: unknown[] }[];
+  blockNumber?: bigint;
+};
 function client(o: {
   owe?: Record<string, bigint>;
   vaultOverride?: string;
@@ -97,13 +130,18 @@ function client(o: {
       return a.contracts.map((x) => {
         if (x.functionName === o.failFn) return { status: "failure", error: new Error("x") };
         const e = REGISTRY.find(
-          (r) => r.address.toLowerCase() === x.address.toLowerCase() || r.vault?.toLowerCase() === x.address.toLowerCase(),
+          (r) =>
+            r.address.toLowerCase() === x.address.toLowerCase() ||
+            r.vault?.toLowerCase() === x.address.toLowerCase(),
         );
-        if (x.functionName === "vault") return { status: "success", result: o.vaultOverride ?? e?.vault };
+        if (x.functionName === "vault")
+          return { status: "success", result: o.vaultOverride ?? e?.vault };
         if (x.functionName === "allowance") return { status: "success", result: o.allowance ?? 0n };
         if (["weiPerNanoDGD", "exchangeRate", "getPrice"].includes(x.functionName))
           return { status: "success", result: 2n };
-        const k = Object.entries(BURN_SPECS).find(([, s]) => s.token.toLowerCase() === x.address.toLowerCase())?.[0];
+        const k = Object.entries(BURN_SPECS).find(
+          ([, s]) => s.token.toLowerCase() === x.address.toLowerCase(),
+        )?.[0];
         return { status: "success", result: o.owe?.[k ?? e?.key ?? ""] ?? 0n };
       });
     },
@@ -121,7 +159,13 @@ function client(o: {
           request: async (a: { params: [{ blockStateCalls: [{ calls: unknown[] }] }, string] }) => {
             sims.push(a);
             const n = a.params[0].blockStateCalls[0].calls.length;
-            return [{ calls: Array.from({ length: n }, () => ({ status: o.simOk === false ? "0x0" : "0x1" })) }];
+            return [
+              {
+                calls: Array.from({ length: n }, () => ({
+                  status: o.simOk === false ? "0x0" : "0x1",
+                })),
+              },
+            ];
           },
         }),
   };
@@ -137,7 +181,11 @@ describe("scanBurnRefund (mocked reads)", () => {
     expect(r.hits.length).toBe(1);
     const h = r.hits[0]!;
     expect(h.claimable).toBe(true);
-    expect(h.tx).toMatchObject({ to: vaultRow.address, data: btSelector("claimRefund()"), value: "0" });
+    expect(h.tx).toMatchObject({
+      to: vaultRow.address,
+      data: btSelector("claimRefund()"),
+      value: "0",
+    });
     expect(h.evidence.some((e) => e.call === "deposited(address)" && e.block === "77")).toBe(true);
     expect(verifyClaimTx(h.tx!).verified).toBe(true);
   });
@@ -164,13 +212,22 @@ describe("scanBurnRefund (mocked reads)", () => {
     expect(h.step).toBe(1);
     expect(h.tx!.to.toLowerCase()).toBe(BURN_SPECS.digixdao!.token.toLowerCase());
     expect(h.tx!.data).toBe(
-      encodeFunctionData({ abi: [APPROVE], functionName: "approve", args: [BURN_SPECS.digixdao!.claimTo, 1000n] }),
+      encodeFunctionData({
+        abi: [APPROVE],
+        functionName: "approve",
+        args: [BURN_SPECS.digixdao!.claimTo, 1000n],
+      }),
     );
     expect(verifyClaimTx(h.tx!).verified).toBe(true);
     expect(sims.length).toBe(1);
   });
   it("two-step burn: once approved, step 2 is the claim", async () => {
-    const r = await scanBurnRefund(client({ owe: { digixdao: 1000n }, allowance: 1000n }).c, OWNER, 5n, pr2());
+    const r = await scanBurnRefund(
+      client({ owe: { digixdao: 1000n }, allowance: 1000n }).c,
+      OWNER,
+      5n,
+      pr2(),
+    );
     const h = r.hits.find((x) => x.entry.key === "digixdao")!;
     expect(h.step).toBe(2);
     expect(h.tx).toMatchObject({ to: BURN_SPECS.digixdao!.claimTo, data: btSelector("burn()") });
@@ -178,12 +235,22 @@ describe("scanBurnRefund (mocked reads)", () => {
   });
   it("two-step burn fails closed without eth_simulateV1 or when it reverts", async () => {
     for (const o of [{ noRequest: true }, { simOk: false }]) {
-      const r = await scanBurnRefund(client({ owe: { digixdao: 1000n }, ...o }).c, OWNER, 5n, pr2());
+      const r = await scanBurnRefund(
+        client({ owe: { digixdao: 1000n }, ...o }).c,
+        OWNER,
+        5n,
+        pr2(),
+      );
       expect(r.hits.find((x) => x.entry.key === "digixdao")!.tx).toBeUndefined();
     }
   });
   it("failed rate read is not checked, never zero", async () => {
-    const r = await scanBurnRefund(client({ owe: { digixdao: 1000n }, failFn: "weiPerNanoDGD" }).c, OWNER, 5n, pr2());
+    const r = await scanBurnRefund(
+      client({ owe: { digixdao: 1000n }, failFn: "weiPerNanoDGD" }).c,
+      OWNER,
+      5n,
+      pr2(),
+    );
     expect(r.failed).toContain("DigixDAO");
     expect(r.hits.find((x) => x.entry.key === "digixdao")).toBeUndefined();
   });

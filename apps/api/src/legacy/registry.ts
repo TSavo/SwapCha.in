@@ -104,7 +104,7 @@ export interface RegistryHit {
   simOk: boolean;
   claimable: boolean;
   /** two-step flows: 1 = the approval is next, 2 = the claim is next */
-  step?: 1 | 2;
+  step?: 1 | 2 | undefined;
   labels: string[];
   tx?: { chainId: 1; to: string; data: `0x${string}`; value: "0"; description: string };
   evidence: Evidence[];
@@ -265,7 +265,12 @@ export async function scanRegistry(
     owner,
     block,
     scanned().filter((e) => !validPr1(e)),
-  ).catch(() => ({ hits: [], failed: scanned().filter((e) => !validPr1(e)).map((e) => e.name) }));
+  ).catch(() => ({
+    hits: [],
+    failed: scanned()
+      .filter((e) => !validPr1(e))
+      .map((e) => e.name),
+  }));
   failed.push(...br.failed);
   for (const b of br.hits) hits.push({ ...b, labels: labels(b.entry, b.owedWei, b.heldWei) });
   const notChecked: string[] = [];

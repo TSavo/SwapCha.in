@@ -49,7 +49,11 @@ export interface BurnSpec {
   /** contract that pays the ETH (its balance must cover the claim) */
   payer: `0x${string}`;
   /** on-chain rate read and how the ETH owed follows from the token balance */
-  rate?: { on: `0x${string}`; fn: "weiPerNanoDGD" | "exchangeRate" | "getPrice"; op: "mul" | "div" };
+  rate?: {
+    on: `0x${string}`;
+    fn: "weiPerNanoDGD" | "exchangeRate" | "getPrice";
+    op: "mul" | "div";
+  };
   claimName: string;
 }
 /** Pinned per contract (keyed by registry key); the data file can only switch an entry on, not change these. */
@@ -105,7 +109,8 @@ export function validBurnRefund(e: RegistryEntry): boolean {
   }
   const c = REFUND_CLAIM[e.family];
   if (!c || e.claim !== c || !e.view || !REFUND_VIEWS.has(e.view)) return false;
-  if (e.viewOn === "vault") return e.family === "refund-claim" && /^0x[0-9a-fA-F]{40}$/.test(e.vault ?? "");
+  if (e.viewOn === "vault")
+    return e.family === "refund-claim" && /^0x[0-9a-fA-F]{40}$/.test(e.vault ?? "");
   return e.viewOn === "self";
 }
 /** (contract, exact selector) pairs these families may build. */
@@ -173,7 +178,7 @@ export interface BRHit {
   simOk: boolean;
   claimable: boolean;
   /** 1 = approval is the next step, 2 = the claim (single-step claims are 2 of 2 implicitly) */
-  step?: 1 | 2;
+  step?: 1 | 2 | undefined;
   tx?: { chainId: 1; to: string; data: `0x${string}`; value: "0"; description: string };
   evidence: Evidence[];
 }
@@ -246,16 +251,37 @@ export async function scanBurnRefund(
     const fn = e.view!.split("(")[0]!;
     add({ e, what: "owed", address: tgt, call: e.view!, args: [owner] }, V(e.view!), fn, [owner]);
     if (e.viewOn === "vault")
-      add({ e, what: "vault", address: e.address, call: "vault()", args: [] }, ABI.vault, "vault", []);
+      add(
+        { e, what: "vault", address: e.address, call: "vault()", args: [] },
+        ABI.vault,
+        "vault",
+        [],
+      );
   }
   for (const e of burns) {
     const s = BURN_SPECS[e.key]!;
-    add({ e, what: "bal", address: s.token, call: "balanceOf(address)", args: [owner] }, ABI.bal, "balanceOf", [owner]);
+    add(
+      { e, what: "bal", address: s.token, call: "balanceOf(address)", args: [owner] },
+      ABI.bal,
+      "balanceOf",
+      [owner],
+    );
     if (s.rate)
-      add({ e, what: "rate", address: s.rate.on, call: `${s.rate.fn}()`, args: [] }, V(`${s.rate.fn}()`), s.rate.fn, []);
+      add(
+        { e, what: "rate", address: s.rate.on, call: `${s.rate.fn}()`, args: [] },
+        V(`${s.rate.fn}()`),
+        s.rate.fn,
+        [],
+      );
     if (s.approve)
       add(
-        { e, what: "allow", address: s.token, call: "allowance(address,address)", args: [owner, s.claimTo] },
+        {
+          e,
+          what: "allow",
+          address: s.token,
+          call: "allowance(address,address)",
+          args: [owner, s.claimTo],
+        },
         ABI.allowance,
         "allowance",
         [owner, s.claimTo],
@@ -282,8 +308,8 @@ export async function scanBurnRefund(
     payer: string;
     to: string;
     data: `0x${string}`;
-    step?: 1 | 2;
-    twoStepSim?: { to: string; data: string }[];
+    step?: 1 | 2 | undefined;
+    twoStepSim?: { to: string; data: string }[] | undefined;
     desc: string;
     evidence: Evidence[];
   }[] = [];
@@ -329,7 +355,11 @@ export async function scanBurnRefund(
     ) as `0x${string}`;
     const needApprove = s.approve && (m.allow!.v as bigint) < bal;
     const approveData = needApprove
-      ? (encodeFunctionData({ abi: [ABI.approve], functionName: "approve", args: [s.claimTo, bal] }) as `0x${string}`)
+      ? (encodeFunctionData({
+          abi: [ABI.approve],
+          functionName: "approve",
+          args: [s.claimTo, bal],
+        }) as `0x${string}`)
       : undefined;
     todo.push({
       e,
