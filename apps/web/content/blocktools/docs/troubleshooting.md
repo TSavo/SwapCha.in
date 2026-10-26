@@ -27,10 +27,8 @@ Debian slim images often `path-exclude` `/usr/share/man`. Remove that dpkg confi
 
 ## Alpine: binary "not found"
 
-The v0.1.0 tarball binaries are glibc-linked (GLIBC_2.39 or newer) and do not run on musl
-(Alpine) or on older glibc. There is no musl release asset; build from source
-(`cargo build --locked --release --target x86_64-unknown-linux-musl`) or use the APK dry-run
-packaging (scripts/package-native.sh).
+Glibc builds do not run on musl. Use the musl release (`x86_64-unknown-linux-musl`)
+inside the APK (see packaging dry-run notes).
 
 ## Wasm: "cannot sign" / missing export
 

@@ -77,8 +77,8 @@ export function BtPage({
           </p>
         )}
         <p>
-          blocktools is free and open source (MIT). It runs on your machine: SwapChan never holds
-          your keys or funds and never signs for you.{" "}
+          blocktools is open source (MIT). It runs on your machine: SwapChan never holds your keys
+          or funds and never signs for you.{" "}
           <Link href="/blocktools" className="underline hover:text-amber-300">
             blocktools home
           </Link>{" "}

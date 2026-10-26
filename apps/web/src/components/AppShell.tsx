@@ -233,6 +233,12 @@ export function AppShell({ connect, children }: { connect: ReactNode; children: 
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [p]);
   const close = () => setOpen(false);
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [open]);
   return (
     <div className="flex min-h-screen">
       <aside className="site-chrome sticky top-0 hidden h-screen w-[232px] shrink-0 border-r border-violet-500/35 bg-[rgba(30,10,55,0.75)] shadow-[4px_0_30px_rgba(124,58,237,0.15)] md:block">

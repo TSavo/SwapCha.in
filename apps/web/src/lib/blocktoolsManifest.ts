@@ -471,7 +471,10 @@ export const BT_TOOLS: { name: string; desc: string }[] = [
     name: "abi-encode",
     desc: "Solidity ABI-encode calldata (selector + args) or a bare type list, offline",
   },
-  { name: "abi-inspect", desc: "list an ABI's functions, events and errors with selectors/topics" },
+  {
+    name: "abi-inspect",
+    desc: "list an ABI's functions, events and errors with selectors/topics, flag selector",
+  },
   {
     name: "acct-tx",
     desc: "account-model payments for xlm, algo and atom. Encoded transactions are base64 (each chain's native form)",
@@ -480,7 +483,10 @@ export const BT_TOOLS: { name: string; desc: string }[] = [
     name: "armory-read",
     desc: 'Armory (PyBtcWallet) `.wallet` -> {"wif","chain_index"} per stored address',
   },
-  { name: "bip38-open", desc: "BIP38 encrypted private key + passphrase -> WIF" },
+  {
+    name: "bip38-open",
+    desc: "BIP38 encrypted private key + passphrase -> WIF. Spec vectors only for non-EC",
+  },
   {
     name: "blockchain-read",
     desc: "Blockchain.com wallet.aes.json (v2/v3) + password -> wif / xprv lines",
@@ -488,28 +494,31 @@ export const BT_TOOLS: { name: string; desc: string }[] = [
   { name: "blocktools", desc: "host wrapper that runs a pipeline in the sealed container" },
   {
     name: "bytecode-inspect",
-    desc: "classify runtime bytecode (EIP-1167 proxy, EIP-7702 delegation, EOF, plain code)",
+    desc: "classify runtime bytecode (EIP-1167 proxy, EIP-7702 delegation, EOF, plain code),",
   },
-  { name: "chain-table", desc: "print the chain registry as data" },
-  { name: "classify", desc: "unknown wallet material -> public JSON lines" },
+  {
+    name: "chain-table",
+    desc: "print the chain registry (crates/core chains.rs) as data, one JSON object per",
+  },
+  { name: "classify", desc: "unknown wallet material -> public JSON lines, one per item:" },
   {
     name: "create-address",
     desc: "contract address from CREATE (deployer, nonce) or CREATE2 (EIP-1014: deployer, salt, init code), offline",
   },
-  { name: "dat-read", desc: "Bitcoin Core wallet.dat (legacy Berkeley DB or SQLite descriptor)" },
-  { name: "derive", desc: "master key -> child keys and addresses" },
+  { name: "dat-read", desc: "Bitcoin Core wallet.dat (legacy Berkeley DB or SQLite descriptor" },
+  {
+    name: "derive",
+    desc: 'master key -> child keys and addresses. A Swiss Army knife for "which path',
+  },
   {
     name: "electrum-read",
     desc: "Electrum wallet file (JSON, optionally field-encrypted, or BIE1 whole-file encrypted) -> its seed phrase",
   },
   {
     name: "key-to-addresses",
-    desc: "one raw 32-byte private key per line -> addresses on every chain",
+    desc: "one raw 32-byte private key per line -> addresses on every chain in the",
   },
-  {
-    name: "keystore-open",
-    desc: "Ethereum Web3 Secret Storage v3 or presale (pyethsaletool) JSON + password -> address",
-  },
+  { name: "keystore-open", desc: "Ethereum Web3 Secret Storage v3 JSON + password -> address" },
   {
     name: "msg-sign",
     desc: "sign ONE text message after a human reads it and types a code on /dev/tty",
@@ -517,13 +526,13 @@ export const BT_TOOLS: { name: string; desc: string }[] = [
   { name: "msg-verify", desc: "check a message signature against an address. No keys are read" },
   {
     name: "multibit-read",
-    desc: "MultiBit Classic .key export or bitcoinj/MultiBit Classic `.wallet` protobuf",
+    desc: "MultiBit Classic .key export, bitcoinj/MultiBit Classic `.wallet` protobuf, or",
   },
   {
     name: "pw-candidates",
-    desc: "expand a token list into password candidates (btcrecover-style)",
+    desc: "expand a token list into password candidates (btcrecover-style, from public",
   },
-  { name: "read-file", desc: "concatenate files to stdout (like cat), std only" },
+  { name: "read-file", desc: "concatenate files to stdout (like cat), std only. Exists so the" },
   {
     name: "recover.sh",
     desc: "unknown wallet file to sweep, with human confirmation at each step",
@@ -540,13 +549,22 @@ export const BT_TOOLS: { name: string; desc: string }[] = [
     name: "sig-hash",
     desc: "Solidity function/event/error selector and topic hash, plus reverse lookup against a file you supply",
   },
-  { name: "sol-tron-tx", desc: "build unsigned, decode and verify Solana and Tron transfers" },
-  { name: "tx-broadcast", desc: "send ONE already-signed transaction (HOST-SIDE, network)" },
+  {
+    name: "sol-tron-tx",
+    desc: "build unsigned, decode and verify Solana and Tron transfers. The chain is detected",
+  },
+  {
+    name: "tx-broadcast",
+    desc: "tx-broadcast (HOST-SIDE, network): send ONE already-signed transaction, after the human reads",
+  },
   {
     name: "tx-build",
     desc: "build an UNSIGNED transaction offline from files and flags. Never touches the network",
   },
-  { name: "tx-decode", desc: "decode one transaction on stdin (hex/base64 raw tx, PSBT, EVM RLP)" },
+  {
+    name: "tx-decode",
+    desc: "one transaction on stdin (hex/base64 raw tx, PSBT, EVM RLP, or a JSON line with",
+  },
   {
     name: "tx-envelope",
     desc: "common signing envelope (public half). Reads one JSON object from stdin",
@@ -561,13 +579,16 @@ export const BT_TOOLS: { name: string; desc: string }[] = [
   },
   {
     name: "typed-data-verify",
-    desc: "EIP-712 typed data -> encodeType, domain separator, message hash and digest",
+    desc: "EIP-712 typed data -> encodeType, domain separator, message hash and digest;",
   },
   {
     name: "utxo-fetch",
-    desc: "public chain data for addresses -> files tx-build reads (HOST-SIDE, network)",
+    desc: "utxo-fetch (HOST-SIDE, network): public chain data for addresses -> files tx-build reads",
   },
-  { name: "xmr-keys", desc: "Monero keys from a seed" },
+  {
+    name: "xmr-keys",
+    desc: "xmr-keys [--net main|stage|test] [--scan-out FILE [--restore-height N]] < seed",
+  },
   {
     name: "xmr-wallet",
     desc: "host-side driver for a LOCAL monero-wallet-rpc (loopback only; never runs in the sealed image)",
@@ -576,6 +597,12 @@ export const BT_TOOLS: { name: string; desc: string }[] = [
     name: "xpub-addresses",
     desc: "extended public key (xpub/ypub/zpub/tpub..., stdin, one per line) -> watch-only",
   },
-  { name: "xrp-tx", desc: "XRP keys and transactions (public output only)" },
-  { name: "zec-sapling", desc: "Zcash Sapling addresses from a BIP39 mnemonic" },
+  {
+    name: "xrp-tx",
+    desc: 'xrp-tx keys < family-seed -> {"chain":"xrp","algo","address","x_address","public"} (public only)',
+  },
+  {
+    name: "zec-sapling",
+    desc: "zec-sapling [--count N] [--unified] [--viewkey-out FILE] < BIP39 mnemonic",
+  },
 ];

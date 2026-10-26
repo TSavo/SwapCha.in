@@ -131,7 +131,7 @@ export const BT_ON_SWAPCHAN: { tool: string; href: string; label: string }[] = [
   { tool: "chain-table", href: "/tools/chain-params", label: "Chain parameters table" },
 ];
 
-/** The 43 man-page commands (man/man1), grouped by job. */
+/** The 43 man(1) pages at v0.1.0 (41 bin/ tools + blocktools + recover.sh), grouped by job. */
 export const BT_GROUPS: { id: string; label: string; blurb: string; tools: string[] }[] = [
   {
     id: "recover",

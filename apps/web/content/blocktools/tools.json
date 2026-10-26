@@ -9,7 +9,7 @@
  },
  {
   "name": "abi-inspect",
-  "desc": "list an ABI's functions, events and errors with selectors/topics"
+  "desc": "list an ABI's functions, events and errors with selectors/topics, flag selector"
  },
  {
   "name": "acct-tx",
@@ -21,7 +21,7 @@
  },
  {
   "name": "bip38-open",
-  "desc": "BIP38 encrypted private key + passphrase -> WIF"
+  "desc": "BIP38 encrypted private key + passphrase -> WIF. Spec vectors only for non-EC"
  },
  {
   "name": "blockchain-read",
@@ -33,15 +33,15 @@
  },
  {
   "name": "bytecode-inspect",
-  "desc": "classify runtime bytecode (EIP-1167 proxy, EIP-7702 delegation, EOF, plain code)"
+  "desc": "classify runtime bytecode (EIP-1167 proxy, EIP-7702 delegation, EOF, plain code),"
  },
  {
   "name": "chain-table",
-  "desc": "print the chain registry as data"
+  "desc": "print the chain registry (crates/core chains.rs) as data, one JSON object per"
  },
  {
   "name": "classify",
-  "desc": "unknown wallet material -> public JSON lines"
+  "desc": "unknown wallet material -> public JSON lines, one per item:"
  },
  {
   "name": "create-address",
@@ -49,11 +49,11 @@
  },
  {
   "name": "dat-read",
-  "desc": "Bitcoin Core wallet.dat (legacy Berkeley DB or SQLite descriptor)"
+  "desc": "Bitcoin Core wallet.dat (legacy Berkeley DB or SQLite descriptor"
  },
  {
   "name": "derive",
-  "desc": "master key -> child keys and addresses"
+  "desc": "master key -> child keys and addresses. A Swiss Army knife for \"which path"
  },
  {
   "name": "electrum-read",
@@ -61,11 +61,11 @@
  },
  {
   "name": "key-to-addresses",
-  "desc": "one raw 32-byte private key per line -> addresses on every chain"
+  "desc": "one raw 32-byte private key per line -> addresses on every chain in the"
  },
  {
   "name": "keystore-open",
-  "desc": "Ethereum Web3 Secret Storage v3 or presale (pyethsaletool) JSON + password -> address"
+  "desc": "Ethereum Web3 Secret Storage v3 JSON + password -> address"
  },
  {
   "name": "msg-sign",
@@ -77,15 +77,15 @@
  },
  {
   "name": "multibit-read",
-  "desc": "MultiBit Classic .key export or bitcoinj/MultiBit Classic `.wallet` protobuf"
+  "desc": "MultiBit Classic .key export, bitcoinj/MultiBit Classic `.wallet` protobuf, or"
  },
  {
   "name": "pw-candidates",
-  "desc": "expand a token list into password candidates (btcrecover-style)"
+  "desc": "expand a token list into password candidates (btcrecover-style, from public"
  },
  {
   "name": "read-file",
-  "desc": "concatenate files to stdout (like cat), std only"
+  "desc": "concatenate files to stdout (like cat), std only. Exists so the"
  },
  {
   "name": "recover.sh",
@@ -117,11 +117,11 @@
  },
  {
   "name": "sol-tron-tx",
-  "desc": "build unsigned, decode and verify Solana and Tron transfers"
+  "desc": "build unsigned, decode and verify Solana and Tron transfers. The chain is detected"
  },
  {
   "name": "tx-broadcast",
-  "desc": "send ONE already-signed transaction (HOST-SIDE, network)"
+  "desc": "tx-broadcast (HOST-SIDE, network): send ONE already-signed transaction, after the human reads"
  },
  {
   "name": "tx-build",
@@ -129,7 +129,7 @@
  },
  {
   "name": "tx-decode",
-  "desc": "decode one transaction on stdin (hex/base64 raw tx, PSBT, EVM RLP)"
+  "desc": "one transaction on stdin (hex/base64 raw tx, PSBT, EVM RLP, or a JSON line with"
  },
  {
   "name": "tx-envelope",
@@ -145,15 +145,15 @@
  },
  {
   "name": "typed-data-verify",
-  "desc": "EIP-712 typed data -> encodeType, domain separator, message hash and digest"
+  "desc": "EIP-712 typed data -> encodeType, domain separator, message hash and digest;"
  },
  {
   "name": "utxo-fetch",
-  "desc": "public chain data for addresses -> files tx-build reads (HOST-SIDE, network)"
+  "desc": "utxo-fetch (HOST-SIDE, network): public chain data for addresses -> files tx-build reads"
  },
  {
   "name": "xmr-keys",
-  "desc": "Monero keys from a seed"
+  "desc": "xmr-keys [--net main|stage|test] [--scan-out FILE [--restore-height N]] < seed"
  },
  {
   "name": "xmr-wallet",
@@ -165,10 +165,10 @@
  },
  {
   "name": "xrp-tx",
-  "desc": "XRP keys and transactions (public output only)"
+  "desc": "xrp-tx keys < family-seed -> {\"chain\":\"xrp\",\"algo\",\"address\",\"x_address\",\"public\"} (public only)"
  },
  {
   "name": "zec-sapling",
-  "desc": "Zcash Sapling addresses from a BIP39 mnemonic"
+  "desc": "zec-sapling [--count N] [--unified] [--viewkey-out FILE] < BIP39 mnemonic"
  }
 ]

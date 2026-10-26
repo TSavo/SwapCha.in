@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BtPage, btMeta, JsonLd } from "@/components/blocktools/BtPage";
 import { CopyCode } from "@/components/blocktools/CopyCode";
 import { BT_EXAMPLES, BT_GROUPS, BT_INSTALL, BT_SOURCE_BUILD } from "@/lib/blocktools";
-import { BT_REPO, getReleases, mb } from "@/lib/blocktools.server";
+import { BT_REPO, BT_TAG, getReleases, mb, pinnedRelease } from "@/lib/blocktools.server";
 import { BT_ITEMS } from "@/lib/blocktoolsManifest";
 import { DEV_TOOLS } from "@/lib/devTools";
 
@@ -10,7 +10,7 @@ export const revalidate = 3600;
 export const metadata = btMeta(
   "/blocktools",
   "blocktools: all chains, one CLI",
-  "blocktools is a free, MIT-licensed command-line toolkit for blockchains: 43 small Unix tools that read wallets, derive addresses and build, check and sign transactions offline, across 66 verified chain rows.",
+  "blocktools is an open source (MIT) command-line toolkit for blockchains: 41 small Unix tools that read wallets, derive addresses and build, check and sign transactions offline, across 38 verified chains in v0.1.0.",
 );
 
 /** Public repo stats from the GitHub API, hourly; null when unreachable (then nothing is shown). */
@@ -68,12 +68,12 @@ const Guide = ({ children }: { children: React.ReactNode }) => (
 
 export default async function BlocktoolsHome() {
   const [{ releases }, stars] = await Promise.all([getReleases(), getStars()]);
-  const latest = releases[0];
+  const latest = pinnedRelease(releases);
   const tarball = latest?.assets.find((a) => a.name.endsWith(".tar.gz"));
   const sums = latest?.assets.find((a) => a.name === "SHA256SUMS");
   const docs = BT_ITEMS.filter((i) => i.kind === "docs");
   const recipes = BT_ITEMS.filter((i) => i.kind === "recipes");
-  const tag = latest?.tag ?? "v0.1.0";
+  const tag = BT_TAG;
 
   const Ctas = () => (
     <div className="flex flex-wrap items-center gap-3">
@@ -100,7 +100,6 @@ export default async function BlocktoolsHome() {
           url: "https://swapchan.com/blocktools",
           downloadUrl: tarball?.url,
           sameAs: BT_REPO,
-          offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
           description:
             "Command-line toolkit for blockchains: reads wallet files and seed phrases, derives addresses, and builds, checks and signs transactions offline.",
         }}
@@ -133,7 +132,7 @@ export default async function BlocktoolsHome() {
             All chains, one CLI
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-violet-100">
-            43 small Unix tools that read wallet files and seed phrases, derive addresses, and
+            41 small Unix tools that read wallet files and seed phrases, derive addresses, and
             build, check and sign transactions, offline. Pipe them together. No browser, no wallet
             app.
           </p>
@@ -141,8 +140,8 @@ export default async function BlocktoolsHome() {
             <Ctas />
           </div>
           <p className="mt-3 text-xs text-violet-400">
-            {tarball ? `${tarball.name} · ${mb(tarball.size)}` : ""} · Linux x86_64, glibc 2.39+ ·
-            verify with{" "}
+            {tarball ? `${tarball.name} · ${mb(tarball.size)}` : ""} · Linux x86_64, glibc 2.34+
+            (sealed-run needs 2.39+) · verify with{" "}
             {sums ? (
               <a href={sums.url} className="underline">
                 SHA256SUMS
@@ -169,7 +168,7 @@ export default async function BlocktoolsHome() {
             className="animate-float w-44 drop-shadow-[0_0_30px_rgba(217,70,239,0.6)]"
           />
           <p className="-mt-2 rounded-xl border border-fuchsia-400/70 bg-violet-950/90 px-3 py-2 text-center text-xs text-violet-100">
-            Every tool on SwapChan runs on this. I&apos;ll show you around~
+            SwapChan&apos;s developer tools are built on it. Here&apos;s the tour.
           </p>
         </div>
       </section>
@@ -219,7 +218,7 @@ export default async function BlocktoolsHome() {
             [
               "⛓️",
               "One tool, many chains",
-              "Bitcoin and its forks, Ethereum and EVM, Solana, Tron, XRP, Cosmos, Cardano, Polkadot, TON and more: 66 verified rows in the chain table, each marked with what is built.",
+              "Bitcoin and its forks, Ethereum and EVM, Solana, Tron, XRP, Cosmos, Cardano, Polkadot, TON and older Bitcoin forks: 38 verified chains in v0.1.0, each marked with what is built.",
             ],
             [
               "💻",
@@ -228,8 +227,8 @@ export default async function BlocktoolsHome() {
             ],
             [
               "🔓",
-              "Free and open source",
-              "MIT licensed. Source, 43 man pages and the recipes are on GitHub, so you can read it before you trust it.",
+              "Open source (MIT)",
+              "Source, 43 man pages and the recipes are on GitHub, so you can read it before you trust it.",
             ],
             [
               "🔒",
@@ -452,7 +451,7 @@ export default async function BlocktoolsHome() {
             [
               "/blocktools/commands",
               "Commands",
-              `${BT_GROUPS.reduce((n, g) => n + g.tools.length, 0)} tools in ${BT_GROUPS.length} groups, each with a man page.`,
+              `${BT_GROUPS.reduce((n, g) => n + g.tools.length, 0)} man pages in ${BT_GROUPS.length} groups (41 tools plus the wrapper and recover.sh).`,
               BT_GROUPS.map((g) => g.label).join(" · "),
             ],
             [
@@ -570,7 +569,7 @@ export default async function BlocktoolsHome() {
         />
         <h2 className="mt-3 text-3xl font-black">All chains, one CLI</h2>
         <p className="mx-auto mt-2 max-w-xl text-violet-200">
-          Free, MIT, runs on your machine. Grab {tag} or read the source first.
+          Open source (MIT), runs on your machine. Get {tag} or read the source first.
         </p>
         <div className="mt-6 flex justify-center">
           <Ctas />

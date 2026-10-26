@@ -22,11 +22,15 @@ export default function Install() {
       }
       source={`${BT_REPO}#install`}
     >
-      <h2 className="mb-2 text-xl font-black">1. Release binaries (Linux x86_64, glibc 2.39+)</h2>
+      <h2 className="mb-2 text-xl font-black">
+        1. Release binaries (Linux x86_64, glibc 2.34+ (sealed-run needs 2.39+))
+      </h2>
       <CopyCode code={BT_INSTALL} />
       <p className="mt-2 mb-8 text-sm text-violet-300">
         Needs the GitHub CLI (<code>gh</code>). If <code>sha256sum -c</code> fails, delete the
-        archive and do not run it. The tarball holds <code>bin/</code>, man pages and recipes.
+        archive and do not run it. The tarball holds <code>bin/</code> (41 tools), man pages and
+        recipes. It has no Dockerfile: sealed runs (<code>./blocktools build</code>) need a v0.1.0
+        source checkout and Docker.
       </p>
       <h2 className="mb-2 text-xl font-black">2. Build from source</h2>
       <CopyCode code={BT_SOURCE_BUILD} />

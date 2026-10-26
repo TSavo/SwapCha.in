@@ -11,15 +11,15 @@ export const metadata = btMeta(
 const QA: [string, string][] = [
   [
     "What is blocktools?",
-    "A free, MIT-licensed set of small Rust command-line tools that pass JSON lines through pipes. They read wallet files and seed phrases, derive addresses, and build, verify and sign transactions offline.",
+    "An open source (MIT) set of small Rust command-line tools that pass JSON lines through pipes. They read wallet files and seed phrases, derive addresses, and build, verify and sign transactions offline.",
   ],
   [
     "Which chains?",
-    "The chain table lists 66 verified rows, from Bitcoin and Ethereum to Solana, Tron, XRP, Cosmos chains, Cardano, Polkadot and TON, plus many older Bitcoin forks. Sweep building is per chain: check the table.",
+    "In v0.1.0 the chain table lists 38 verified chains, from Bitcoin and Ethereum to Solana, Tron, XRP, Cosmos, Cardano, Polkadot and TON, plus many older Bitcoin forks. Sweep building is per chain: check the table.",
   ],
   [
     "Which platforms?",
-    "Release binaries: Linux x86_64 with glibc 2.39+. No macOS, Windows or ARM binaries yet.",
+    "Release binaries: Linux x86_64, glibc 2.34+ (sealed-run needs 2.39+). Sealed runs (./blocktools build) need a v0.1.0 source checkout and Docker, not just the tarball. No macOS, Windows or ARM binaries yet.",
   ],
   [
     "Does SwapChan see my keys?",
