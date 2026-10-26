@@ -1,5 +1,6 @@
 import { getOrderId, type VmType } from "@relay-protocol/settlement-sdk";
 import { decodeFunctionData, type Hex, parseAbi } from "viem";
+import { RELAY_DEPOSITORY_PINS } from "./relayPins.js";
 
 /**
  * Relay Protocol v2 order verification (docs.relay.link .../input-validation).
@@ -7,7 +8,8 @@ import { decodeFunctionData, type Hex, parseAbi } from "viem";
  * /requests only lists submitted deposits), so the quote is requested with
  * includeProtocolData and verified locally: recompute the order id from orderData, check the
  * order's recipient / min output / input payment, and bind the deposit tx to that order id
- * at Relay's canonical depository (from GET /chains, never from the quote).
+ * at Relay's canonical depository (pinned in relayPins.ts; GET /chains only for unpinned chains,
+ * never from the quote). A /chains depository that disagrees with the pin fails closed.
  */
 export interface RelayOrder {
   orderId: string;
@@ -17,7 +19,30 @@ export interface RelayProtocol {
   /** protocol chain name ("base") -> VM type, for getOrderId. */
   vmTypes: Record<string, VmType>;
   /** numeric chain id -> { protocol chain name, canonical depository (lowercase) }. */
-  chains: Record<number, { name: string; depository?: string }>;
+  chains: Record<
+    number,
+    {
+      name: string;
+      depository?: string;
+      /** "pinned" = /chains matched the pin; "unpinned" = /chains only. */
+      source?: "pinned" | "unpinned";
+      /** /chains disagreed with the pin: depository is withheld and deposits are refused. */
+      mismatch?: { api: string; pinned: string };
+    }
+  >;
+}
+
+const normDep = (a: string) => (/^0x/i.test(a) ? a.toLowerCase() : a);
+
+/** Logs a pin disagreement (once per chain+address per process) so the operator sees it. */
+const warned = new Set<string>();
+function alertMismatch(chainId: number, api: string, pinned: string) {
+  const k = `${chainId}:${api}`;
+  if (warned.has(k)) return;
+  warned.add(k);
+  console.error(
+    `[ALERT relay-depository-pin] chain ${chainId}: Relay /chains depository ${api} != pinned ${pinned}; refusing Relay deposits on this chain`,
+  );
 }
 
 const VM: Record<string, VmType> = {
@@ -37,16 +62,26 @@ export function relayProtocolFromChains(
     vmType?: string;
     protocol?: { v2?: { chainId?: string; depository?: string } };
   }[],
+  pins: Readonly<Record<number, string>> = RELAY_DEPOSITORY_PINS,
 ): RelayProtocol {
   const out: RelayProtocol = { vmTypes: {}, chains: {} };
   for (const c of chains) {
     const p = c.protocol?.v2;
     if (!p?.chainId || !c.vmType || !VM[c.vmType]) continue;
     out.vmTypes[p.chainId] = VM[c.vmType]!;
-    out.chains[c.id] = {
-      name: p.chainId,
-      ...(p.depository ? { depository: p.depository.toLowerCase() } : {}),
-    };
+    const pinned = pins[c.id];
+    const api = p.depository ? normDep(p.depository) : undefined;
+    if (pinned && api && api !== normDep(pinned)) {
+      alertMismatch(c.id, api, normDep(pinned));
+      out.chains[c.id] = { name: p.chainId, mismatch: { api, pinned: normDep(pinned) } };
+    } else if (pinned) {
+      out.chains[c.id] = { name: p.chainId, depository: normDep(pinned), source: "pinned" };
+    } else {
+      out.chains[c.id] = {
+        name: p.chainId,
+        ...(api ? { depository: api, source: "unpinned" as const } : {}),
+      };
+    }
   }
   return out;
 }
@@ -101,6 +136,11 @@ export function checkRelayOrder(c: Sink, i: RelayCheckInput) {
 
   const src = proto.chains[i.fromChainId];
   const dst = proto.chains[i.toChainId];
+  if (src?.mismatch)
+    return c.bad(
+      "depository",
+      `Relay's chain list reports depository ${src.mismatch.api} for chain ${i.fromChainId}, but the pinned depository is ${src.mismatch.pinned}; refusing to use it`,
+    );
   if (!src?.depository || !dst)
     return c.bad("depository", `no Relay protocol chain for ${i.fromChainId}->${i.toChainId}`);
   if (lc(i.tx.to) !== src.depository)
@@ -108,7 +148,12 @@ export function checkRelayOrder(c: Sink, i: RelayCheckInput) {
       "depository",
       `tx.to ${i.tx.to} is not Relay's canonical depository ${src.depository}`,
     );
-  c.ok("depository");
+  c.ok(
+    "depository",
+    src.source === "pinned"
+      ? `pinned Relay depository ${src.depository} (chain list agrees)`
+      : `Relay depository ${src.depository} from chain list (chain not pinned)`,
+  );
 
   let fn: string;
   let args: readonly unknown[];
