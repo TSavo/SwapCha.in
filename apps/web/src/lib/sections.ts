@@ -1,4 +1,6 @@
 import { castOrder } from "@/lib/bios";
+import { BT_EXAMPLES } from "@/lib/blocktools";
+import { BT_ITEMS } from "@/lib/blocktoolsManifest";
 import { CHAIN_FAMILIES, CHAIN_PAGES, chainHref } from "@/lib/chainPages";
 import { DEV_TOOLS } from "@/lib/devTools";
 
@@ -268,6 +270,63 @@ export const SECTIONS: Section[] = [
         items: [
           { href: "/terms", label: "Terms" },
           { href: "/privacy", label: "Privacy" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "blocktools",
+    label: "blocktools",
+    hub: "/blocktools",
+    paths: ["/blocktools"],
+    nav: [
+      { href: "/blocktools/docs", label: "Docs" },
+      { href: "/blocktools/recipes", label: "Recipes" },
+      { href: "/blocktools/examples", label: "Examples" },
+      { href: "/blocktools/binaries", label: "Binaries" },
+      { href: "/blocktools/releases", label: "Releases" },
+    ],
+    groups: [
+      {
+        id: "bt-start",
+        label: "Get started",
+        items: [
+          { href: "/blocktools/install", label: "Install" },
+          { href: "/blocktools/commands", label: "Commands" },
+          { href: "/blocktools/binaries", label: "Binaries" },
+          { href: "/blocktools/releases", label: "Releases" },
+          { href: "/blocktools/mcp", label: "MCP" },
+          { href: "/blocktools/faq", label: "FAQ" },
+        ],
+      },
+      {
+        id: "bt-docs",
+        label: "Docs",
+        items: [
+          { href: "/blocktools/docs", label: "All docs" },
+          ...BT_ITEMS.filter((i) => i.kind === "docs").map((i) => ({
+            href: `/blocktools/docs/${i.slug}`,
+            label: i.title,
+          })),
+        ],
+      },
+      {
+        id: "bt-recipes",
+        label: "Recipes",
+        items: [
+          { href: "/blocktools/recipes", label: "All recipes" },
+          ...BT_ITEMS.filter((i) => i.kind === "recipes").map((i) => ({
+            href: `/blocktools/recipes/${i.slug}`,
+            label: i.title,
+          })),
+        ],
+      },
+      {
+        id: "bt-examples",
+        label: "Examples",
+        items: [
+          { href: "/blocktools/examples", label: "All examples" },
+          ...BT_EXAMPLES.map((e) => ({ href: `/blocktools/examples/${e.slug}`, label: e.title })),
         ],
       },
     ],

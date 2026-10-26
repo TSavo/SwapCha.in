@@ -41,6 +41,7 @@ const AGENTS: Item = {
   icon: "🤖",
   sec: "agents",
 };
+const BT: Item = { href: "/blocktools", label: "blocktools CLI", icon: "🛠️", sec: "blocktools" };
 const DEV: Item[] = [
   { href: "/agents#setup", label: "MCP setup", icon: "🔌", match: () => false },
   { href: "/widget", label: "Widget", icon: "🧩" },
@@ -171,6 +172,10 @@ function Sidebar({ p, onNav }: { p: string; onNav: () => void }) {
             <NavItem key={it.label} it={it} p={p} small onNav={onNav} />
           ))}
         </details>
+        <div className="mx-2.5 mt-4 mb-1 text-[11px] font-extrabold tracking-widest text-violet-400 uppercase">
+          Command line
+        </div>
+        <NavItem it={BT} p={p} onNav={onNav} />
       </nav>
       <div className="mt-auto border-t border-violet-500/30 px-2.5 pt-3 text-[11px] text-violet-400">
         <div className="mt-1 opacity-80">

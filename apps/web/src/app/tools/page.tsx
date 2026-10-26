@@ -70,6 +70,13 @@ export default async function ToolsHub() {
           </Link>
           .
         </p>
+        <p className="mt-4 text-sm text-violet-200">
+          These tools run on blocktools, a free command-line toolkit for all chains:{" "}
+          <Link href="/blocktools" className="underline hover:text-amber-300">
+            install it and see every command
+          </Link>
+          .
+        </p>
         <p className="mt-3 text-xs text-violet-400">
           <PoweredBy />
         </p>

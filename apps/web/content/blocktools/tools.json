@@ -1,0 +1,174 @@
+[
+ {
+  "name": "abi-decode",
+  "desc": "decode Solidity ABI calldata, returndata, revert data or event logs, offline"
+ },
+ {
+  "name": "abi-encode",
+  "desc": "Solidity ABI-encode calldata (selector + args) or a bare type list, offline"
+ },
+ {
+  "name": "abi-inspect",
+  "desc": "list an ABI's functions, events and errors with selectors/topics"
+ },
+ {
+  "name": "acct-tx",
+  "desc": "account-model payments for xlm, algo and atom. Encoded transactions are base64 (each chain's native form)"
+ },
+ {
+  "name": "armory-read",
+  "desc": "Armory (PyBtcWallet) `.wallet` -> {\"wif\",\"chain_index\"} per stored address"
+ },
+ {
+  "name": "bip38-open",
+  "desc": "BIP38 encrypted private key + passphrase -> WIF"
+ },
+ {
+  "name": "blockchain-read",
+  "desc": "Blockchain.com wallet.aes.json (v2/v3) + password -> wif / xprv lines"
+ },
+ {
+  "name": "blocktools",
+  "desc": "host wrapper that runs a pipeline in the sealed container"
+ },
+ {
+  "name": "bytecode-inspect",
+  "desc": "classify runtime bytecode (EIP-1167 proxy, EIP-7702 delegation, EOF, plain code)"
+ },
+ {
+  "name": "chain-table",
+  "desc": "print the chain registry as data"
+ },
+ {
+  "name": "classify",
+  "desc": "unknown wallet material -> public JSON lines"
+ },
+ {
+  "name": "create-address",
+  "desc": "contract address from CREATE (deployer, nonce) or CREATE2 (EIP-1014: deployer, salt, init code), offline"
+ },
+ {
+  "name": "dat-read",
+  "desc": "Bitcoin Core wallet.dat (legacy Berkeley DB or SQLite descriptor)"
+ },
+ {
+  "name": "derive",
+  "desc": "master key -> child keys and addresses"
+ },
+ {
+  "name": "electrum-read",
+  "desc": "Electrum wallet file (JSON, optionally field-encrypted, or BIE1 whole-file encrypted) -> its seed phrase"
+ },
+ {
+  "name": "key-to-addresses",
+  "desc": "one raw 32-byte private key per line -> addresses on every chain"
+ },
+ {
+  "name": "keystore-open",
+  "desc": "Ethereum Web3 Secret Storage v3 or presale (pyethsaletool) JSON + password -> address"
+ },
+ {
+  "name": "msg-sign",
+  "desc": "sign ONE text message after a human reads it and types a code on /dev/tty"
+ },
+ {
+  "name": "msg-verify",
+  "desc": "check a message signature against an address. No keys are read"
+ },
+ {
+  "name": "multibit-read",
+  "desc": "MultiBit Classic .key export or bitcoinj/MultiBit Classic `.wallet` protobuf"
+ },
+ {
+  "name": "pw-candidates",
+  "desc": "expand a token list into password candidates (btcrecover-style)"
+ },
+ {
+  "name": "read-file",
+  "desc": "concatenate files to stdout (like cat), std only"
+ },
+ {
+  "name": "recover.sh",
+  "desc": "unknown wallet file to sweep, with human confirmation at each step"
+ },
+ {
+  "name": "redact",
+  "desc": "stdin raw JSON lines (may contain secrets) -> stdout public lines"
+ },
+ {
+  "name": "rpc",
+  "desc": "pipe filter for node and wallet RPC endpoints (HOST-SIDE, network)"
+ },
+ {
+  "name": "sealed-run",
+  "desc": "the agent-facing boundary. Runs a pipeline of blocktools tools"
+ },
+ {
+  "name": "seed-repair",
+  "desc": "read a (possibly mistyped) BIP39 / Electrum 2.x phrase, print checksum-valid"
+ },
+ {
+  "name": "seed-to-master",
+  "desc": "seed phrase (+ optional passphrase) -> BIP32 master key(s)"
+ },
+ {
+  "name": "sig-hash",
+  "desc": "Solidity function/event/error selector and topic hash, plus reverse lookup against a file you supply"
+ },
+ {
+  "name": "sol-tron-tx",
+  "desc": "build unsigned, decode and verify Solana and Tron transfers"
+ },
+ {
+  "name": "tx-broadcast",
+  "desc": "send ONE already-signed transaction (HOST-SIDE, network)"
+ },
+ {
+  "name": "tx-build",
+  "desc": "build an UNSIGNED transaction offline from files and flags. Never touches the network"
+ },
+ {
+  "name": "tx-decode",
+  "desc": "decode one transaction on stdin (hex/base64 raw tx, PSBT, EVM RLP)"
+ },
+ {
+  "name": "tx-envelope",
+  "desc": "common signing envelope (public half). Reads one JSON object from stdin"
+ },
+ {
+  "name": "tx-sign",
+  "desc": "sign ONE transaction after a human reads its summary and types a code on /dev/tty"
+ },
+ {
+  "name": "tx-verify",
+  "desc": "check a transaction (stdin; any format tx-decode reads) against what you expect"
+ },
+ {
+  "name": "typed-data-verify",
+  "desc": "EIP-712 typed data -> encodeType, domain separator, message hash and digest"
+ },
+ {
+  "name": "utxo-fetch",
+  "desc": "public chain data for addresses -> files tx-build reads (HOST-SIDE, network)"
+ },
+ {
+  "name": "xmr-keys",
+  "desc": "Monero keys from a seed"
+ },
+ {
+  "name": "xmr-wallet",
+  "desc": "host-side driver for a LOCAL monero-wallet-rpc (loopback only; never runs in the sealed image)"
+ },
+ {
+  "name": "xpub-addresses",
+  "desc": "extended public key (xpub/ypub/zpub/tpub..., stdin, one per line) -> watch-only"
+ },
+ {
+  "name": "xrp-tx",
+  "desc": "XRP keys and transactions (public output only)"
+ },
+ {
+  "name": "zec-sapling",
+  "desc": "Zcash Sapling addresses from a BIP39 mnemonic"
+ }
+]
