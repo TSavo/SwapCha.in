@@ -4,7 +4,8 @@ on:
   pull_request:
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    # Self-hosted Battleaxe runner only for pushes and same-repo PRs; fork PRs stay GitHub-hosted.
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted","Linux","X64","swapchan"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
