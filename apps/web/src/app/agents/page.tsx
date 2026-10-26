@@ -147,7 +147,7 @@ export default function Agents() {
         Swap deep links & short links
       </h3>
       <p className="mb-2 text-sm text-violet-200">
-        <code>
+        <code className="break-all">
           https://swapchan.com/?fromChain=&amp;fromToken=&amp;amount=&amp;toChain=&amp;toToken=&amp;recipient=&amp;ref=
         </code>{" "}
         (also <code>/swap?…</code>). Chains take names or ids (<code>base</code>, <code>8453</code>
