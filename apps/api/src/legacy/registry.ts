@@ -9,7 +9,7 @@
  * offered only if the contract holds what is owed and an eth_call of the claim from the owner succeeds.
  * SwapChan only builds the unsigned transaction; the owner's wallet signs it.
  */
-import { formatUnits, parseAbiItem, type PublicClient } from "viem";
+import { formatUnits, type PublicClient, parseAbiItem } from "viem";
 import { btSelector, encodeFunctionData } from "../blocktools.js";
 import type { Evidence } from "../recover.js";
 import REG from "./registry.json" with { type: "json" };
@@ -46,7 +46,9 @@ export function claimableNow(owed: bigint, held: bigint | null, simOk: boolean) 
 export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): string[] {
   const l: string[] = [];
   if (e.eoaOnly)
-    l.push("EOA only: the contract rejects calls from smart-contract wallets (Safe, 4337); sign from the original key");
+    l.push(
+      "EOA only: the contract rejects calls from smart-contract wallets (Safe, 4337); sign from the original key",
+    );
   if (e.ownerGated) l.push("Owner action required: the contract owner must unlock claims first");
   if (e.multiStep) l.push("Two steps: approve, then claim");
   if (held !== null && held < owed)
@@ -87,7 +89,13 @@ export async function scanRegistry(
   const ents = scanned();
   const dex = ents.filter((e) => e.family === "etherdelta-dex");
   const fomo = ents.filter((e) => e.family === "fomo3d");
-  const ev = (e: RegistryEntry, call: string, abi: string, args: string[], raw: unknown): Evidence => ({
+  const ev = (
+    e: RegistryEntry,
+    call: string,
+    abi: string,
+    args: string[],
+    raw: unknown,
+  ): Evidence => ({
     chainId: 1,
     address: e.address,
     call,
@@ -101,8 +109,18 @@ export async function scanRegistry(
     allowFailure: true,
     ...at,
     contracts: [
-      ...dex.map((e) => ({ address: e.address as `0x${string}`, abi: [A.tokens], functionName: "tokens", args: [ZERO, owner] })),
-      ...fomo.map((e) => ({ address: e.address as `0x${string}`, abi: [A.pid], functionName: "pIDxAddr_", args: [owner] })),
+      ...dex.map((e) => ({
+        address: e.address as `0x${string}`,
+        abi: [A.tokens],
+        functionName: "tokens",
+        args: [ZERO, owner],
+      })),
+      ...fomo.map((e) => ({
+        address: e.address as `0x${string}`,
+        abi: [A.pid],
+        functionName: "pIDxAddr_",
+        args: [owner],
+      })),
     ] as never,
   });
   const failed: string[] = [];
@@ -113,7 +131,15 @@ export async function scanRegistry(
     if ((r.result ?? 0n) > 0n)
       owed.set(e, {
         amt: r.result!,
-        evidence: [ev(e, "tokens(address,address)", "function tokens(address,address) view returns (uint256)", [ZERO, owner], r.result)],
+        evidence: [
+          ev(
+            e,
+            "tokens(address,address)",
+            "function tokens(address,address) view returns (uint256)",
+            [ZERO, owner],
+            r.result,
+          ),
+        ],
       });
   });
   const pids: { e: RegistryEntry; pid: bigint }[] = [];
@@ -141,8 +167,20 @@ export async function scanRegistry(
         owed.set(e, {
           amt: tot,
           evidence: [
-            ev(e, "pIDxAddr_(address)", "function pIDxAddr_(address) view returns (uint256)", [owner], pid),
-            ev(e, "getPlayerVaults(uint256)", "function getPlayerVaults(uint256) view returns (uint256,uint256,uint256)", [pid.toString()], r.result),
+            ev(
+              e,
+              "pIDxAddr_(address)",
+              "function pIDxAddr_(address) view returns (uint256)",
+              [owner],
+              pid,
+            ),
+            ev(
+              e,
+              "getPlayerVaults(uint256)",
+              "function getPlayerVaults(uint256) view returns (uint256,uint256,uint256)",
+              [pid.toString()],
+              r.result,
+            ),
           ],
         });
     });
@@ -161,7 +199,15 @@ export async function scanRegistry(
           .catch(() => false),
       ]);
       const ok = claimableNow(amt, held, simOk);
-      const h: RegistryHit = { entry: e, owedWei: amt, heldWei: held, simOk, claimable: ok, labels: labels(e, amt, held), evidence };
+      const h: RegistryHit = {
+        entry: e,
+        owedWei: amt,
+        heldWei: held,
+        simOk,
+        claimable: ok,
+        labels: labels(e, amt, held),
+        evidence,
+      };
       if (ok)
         h.tx = {
           chainId: 1,
@@ -174,7 +220,8 @@ export async function scanRegistry(
     }),
   );
   const notChecked: string[] = [];
-  if (failed.length) notChecked.push(`LegacyETH registry: ${failed.join(", ")}: not checked (read failed)`);
+  if (failed.length)
+    notChecked.push(`LegacyETH registry: ${failed.join(", ")}: not checked (read failed)`);
   const pending = REGISTRY.filter((e) => e.status === "not-checked");
   if (pending.length)
     notChecked.push(

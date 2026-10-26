@@ -44,6 +44,7 @@ import {
   xrpScan,
 } from "./ledgers.js";
 import { adaScan, dotScan, tonScan } from "./ledgers2.js";
+import { REGISTRY, REGISTRY_ALLOWLIST, scanRegistry } from "./legacy/registry.js";
 import { hedgeyPlans, superfluidBalances, teamFinanceLocks, uncxLocks } from "./locks.js";
 import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
@@ -75,7 +76,6 @@ import {
   walletBalances,
   yields,
 } from "./onchain.js";
-import { REGISTRY, REGISTRY_ALLOWLIST, scanRegistry } from "./legacy/registry.js";
 import { maturedPendle } from "./pendle.js";
 import { perpsBalances } from "./perps.js";
 import { READ_OPS, readChain } from "./readchain.js";
@@ -5837,7 +5837,9 @@ export function intelRoutes(
         legacyEth(env, address, ethUsd),
         legacyRegistry(env, address, ethUsd).catch((e) => ({
           items: [] as Found[],
-          notChecked: [`LegacyETH registry: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`],
+          notChecked: [
+            `LegacyETH registry: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`,
+          ],
         })),
       ]);
       const items = [...base, ...reg.items].map((i) => ({

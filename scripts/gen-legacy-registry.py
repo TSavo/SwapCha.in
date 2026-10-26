@@ -48,5 +48,5 @@ doc = {
     "confirmationBlock": C["block"],
     "entries": rows,
 }
-json.dump(doc, open(out, "w"), indent=1)
+open(out, "w").write(json.dumps(doc, indent=2) + "\n")
 print(len(rows), sum(x["status"] == "confirmed" for x in rows))
