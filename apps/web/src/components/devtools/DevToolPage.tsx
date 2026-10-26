@@ -3,6 +3,13 @@ import { DEV_TOOLS, type DevTool, devToolLd } from "@/lib/devTools";
 import { DevToolForm } from "./DevToolForm";
 import { PoweredBy } from "./PoweredBy";
 
+const CHAIN_LINKED = new Set([
+  "validate-address",
+  "convert-address",
+  "chain-params",
+  "supported-chains",
+]);
+
 /** Shared layout for every /tools/<slug> developer tool: H1, form, copy, FAQ, related, JSON-LD. */
 export function DevToolPage({ tool }: { tool: DevTool }) {
   const related = tool.related
@@ -36,6 +43,15 @@ export function DevToolPage({ tool }: { tool: DevTool }) {
             Set up MCP
           </Link>
         </p>
+        {CHAIN_LINKED.has(tool.slug) && (
+          <p className="text-sm text-violet-300">
+            Address format, prefixes and decimals per chain:{" "}
+            <Link href="/chains" className="underline hover:text-amber-300">
+              browse all chains
+            </Link>
+            .
+          </p>
+        )}
       </section>
       <section className="mt-8">
         <h2 className="mb-3 text-xl font-black">FAQ</h2>

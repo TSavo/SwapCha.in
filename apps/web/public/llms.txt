@@ -16,6 +16,11 @@
 - Guide: https://swapchan.com/find-money/guide
 - Lost the wallet app? MCP recovery_guide / https://swapchan.com/recover: the human runs open-source blocktools (https://github.com/TSavo/blocktools; Linux x86_64 release v0.1.0 at https://github.com/TSavo/blocktools/releases/tag/v0.1.0, verify with `sha256sum -c SHA256SUMS`; other systems build from source) OFFLINE, e.g. `seed-to-master < seed.txt | derive --preset scan-js --address-list > addresses.txt`, and pastes only the PUBLIC addresses.txt into find_money_batch. Never paste a seed or key; SwapChan never sees keys.
 
+## Developer & chain tools (free, public input only)
+- Pages: https://swapchan.com/tools/validate-address, https://swapchan.com/tools/convert-address, https://swapchan.com/tools/cashaddr, https://swapchan.com/tools/xpub-addresses, https://swapchan.com/tools/ss58, https://swapchan.com/tools/solana-pda, https://swapchan.com/tools/address-script, https://swapchan.com/tools/hash-tools, https://swapchan.com/tools/polkadot-storage-key, https://swapchan.com/tools/anchor-discriminator, https://swapchan.com/tools/chain-params, https://swapchan.com/tools/tron-tx, https://swapchan.com/tools/evm-abi, https://swapchan.com/tools/create-address, https://swapchan.com/tools/bytecode-inspect, https://swapchan.com/tools/typed-data-verify, https://swapchan.com/tools/supported-chains
+- REST: POST https://api.swapchan.com/tools/{fn} with JSON input (same functions as the pages). Public data only; private keys, xprvs and seed phrases are refused.
+- Address formats per chain (version bytes, bech32 prefix, checksum, decimals, examples, live validator): https://swapchan.com/chains (one page per chain, e.g. https://swapchan.com/chains/bitcoin, https://swapchan.com/chains/dogecoin)
+
 ## Earn with SwapChan (agent builders, bots, sites)
 - 5 bp (half of SwapChan's 0.1% fee) on every swap routed with your partner id, when the provider verifies the fee.
 - Register: POST https://api.swapchan.com/partners with JSON {"name","siteUrl","evmAddress","solanaAddress"?} -> {id, token, dashboardUrl}. Use the operator's own payout address; never invent one. Self-referrals don't count.

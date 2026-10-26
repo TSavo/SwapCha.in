@@ -1,0 +1,1389 @@
+[
+  {
+    "name": "btc",
+    "slug": "bitcoin",
+    "ticker": "BTC",
+    "title": "Bitcoin",
+    "slip44": 0,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [0],
+    "p2sh": [5],
+    "hrp": "bc",
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "blockstream.info",
+        "url": "https://blockstream.info/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "ltc",
+    "slug": "litecoin",
+    "ticker": "LTC",
+    "title": "Litecoin",
+    "slip44": 2,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [48],
+    "p2sh": [50],
+    "hrp": "ltc",
+    "wif": 176,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "litecoinspace.org",
+        "url": "https://litecoinspace.org/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "LUEweDxDA4WhvWiNXXSxjM9CYzHPJv4QQF",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "MQMHBtvnBfxTzt3K2bdxgSE7qZPHSXWsGM",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "doge",
+    "slug": "dogecoin",
+    "ticker": "DOGE",
+    "title": "Dogecoin",
+    "slip44": 3,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [30],
+    "p2sh": [22],
+    "hrp": null,
+    "wif": 158,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "DEA5vGb2NpAwCiCp5yTE16F3DueQUVivQp",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "A8tPcraiJcyw6k8tLrK36vc6DSAsXwu8f7",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "eth",
+    "slug": "ethereum",
+    "ticker": "ETH",
+    "title": "Ethereum / EVM",
+    "slip44": 60,
+    "curve": "secp256k1",
+    "family": "eth",
+    "decimals": 18,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "evm",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "0xD8dA6BF26964AF9D7EdD9E03e53415D37aA96045",
+        "kind": "Eth"
+      }
+    ]
+  },
+  {
+    "name": "tron",
+    "slug": "tron",
+    "ticker": "TRX",
+    "title": "Tron",
+    "slip44": 195,
+    "curve": "secp256k1",
+    "family": "tron",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+        "kind": "Tron"
+      }
+    ]
+  },
+  {
+    "name": "xrp",
+    "slug": "xrp-ledger",
+    "ticker": "XRP",
+    "title": "XRP Ledger",
+    "slip44": 144,
+    "curve": "secp256k1",
+    "family": "xrp",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+        "kind": "Xrp"
+      }
+    ]
+  },
+  {
+    "name": "atom",
+    "slug": "cosmos-hub",
+    "ticker": "ATOM",
+    "title": "Cosmos Hub",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "atom",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "cosmos",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "cosmos1hsk6jryyqjfhp5dhc55tc9jtckygx0eph6dd02",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "algo",
+    "slug": "algorand",
+    "ticker": "ALGO",
+    "title": "Algorand",
+    "slip44": 283,
+    "curve": "ed25519",
+    "family": "algo",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "VCMJKWOY5P5P7SKMZFFOCEROPJCZOTIJMNIYNUCKH7LRO45JMJP6UYBIJA",
+        "kind": "Algo"
+      }
+    ]
+  },
+  {
+    "name": "dot",
+    "slug": "polkadot",
+    "ticker": "DOT",
+    "title": "Polkadot",
+    "slip44": 354,
+    "curve": "sr25519",
+    "family": "dot",
+    "decimals": 10,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5",
+        "kind": "Ss58"
+      }
+    ]
+  },
+  {
+    "name": "ada",
+    "slug": "cardano",
+    "ticker": "ADA",
+    "title": "Cardano",
+    "slip44": 1815,
+    "curve": "ed25519-bip32",
+    "family": "ada",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x",
+        "kind": "Ada"
+      }
+    ]
+  },
+  {
+    "name": "ton",
+    "slug": "ton",
+    "ticker": "TON",
+    "title": "TON",
+    "slip44": 607,
+    "curve": "ed25519",
+    "family": "ton",
+    "decimals": 9,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N",
+        "kind": "Ton"
+      }
+    ]
+  },
+  {
+    "name": "xlm",
+    "slug": "stellar",
+    "ticker": "XLM",
+    "title": "Stellar",
+    "slip44": 148,
+    "curve": "ed25519",
+    "family": "xlm",
+    "decimals": 7,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ",
+        "kind": "Xlm"
+      }
+    ]
+  },
+  {
+    "name": "sol",
+    "slug": "solana",
+    "ticker": "SOL",
+    "title": "Solana",
+    "slip44": 501,
+    "curve": "ed25519",
+    "family": "sol",
+    "decimals": 9,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "11111111111111111111111111111111",
+        "kind": "Sol"
+      }
+    ]
+  },
+  {
+    "name": "xmr",
+    "slug": "monero",
+    "ticker": "XMR",
+    "title": "Monero",
+    "slip44": 128,
+    "curve": "ed25519-monero",
+    "family": "xmr",
+    "decimals": 8,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A",
+        "kind": "Xmr"
+      }
+    ]
+  },
+  {
+    "name": "qtum",
+    "slug": "qtum",
+    "ticker": "QTUM",
+    "title": "Qtum",
+    "slip44": 2301,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [58],
+    "p2sh": [50],
+    "hrp": "qc",
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "qtum.info",
+        "url": "https://qtum.info/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "QVcyVJw6Fs9U6r7Emin9abs4r2rpPhBE1A",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "MQMHBtvnBfxTzt3K2bdxgSE7qZPHSXWsGM",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "ftc",
+    "slug": "feathercoin",
+    "ticker": "FTC",
+    "title": "Feathercoin",
+    "slip44": 8,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [14],
+    "p2sh": [5],
+    "hrp": "fc",
+    "wif": 142,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "6nkSAXpR1vkv7myRhG88F5tT9qXK8DuXnf",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "nmc",
+    "slug": "namecoin",
+    "ticker": "NMC",
+    "title": "Namecoin",
+    "slip44": 7,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [52],
+    "p2sh": [13],
+    "hrp": "nc",
+    "wif": 180,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "N5bMaf9MznNDCFGidCnEfrEM51KA7DkvMe",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "6Wqxksu7uzp3jqt785KAjoA1YtrP6pio7B",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "dash",
+    "slug": "dash",
+    "ticker": "DASH",
+    "title": "Dash",
+    "slip44": 5,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [76],
+    "p2sh": [16],
+    "hrp": null,
+    "wif": 204,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "blockbook.dash.zelcore.io",
+        "url": "https://blockbook.dash.zelcore.io/address/{addr}"
+      },
+      {
+        "name": "insight.dash.org",
+        "url": "https://insight.dash.org/insight/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "XjhqDGJH37VEpecoDGmtJrmEB7VoD8Lb39",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "7irmiCnz3YCgC9JNCLK8CAyNSQdDFWLMGM",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "vtc",
+    "slug": "vertcoin",
+    "ticker": "VTC",
+    "title": "Vertcoin",
+    "slip44": 28,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [71],
+    "p2sh": [5],
+    "hrp": "vtc",
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "blockbook.vtc.zelcore.io",
+        "url": "https://blockbook.vtc.zelcore.io/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "Vj1pHioqVDArjUvN6B7HtEQJ2bD5hc1znM",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "dgb",
+    "slug": "digibyte",
+    "ticker": "DGB",
+    "title": "DigiByte",
+    "slip44": 20,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [30],
+    "p2sh": [63],
+    "hrp": "dgb",
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "blockbook.dgb.zelcore.io",
+        "url": "https://blockbook.dgb.zelcore.io/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "DEA5vGb2NpAwCiCp5yTE16F3DueQUVivQp",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "Sdk7zJoXR1yrdWrSM3y6z4mM27jYdpSXFL",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "via",
+    "slug": "viacoin",
+    "ticker": "VIA",
+    "title": "Viacoin",
+    "slip44": 14,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [71],
+    "p2sh": [33],
+    "hrp": "via",
+    "wif": 199,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "blockbook.viacoin.org",
+        "url": "https://blockbook.viacoin.org/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "Vj1pHioqVDArjUvN6B7HtEQJ2bD5hc1znM",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "EZc2T3rt7c5a6WfqcTyYSJbk8z1FNHxpB4",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "mona",
+    "slug": "monacoin",
+    "ticker": "MONA",
+    "title": "Monacoin",
+    "slip44": 22,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [50],
+    "p2sh": [55],
+    "hrp": "mona",
+    "wif": 176,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "mona.insight.monaco-ex.org",
+        "url": "https://mona.insight.monaco-ex.org/insight/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "MGv9cSYnaRSTZNzYaN7bhbgmozoGkKBvCn",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "PR3J7SRDjaGr63jk9hJZ74b3z5fzzH7G6U",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "rvn",
+    "slug": "ravencoin",
+    "ticker": "RVN",
+    "title": "Ravencoin",
+    "slip44": 175,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [60],
+    "p2sh": [122],
+    "hrp": null,
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "blockbook.rvn.zelcore.io",
+        "url": "https://blockbook.rvn.zelcore.io/address/{addr}"
+      },
+      {
+        "name": "blockbook.ravencoin.org",
+        "url": "https://blockbook.ravencoin.org/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "RJJBTXXfgE5DjiPQpZSnYrQe73NhrBZ3ao",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "rNgi5iPXJfKYt65YnocubTpm9swCcJwLTY",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "xpm",
+    "slug": "primecoin",
+    "ticker": "XPM",
+    "title": "Primecoin",
+    "slip44": 24,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [23],
+    "p2sh": [83],
+    "hrp": null,
+    "wif": 151,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "chainz.cryptoid.info",
+        "url": "https://chainz.cryptoid.info/xpm/address.dws?{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "AQns2WW1QYvoUgECv37zcDLXpNqoYvfGUc",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "agWBgUmHcdFNzBeAqSdUgaD5cCtQuedkn5",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "trc",
+    "slug": "terracoin",
+    "ticker": "TRC",
+    "title": "Terracoin",
+    "slip44": 83,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [0],
+    "p2sh": [5],
+    "hrp": null,
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "mec",
+    "slug": "megacoin",
+    "ticker": "MEC",
+    "title": "Megacoin",
+    "slip44": 217,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [50],
+    "p2sh": [5],
+    "hrp": "mec",
+    "wif": 178,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "MGv9cSYnaRSTZNzYaN7bhbgmozoGkKBvCn",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "aur",
+    "slug": "auroracoin",
+    "ticker": "AUR",
+    "title": "Auroracoin",
+    "slip44": 85,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [23],
+    "p2sh": [5],
+    "hrp": null,
+    "wif": 176,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "chainz.cryptoid.info",
+        "url": "https://chainz.cryptoid.info/aur/address.dws?{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "AQns2WW1QYvoUgECv37zcDLXpNqoYvfGUc",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "bch",
+    "slug": "bitcoin-cash",
+    "ticker": "BCH",
+    "title": "Bitcoin Cash (legacy addresses)",
+    "slip44": 145,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [0],
+    "p2sh": [5],
+    "hrp": null,
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": 0,
+    "tx_format": "forkid",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "bsv",
+    "slug": "bitcoin-sv",
+    "ticker": "BSV",
+    "title": "Bitcoin SV (legacy addresses)",
+    "slip44": 236,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [0],
+    "p2sh": [5],
+    "hrp": null,
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": 0,
+    "tx_format": "forkid",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "whatsonchain.com",
+        "url": "https://whatsonchain.com/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "btg",
+    "slug": "bitcoin-gold",
+    "ticker": "BTG",
+    "title": "Bitcoin Gold",
+    "slip44": 156,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [38],
+    "p2sh": [23],
+    "hrp": "btg",
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": 79,
+    "tx_format": "forkid",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "GSruo8yL4FswkBKWHL7mt6RLFwhxBe2GVb",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "AYDzbxt11oSovBGyNGeMb3ssqwRpDf7x9D",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "ppc",
+    "slug": "peercoin",
+    "ticker": "PPC",
+    "title": "Peercoin",
+    "slip44": 6,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 6,
+    "p2pkh": [55],
+    "p2sh": [117],
+    "hrp": "pc",
+    "wif": 183,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "pos-ntime",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "blockbook.peercoin.net",
+        "url": "https://blockbook.peercoin.net/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "PHcAXz3E8KkqeYgyhTnC8E3hxX5zGAm1nw",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "pMzhAAu5km1AnvP7fhxKAqTq1MeV17H622",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "nvc",
+    "slug": "novacoin",
+    "ticker": "NVC",
+    "title": "Novacoin",
+    "slip44": 50,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 6,
+    "p2pkh": [8],
+    "p2sh": [20],
+    "hrp": null,
+    "wif": 136,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "pos-ntime",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "chainz.cryptoid.info",
+        "url": "https://chainz.cryptoid.info/nvc/address.dws?{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "4NipFt2gkqyfDB8uYk8DLLFjNoyeu7w7ev",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "9LDBedz8tG4BTsriJ1eQ8g4WxRez7LGGtG",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "clam",
+    "slug": "clams",
+    "ticker": "CLAM",
+    "title": "Clams",
+    "slip44": 23,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [137],
+    "p2sh": [13],
+    "hrp": null,
+    "wif": 133,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "pos-ntime",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "chainz.cryptoid.info",
+        "url": "https://chainz.cryptoid.info/clam/address.dws?{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "xHKdGtUrM7kgi685hs6KtWNDZtDLY18RJU",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "6Wqxksu7uzp3jqt785KAjoA1YtrP6pio7B",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "blk",
+    "slug": "blackcoin",
+    "ticker": "BLK",
+    "title": "Blackcoin",
+    "slip44": 10,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [25],
+    "p2sh": [85],
+    "hrp": null,
+    "wif": 153,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "chainz.cryptoid.info",
+        "url": "https://chainz.cryptoid.info/blk/address.dws?{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "BDU4zj6apurZ7YWNxsndaTt75PMgzvwbN4",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "bVBPehMs2zB8d3vLtHJ7epkesDQJJ9D7Ek",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "rdd",
+    "slug": "reddcoin",
+    "ticker": "RDD",
+    "title": "Reddcoin",
+    "slip44": 4,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [61],
+    "p2sh": [5],
+    "hrp": "rdd",
+    "wif": 189,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "pos-ntime",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "blockbook.reddcoin.com",
+        "url": "https://blockbook.reddcoin.com/address/{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "RhdnSdpxPQY6Z9XVqyn72ygRjYdeYjdtzX",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "pot",
+    "slug": "potcoin",
+    "ticker": "POT",
+    "title": "Potcoin",
+    "slip44": 81,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [55],
+    "p2sh": [110],
+    "hrp": null,
+    "wif": 183,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "pos-ntime",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "chainz.cryptoid.info",
+        "url": "https://chainz.cryptoid.info/pot/address.dws?{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "PHcAXz3E8KkqeYgyhTnC8E3hxX5zGAm1nw",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "mYdUGQp4nVm34tQWVmd5mxZKbpqt48csHg",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "qrk",
+    "slug": "quark",
+    "ticker": "QRK",
+    "title": "Quark",
+    "slip44": 82,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 5,
+    "p2pkh": [58],
+    "p2sh": [9],
+    "hrp": null,
+    "wif": 186,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": true,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "chainz.cryptoid.info",
+        "url": "https://chainz.cryptoid.info/qrk/address.dws?{addr}"
+      }
+    ],
+    "examples": [
+      {
+        "address": "QVcyVJw6Fs9U6r7Emin9abs4r2rpPhBE1A",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "4uVYpShy5GxYU7Km2PytoJ4s2spcKeRxQt",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "grs",
+    "slug": "groestlcoin",
+    "ticker": "GRS",
+    "title": "Groestlcoin",
+    "slip44": 17,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [36],
+    "p2sh": [5],
+    "hrp": "grs",
+    "wif": 128,
+    "checksum": "groestl512d",
+    "forkid": null,
+    "tx_format": "legacy-sha256",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "FeBhpvNkdtxC7K3LEVT8uqskzwC4mFYrhR",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqSwU8e6",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "wdc",
+    "slug": "worldcoin",
+    "ticker": "WDC",
+    "title": "Worldcoin",
+    "slip44": null,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [73],
+    "p2sh": [5],
+    "hrp": null,
+    "wif": 201,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": false,
+    "scope": null,
+    "explorers": [
+      {
+        "name": "chainz.cryptoid.info",
+        "url": "https://chainz.cryptoid.info/wdc/address.dws?{addr}"
+      }
+    ],
+    "examples": []
+  },
+  {
+    "name": "anc",
+    "slug": "anoncoin",
+    "ticker": "ANC",
+    "title": "Anoncoin",
+    "slip44": null,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [23],
+    "p2sh": [15],
+    "hrp": null,
+    "wif": 151,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "legacy",
+    "verified": false,
+    "scope": null,
+    "explorers": [],
+    "examples": []
+  },
+  {
+    "name": "bcc",
+    "slug": "bitconnect",
+    "ticker": "BCC",
+    "title": "BitConnect",
+    "slip44": null,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [18],
+    "p2sh": [85],
+    "hrp": null,
+    "wif": 146,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "pos-ntime",
+    "verified": false,
+    "scope": null,
+    "explorers": [],
+    "examples": []
+  },
+  {
+    "name": "pivx",
+    "slug": "pivx",
+    "ticker": "PIVX",
+    "title": "PIVX",
+    "slip44": 119,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [30],
+    "p2sh": [13],
+    "hrp": null,
+    "wif": 212,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "unknown",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "DEA5vGb2NpAwCiCp5yTE16F3DueQUVivQp",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "6Wqxksu7uzp3jqt785KAjoA1YtrP6pio7B",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "sys",
+    "slug": "syscoin",
+    "ticker": "SYS",
+    "title": "Syscoin",
+    "slip44": 57,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [63],
+    "p2sh": [5],
+    "hrp": "sys",
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "unknown",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "SWJzQrRXomTrC1oftpSk1EDzzZ9Xz5mzbh",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "firo",
+    "slug": "firo",
+    "ticker": "FIRO",
+    "title": "Firo",
+    "slip44": 136,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [82],
+    "p2sh": [7],
+    "hrp": null,
+    "wif": 210,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "unknown",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "a9jT7v61JCGVjFTKMnmoDcPwx93TUqE2LA",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "46pLrE7Pev2nqF3ayZKFq3XHmsJityedfw",
+        "kind": "P2sh"
+      }
+    ]
+  },
+  {
+    "name": "zec",
+    "slug": "zcash",
+    "ticker": "ZEC",
+    "title": "Zcash (transparent)",
+    "slip44": 133,
+    "curve": "secp256k1",
+    "family": "utxo",
+    "decimals": 8,
+    "p2pkh": [28, 184],
+    "p2sh": [28, 189],
+    "hrp": null,
+    "wif": 128,
+    "checksum": "sha256d",
+    "forkid": null,
+    "tx_format": "zcash-v5",
+    "verified": true,
+    "scope": "transparent",
+    "explorers": [],
+    "examples": [
+      {
+        "address": "t1StbPM4X3j4FGM57HpGnb9BMbS7C1nFW1r",
+        "kind": "P2pkh"
+      },
+      {
+        "address": "t3b1jtLvxCstdo1pJs9Tjzc5dmWyvGQSZj8",
+        "kind": "P2sh"
+      }
+    ]
+  }
+]
