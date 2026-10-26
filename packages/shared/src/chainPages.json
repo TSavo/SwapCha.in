@@ -256,6 +256,58 @@
     ]
   },
   {
+    "name": "ksm",
+    "slug": "kusama",
+    "ticker": "KSM",
+    "title": "Kusama",
+    "slip44": 434,
+    "curve": "sr25519",
+    "family": "ksm",
+    "decimals": 12,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "DnZxLFY3cddikU5Thok5wbWRMskbCrSnh316FEhfQVHwKPb",
+        "kind": "Ss58"
+      }
+    ]
+  },
+  {
+    "name": "polyx",
+    "slug": "polymesh",
+    "ticker": "POLYX",
+    "title": "Polymesh",
+    "slip44": 595,
+    "curve": "sr25519",
+    "family": "polyx",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "2DfAYFfZtXNuHLWiX2byrxFktDJh939eg6aKF5fiHxSAkFqy",
+        "kind": "Ss58"
+      }
+    ]
+  },
+  {
     "name": "ada",
     "slug": "cardano",
     "ticker": "ADA",

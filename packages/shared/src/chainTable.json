@@ -117,6 +117,32 @@
     "source": "substrate subkey: mini-secret = PBKDF2(entropy), sr25519, SS58 prefix 0"
   },
   {
+    "name": "ksm",
+    "ticker": "KSM",
+    "title": "Kusama",
+    "coin_type": 434,
+    "curve": "sr25519",
+    "encoding": "ss58",
+    "native_seed": true,
+    "sign": "account_family",
+    "buildable": false,
+    "verified": true,
+    "source": "substrate subkey key (as dot), SS58 prefix 2 (paritytech ss58-registry kusama); encoding checked against Trust Wallet Core tests/chains/Kusama"
+  },
+  {
+    "name": "polyx",
+    "ticker": "POLYX",
+    "title": "Polymesh",
+    "coin_type": 595,
+    "curve": "sr25519",
+    "encoding": "ss58",
+    "native_seed": true,
+    "sign": "account_family",
+    "buildable": false,
+    "verified": true,
+    "source": "substrate subkey key (as dot), SS58 prefix 12 (paritytech ss58-registry polymesh); encoding checked against Trust Wallet Core tests/chains/Polymesh"
+  },
+  {
     "name": "ada",
     "ticker": "ADA",
     "title": "Cardano",
