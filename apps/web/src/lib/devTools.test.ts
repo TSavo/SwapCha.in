@@ -26,8 +26,8 @@ describe("developer tool pages", () => {
       for (const e of t.examples) expect(t.modes.some((m) => m.id === e.mode)).toBe(true);
       for (const r of t.related) expect(slugs.has(r)).toBe(true);
     }
-    expect(CHAIN_COUNT).toBe(42);
-    expect(UTXO_CHAIN_COUNT).toBe(31);
+    expect(CHAIN_COUNT).toBe(45);
+    expect(UTXO_CHAIN_COUNT).toBe(34);
     expect(POWERED_BY).toBe("Powered by blocktools");
     expect(BLOCKTOOLS_URL).toBe("https://github.com/TSavo/blocktools");
   });

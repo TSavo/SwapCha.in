@@ -2190,7 +2190,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "address_tool",
     {
       title: "Address detect / validate / convert / script (dev tool)",
-      description: `Work with public crypto addresses: op=detect (which chains/formats an address fits), validate (address + chain), convert (address to another chain's format, e.g. BTC→LTC), cashaddr_to_legacy / legacy_to_cashaddr / cashaddr_decode / cashaddr_encode (Bitcoin Cash; prefix for to_cashaddr; encode takes kind p2pkh|p2sh + hash hex [+ prefix]), to_script (address+chain → scriptPubKey hex), from_script (script hex+chain → address), base58_encode (hex data) / base58_decode (base58 data). convert accepts optional from chain. ${OFFLINE}`,
+      description: `Work with public crypto addresses: op=detect (every chain/format an address fits; forks share version bytes, so expect several, e.g. a D... address returns doge, dgb and pivx; detect/validate support does not mean SwapChan can scan or sweep that chain), validate (address + chain), convert (address to another chain's format, e.g. BTC→LTC), cashaddr_to_legacy / legacy_to_cashaddr / cashaddr_decode / cashaddr_encode (Bitcoin Cash; prefix for to_cashaddr; encode takes kind p2pkh|p2sh + hash hex [+ prefix]), to_script (address+chain → scriptPubKey hex), from_script (script hex+chain → address), base58_encode (hex data) / base58_decode (base58 data). convert accepts optional from chain. ${OFFLINE}`,
       inputSchema: z.object({
         op: z.enum([
           "detect",
