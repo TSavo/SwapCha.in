@@ -1,0 +1,55 @@
+import Link from "next/link";
+import { BtPage, btMeta } from "@/components/blocktools/BtPage";
+import { BT_GROUPS, BT_ON_SWAPCHAN } from "@/lib/blocktools";
+import { BT_REPO } from "@/lib/blocktools.server";
+import { BT_TOOLS } from "@/lib/blocktoolsManifest";
+
+export const metadata = btMeta(
+  "/blocktools/commands",
+  "blocktools commands reference",
+  "All 43 blocktools man(1) pages (41 tools, the blocktools wrapper and recover.sh) with their man page summaries: wallet readers, address derivation, transaction build, verify, sign and broadcast, contract tools and pipeline plumbing.",
+);
+
+export default function Commands() {
+  const desc = Object.fromEntries(BT_TOOLS.map((t) => [t.name, t.desc]));
+  const web = Object.fromEntries(BT_ON_SWAPCHAN.map((w) => [w.tool, w]));
+  return (
+    <BtPage
+      title="Commands"
+      lead={
+        <p>
+          43 man(1) pages: the 41 tools in <code>bin/</code>, the <code>blocktools</code> wrapper
+          and <code>recover.sh</code> (<code>man blocktools</code> lists them). Summaries are the
+          man pages&apos; NAME lines.
+        </p>
+      }
+      source={`${BT_REPO}/tree/main/man/man1`}
+    >
+      {BT_GROUPS.map((g) => (
+        <section key={g.id} className="mb-8">
+          <h2 className="text-xl font-black">{g.label}</h2>
+          <p className="mb-3 text-sm text-violet-300">{g.blurb}</p>
+          <dl className="divide-y divide-violet-500/30 rounded-xl border border-violet-500/70 bg-violet-900/30">
+            {g.tools.map((t) => (
+              <div key={t} id={t} className="scroll-mt-24 p-3 md:flex md:gap-4">
+                <dt className="shrink-0 font-mono font-bold text-amber-300 md:w-44">{t}</dt>
+                <dd className="text-sm text-violet-100">
+                  {desc[t] ?? ""}
+                  {web[t] && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <Link href={web[t].href} className="text-fuchsia-300 underline">
+                        try it on SwapChan: {web[t].label}
+                      </Link>
+                    </>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+    </BtPage>
+  );
+}

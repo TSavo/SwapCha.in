@@ -30,7 +30,7 @@ importers:
         version: 1.9.7
       '@relay-protocol/settlement-sdk':
         specifier: 0.0.151
-        version: 0.0.151(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)(zod@4.6.7)
+        version: 0.0.151(bufferutil@4.1.0)(typescript@7.0.2)(zod@4.6.7)
       '@scure/base':
         specifier: 1.2.6
         version: 1.2.6
@@ -174,6 +174,9 @@ importers:
       buffer:
         specifier: 6.0.3
         version: 6.0.3
+      marked:
+        specifier: ^18.1.2
+        version: 18.1.2
       next:
         specifier: 16.4.2
         version: 16.4.2(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -3715,6 +3718,11 @@ packages:
   magic-string@1.4.3:
     resolution: {integrity: sha512-z12OxmaPGE0F4xlpGdjuAUckipLpQlTAuAmyGhNoD7ODpYUzvDfvtxUbjM/jwznyP178oju/KDdyi220wNJ0RQ==}
 
+  marked@18.1.2:
+    resolution: {integrity: sha512-DfOnvLAQ6WYeWxWO1u4RyFOeqyHup6dks5PPqnoFiooU7ipRvidO/2j8plhAHIiZg574E9ZlzSjUiPMLAzFkgg==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
@@ -4751,10 +4759,10 @@ snapshots:
 
   '@coral-xyz/anchor-errors@0.31.1': {}
 
-  '@coral-xyz/anchor@0.31.1(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)':
+  '@coral-xyz/anchor@0.31.1(bufferutil@4.1.0)(typescript@7.0.2)':
     dependencies:
       '@coral-xyz/anchor-errors': 0.31.1
-      '@coral-xyz/borsh': 0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6))
+      '@coral-xyz/borsh': 0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2))
       '@noble/hashes': 1.8.0
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)
       bn.js: 5.2.5
@@ -4772,7 +4780,7 @@ snapshots:
       - typescript
       - utf-8-validate
 
-  '@coral-xyz/borsh@0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6))':
+  '@coral-xyz/borsh@0.31.1(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2))':
     dependencies:
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)
       bn.js: 5.2.5
@@ -5231,9 +5239,9 @@ snapshots:
     dependencies:
       lit: 3.3.0
 
-  '@relay-protocol/settlement-sdk@0.0.151(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)(zod@4.6.7)':
+  '@relay-protocol/settlement-sdk@0.0.151(bufferutil@4.1.0)(typescript@7.0.2)(zod@4.6.7)':
     dependencies:
-      '@coral-xyz/anchor': 0.31.1(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)
+      '@coral-xyz/anchor': 0.31.1(bufferutil@4.1.0)(typescript@7.0.2)
       '@noble/hashes': 1.8.0
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)
       '@ton/core': 0.61.0(@ton/crypto@3.3.0)
@@ -5242,10 +5250,10 @@ snapshots:
       bitcoinjs-lib: 6.1.7
       bs58: 6.0.0
       js-sha256: 0.11.1
-      ripple-address-codec: 5.0.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      ripple-binary-codec: 2.8.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      ripple-address-codec: 5.0.1(bufferutil@4.1.0)
+      ripple-binary-codec: 2.8.0(bufferutil@4.1.0)
       tronweb: 6.5.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      viem: 2.47.6(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)(zod@4.6.7)
+      viem: 2.47.6(bufferutil@4.1.0)(typescript@7.0.2)(zod@4.6.7)
     transitivePeerDependencies:
       - bufferutil
       - debug
@@ -7329,7 +7337,7 @@ snapshots:
     transitivePeerDependencies:
       - fastestsmallesttextencoderdecoder
 
-  '@solana/spl-token-group@0.0.7(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)':
+  '@solana/spl-token-group@0.0.7(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)':
     dependencies:
       '@solana/codecs': 2.0.0-rc.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)
@@ -7337,7 +7345,7 @@ snapshots:
       - fastestsmallesttextencoderdecoder
       - typescript
 
-  '@solana/spl-token-metadata@0.1.6(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)':
+  '@solana/spl-token-metadata@0.1.6(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)':
     dependencies:
       '@solana/codecs': 2.0.0-rc.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)
@@ -7349,8 +7357,8 @@ snapshots:
     dependencies:
       '@solana/buffer-layout': 4.0.1
       '@solana/buffer-layout-utils': 0.2.0(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)
-      '@solana/spl-token-group': 0.0.7(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)
-      '@solana/spl-token-metadata': 0.1.6(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)
+      '@solana/spl-token-group': 0.0.7(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)
+      '@solana/spl-token-metadata': 0.1.6(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@7.0.2))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@7.0.2)
       '@solana/web3.js': 1.98.4(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)
       buffer: 6.0.3
     transitivePeerDependencies:
@@ -8675,7 +8683,7 @@ snapshots:
       - fastestsmallesttextencoderdecoder
       - typescript
 
-  '@xrplf/isomorphic@1.0.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
+  '@xrplf/isomorphic@1.0.2(bufferutil@4.1.0)':
     dependencies:
       '@noble/hashes': 2.4.0
       eventemitter3: 5.0.1
@@ -9269,13 +9277,13 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  isomorphic-ws@4.0.1(ws@7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
+  isomorphic-ws@4.0.1(ws@7.5.13(bufferutil@4.1.0)):
     dependencies:
       ws: 7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6)
 
-  isows@1.0.7(ws@8.18.3(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
+  isows@1.0.7(ws@8.18.3(bufferutil@4.1.0)):
     dependencies:
-      ws: 8.18.3(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      ws: 8.18.3(bufferutil@4.1.0)
 
   isows@1.0.7(ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)):
     dependencies:
@@ -9290,7 +9298,7 @@ snapshots:
       delay: 5.0.0
       es6-promisify: 5.0.0
       eyes: 0.1.8
-      isomorphic-ws: 4.0.1(ws@7.5.13(bufferutil@4.1.0)(utf-8-validate@6.0.6))
+      isomorphic-ws: 4.0.1(ws@7.5.13(bufferutil@4.1.0))
       json-stringify-safe: 5.0.1
       stream-json: 1.9.1
       uuid: 8.3.2
@@ -9513,6 +9521,8 @@ snapshots:
   magic-string@1.4.3:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  marked@18.1.2: {}
 
   math-intrinsics@1.1.0: {}
 
@@ -9807,19 +9817,19 @@ snapshots:
 
   require-main-filename@2.0.0: {}
 
-  ripple-address-codec@5.0.1(bufferutil@4.1.0)(utf-8-validate@6.0.6):
+  ripple-address-codec@5.0.1(bufferutil@4.1.0):
     dependencies:
       '@scure/base': 2.4.0
-      '@xrplf/isomorphic': 1.0.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      '@xrplf/isomorphic': 1.0.2(bufferutil@4.1.0)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  ripple-binary-codec@2.8.0(bufferutil@4.1.0)(utf-8-validate@6.0.6):
+  ripple-binary-codec@2.8.0(bufferutil@4.1.0):
     dependencies:
-      '@xrplf/isomorphic': 1.0.2(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      '@xrplf/isomorphic': 1.0.2(bufferutil@4.1.0)
       bignumber.js: 10.0.2
-      ripple-address-codec: 5.0.1(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      ripple-address-codec: 5.0.1(bufferutil@4.1.0)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -10185,16 +10195,16 @@ snapshots:
     dependencies:
       uint8array-tools: 0.0.10
 
-  viem@2.47.6(bufferutil@4.1.0)(typescript@7.0.2)(utf-8-validate@6.0.6)(zod@4.6.7):
+  viem@2.47.6(bufferutil@4.1.0)(typescript@7.0.2)(zod@4.6.7):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
       abitype: 1.2.3(typescript@7.0.2)(zod@4.6.7)
-      isows: 1.0.7(ws@8.18.3(bufferutil@4.1.0)(utf-8-validate@6.0.6))
+      isows: 1.0.7(ws@8.18.3(bufferutil@4.1.0))
       ox: 0.14.7(typescript@7.0.2)(zod@4.6.7)
-      ws: 8.18.3(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      ws: 8.18.3(bufferutil@4.1.0)
     optionalDependencies:
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -10376,10 +10386,9 @@ snapshots:
       bufferutil: 4.1.0
       utf-8-validate: 6.0.6
 
-  ws@8.18.3(bufferutil@4.1.0)(utf-8-validate@6.0.6):
+  ws@8.18.3(bufferutil@4.1.0):
     optionalDependencies:
       bufferutil: 4.1.0
-      utf-8-validate: 6.0.6
 
   ws@8.21.0(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     optionalDependencies:

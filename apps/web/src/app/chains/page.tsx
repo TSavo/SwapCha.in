@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PoweredBy } from "@/components/devtools/PoweredBy";
+import { HubSearch } from "@/components/HubSearch";
 import { CHAIN_FAMILIES, CHAIN_PAGES, chainHref } from "@/lib/chainPages";
 
 const TITLE = `Crypto Address Formats & Validators for ${CHAIN_PAGES.length} Chains | SwapChan`;
-const DESC = `Address format, prefixes, decimals and a free validator for ${CHAIN_PAGES.length} blockchains, from Bitcoin and its forks to Ethereum, Solana, Polkadot and Monero. Public data only.`;
+const DESC = `Address format, prefixes, decimals and a validator for ${CHAIN_PAGES.length} blockchains, from Bitcoin and its forks to Ethereum, Solana, Polkadot and Monero. Public data only.`;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -33,7 +34,7 @@ export default function ChainsIndex() {
         {
           "@type": "ListItem",
           position: 1,
-          name: "Free tools",
+          name: "Tools",
           item: "https://swapchan.com/tools",
         },
         { "@type": "ListItem", position: 2, name: "Chains", item: "https://swapchan.com/chains" },
@@ -43,12 +44,6 @@ export default function ChainsIndex() {
   return (
     <div className="w-full" data-testid="chains-index">
       <script type="application/ld+json">{JSON.stringify(ld)}</script>
-      <nav className="mb-1 text-xs font-bold text-violet-300 md:text-sm">
-        <Link href="/tools" className="hover:text-amber-300">
-          Free tools
-        </Link>
-        {" · Chains"}
-      </nav>
       <h1 className="text-3xl font-black">Address formats for {CHAIN_PAGES.length} chains</h1>
       <p className="mb-6 text-violet-200">
         Pick a chain to see how its addresses are built (version bytes, bech32 prefix, checksum,
@@ -59,16 +54,17 @@ export default function ChainsIndex() {
         </Link>
         .
       </p>
+      <HubSearch placeholder={`Search ${CHAIN_PAGES.length} chains…`} />
       {CHAIN_FAMILIES.map((f) => {
         const list = CHAIN_PAGES.filter(f.match);
         return (
-          <section key={f.id} id={f.id} className="mb-8">
+          <section key={f.id} id={f.id} data-hub-group className="mb-8">
             <h2 className="mb-3 text-2xl font-black">
               {f.label} ({list.length})
             </h2>
             <ul className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
               {list.map((c) => (
-                <li key={c.slug}>
+                <li key={c.slug} data-hub-item>
                   <Link
                     href={chainHref(c)}
                     className="block h-full rounded-xl border-2 border-violet-600 bg-violet-950 p-3 hover:border-amber-300"

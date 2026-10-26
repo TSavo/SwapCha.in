@@ -74,7 +74,7 @@ export function AmountReadout({
       <div className="flex items-center gap-2">
         <div
           aria-readonly="true"
-          className="w-full min-w-0 truncate text-3xl font-black text-violet-300 select-all"
+          className="w-full min-w-0 truncate text-2xl sm:text-3xl font-black text-violet-300 select-all"
         >
           {value}
         </div>

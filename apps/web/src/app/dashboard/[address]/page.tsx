@@ -23,7 +23,7 @@ export default async function Page({ params }: Props) {
         </Link>{" "}
         ·{" "}
         <Link href="/tools" className="hover:text-amber-300">
-          Free DeFi tools
+          DeFi tools
         </Link>
       </nav>
       <h1 className="mb-3 text-2xl font-black break-all">{a}</h1>

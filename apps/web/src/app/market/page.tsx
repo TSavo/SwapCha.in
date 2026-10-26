@@ -7,7 +7,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: "Crypto market today: fear & greed, funding, open interest, stablecoins | SwapChan",
   description:
-    "Live crypto market context: Fear & Greed index, perp funding and open interest, stablecoin supply and DeFi TVL. Free, updated every few minutes.",
+    "Live crypto market context: Fear & Greed index, perp funding and open interest, stablecoin supply and DeFi TVL, updated every few minutes.",
   alternates: { canonical: "/market" },
 };
 

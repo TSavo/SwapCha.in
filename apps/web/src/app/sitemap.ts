@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { castOrder } from "@/lib/bios";
+import { BT_EXAMPLES } from "@/lib/blocktools";
+import { BT_ITEMS } from "@/lib/blocktoolsManifest";
 import { CHAIN_PAGES, chainHref } from "@/lib/chainPages";
 import { DEV_TOOLS } from "@/lib/devTools";
 import { ROUTES, routeHref } from "@/lib/routes";
@@ -25,6 +27,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/tools", 0.9),
     ...DEV_TOOLS.map((t) => page(`/tools/${t.slug}`, 0.7)),
     page("/tools/key-recovery", 0.5),
+    page("/blocktools", 0.9),
+    ...[
+      "docs",
+      "recipes",
+      "examples",
+      "commands",
+      "install",
+      "binaries",
+      "releases",
+      "mcp",
+      "faq",
+    ].map((x) => page(`/blocktools/${x}`, 0.7)),
+    ...BT_ITEMS.map((i) => page(`/blocktools/${i.kind}/${i.slug}`, 0.6)),
+    ...BT_EXAMPLES.map((e) => page(`/blocktools/examples/${e.slug}`, 0.6)),
     page("/chains", 0.8),
     ...CHAIN_PAGES.map((c) => page(chainHref(c), 0.6)),
     page("/dashboard", 0.9),

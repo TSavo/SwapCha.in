@@ -8,7 +8,8 @@
       "!**/node_modules",
       "!**/.turbo",
       "!pnpm-lock.yaml",
-      "!**/vendor"
+      "!**/vendor",
+      "!apps/web/content/blocktools"
     ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },

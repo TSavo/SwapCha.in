@@ -82,12 +82,21 @@ export default async function Page({
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-10 text-white">
       <header className="flex flex-col gap-4">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-end">
+          <img
+            src="/characters/full/swapchan.webp"
+            alt="Swap-chan"
+            width={832}
+            height={1088}
+            className="animate-float w-36 shrink-0 drop-shadow-[0_0_30px_rgba(217,70,239,0.55)] sm:w-44"
+          />
+          <div className="relative mb-6 rounded-2xl border-2 border-amber-400/60 bg-violet-950/90 px-4 py-3 text-violet-100 shadow-[0_0_24px_rgba(217,70,239,0.35)]">
+            <b className="text-amber-300">Lost the key, not the money?</b> SwapChan is here to help
+            you find your money, senpai. First we get the key back on YOUR machine, offline. I never
+            see your seed. Then we hunt for stuck funds and you sign every step yourself.
+          </div>
+        </div>
         <h1 className="text-4xl font-black">Recover an old crypto wallet</h1>
-        <SpeechBubble who="swapchan">
-          Lost the key, not the money? SwapChan is here to help you find your money, senpai. First
-          we get the key back on YOUR machine, offline. I never see your seed. Then we hunt for
-          stuck funds and you sign every step yourself.
-        </SpeechBubble>
       </header>
 
       <section className="rounded-2xl border-2 border-rose-400 bg-rose-950 p-6">
@@ -138,6 +147,11 @@ export default async function Page({
                 "/agents/secure-signing",
                 "Full signing guide (all branches)",
                 "Missing word, passphrase, Electrum, wallet.dat, hardware…",
+              ],
+              [
+                "/tools/key-recovery",
+                "Why keys never touch SwapChan",
+                "Where key derivation and recovery happen instead (your machine)",
               ],
             ] as const
           ).map(([href, t, d]) => (

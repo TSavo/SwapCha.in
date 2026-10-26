@@ -6,7 +6,7 @@ import { SpeechBubble } from "@/components/Character";
 export const metadata: Metadata = {
   title: "SwapChan agent playbook: find money, recover, verify, sign, swap | SwapChan",
   description:
-    "How an AI agent uses every SwapChan tool together: find money across many wallets, confirm with read_chain, recover keys locally, verify every transaction, get human sign-off, broadcast and swap. Free and non-custodial.",
+    "How an AI agent uses every SwapChan tool together: find money across many wallets, confirm with read_chain, recover keys locally, verify every transaction, get human sign-off, broadcast and swap. Non-custodial.",
   alternates: { canonical: "/agents/playbook" },
 };
 

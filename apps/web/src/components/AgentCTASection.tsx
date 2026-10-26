@@ -10,10 +10,10 @@ export function AgentCTASection({ tool, prompt }: { tool?: string; prompt?: stri
           <>
             This page is the{" "}
             <code className="rounded bg-violet-950 px-1.5 py-0.5 text-amber-300">{tool}</code> tool
-            in the free SwapChan MCP server.
+            in the SwapChan MCP server.
           </>
         ) : (
-          <>Everything on this page is a tool in the free SwapChan MCP server.</>
+          <>Everything on this page is a tool in the SwapChan MCP server.</>
         )}{" "}
         SwapChan never holds keys or funds; your agent gets unsigned transactions you sign yourself.
       </p>

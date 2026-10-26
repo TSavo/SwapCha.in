@@ -27,7 +27,7 @@ const JSON_LD = {
       applicationCategory: "FinanceApplication",
       operatingSystem: "Any",
       description:
-        "Cross-chain swap and bridge aggregator comparing 0x, CoW, Velora, LI.FI, Across and Relay, a free find-money wallet scan (21 EVM chains, Solana, Tron, Bitcoin, 25+ old coins, XRP, XLM, ADA, DOT, TON and more), plus a free MCP server for AI agents.",
+        "Cross-chain swap and bridge aggregator comparing 0x, CoW, Velora, LI.FI, Across and Relay, a read-only find-money wallet scan (21 EVM chains, Solana, Tron, Bitcoin, 25+ old coins, XRP, XLM, ADA, DOT, TON and more), plus an MCP server for AI agents.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     },
   ],
@@ -43,7 +43,7 @@ export default function Home() {
       />
       <div className="mt-0 mb-2 text-center md:mb-3">
         <h1 className="text-xl font-black md:text-3xl">Best route, every chain~</h1>
-        <p className="text-sm text-violet-300">
+        <p className="text-xs text-violet-300 md:text-sm">
           0x, CoW, Velora, LI.FI, Across and Relay compared at once ·{" "}
           <Link href="/how-it-works" className="underline hover:text-amber-300">
             How it works
@@ -54,17 +54,38 @@ export default function Home() {
           </Link>
         </p>
       </div>
-      <div className="flex w-full flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center">
-        <div className="order-2 lg:order-none">
-          <Greeting />
+      <div className="flex w-full flex-col items-center gap-2 md:gap-4 lg:flex-row lg:items-start lg:justify-center">
+        <div className="order-1 flex w-full max-w-lg flex-row items-end gap-1 lg:order-none lg:w-64 lg:flex-col lg:items-center">
+          <img
+            src="/characters/full/swapchan.webp"
+            alt="Swap-chan"
+            width={832}
+            height={1088}
+            className="animate-float w-16 shrink-0 drop-shadow-[0_0_18px_rgba(217,70,239,0.55)] lg:hidden"
+          />
+          <img
+            src="/characters/full/swapchan.webp"
+            alt="Swap-chan"
+            width={832}
+            height={1088}
+            className="animate-float hidden w-64 drop-shadow-[0_0_30px_rgba(217,70,239,0.55)] lg:block"
+          />
+          <Greeting heroArt />
         </div>
-        <div className="order-1 w-full max-w-lg lg:order-none">
+        <div className="order-2 w-full max-w-lg lg:order-none">
           <SwapTabs />
         </div>
         <div className="order-3 w-full max-w-lg lg:order-none lg:w-72">
           <LiveRoutes />
         </div>
       </div>
+      <p className="mt-6 text-center text-sm text-violet-300">
+        Psst~ I can also{" "}
+        <Link href="/find-money" className="font-bold text-amber-300 underline">
+          find forgotten money
+        </Link>
+        , it&apos;s in the menu ✨
+      </p>
       <AgentSection />
     </>
   );

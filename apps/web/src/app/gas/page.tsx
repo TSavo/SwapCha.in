@@ -13,7 +13,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const c = Number((await searchParams).chain) || 1;
   return {
     title: `${CHAIN_NAME[c] ?? "Ethereum"} gas tracker & best time to swap | SwapChan`,
-    description: `Live ${CHAIN_NAME[c] ?? "Ethereum"} base fee, 1024-block percentiles, swap cost in USD and the cheapest hour of the day to swap. Free.`,
+    description: `Live ${CHAIN_NAME[c] ?? "Ethereum"} base fee, 1024-block percentiles, swap cost in USD and the cheapest hour of the day to swap.`,
     alternates: { canonical: c === 1 ? "/gas" : `/gas?chain=${c}` },
   };
 }

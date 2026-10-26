@@ -5,7 +5,7 @@ import { ToolFrame } from "@/components/tools/ToolFrame";
 import { tool } from "@/lib/toolList";
 
 export const metadata: Metadata = {
-  title: "Bridge transaction stuck? Free bridge status checker | SwapChan",
+  title: "Bridge transaction stuck? Bridge status checker | SwapChan",
   description:
     "Find out where a stuck bridge transfer is: LI.FI, Across, Relay, deBridge and THORChain checked at once, with next steps.",
   alternates: { canonical: "/bridge-status" },

@@ -4,9 +4,9 @@ import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
 
 export const metadata: Metadata = {
-  title: "Where crypto money gets stuck, and how to get it back (free) | SwapChan",
+  title: "Where crypto money gets stuck, and how to get it back | SwapChan",
   description:
-    "A field guide to forgotten crypto: unclaimed dividends (PoWH3D, Fomo3D), vault shares, LP fees, Lido withdrawals, wrapped ETH, Safes, Solana stake and rent, airdrops, old altcoins (DOGE, LTC, DASH, ZEC and 20+ more) and XRP, XLM, ADA, DOT, TON balances. Free checker, ready-to-sign recovery, then swap to USDC.",
+    "A field guide to forgotten crypto: unclaimed dividends (PoWH3D, Fomo3D), vault shares, LP fees, Lido withdrawals, wrapped ETH, Safes, Solana stake and rent, airdrops, old altcoins (DOGE, LTC, DASH, ZEC and 20+ more) and XRP, XLM, ADA, DOT, TON balances. Read-only checker, ready-to-sign recovery, then swap to USDC.",
   alternates: { canonical: "/find-money/guide" },
 };
 
@@ -329,12 +329,10 @@ export default function Page() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-2xl font-black">3. It's completely free, and here's why</h2>
+        <h2 className="text-2xl font-black">3. No account, no cut of what you recover</h2>
         <p>
-          No signup, no fee for checking, no cut of what you recover. It's free because recoveries
-          usually end in a swap, and if you swap on SwapChan we earn our normal small swap fee. The
-          free finder is how people meet SwapChan. You can also take the recovery tx and swap
-          anywhere you like.
+          No signup, and no cut of what you recover. You can swap what you recover on SwapChan or
+          take the recovery tx and swap anywhere you like.
         </p>
       </section>
 

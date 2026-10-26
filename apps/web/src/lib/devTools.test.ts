@@ -113,13 +113,12 @@ describe("tron-tx, supported-chains and cashaddr encode pages", () => {
 });
 
 describe("Powered by blocktools footer", () => {
-  it("is a link to the public repo (noopener) on every tool page and the /tools hub", async () => {
+  it("links to the /blocktools home on every tool page and the /tools hub", async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const src = (p: string) => readFileSync(join(__dirname, "..", p), "utf8");
     const pb = src("components/devtools/PoweredBy.tsx");
-    expect(pb).toMatch(/<a\s+href=\{BLOCKTOOLS_URL\}/);
-    expect(pb).toMatch(/rel="noopener noreferrer"/);
+    expect(pb).toMatch(/<Link\s+href="\/blocktools"/);
     expect(pb).toMatch(/\{POWERED_BY\}/);
     for (const p of ["components/devtools/DevToolPage.tsx", "app/tools/page.tsx"]) {
       expect(src(p)).toMatch(/<PoweredBy \/>/);

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AgentCTAs, ClientTabs } from "@/components/AgentCTA";
+import { SectionHub } from "@/components/SectionHub";
 import { API_URL, CONFIGS, MCP_URL, TOOLS } from "@/lib/agents";
 
 const REGISTER = `curl -X POST ${API_URL}/partners -H 'content-type: application/json' \\
@@ -41,6 +42,7 @@ export default function Agents() {
         </div>
       </section>
 
+      <SectionHub id="agents" />
       <h2 id="setup" className="mt-10 mb-3 scroll-mt-4 text-2xl font-black">
         Set this up for my agent
       </h2>
@@ -127,7 +129,7 @@ export default function Agents() {
       </p>
       <pre className="overflow-x-auto rounded-lg bg-black/50 p-3 text-xs">{CONFIGS.curl}</pre>
       <h3 id="free-tools" className="mt-6 mb-2 text-xl font-black">
-        Free DeFi tools over REST
+        DeFi tools over REST
       </h3>
       <p className="mb-2 text-sm text-violet-200">
         Under <code>/onchain</code>: <code>GET /money?address=</code> (find money),{" "}
@@ -145,7 +147,7 @@ export default function Agents() {
         Swap deep links & short links
       </h3>
       <p className="mb-2 text-sm text-violet-200">
-        <code>
+        <code className="break-all">
           https://swapchan.com/?fromChain=&amp;fromToken=&amp;amount=&amp;toChain=&amp;toToken=&amp;recipient=&amp;ref=
         </code>{" "}
         (also <code>/swap?…</code>). Chains take names or ids (<code>base</code>, <code>8453</code>

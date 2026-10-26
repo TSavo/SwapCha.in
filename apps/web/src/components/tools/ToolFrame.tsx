@@ -44,7 +44,7 @@ export function ToolFrame({
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Free DeFi tools", item: `${SITE}/tools` },
+        { "@type": "ListItem", position: 1, name: "DeFi tools", item: `${SITE}/tools` },
         { "@type": "ListItem", position: 2, name: info.name, item: `${SITE}${path}` },
       ],
     },
@@ -61,13 +61,6 @@ export function ToolFrame({
   return (
     <article className="w-full" data-testid="tool-page">
       <script type="application/ld+json">{JSON.stringify(ld)}</script>
-      <nav className="mb-1 text-xs font-bold text-violet-300 md:text-sm">
-        <Link href="/tools" className="hover:text-amber-300">
-          Free DeFi tools
-        </Link>
-        {" · "}
-        {info.name}
-      </nav>
       <h1 className="text-2xl font-black md:text-3xl">{h1}</h1>
       <p className="mb-4 text-sm text-violet-200 md:text-base">{intro}</p>
       <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">
@@ -100,7 +93,7 @@ export function ToolFrame({
         <p className="mt-1 text-violet-200">
           This page is the{" "}
           <code className="rounded bg-violet-950 px-1.5 py-0.5 text-amber-300">{info.mcp}</code>{" "}
-          tool in the free SwapChan MCP server. Every answer ends with a ready-to-sign swap link.
+          tool in the SwapChan MCP server. Every answer ends with a ready-to-sign swap link.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div>
@@ -124,7 +117,7 @@ export function ToolFrame({
       </section>
 
       <section className="mt-10">
-        <h2 className="mb-3 text-xl font-black">More free DeFi tools</h2>
+        <h2 className="mb-3 text-xl font-black">More DeFi tools</h2>
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {TOOLS.filter((t) => t.mcp !== info.mcp).map((t) => (
             <li key={t.href}>

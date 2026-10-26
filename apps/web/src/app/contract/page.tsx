@@ -5,7 +5,7 @@ import { ToolFrame } from "@/components/tools/ToolFrame";
 import { tool } from "@/lib/toolList";
 
 export const metadata: Metadata = {
-  title: "Free smart contract reader: owner powers, proxy, verification | SwapChan",
+  title: "Smart contract reader: owner powers, proxy, verification | SwapChan",
   description:
     "Read any EVM contract in plain English: Sourcify/Etherscan verification, proxy implementation, and what the owner can do (pause, blacklist, mint).",
   alternates: { canonical: "/contract" },
@@ -16,7 +16,7 @@ export default function Page() {
     <ToolFrame
       info={tool("contract_reader")}
       path="/contract"
-      h1={"Free smart contract reader"}
+      h1={"Smart contract reader"}
       intro={
         "Paste a chain and contract: verified source, proxy and owner powers in plain English."
       }

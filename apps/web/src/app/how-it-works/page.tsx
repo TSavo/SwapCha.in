@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AgentCTASection } from "@/components/AgentCTASection";
 import { HowItWorks } from "@/components/HowItWorks";
+import { SectionHub } from "@/components/SectionHub";
 
 export const metadata = { title: "How it works · SwapChan" };
 
@@ -9,6 +10,9 @@ export default function HowItWorksPage() {
     <>
       <h1 className="mt-4 mb-6 text-4xl font-black text-amber-300">How it works</h1>
       <HowItWorks />
+      <div className="mt-8 w-full max-w-4xl">
+        <SectionHub id="how" />
+      </div>
       <Link
         href="/"
         className="mt-8 rounded-full bg-amber-400 px-6 py-3 font-black text-violet-950 hover:bg-amber-300"

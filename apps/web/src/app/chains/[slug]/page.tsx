@@ -34,16 +34,6 @@ export default async function Page({ params }: Props) {
   return (
     <article className="w-full" data-testid="chain-page">
       <script type="application/ld+json">{JSON.stringify(chainLd(c))}</script>
-      <nav className="mb-1 text-xs font-bold text-violet-300 md:text-sm">
-        <Link href="/tools" className="hover:text-amber-300">
-          Free tools
-        </Link>
-        {" · "}
-        <Link href="/chains" className="hover:text-amber-300">
-          Chains
-        </Link>
-        {` · ${c.title}`}
-      </nav>
       <h1 className="text-2xl font-black md:text-3xl">{c.h1}</h1>
       <p className="mb-4 text-sm text-violet-200 md:text-base">{c.intro}</p>
       <DevToolForm

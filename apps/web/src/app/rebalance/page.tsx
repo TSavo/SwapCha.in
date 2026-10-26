@@ -6,9 +6,9 @@ import { tool } from "@/lib/toolList";
 
 export const revalidate = 300;
 export const metadata: Metadata = {
-  title: "Free crypto portfolio rebalancer with live best-price swaps | SwapChan",
+  title: "Crypto portfolio rebalancer with live best-price swaps | SwapChan",
   description:
-    "Set target weights for any wallet and get a priced swap plan using live best routes across every aggregator and bridge. Free.",
+    "Set target weights for any wallet and get a priced swap plan using live best routes across every aggregator and bridge.",
   alternates: { canonical: "/rebalance" },
 };
 

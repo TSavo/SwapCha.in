@@ -103,19 +103,6 @@ export default async function RoutePage({ params }: Props) {
   return (
     <article className="w-full" data-testid="route-page">
       <script type="application/ld+json">{JSON.stringify(ld)}</script>
-      <nav className="mb-1 text-xs font-bold text-violet-300 md:text-sm">
-        <Link href="/swap" className="hover:text-amber-300">
-          Swap routes
-        </Link>
-        {r.fromChainId !== r.toChainId && (
-          <>
-            {" · "}
-            <Link href="/bridge" className="hover:text-amber-300">
-              Bridge routes
-            </Link>
-          </>
-        )}
-      </nav>
       <header className="mb-2 flex flex-col items-center gap-1 text-center md:mb-3 md:flex-row md:justify-center md:gap-3">
         <div className="hidden items-end gap-1 md:flex">
           {[fk, ...(tk !== fk ? [tk] : [])].map((k) => (

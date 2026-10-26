@@ -5,9 +5,9 @@ import { ToolFrame } from "@/components/tools/ToolFrame";
 import { tool } from "@/lib/toolList";
 
 export const metadata: Metadata = {
-  title: "Free wallet history & PnL checker for any crypto wallet | SwapChan",
+  title: "Wallet history & PnL checker for any crypto wallet | SwapChan",
   description:
-    "See recent swaps and a PnL estimate for any Ethereum, Base, Arbitrum, Optimism or Solana wallet. Free, no sign-up.",
+    "See recent swaps and a PnL estimate for any Ethereum, Base, Arbitrum, Optimism or Solana wallet. No sign-up.",
   alternates: { canonical: "/wallet" },
 };
 
@@ -16,7 +16,7 @@ export default function Page() {
     <ToolFrame
       info={tool("wallet_history")}
       path="/wallet"
-      h1={"Free wallet history & PnL checker"}
+      h1={"Wallet history & PnL checker"}
       intro={
         "Paste any EVM or Solana wallet (ENS and SNS work) to see recent swaps and an average-cost PnL estimate."
       }
