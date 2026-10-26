@@ -45,18 +45,25 @@ export function BtPage({
   lead,
   children,
   source,
+  bare,
 }: {
   title: string;
   lead?: ReactNode;
   children: ReactNode;
   source?: string;
+  /** Page draws its own hero (the hub). */
+  bare?: boolean;
 }) {
   return (
     <article className="mx-auto w-full max-w-4xl">
-      <div className="mb-1 font-mono text-xs font-bold tracking-widest text-fuchsia-300 uppercase">
-        blocktools CLI
-      </div>
-      <h1 className="text-3xl font-black md:text-4xl">{title}</h1>
+      {!bare && (
+        <>
+          <div className="mb-1 font-mono text-xs font-bold tracking-widest text-fuchsia-300 uppercase">
+            blocktools CLI
+          </div>
+          <h1 className="text-3xl font-black md:text-4xl">{title}</h1>
+        </>
+      )}
       {lead && <div className="mt-2 mb-6 text-violet-200">{lead}</div>}
       {children}
       <footer className="mt-12 border-t border-violet-500/30 pt-4 text-xs text-violet-400">
