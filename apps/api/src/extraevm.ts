@@ -7,7 +7,6 @@
 import {
   type Chain,
   createPublicClient,
-  encodeFunctionData,
   erc20Abi,
   fallback,
   formatUnits,
@@ -29,6 +28,7 @@ import {
   unichain,
   zksync,
 } from "viem/chains";
+import { encodeFunctionData } from "./blocktools.js";
 import { KNOWN_ONLY_NOTE, knownSpenderAllowances } from "./knownspenders.js";
 import type { NewFound } from "./recover.js";
 import { addChainParams, verifySweepTx } from "./sweepverify.js";

@@ -1,3 +1,4 @@
+import { encodeFunctionData } from "./blocktools.js";
 /**
  * Published merkle airdrop trees → claim() calldata.
  * Trees are fetched on demand and cached under SWAPCHAN_DATA_DIR/merkle/.
@@ -7,7 +8,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { encodeFunctionData, formatUnits, getAddress, parseAbiItem } from "viem";
+import { formatUnits, getAddress, parseAbiItem } from "viem";
 import { evmClient, json, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 import type { Evidence } from "./recover.js";
 import type { StuckFound } from "./stuck.js";

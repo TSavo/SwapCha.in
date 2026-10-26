@@ -3,7 +3,8 @@
  * every chain). Withdrawable amount is read on-chain (withdrawableAmountOf), the tx is withdrawMax(id, owner),
  * simulated from the owner before it is offered. Chains SwapChan has no RPC for become leads.
  */
-import { encodeFunctionData, formatUnits, getAddress, parseAbi } from "viem";
+import { formatUnits, getAddress, parseAbi } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { chainName, evmClient, json, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 

@@ -4,13 +4,12 @@ import {
   type AbiFunction,
   type AbiParameter,
   decodeFunctionData,
-  encodeFunctionData,
   formatUnits,
   getAddress,
   parseAbiItem,
   toHex,
 } from "viem";
-import { type BtVerdict, btSelector, btVerifyRecovery } from "./blocktools.js";
+import { type BtVerdict, btSelector, btVerifyRecovery, encodeFunctionData } from "./blocktools.js";
 import {
   chainName,
   EXPLORER,

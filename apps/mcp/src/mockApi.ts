@@ -1,7 +1,11 @@
 // Test-only mock of the SwapChan HTTP API (packages/shared contract). Also runnable: `node src/mockApi.ts`.
 import { createServer, type Server } from "node:http";
+import { keccak256, toBytes } from "viem";
+
+// Test mock only; production computes this in apps/api via blocktools.
+const appDataHash = (doc: string) => keccak256(toBytes(doc));
+
 import {
-  appDataHash,
   COW_VAULT_RELAYER,
   type LimitOrderParams,
   limitAppData,

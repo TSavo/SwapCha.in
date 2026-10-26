@@ -1,12 +1,6 @@
 import { NATIVE_TOKEN } from "@swapchan/shared";
-import {
-  encodeFunctionData,
-  formatUnits,
-  getAddress,
-  parseAbiItem,
-  toHex,
-  zeroAddress,
-} from "viem";
+import { formatUnits, getAddress, parseAbiItem, toHex, zeroAddress } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import { evmClient, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
 

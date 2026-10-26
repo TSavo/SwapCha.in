@@ -1,4 +1,5 @@
-import { encodeFunctionData, formatUnits, getAddress, maxUint256, parseAbiItem, toHex } from "viem";
+import { formatUnits, getAddress, maxUint256, parseAbiItem, toHex } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import { evmClient, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
 import { cached } from "./scanner.js";

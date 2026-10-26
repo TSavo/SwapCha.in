@@ -1,3 +1,4 @@
+import { encodeFunctionData } from "./blocktools.js";
 /**
  * Known-contract recovery registry: exact handlers for protocols with stuck money
  * that archaeology alone can't safely withdraw. Pair with history-driven archaeology
@@ -6,7 +7,7 @@
 
 import { appendFileSync, mkdirSync } from "node:fs";
 import { BITCOIN, NATIVE_TOKEN } from "@swapchan/shared";
-import { encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
+import { formatUnits, getAddress, parseAbiItem, toHex } from "viem";
 import { exitDeadline, minOut } from "./exitguard.js";
 import { evmClient, json, prices, pxOf, SITE, swapUrl, usdcOf } from "./onchain.js";
 import type { Evidence } from "./recover.js";

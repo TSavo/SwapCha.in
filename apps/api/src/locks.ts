@@ -6,7 +6,8 @@
  *  - Superfluid Super Token balances (incoming streams accumulate there) → downgrade / downgradeToETH
  * Every tx is simulated from the owner before it is offered. Each chain/source fails into its own "not checked" line.
  */
-import { encodeFunctionData, formatUnits, getAddress, parseAbi } from "viem";
+import { formatUnits, getAddress, parseAbi } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { chainName, evmClient, json, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 

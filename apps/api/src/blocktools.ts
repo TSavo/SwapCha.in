@@ -441,3 +441,65 @@ export function btBuildPsbt(
     need().buildPsbtWithMemo(chain, lines, to, amount.toString(), change, feeRate, memoHex, false),
   ) as BtPsbt;
 }
+
+/** ABI encoding (blocktools evmAbiEncode). Drop-in for viem's encodeFunctionData / encodeAbiParameters: viem-style
+ *  ABI items in, blocktools does the selector hashing and encoding. Fail closed: throws when the WASM is unavailable
+ *  or the args don't fit the types. */
+type AbiParam = {
+  readonly type: string;
+  readonly name?: string;
+  readonly components?: readonly AbiParam[];
+};
+type AbiFn = {
+  readonly type: string;
+  readonly name?: string;
+  readonly inputs?: readonly AbiParam[];
+};
+const canonType = (p: AbiParam): string =>
+  p.type.startsWith("tuple")
+    ? `(${(p.components ?? []).map(canonType).join(",")})${p.type.slice(5)}`
+    : p.type;
+const abiVal = (p: AbiParam, v: unknown): unknown => {
+  const arr = /^(.*)\[\d*\]$/.exec(p.type);
+  if (arr) {
+    if (!Array.isArray(v)) throw new Error(`abi: ${p.type} needs an array`);
+    return v.map((x) => abiVal({ ...p, type: arr[1]! }, x));
+  }
+  if (p.type === "tuple") {
+    const cs = p.components ?? [];
+    if (Array.isArray(v)) return cs.map((c, i) => abiVal(c, v[i]));
+    const o = v as Record<string, unknown>;
+    return cs.map((c) => abiVal(c, o[c.name ?? ""]));
+  }
+  if (typeof v === "bigint" || typeof v === "number") return v.toString();
+  return v;
+};
+const encodeRaw = (sig: string, params: readonly AbiParam[], args: readonly unknown[]): Hex => {
+  if (args.length !== params.length)
+    throw new Error(`abi: ${sig} takes ${params.length} args, got ${args.length}`);
+  const r = JSON.parse(
+    need().evmAbiEncode(JSON.stringify({ sig, args: params.map((p, i) => abiVal(p, args[i])) })),
+  ) as { data: Hex };
+  return r.data.toLowerCase() as Hex;
+};
+export function encodeFunctionData(p: {
+  readonly abi: readonly unknown[];
+  readonly functionName?: string;
+  readonly args?: readonly unknown[];
+}): Hex {
+  const args = p.args ?? [];
+  const fns = (p.abi as AbiFn[]).filter(
+    (x) => x.type === "function" && (p.functionName === undefined || x.name === p.functionName),
+  );
+  const pick = fns.length > 1 ? fns.filter((f) => (f.inputs ?? []).length === args.length) : fns;
+  if (pick.length !== 1)
+    throw new Error(`abi: ${pick.length} candidates for ${p.functionName ?? "function"}`);
+  const f = pick[0]!;
+  const ins = f.inputs ?? [];
+  return encodeRaw(`${f.name}(${ins.map(canonType).join(",")})`, ins, args);
+}
+export const encodeAbiParameters = (params: readonly AbiParam[], values: readonly unknown[]): Hex =>
+  encodeRaw(`(${params.map(canonType).join(",")})`, params, values);
+/** CoW appData hash: keccak-256 of the exact UTF-8 JSON document. */
+export const btAppDataHash = (doc: string): Hex =>
+  btKeccak256(`0x${Buffer.from(doc, "utf8").toString("hex")}`);

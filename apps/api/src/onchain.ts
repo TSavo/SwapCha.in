@@ -17,7 +17,6 @@ import { Hono } from "hono";
 import {
   createPublicClient,
   decodeEventLog,
-  encodeFunctionData,
   erc20Abi,
   fallback,
   formatUnits,
@@ -30,7 +29,14 @@ import {
 } from "viem";
 import { normalize } from "viem/ens";
 import { z } from "zod";
-import { blocktools, btB58Decode, btB58Encode, btSolOnCurve, btSolPda } from "./blocktools.js";
+import {
+  blocktools,
+  btB58Decode,
+  btB58Encode,
+  btSolOnCurve,
+  btSolPda,
+  encodeFunctionData,
+} from "./blocktools.js";
 import { verifyRevoke } from "./guard/index.js";
 import { cached, SCAN_CHAINS, type ScanChain, tokenRisk } from "./scanner.js";
 import { CHAINS } from "./simulate.js";

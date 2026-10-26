@@ -1,4 +1,5 @@
-import { decodeFunctionResult, encodeFunctionData, formatUnits, parseAbiItem } from "viem";
+import { decodeFunctionResult, formatUnits, parseAbiItem } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import { exitDeadline, minOut, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { evmClient, prices, pxOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";

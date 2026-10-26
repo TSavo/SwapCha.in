@@ -1,11 +1,5 @@
-import {
-  encodeAbiParameters,
-  encodeFunctionData,
-  formatUnits,
-  getAddress,
-  parseAbiItem,
-} from "viem";
-import { btKeccak256 } from "./blocktools.js";
+import { formatUnits, getAddress, parseAbiItem } from "viem";
+import { btKeccak256, encodeAbiParameters, encodeFunctionData } from "./blocktools.js";
 import { exitDeadline, minOut, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { evmClient, prices, pxOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
