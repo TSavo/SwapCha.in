@@ -12,9 +12,9 @@ import {
   formatUnits,
   getAddress,
   type Hex,
-  keccak256,
   parseAbi,
 } from "viem";
+import { btKeccak256 } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { evmClient, json, prices, pxOf } from "./onchain.js";
 
@@ -127,7 +127,7 @@ const ERC = parseAbi([
   "function decimals() view returns (uint8)",
   "function symbol() view returns (string)",
 ]);
-const h = (s: string) => keccak256(encodeAbiParameters([{ type: "string" }], [s]));
+const h = (s: string) => btKeccak256(encodeAbiParameters([{ type: "string" }], [s]));
 const FUND = h("CLAIMABLE_FUNDING_AMOUNT"),
   POSLIST = h("ACCOUNT_POSITION_LIST");
 
@@ -146,7 +146,9 @@ export async function gmxV2(f: F, env: NodeJS.ProcessEnv, owner: string): Promis
       abi: DS,
       functionName: "getBytes32Count",
       args: [
-        keccak256(encodeAbiParameters([{ type: "bytes32" }, { type: "address" }], [POSLIST, own])),
+        btKeccak256(
+          encodeAbiParameters([{ type: "bytes32" }, { type: "address" }], [POSLIST, own]),
+        ),
       ],
     }),
   ]);
@@ -161,7 +163,7 @@ export async function gmxV2(f: F, env: NodeJS.ProcessEnv, owner: string): Promis
           abi: DS,
           functionName: "getUint",
           args: [
-            keccak256(
+            btKeccak256(
               encodeAbiParameters(
                 [
                   { type: "bytes32" },

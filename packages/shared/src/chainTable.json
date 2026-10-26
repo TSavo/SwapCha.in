@@ -520,6 +520,19 @@
     "source": "Anoncoin/anoncoin src/chainparams.cpp; no SLIP-44 entry"
   },
   {
+    "name": "bcc",
+    "ticker": "BCC",
+    "title": "BitConnect",
+    "coin_type": null,
+    "curve": "secp256k1",
+    "encoding": "utxo",
+    "native_seed": false,
+    "sign": "pos_time",
+    "buildable": false,
+    "verified": false,
+    "source": "bitconnectcoin/bitconnectcoin@3ab3d19 src/base58.h:279-280 (PUBKEY_ADDRESS 18, SCRIPT_ADDRESS 85), :408 (WIF = 128 + PUBKEY_ADDRESS = 146); tx nTime src/main.h:443; no SLIP-44 entry (268 BCC is BCChain)"
+  },
+  {
     "name": "zec",
     "ticker": "ZEC",
     "title": "Zcash (transparent)",

@@ -18,7 +18,6 @@ import {
   getAddress,
   isAddress,
   parseAbiItem,
-  toFunctionSelector,
 } from "viem";
 import { z } from "zod";
 import { aaveSupplied } from "./aave.js";
@@ -29,7 +28,7 @@ import {
   resolveSelectors,
 } from "./abiprobe.js";
 import { beaconValidators } from "./beacon.js";
-import { btDetectChains } from "./blocktools.js";
+import { btDetectChains, btSelector } from "./blocktools.js";
 import { bridgeWithdrawals } from "./bridges.js";
 import { eigenLayer } from "./eigen.js";
 import { ensDeeds } from "./ensdeed.js";
@@ -1287,7 +1286,7 @@ const POWERS: { sig: string; power: string; risk: "high" | "medium" | "low" }[] 
   { sig: "destroyBlackFunds(address)", power: "seize blacklisted funds", risk: "high" },
   { sig: "withdraw()", power: "withdraw (dividends/funds)", risk: "low" },
 ];
-const SEL = POWERS.map((p) => ({ ...p, sel: toFunctionSelector(`function ${p.sig}`).slice(2) }));
+const SEL = POWERS.map((p) => ({ ...p, sel: btSelector(p.sig).slice(2) }));
 const SLOT_IMPL = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const SLOT_ADMIN = "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
 const SLOT_BEACON = "0xa3f0ad74e5423aebfd80d3be4bb4c0e1bd1f6a83eeca2b1a3f6e2ff6cc3a6f4a";
@@ -1510,15 +1509,12 @@ const LIQUITY_TROVES = "0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2";
 export const IRONHANDS = "0xE58b65d1c0C8e8b2a0e3A3AcEC633271531084ED";
 /** Exact (contract, selector) pairs SwapChan will ever build claim txs for. */
 export const CLAIM_ALLOWLIST: Record<string, string[]> = {
-  [P3D.toLowerCase()]: [
-    toFunctionSelector("function withdraw()"),
-    toFunctionSelector("function exit()"),
-  ],
-  [FOMO3D.toLowerCase()]: [toFunctionSelector("function withdraw()")],
-  [ETHERDELTA.toLowerCase()]: [toFunctionSelector("function withdraw(uint256)")],
+  [P3D.toLowerCase()]: [btSelector("withdraw()"), btSelector("exit()")],
+  [FOMO3D.toLowerCase()]: [btSelector("withdraw()")],
+  [ETHERDELTA.toLowerCase()]: [btSelector("withdraw(uint256)")],
   // payout() is permissionless, zero-value; only offered when the owner is at the head of the queue
-  [IRONHANDS.toLowerCase()]: [toFunctionSelector("function payout()")],
-  [LIQUITY_BORROWER_OPS.toLowerCase()]: [toFunctionSelector("function claimCollateral()")],
+  [IRONHANDS.toLowerCase()]: [btSelector("payout()")],
+  [LIQUITY_BORROWER_OPS.toLowerCase()]: [btSelector("claimCollateral()")],
 };
 export function verifyClaimTx(tx: { to: string; data: string; value: string }) {
   const sel = tx.data.slice(0, 10).toLowerCase();
@@ -2998,7 +2994,7 @@ export async function evmArchaeology(
     const hints: { name: string; selector: string; abi?: string }[] = [];
     for (const sig of RECOVERY_FNS) {
       try {
-        const sel = toFunctionSelector(`function ${sig}`);
+        const sel = btSelector(sig);
         // eth_call with empty/owner args — success without revert means selector exists
         const name = sig.split("(")[0]!;
         const abi = fn(
@@ -3100,7 +3096,7 @@ export async function evmArchaeology(
           });
           hints.push({
             name: sig,
-            selector: toFunctionSelector(`function ${sig}`),
+            selector: btSelector(sig),
             abi: `function ${sig}`,
             ...(guessed
               ? { source: "signature database guess (openchain/4byte), simulated OK" }

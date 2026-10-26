@@ -4,8 +4,8 @@ import {
   type Hex,
   parseAbi,
   parseAbiParameters,
-  toFunctionSelector,
 } from "viem";
+import { btSelector } from "../blocktools.js";
 
 /** Router ABIs we decode (selectors observed live on each provider's routes, 2026-10). */
 export const ABIS = {
@@ -260,7 +260,7 @@ export function decodeApprove(data: Hex): { spender: string; amount: bigint } | 
   return { spender: lc(spender), amount };
 }
 
-export const SELECTOR_APPROVE = toFunctionSelector("approve(address,uint256)");
+export const SELECTOR_APPROVE = btSelector("approve(address,uint256)");
 
 /**
  * LI.FI non-EVM bridge facets (BridgeData.receiver = 0x11f1… sentinel): the real destination

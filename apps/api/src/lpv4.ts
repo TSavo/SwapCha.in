@@ -3,9 +3,9 @@ import {
   encodeFunctionData,
   formatUnits,
   getAddress,
-  keccak256,
   parseAbiItem,
 } from "viem";
+import { btKeccak256 } from "./blocktools.js";
 import { exitDeadline, minOut, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { evmClient, prices, pxOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
@@ -210,7 +210,7 @@ export async function v4Positions(
             if (!pi) return null;
             const [key, info] = pi;
             const { tickLower, tickUpper } = unpackInfo(info);
-            const poolId = keccak256(
+            const poolId = btKeccak256(
               encodeAbiParameters(
                 [
                   { type: "address" },

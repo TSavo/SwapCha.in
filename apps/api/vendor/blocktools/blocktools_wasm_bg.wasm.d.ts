@@ -56,6 +56,9 @@ export const verifySweepRaw: (a: number, b: number, c: number, d: number, e: num
 export const recoveryTables: () => [number, number];
 export const buildEvmTransfer: (a: number, b: number) => [number, number, number, number];
 export const selectUtxos: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+export const evmKeccak256: (a: number, b: number) => [number, number, number, number];
+export const evmSigHash: (a: number, b: number) => [number, number, number, number];
+export const evmSigLookup: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const rustsecp256k1_v0_10_0_context_create: (a: number) => number;
 export const rustsecp256k1_v0_10_0_context_destroy: (a: number) => void;
 export const rustsecp256k1_v0_10_0_default_illegal_callback_fn: (a: number, b: number) => void;
