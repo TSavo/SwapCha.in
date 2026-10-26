@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { API_URL } from "@/lib/api";
+import type { TxCall } from "@/lib/callSummary";
+import { TxCallBox } from "./TxCallBox";
 
 type Step = {
   step: number;
@@ -10,6 +12,7 @@ type Step = {
   label: string;
   url?: string | null;
   shortUrl?: string | null;
+  call?: TxCall;
 };
 type Item = {
   rank?: number;
@@ -176,6 +179,11 @@ export function FindMoneyTool() {
                     ) : null,
                   )}
                 </div>
+                {(i.steps ?? [])
+                  .filter((s) => s.call)
+                  .map((s) => (
+                    <TxCallBox key={`call-${s.step}`} call={s.call as TxCall} />
+                  ))}
               </li>
             ))}
           </ol>

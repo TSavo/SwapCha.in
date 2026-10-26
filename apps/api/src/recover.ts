@@ -1,9 +1,19 @@
 import type { DatabaseSync } from "node:sqlite";
 import { NATIVE_TOKEN, SOLANA, SUPPORTED_CHAINS } from "@swapchan/shared";
-import { encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
+import {
+  type AbiFunction,
+  type AbiParameter,
+  decodeFunctionData,
+  encodeFunctionData,
+  formatUnits,
+  getAddress,
+  parseAbiItem,
+  toHex,
+} from "viem";
 import { type BtVerdict, btSelector, btVerifyRecovery } from "./blocktools.js";
 import {
   chainName,
+  EXPLORER,
   evmClient,
   json,
   prices,
@@ -94,6 +104,115 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
   },
 ];
 
+/** Display-only extra signatures SwapChan builds claim txs for outside STANDARD_RECOVERY (intel.ts allowlist). */
+const DISPLAY_ONLY_SIGS = ["payout()"];
+const DISPLAY_ABI: AbiFunction[] = [
+  ...STANDARD_RECOVERY.map((r) => r.sig),
+  ...DISPLAY_ONLY_SIGS,
+].map((sig) => parseAbiItem(`function ${sig}`) as AbiFunction);
+
+const typeOf = (x: AbiParameter): string =>
+  x.type.startsWith("tuple") && "components" in x
+    ? `(${(x.components as AbiParameter[]).map(typeOf).join(",")})${x.type.slice(5)}`
+    : x.type;
+const plainVal = (v: unknown): string => {
+  if (typeof v === "bigint") return v.toString();
+  if (typeof v === "string") return /^0x[0-9a-fA-F]{40}$/.test(v) ? getAddress(v) : v;
+  if (Array.isArray(v)) return `[${v.map(plainVal).join(", ")}]`;
+  if (v && typeof v === "object")
+    return `{ ${Object.entries(v)
+      .map(([k, x]) => `${k}: ${plainVal(x)}`)
+      .join(", ")} }`;
+  return String(v);
+};
+
+export interface CallArg {
+  name: string;
+  type: string;
+  value: string;
+}
+/** What a built transaction calls, so the user can check it on a block explorer before signing. */
+export interface TxCall {
+  chainId: number;
+  chain: string;
+  /** contract the tx calls (tx.to), checksummed */
+  contract: string;
+  /** block explorer page for the contract, when SwapChan knows the chain's explorer */
+  contractExplorerUrl?: string;
+  /** 4-byte selector from the calldata ("" = plain transfer) */
+  selector: string;
+  /** function name, or null when SwapChan has no ABI for this selector (never guessed) */
+  function: string | null;
+  /** canonical signature, e.g. "withdraw(uint256)" */
+  signature: string | null;
+  args: CallArg[];
+  /** one plain-language line */
+  plain: string;
+}
+
+/** Decode the call a built tx makes (contract, function, selector, args). Display only: never decides safety. */
+export function describeTxCall(tx: {
+  chainId: number;
+  to: string;
+  data: string;
+  value?: string;
+}): TxCall {
+  const d = (tx.data || "0x").toLowerCase();
+  const selector = d.length >= 10 ? d.slice(0, 10) : "";
+  const contract = /^0x[0-9a-fA-F]{40}$/.test(tx.to) ? getAddress(tx.to) : tx.to;
+  const ex = EXPLORER[tx.chainId];
+  const chain = chainName(tx.chainId);
+  const base = {
+    chainId: tx.chainId,
+    chain,
+    contract,
+    ...(ex ? { contractExplorerUrl: `${ex}/address/${contract}` } : {}),
+    selector,
+  };
+  if (!selector)
+    return {
+      ...base,
+      function: null,
+      signature: null,
+      args: [],
+      plain: `Plain transfer to ${contract} on ${chain} (no contract function is called).`,
+    };
+  let fn: AbiFunction | undefined;
+  let vals: readonly unknown[] = [];
+  try {
+    const r = decodeFunctionData({ abi: DISPLAY_ABI, data: d as `0x${string}` });
+    vals = (r.args ?? []) as readonly unknown[];
+    fn = DISPLAY_ABI.find((f) => f.name === r.functionName && f.inputs.length === vals.length);
+  } catch {
+    fn = undefined;
+  }
+  if (!fn)
+    return {
+      ...base,
+      function: null,
+      signature: null,
+      args: [],
+      plain: `Calls an unknown function (selector ${selector}) on contract ${contract} on ${chain}. Check it on the explorer before signing.`,
+    };
+  const signature = `${fn.name}(${fn.inputs.map(typeOf).join(",")})`;
+  const args = fn.inputs.map((p, k) => ({
+    name: p.name || `arg${k + 1}`,
+    type: typeOf(p),
+    value: plainVal(vals[k]),
+  }));
+  const with_ = args.length
+    ? ` with ${args.map((a) => `${a.name} (${a.type}) = ${a.value}`).join("; ")}`
+    : " with no arguments";
+  const value = tx.value && tx.value !== "0" ? `, sending ${tx.value} wei` : "";
+  return {
+    ...base,
+    function: fn.name,
+    signature,
+    args,
+    plain: `Calls ${signature} [selector ${selector}] on contract ${contract} on ${chain}${with_}${value}.`,
+  };
+}
+
 /** Decode a recovery tx and prove it can only pay the owner. Fails closed: the blocktools wasm verifier
  *  (Safe legs, Uniswap v4 actions, multicall, exit sandwich guards, pinned contracts; throws if unavailable). */
 export type Verdict = BtVerdict;
@@ -125,6 +244,8 @@ export type Step = {
   url: string;
   shortUrl: string | null;
   tx?: RecoveryTx;
+  /** contract + function the tx calls, for checking on a block explorer before signing */
+  call?: TxCall;
 };
 /** Build the guided flow. Every finding ends in a swap-to-USDC step. */
 export interface Evidence {
@@ -165,6 +286,7 @@ export function recoveryInfo(
       explorer: ex ? `${ex}/address/${tx.to}` : undefined,
       verifiedSource: ex ? `${ex}/address/${tx.to}#code` : undefined,
     },
+    call: describeTxCall(tx),
     detection: it.evidence ?? [],
     interface: {
       reads: [...new Set((it.evidence ?? []).map((e) => e.abi).filter(Boolean))],
@@ -204,6 +326,7 @@ export function recoveryFlow(
       url: rurl,
       shortUrl: s(rurl),
       tx,
+      call: describeTxCall(tx),
     });
   }
   const tt = (it.claimTx as { tronTx?: unknown; description?: string } | undefined)?.tronTx;
