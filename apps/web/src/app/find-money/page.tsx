@@ -9,7 +9,7 @@ import { SwapTabs } from "@/components/SwapTabs";
 export const metadata: Metadata = {
   title: "Find forgotten crypto money in your wallets (read-only) | SwapChan",
   description:
-    "Paste one or hundreds of wallet addresses on Ethereum and 20 more EVM chains, Solana, Tron, Bitcoin, 25+ old coins (DOGE, LTC, BCH, DASH, ZEC and more) and XRP, XLM, ADA, DOT, TON. Find unclaimed rewards, old dividends (PoWH3D, Fomo3D), vault shares, dust and risky approvals, then recover and swap to USDC.",
+    "Paste one or hundreds of wallet addresses on Ethereum and 20 more EVM chains, Solana, Tron, Bitcoin, 25+ old coins (DOGE, LTC, BCH, DASH, ZEC and more) and XRP, XLM, ADA, DOT, TON. Find unclaimed rewards, old dividends (PoWH3D, Fomo3D), ETH left in old DEXes and Fomo3D forks, vault shares, dust and risky approvals, then recover and swap to USDC.",
   alternates: { canonical: "/find-money" },
 };
 

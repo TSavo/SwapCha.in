@@ -75,6 +75,7 @@ import {
   walletBalances,
   yields,
 } from "./onchain.js";
+import { REGISTRY, REGISTRY_ALLOWLIST, scanRegistry } from "./legacy/registry.js";
 import { maturedPendle } from "./pendle.js";
 import { perpsBalances } from "./perps.js";
 import { READ_OPS, readChain } from "./readchain.js";
@@ -1508,6 +1509,8 @@ export const CLAIM_ALLOWLIST: Record<string, string[]> = {
   // payout() is permissionless, zero-value; only offered when the owner is at the head of the queue
   [IRONHANDS.toLowerCase()]: [btSelector("payout()")],
   [LIQUITY_BORROWER_OPS.toLowerCase()]: [btSelector("claimCollateral()")],
+  // LegacyETH registry: confirmed contracts only, generated from apps/api/src/legacy/registry.json
+  ...REGISTRY_ALLOWLIST,
 };
 export function verifyClaimTx(tx: { to: string; data: string; value: string }) {
   const sel = tx.data.slice(0, 10).toLowerCase();
@@ -1534,6 +1537,48 @@ export function ironHandsPayNow(
   const half = held - held / 2n;
   return half < head[1] ? half : head[1];
 }
+/**
+ * LegacyETH registry scan (legacy/registry.ts): every confirmed EtherDelta-style DEX and Fomo3D fork from
+ * legacyeth.com/contracts, Multicall3-batched and pinned to one block. Unconfirmed entries come back in
+ * notChecked, never as a zero.
+ */
+export async function legacyRegistry(
+  env: NodeJS.ProcessEnv,
+  owner: `0x${string}`,
+  ethPx: number | null,
+  blockNumber?: bigint,
+): Promise<{ items: Found[]; notChecked: string[] }> {
+  const c0 = evmClient(1, env);
+  const block = blockNumber ?? (await c0.getBlockNumber().catch(() => undefined));
+  const { hits, notChecked } = await scanRegistry(c0, owner, block);
+  const items: Found[] = hits.map((h) => {
+    const eth = Number(formatUnits(h.owedWei, 18));
+    const why = !h.simOk
+      ? `${h.entry.claim} reverts for you`
+      : "the contract holds less ETH than it owes";
+    return {
+      kind: "legacy",
+      protocol: h.entry.name,
+      chainId: 1,
+      what: h.claimable
+        ? `${eth} ETH withdrawable`
+        : `Not claimable: the contract shows ${eth} ETH for you but ${h.entry.claim} would pay nothing (${why})`,
+      valueUsd: h.claimable && ethPx ? r2(eth * ethPx) : null,
+      ...(h.tx ? { claimTx: claim(1, h.tx.to, h.tx.data, h.tx.description) } : {}),
+      action: h.claimable
+        ? `Withdraw your ETH from ${h.entry.name}, then swap on SwapChan`
+        : "Nothing to sign: the balance view counts ETH the contract cannot pay out",
+      link: h.claimable
+        ? swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth))
+        : `https://etherscan.io/address/${h.entry.address}`,
+      risk: ["Legacy unaudited contract.", ...h.labels].join(" "),
+      evidence: h.evidence,
+      confidence: h.claimable ? "high" : "low",
+    };
+  });
+  return { items, notChecked };
+}
+export const LEGACY_REGISTRY_SIZE = REGISTRY.length;
 export async function legacyEth(
   env: NodeJS.ProcessEnv,
   owner: `0x${string}`,
@@ -3642,8 +3687,17 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           }
         return mi;
       })();
-      const legacyP = prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]).then((eth) =>
-        legacyEth(env, own, pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null),
+      const ethPxP = prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]).then(
+        (eth) => pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null,
+      );
+      const legacyP = ethPxP.then((px) => legacyEth(env, own, px));
+      const registryP = timed(
+        "LegacyETH registry",
+        ethPxP
+          .then((px) => legacyRegistry(env, own, px))
+          .then((r) => (notChecked.push(...r.notChecked), r.items)),
+        [] as Found[],
+        Number(env.FIND_LEGACY_REGISTRY_TIMEOUT_MS ?? 12_000),
       );
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
       const archChains = env.ETHERSCAN_API_KEY
@@ -3745,9 +3799,12 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           ),
         ),
       ]);
-      items.push(...(merklR as Found[]), ...(legacyR as Found[]));
+      items.push(...(merklR as Found[]), ...(legacyR as Found[]), ...(await registryP));
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
+      sources.push(
+        `LegacyETH registry (${LEGACY_REGISTRY_SIZE} listed legacy contracts; confirmed EtherDelta-style DEXes and Fomo3D forks read on-chain, the rest reported as not checked yet)`,
+      );
       items.push(
         ...(wn as Found[]),
         ...(lido as Found[]),
@@ -5776,7 +5833,14 @@ export function intelRoutes(
       const address = getAddress(need(c.req.query("address"), "address"));
       const eth = await prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]);
       const ethUsd = pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null;
-      const items = (await legacyEth(env, address, ethUsd)).map((i) => ({
+      const [base, reg] = await Promise.all([
+        legacyEth(env, address, ethUsd),
+        legacyRegistry(env, address, ethUsd).catch((e) => ({
+          items: [] as Found[],
+          notChecked: [`LegacyETH registry: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`],
+        })),
+      ]);
+      const items = [...base, ...reg.items].map((i) => ({
         ...i,
         ...recoveryFlow(null, null, address, {
           title: `${i.protocol}: ${i.what}`,
@@ -5788,6 +5852,7 @@ export function intelRoutes(
         address,
         ethUsd,
         items,
+        notChecked: reg.notChecked,
         fullScan: `https://swapchan.com/find-money?address=${address}`,
       };
     }),
