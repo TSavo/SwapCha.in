@@ -230,8 +230,6 @@ function Crumbs({ p }: { p: string }) {
 /** One navigation place: left sidebar on desktop, drawer + bottom tabs on mobile. */
 export function AppShell({ connect, children }: { connect: ReactNode; children: ReactNode }) {
   const p = usePathname() || "/";
-  // T: no payment wording on blocktools (open source CLI).
-  const bt = p === "/blocktools" || p.startsWith("/blocktools/");
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [p]);
   const close = () => setOpen(false);
@@ -282,26 +280,12 @@ export function AppShell({ connect, children }: { connect: ReactNode; children: 
             </span>
           </Link>
           <span className="hidden rounded-full border border-violet-500 bg-violet-900/60 px-3 py-1 text-xs font-bold text-violet-200 sm:inline">
-            {bt ? (
-              "Never holds your keys"
-            ) : (
-              <>
-                <b className="text-amber-300">Free</b> · never holds your keys
-              </>
-            )}{" "}
-            · <b className="text-amber-300">your wallet signs</b>
+            Never holds your keys · <b className="text-amber-300">your wallet signs</b>
           </span>
           {connect}
         </div>
         <div className="site-chrome mx-3 -mt-1 mb-1 rounded-full border border-violet-500/60 bg-violet-900/50 px-3 py-1 text-center text-[11px] font-bold text-violet-200 sm:hidden">
-          {bt ? (
-            "Never holds your keys"
-          ) : (
-            <>
-              <b className="text-amber-300">Free</b> · never holds your keys
-            </>
-          )}{" "}
-          · <b className="text-amber-300">your wallet signs</b>
+          Never holds your keys · <b className="text-amber-300">your wallet signs</b>
         </div>
         <Crumbs p={p} />
         <div className="flex-1 pb-20 md:pb-6">{children}</div>
