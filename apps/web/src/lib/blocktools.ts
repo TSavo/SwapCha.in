@@ -1,9 +1,14 @@
 /** Client-safe blocktools hub data. Every fact is from the TSavo/blocktools README at 657458a. */
+/** The one place the release version, tarball name and its SHA256 live. SHA256 measured from the v0.1.1 release asset (matches its SHA256SUMS). */
+export const BT_VERSION = "v0.1.1";
+export const BT_TARBALL_DIR = `blocktools-${BT_VERSION}-linux-x86_64`;
+export const BT_TARBALL = `${BT_TARBALL_DIR}.tar.gz`;
+export const BT_TARBALL_SHA256 = "6356f0a2053feee8c4d9bc48e2cdc0e62b88ba52d83b3431313458f46cd2f41e";
 export const BT_INSTALL = [
-  "gh release download v0.1.1 -R TSavo/blocktools",
+  `gh release download ${BT_VERSION} -R TSavo/blocktools`,
   "sha256sum -c SHA256SUMS",
-  "tar xzf blocktools-v0.1.1-linux-x86_64.tar.gz",
-  "cd blocktools-v0.1.1-linux-x86_64",
+  `tar xzf ${BT_TARBALL}`,
+  `cd ${BT_TARBALL_DIR}`,
   "export PATH=$PWD/bin:$PATH MANPATH=$PWD/share/man:",
   "man blocktools",
 ].join("\n");
