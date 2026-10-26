@@ -2,12 +2,14 @@
 import { useState } from "react";
 
 /** A command block with a copy button. */
-export function CopyCode({ code, label }: { code: string; label?: string }) {
+export function CopyCode({ code, label, wrap }: { code: string; label?: string; wrap?: boolean }) {
   const [done, setDone] = useState(false);
   return (
     <div className="relative rounded-xl border border-violet-500/60 bg-black/50 shadow-[0_0_18px_rgba(139,92,246,0.35)]">
       {label && <div className="px-4 pt-3 text-xs font-bold text-violet-300">{label}</div>}
-      <pre className="overflow-x-auto px-4 py-3 pr-20 font-mono text-[13px] leading-relaxed text-amber-200">
+      <pre
+        className={`${wrap ? "whitespace-pre-wrap break-all" : "overflow-x-auto"} px-4 py-3 pr-20 font-mono text-[13px] leading-relaxed text-amber-200`}
+      >
         {code}
       </pre>
       <button

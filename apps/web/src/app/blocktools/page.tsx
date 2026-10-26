@@ -157,7 +157,7 @@ export default async function BlocktoolsHome() {
             )
           </p>
           <div className="mt-5 max-w-2xl">
-            <CopyCode code={`gh release download ${tag} -R TSavo/blocktools`} />
+            <CopyCode code={`gh release download ${tag} -R TSavo/blocktools`} wrap />
           </div>
         </div>
         <div className="hidden flex-col items-center md:flex">
@@ -510,6 +510,53 @@ export default async function BlocktoolsHome() {
             className="w-full rounded-full border-2 border-violet-500 bg-violet-950/70 px-5 py-3 text-violet-50 placeholder:text-violet-400 focus:border-amber-300 focus:outline-none"
           />
         </form>
+      </section>
+
+      {/* Full page index: keeps every page within two clicks */}
+      <section className="mt-12" aria-label="All blocktools pages">
+        <h3 className="text-lg font-black text-amber-300">All pages</h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              [
+                "Recipes",
+                "/blocktools/recipes",
+                recipes.map((r) => [r.title, `/blocktools/recipes/${r.slug}`]),
+              ],
+              [
+                "Examples",
+                "/blocktools/examples",
+                BT_EXAMPLES.map((e) => [e.title, `/blocktools/examples/${e.slug}`]),
+              ],
+              [
+                "Docs",
+                "/blocktools/docs",
+                [
+                  ...docs.map((d) => [d.title, `/blocktools/docs/${d.slug}`]),
+                  ["FAQ", "/blocktools/faq"],
+                ],
+              ],
+            ] as [string, string, string[][]][]
+          ).map(([h, idx, items]) => (
+            <details key={h} className={`${card} min-w-0`}>
+              <summary className="cursor-pointer font-black">
+                {h} <span className="text-sm text-violet-300">({items.length})</span>
+              </summary>
+              <ul className="mt-3 space-y-1 text-sm">
+                {items.map(([t, href]) => (
+                  <li key={href} className="truncate">
+                    <Link href={href ?? idx} className="text-fuchsia-300 hover:text-amber-300">
+                      {t}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link href={idx} className="mt-3 block text-xs font-bold text-amber-300">
+                Open {h.toLowerCase()} index →
+              </Link>
+            </details>
+          ))}
+        </div>
       </section>
 
       {/* Final CTA */}
