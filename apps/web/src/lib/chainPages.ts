@@ -258,7 +258,7 @@ function build(r: ChainPageRow, all: readonly ChainPageRow[]): ChainPage {
     ...r,
     h1: `${name} (${r.ticker}) address validator`,
     pageTitle: `${name} Address Validator & Format (${r.ticker}) | SwapChan`,
-    description: `Check a ${name} (${r.ticker}) address: ${formatShort}, ${r.decimals} decimals. Free, public data only, no keys.`,
+    description: `Check a ${name} (${r.ticker}) address: ${formatShort}, ${r.decimals} decimals. Public data only, no keys.`,
     intro: `Paste a ${name} address to check its checksum and format and see which address type it is. Below: how ${r.ticker} addresses are built, an example, and the chains it can be confused with.`,
     formats,
     notes,
@@ -306,7 +306,7 @@ export function chainLd(c: ChainPage, site = SITE) {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Free tools", item: `${site}/tools` },
+        { "@type": "ListItem", position: 1, name: "Tools", item: `${site}/tools` },
         { "@type": "ListItem", position: 2, name: "Chains", item: `${site}/chains` },
         { "@type": "ListItem", position: 3, name: c.h1, item: url },
       ],

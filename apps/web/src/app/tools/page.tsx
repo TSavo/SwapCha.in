@@ -8,9 +8,9 @@ import { TOOLS } from "@/lib/toolList";
 import { trendingTokens } from "@/lib/trending";
 
 export const metadata: Metadata = {
-  title: "The ultimate free DeFi toolbox: wallet money finder, simulator, PnL, gas | SwapChan",
+  title: "DeFi toolbox: wallet money finder, simulator, PnL, gas | SwapChan",
   description:
-    "Free DeFi tools with no sign-up: find forgotten money in any wallet, simulate transactions, check PnL, pools, whales, contracts, airdrops, bridges and gas. Every tool also works in your AI agent.",
+    "DeFi tools, no account needed: find forgotten money in any wallet, simulate transactions, check PnL, pools, whales, contracts, airdrops, bridges and gas. Every tool also works in your AI agent.",
   alternates: { canonical: "/tools" },
 };
 
@@ -25,7 +25,7 @@ export default async function ToolsHub() {
   const ld = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Free DeFi tools",
+    name: "DeFi tools",
     itemListElement: [
       ...TOOLS.map((t) => ({ name: t.name, href: t.href })),
       ...DEV_TOOLS.map((t) => ({ name: t.name, href: `/tools/${t.slug}` })),
@@ -39,7 +39,7 @@ export default async function ToolsHub() {
   return (
     <div className="w-full">
       <script type="application/ld+json">{JSON.stringify(ld)}</script>
-      <h1 className="text-3xl font-black">The ultimate free DeFi toolbox</h1>
+      <h1 className="text-3xl font-black">DeFi toolbox</h1>
       <p className="mb-6 text-violet-200">
         No sign-up, no paywall, live on-chain data. Paste a wallet, token or tx and get an answer
         that ends in a best-price swap. Every tool is also an MCP tool your AI agent can call.
@@ -71,7 +71,7 @@ export default async function ToolsHub() {
           .
         </p>
         <p className="mt-4 text-sm text-violet-200">
-          These tools run on blocktools, a free command-line toolkit for all chains:{" "}
+          These tools run on blocktools, an open source (MIT) command-line toolkit for all chains:{" "}
           <Link href="/blocktools" className="underline hover:text-amber-300">
             install it and see every command
           </Link>

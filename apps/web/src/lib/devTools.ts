@@ -1150,7 +1150,7 @@ export function devToolLd(t: DevTool, site = "https://swapchan.com") {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Free tools", item: `${site}/tools` },
+        { "@type": "ListItem", position: 1, name: "Tools", item: `${site}/tools` },
         { "@type": "ListItem", position: 2, name: t.name, item: url },
       ],
     },

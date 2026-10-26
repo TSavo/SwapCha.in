@@ -7,7 +7,7 @@ import { tool } from "@/lib/toolList";
 export const metadata: Metadata = {
   title: "Token liquidity pools & whale watch for any token | SwapChan",
   description:
-    "Find every liquidity pool for a token, its DEX and depth, and watch large transfers. Free, live.",
+    "Find every liquidity pool for a token, its DEX and depth, and watch large transfers. Live.",
   alternates: { canonical: "/token" },
 };
 

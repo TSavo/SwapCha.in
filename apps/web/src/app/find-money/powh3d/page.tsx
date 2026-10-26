@@ -5,7 +5,7 @@ import { P3dCheck } from "@/components/P3dCheck";
 import { SwapTabs } from "@/components/SwapTabs";
 
 export const metadata: Metadata = {
-  title: "PoWH3D (P3D) dividend checker: withdraw old P3D dividends (free) | SwapChan",
+  title: "PoWH3D (P3D) dividend checker: withdraw old P3D dividends | SwapChan",
   description:
     "Check any Ethereum address for unwithdrawn PoWH3D (P3D) dividends and tokens. Get the unsigned withdraw() or exit() transaction, sign it in your own wallet, then swap the ETH to USDC.",
   alternates: { canonical: "/find-money/powh3d" },

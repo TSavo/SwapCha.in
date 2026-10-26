@@ -5,9 +5,9 @@ import { ToolFrame } from "@/components/tools/ToolFrame";
 import { tool } from "@/lib/toolList";
 
 export const metadata: Metadata = {
-  title: "Free airdrop checker: unclaimed rewards, legacy contracts, Solana & Tron | SwapChan",
+  title: "Airdrop checker: unclaimed rewards, legacy contracts, Solana & Tron | SwapChan",
   description:
-    "Check any wallet for unclaimed Merkl rewards, forgotten legacy-contract balances (PoWH3D, Fomo3D, EtherDelta), Solana rent and Tron. Free.",
+    "Check any wallet for unclaimed Merkl rewards, forgotten legacy-contract balances (PoWH3D, Fomo3D, EtherDelta), Solana rent and Tron. Read-only, no account needed.",
   alternates: { canonical: "/airdrops" },
 };
 
@@ -16,7 +16,7 @@ export default function Page() {
     <ToolFrame
       info={tool("airdrop_check")}
       path="/airdrops"
-      h1={"Free airdrop & unclaimed rewards checker"}
+      h1={"Airdrop & unclaimed rewards checker"}
       intro={
         "Merkl rewards on 9 EVM chains, legacy Ethereum contracts (PoWH3D, Fomo3D, EtherDelta), Solana and Tron. We say exactly what we cover."
       }

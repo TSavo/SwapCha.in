@@ -10,7 +10,7 @@ export const TERMS: LegalDoc = {
   title: "Terms of Use",
   updated: "October 25, 2026",
   intro:
-    "SwapChan (swapchan.com, api.swapchan.com and mcp.swapchan.com) is a free, trustless toolkit for people and AI agents working with crypto. It is operated by T Savo. By using it you agree to these terms. If you don't agree, don't use it.",
+    "SwapChan (swapchan.com, api.swapchan.com and mcp.swapchan.com) is a trustless toolkit for people and AI agents working with crypto. It is operated by T Savo. By using it you agree to these terms. If you don't agree, don't use it.",
   sections: [
     {
       h: "What SwapChan is",
@@ -38,7 +38,7 @@ export const TERMS: LegalDoc = {
     {
       h: "Fee",
       p: [
-        `Swaps routed through SwapChan carry a 0.1% (10 bps) fee, paid to ${FEE_RECIPIENT} and included in the quote you see before you sign. Only swaps carry this fee. The other tools are free.`,
+        `Swaps routed through SwapChan carry a 0.1% (10 bps) fee, paid to ${FEE_RECIPIENT} and included in the quote you see before you sign. Only swaps carry this fee. The other tools charge no fee.`,
         "Network gas and any fees the third-party provider charges are separate and shown by the provider or your wallet.",
       ],
     },

@@ -27,7 +27,7 @@ const JSON_LD = {
       applicationCategory: "FinanceApplication",
       operatingSystem: "Any",
       description:
-        "Cross-chain swap and bridge aggregator comparing 0x, CoW, Velora, LI.FI, Across and Relay, a free find-money wallet scan (21 EVM chains, Solana, Tron, Bitcoin, 25+ old coins, XRP, XLM, ADA, DOT, TON and more), plus a free MCP server for AI agents.",
+        "Cross-chain swap and bridge aggregator comparing 0x, CoW, Velora, LI.FI, Across and Relay, a read-only find-money wallet scan (21 EVM chains, Solana, Tron, Bitcoin, 25+ old coins, XRP, XLM, ADA, DOT, TON and more), plus an MCP server for AI agents.",
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
     },
   ],

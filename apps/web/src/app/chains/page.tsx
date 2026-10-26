@@ -5,7 +5,7 @@ import { HubSearch } from "@/components/HubSearch";
 import { CHAIN_FAMILIES, CHAIN_PAGES, chainHref } from "@/lib/chainPages";
 
 const TITLE = `Crypto Address Formats & Validators for ${CHAIN_PAGES.length} Chains | SwapChan`;
-const DESC = `Address format, prefixes, decimals and a free validator for ${CHAIN_PAGES.length} blockchains, from Bitcoin and its forks to Ethereum, Solana, Polkadot and Monero. Public data only.`;
+const DESC = `Address format, prefixes, decimals and a validator for ${CHAIN_PAGES.length} blockchains, from Bitcoin and its forks to Ethereum, Solana, Polkadot and Monero. Public data only.`;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -34,7 +34,7 @@ export default function ChainsIndex() {
         {
           "@type": "ListItem",
           position: 1,
-          name: "Free tools",
+          name: "Tools",
           item: "https://swapchan.com/tools",
         },
         { "@type": "ListItem", position: 2, name: "Chains", item: "https://swapchan.com/chains" },

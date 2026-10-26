@@ -129,7 +129,7 @@ export default function Agents() {
       </p>
       <pre className="overflow-x-auto rounded-lg bg-black/50 p-3 text-xs">{CONFIGS.curl}</pre>
       <h3 id="free-tools" className="mt-6 mb-2 text-xl font-black">
-        Free DeFi tools over REST
+        DeFi tools over REST
       </h3>
       <p className="mb-2 text-sm text-violet-200">
         Under <code>/onchain</code>: <code>GET /money?address=</code> (find money),{" "}

@@ -21,7 +21,7 @@ export default function OgImage() {
       <div style={{ fontSize: 96, fontWeight: 900, color: "#fcd34d" }}>SwapChan</div>
       <div style={{ fontSize: 48, fontWeight: 800, marginTop: 16 }}>Best route, every chain</div>
       <div style={{ fontSize: 30, marginTop: 24, color: "#ddd6fe" }}>
-        0x · CoW · Velora · LI.FI · Across · Relay compared at once. Free MCP for agents.
+        0x · CoW · Velora · LI.FI · Across · Relay compared at once. MCP for agents.
       </div>
     </div>,
     size,

@@ -6,9 +6,9 @@ import { tool } from "@/lib/toolList";
 
 export const revalidate = 120;
 export const metadata: Metadata = {
-  title: "Free transaction simulator: preview balance changes before you sign | SwapChan",
+  title: "Transaction simulator: preview balance changes before you sign | SwapChan",
   description:
-    "Simulate any Ethereum, Base, Arbitrum, Optimism, Polygon or BNB transaction for free: balance changes, approvals and revert reasons before you sign.",
+    "Simulate any Ethereum, Base, Arbitrum, Optimism, Polygon or BNB transaction: balance changes, approvals and revert reasons before you sign.",
   alternates: { canonical: "/simulate" },
 };
 

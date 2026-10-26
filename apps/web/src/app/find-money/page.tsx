@@ -7,7 +7,7 @@ import { SectionHub } from "@/components/SectionHub";
 import { SwapTabs } from "@/components/SwapTabs";
 
 export const metadata: Metadata = {
-  title: "Find forgotten crypto money in your wallets (free, read-only) | SwapChan",
+  title: "Find forgotten crypto money in your wallets (read-only) | SwapChan",
   description:
     "Paste one or hundreds of wallet addresses on Ethereum and 20 more EVM chains, Solana, Tron, Bitcoin, 25+ old coins (DOGE, LTC, BCH, DASH, ZEC and more) and XRP, XLM, ADA, DOT, TON. Find unclaimed rewards, old dividends (PoWH3D, Fomo3D), vault shares, dust and risky approvals, then recover and swap to USDC.",
   alternates: { canonical: "/find-money" },
@@ -40,8 +40,7 @@ export default function FindMoneyHub() {
         Also checks Bitcoin forks and old coins (BCH, BTG, LTC, DOGE, FTC, DASH, DGB, RVN, VTC, VIA,
         QTUM, MONA, BSV, GRS, PPC, NVC, CLAM, RDD, BLK, Zcash t1, TRC, AUR, XPM, QRK) with an
         unsigned sweep you sign offline in the coin&apos;s own wallet, and balances on XRP, XLM,
-        ALGO, ATOM, DOT, TON, ADA and Signum. Free, read-only: SwapChan never signs and never holds
-        keys.
+        ALGO, ATOM, DOT, TON, ADA and Signum. Read-only: SwapChan never signs and never holds keys.
       </p>
       <Suspense>
         <FindMoneyTool />

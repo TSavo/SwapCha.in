@@ -4,9 +4,9 @@ import { SectionHub } from "@/components/SectionHub";
 import { DashboardHome } from "@/components/tools/Dashboard";
 
 export const metadata: Metadata = {
-  title: "Free crypto wallet dashboard: find money, PnL, approvals, airdrops | SwapChan",
+  title: "Crypto wallet dashboard: find money, PnL, approvals, airdrops | SwapChan",
   description:
-    "Connect or paste any wallet: balances in USD, forgotten claims, idle stablecoins, risky approvals with one-click revoke, airdrops, PnL and activity. Free.",
+    "Connect or paste any wallet: balances in USD, forgotten claims, idle stablecoins, risky approvals with one-click revoke, airdrops, PnL and activity. Never holds your keys.",
   alternates: { canonical: "/dashboard" },
 };
 
@@ -27,7 +27,7 @@ export default function DashboardPage() {
         </h2>
         <p className="mb-4 text-violet-200">
           That's the <code className="rounded bg-violet-950 px-1.5 text-amber-300">find_money</code>{" "}
-          tool in the free SwapChan MCP server.
+          tool in the SwapChan MCP server.
         </p>
         <AgentCTAs />
       </section>
