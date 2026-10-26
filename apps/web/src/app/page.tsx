@@ -43,7 +43,7 @@ export default function Home() {
       />
       <div className="mt-0 mb-2 text-center md:mb-3">
         <h1 className="text-xl font-black md:text-3xl">Best route, every chain~</h1>
-        <p className="text-sm text-violet-300">
+        <p className="text-xs text-violet-300 md:text-sm">
           0x, CoW, Velora, LI.FI, Across and Relay compared at once ·{" "}
           <Link href="/how-it-works" className="underline hover:text-amber-300">
             How it works
@@ -54,15 +54,15 @@ export default function Home() {
           </Link>
         </p>
       </div>
-      <img
-        src="/characters/full/swapchan.webp"
-        alt="Swap-chan"
-        width={832}
-        height={1088}
-        className="animate-float -mb-2 w-36 drop-shadow-[0_0_24px_rgba(217,70,239,0.55)] lg:hidden"
-      />
-      <div className="flex w-full flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center">
-        <div className="order-1 flex flex-col items-center lg:order-none lg:w-64">
+      <div className="flex w-full flex-col items-center gap-2 md:gap-4 lg:flex-row lg:items-start lg:justify-center">
+        <div className="order-1 flex w-full max-w-lg flex-row items-end gap-1 lg:order-none lg:w-64 lg:flex-col lg:items-center">
+          <img
+            src="/characters/full/swapchan.webp"
+            alt="Swap-chan"
+            width={832}
+            height={1088}
+            className="animate-float w-16 shrink-0 drop-shadow-[0_0_18px_rgba(217,70,239,0.55)] lg:hidden"
+          />
           <img
             src="/characters/full/swapchan.webp"
             alt="Swap-chan"

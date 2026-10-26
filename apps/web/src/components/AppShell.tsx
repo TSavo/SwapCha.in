@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { pageLabel, relatedFor, sectionFor } from "@/lib/sections";
 
 type Item = {
@@ -233,9 +233,44 @@ export function AppShell({ connect, children }: { connect: ReactNode; children: 
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [p]);
   const close = () => setOpen(false);
+  const menuBtn = useRef<HTMLButtonElement>(null);
+  const panel = useRef<HTMLElement>(null);
+  const wasOpen = useRef(false);
+  // Drawer focus trap: focus moves in on open, Tab/Shift+Tab cycle inside, Esc closes,
+  // and focus returns to the menu button on close.
   useEffect(() => {
-    if (!open) return;
-    const k = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    if (!open) {
+      if (wasOpen.current) menuBtn.current?.focus();
+      wasOpen.current = false;
+      return;
+    }
+    wasOpen.current = true;
+    const items = () =>
+      Array.from(
+        panel.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), summary, input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      ).filter((el) => el.offsetParent !== null);
+    items()[0]?.focus();
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const f = items();
+      if (!f.length) return;
+      const i = f.indexOf(document.activeElement as HTMLElement);
+      const next = e.shiftKey
+        ? i <= 0
+          ? f.length - 1
+          : i - 1
+        : i === -1 || i === f.length - 1
+          ? 0
+          : i + 1;
+      e.preventDefault();
+      f[next]?.focus();
+    };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, [open]);
@@ -245,23 +280,35 @@ export function AppShell({ connect, children }: { connect: ReactNode; children: 
         <Sidebar p={p} onNav={close} />
       </aside>
       {open && (
-        <div className="site-chrome fixed inset-0 z-50 md:hidden" data-testid="drawer">
+        <div
+          className="site-chrome fixed inset-0 z-50 md:hidden"
+          data-testid="drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
+        >
           <button
             type="button"
             aria-label="Close menu"
+            tabIndex={-1}
             className="absolute inset-0 bg-[rgba(10,0,20,0.6)]"
             onClick={close}
           />
-          <aside className="relative h-full w-[270px] border-r border-violet-500/35 bg-[rgb(30,10,55)]">
+          <aside
+            ref={panel}
+            className="relative h-full w-[270px] border-r border-violet-500/35 bg-[rgb(30,10,55)]"
+          >
             <Sidebar p={p} onNav={close} />
           </aside>
         </div>
       )}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col" inert={open} aria-hidden={open || undefined}>
         <div className="site-chrome flex items-center justify-end gap-2 px-3 py-2 sm:px-6 sm:py-3">
           <button
             type="button"
+            ref={menuBtn}
             aria-label="Open menu"
+            aria-expanded={open}
             className="mr-1 text-2xl md:hidden"
             onClick={() => setOpen(true)}
           >
@@ -291,6 +338,8 @@ export function AppShell({ connect, children }: { connect: ReactNode; children: 
         <div className="flex-1 pb-20 md:pb-6">{children}</div>
       </div>
       <nav
+        inert={open}
+        aria-hidden={open || undefined}
         aria-label="Quick"
         className="site-chrome fixed inset-x-0 bottom-0 z-40 flex justify-around border-t border-violet-600 bg-[rgba(30,10,55,0.95)] pt-1.5 pb-2.5 md:hidden"
       >
