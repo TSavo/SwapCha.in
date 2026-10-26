@@ -16,9 +16,16 @@ const PLAIN: Record<string, string> = {
 const plain = (c: string) => PLAIN[c] ?? `Could not compute: ${c.replace(/_/g, " ")}.`;
 
 /** Runs one dev tool. Inputs never go to GA or the URL query; examples share via #fragment. */
-export function DevToolForm({ tool }: { tool: DevTool }) {
-  const [modeId, setModeId] = useState(tool.modes[0]?.id ?? "");
-  const [values, setValues] = useState<Record<string, string>>({});
+export function DevToolForm({
+  tool,
+  initial,
+}: {
+  tool: DevTool;
+  /** preset mode and values (e.g. the chain on a /chains/<slug> page) */
+  initial?: { mode: string; values: Record<string, string> };
+}) {
+  const [modeId, setModeId] = useState(initial?.mode ?? tool.modes[0]?.id ?? "");
+  const [values, setValues] = useState<Record<string, string>>(initial?.values ?? {});
   const [res, setRes] = useState<Res | null>(null);
   const [busy, setBusy] = useState(false);
   const mode = tool.modes.find((m) => m.id === modeId) ?? tool.modes[0];

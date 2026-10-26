@@ -8,3 +8,5 @@ const { chainTableRows } = require("./chain-table-rows.cjs");
 const out = path.join(__dirname, "../../../packages/shared/src/chainTable.json");
 fs.writeFileSync(out, `${JSON.stringify(chainTableRows(w), null, 2)}\n`);
 console.log(`wrote ${out}`);
+// The /chains/<slug> page data comes from the same wasm; regenerate it too so one command keeps both current.
+require("./gen-chain-pages.cjs");
