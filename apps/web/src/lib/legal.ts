@@ -38,7 +38,7 @@ export const TERMS: LegalDoc = {
     {
       h: "Fee",
       p: [
-        `Swaps routed through SwapChan carry a 0.1% (10 bps) fee, paid to ${FEE_RECIPIENT} and included in the quote you see before you sign. Only swaps carry this fee. The other tools charge no fee.`,
+        `Swaps routed through SwapChan carry a 0.1% (10 bps) fee, paid to ${FEE_RECIPIENT} and included in the quote you see before you sign. Only swaps carry this fee.`,
         "Network gas and any fees the third-party provider charges are separate and shown by the provider or your wallet.",
       ],
     },
