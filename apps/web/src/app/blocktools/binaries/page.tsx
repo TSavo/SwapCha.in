@@ -61,7 +61,7 @@ export default async function Binaries() {
       </p>
       {r && (
         <section className="mt-8">
-          <h2 className="mb-2 text-xl font-black">Latest: {r.tag}</h2>
+          <h2 className="mb-2 text-xl font-black">Release: {r.tag}</h2>
           <ul className="space-y-1 text-sm">
             {r.assets.map((a) => (
               <li key={a.name}>
