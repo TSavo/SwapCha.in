@@ -8,7 +8,7 @@ import { Character } from "./Character";
 const KEY = "swapchan:greeted";
 
 /** Swap-chan beside the swap box: reacts to whatever the swap box is doing. Dismissible, never modal. */
-export function Greeting() {
+export function Greeting({ heroArt = false }: { heroArt?: boolean } = {}) {
   const [open, setOpen] = useState(true);
   const says = useSays();
   useEffect(() => {
@@ -22,7 +22,9 @@ export function Greeting() {
       aria-label="Swap-chan says"
       aria-live="polite"
     >
-      <Character who="swapchan" size={88} mood={says?.mood ?? "idle"} />
+      <span className={heroArt ? "lg:hidden" : undefined}>
+        <Character who="swapchan" size={88} mood={says?.mood ?? "idle"} />
+      </span>
       <div className="relative rounded-2xl border-2 border-amber-400/50 bg-violet-950/90 px-4 py-3 pr-8 text-sm text-violet-100">
         <button
           type="button"
