@@ -131,6 +131,8 @@ describe("scanRegistry (mocked reads)", () => {
   });
   it("reports failed reads as not checked, never zero", async () => {
     const r = await scanRegistry(mk({ simOk: true, held: 1n, fail: true }).c, OWNER, 1n);
-    expect(r.notChecked.join(" ")).toContain(`${dex[0]!.name}: not checked`);
+    const l = r.notChecked.join(" ");
+    expect(l).toContain(dex[0]!.name);
+    expect(l).toContain("not checked (read failed)");
   });
 });
