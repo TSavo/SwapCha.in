@@ -62,7 +62,7 @@ export default function Home() {
         className="animate-float -mb-2 w-36 drop-shadow-[0_0_24px_rgba(217,70,239,0.55)] lg:hidden"
       />
       <div className="flex w-full flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center">
-        <div className="order-2 flex flex-col items-center lg:order-none lg:w-64">
+        <div className="order-1 flex flex-col items-center lg:order-none lg:w-64">
           <img
             src="/characters/full/swapchan.webp"
             alt="Swap-chan"
@@ -72,7 +72,7 @@ export default function Home() {
           />
           <Greeting heroArt />
         </div>
-        <div className="order-1 w-full max-w-lg lg:order-none">
+        <div className="order-2 w-full max-w-lg lg:order-none">
           <SwapTabs />
         </div>
         <div className="order-3 w-full max-w-lg lg:order-none lg:w-72">
