@@ -12,9 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       # Fork-PR routing + read-only token, evaluated per event, with negative tests (ported from blocktools 127b5f9).
-      - run: |
-          python3 -m venv "$RUNNER_TEMP/forkcheck" && "$RUNNER_TEMP/forkcheck/bin/pip" install -q pyyaml==6.0.2
-          PATH="$RUNNER_TEMP/forkcheck/bin:$PATH" sh scripts/ci-fork-check-negatives.sh
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python -m pip install -q pyyaml==6.0.2 && sh scripts/ci-fork-check-negatives.sh
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with: { node-version-file: .nvmrc, cache: pnpm }
