@@ -90,12 +90,55 @@ const ACCOUNT: Record<string, { format: string; detail: string; tool?: string }>
       "The raw 32-byte ed25519 public key in Base58, with no checksum, so a typo can still decode. Program-derived addresses look the same but are off the curve.",
     tool: "solana-pda",
   },
+  aptos: {
+    format: "0x + 64 hex characters",
+    detail:
+      "The SHA3-256 hash of the 32-byte ed25519 public key followed by the scheme byte 0x00, written as hex. There is no checksum, so a typo still looks valid; short forms such as 0x1 are special system accounts.",
+  },
+  sui: {
+    format: "0x + 64 hex characters",
+    detail:
+      "The BLAKE2b-256 hash of the signature-scheme flag byte (0x00 for ed25519) followed by the public key, written as hex. There is no checksum, and an Aptos address has the same shape, so the detector can list both.",
+  },
+  near: {
+    format: "64 lowercase hex characters (implicit account)",
+    detail:
+      "An implicit NEAR account is the 32-byte ed25519 public key itself, written as 64 lowercase hex characters with no 0x. Named accounts such as alice.near also exist; this checker covers implicit accounts only.",
+  },
+  xtz: {
+    format: "Base58Check, starts with tz1 (36 characters)",
+    detail:
+      "The 20-byte BLAKE2b hash of the ed25519 public key with the tz1 prefix bytes, in Base58Check. tz2 and tz3 are secp256k1 and P-256 accounts, and KT1 is a smart contract.",
+  },
+  egld: {
+    format: "bech32 with the erd prefix",
+    detail:
+      "The raw 32-byte ed25519 public key in bech32 with the human-readable part erd, so MultiversX addresses start with erd1 and are 62 characters long.",
+  },
   xmr: {
     format: "Monero Base58, starts with 4 (95 characters)",
     detail:
       "A network byte, public spend key and public view key with a keccak checksum, in Monero's block-wise Base58. Standard addresses start with 4, subaddresses with 8.",
   },
 };
+
+/** Cosmos SDK rows without a hand-written note: the same bech32 shape, only the prefix (and for Ethermint chains the
+ * hash) differs. Facts come from the row (hrp, SLIP-44 coin type). */
+function accountInfo(
+  r: ChainPageRow,
+): { format: string; detail: string; tool?: string } | undefined {
+  const a = ACCOUNT[r.name];
+  if (a || r.family === "utxo" || !r.hrp) return a;
+  if (r.slip44 === 60)
+    return {
+      format: `bech32 with the ${r.hrp} prefix (Ethermint)`,
+      detail: `The last 20 bytes of the keccak-256 hash of the public key, the same bytes as the account's 0x Ethereum address, in bech32 with the human-readable part ${r.hrp} (${r.hrp}1…). The 0x and ${r.hrp}1 forms are one account written two ways.`,
+    };
+  return {
+    format: `bech32 with the ${r.hrp} prefix`,
+    detail: `A 20-byte account hash (RIPEMD-160 of SHA-256 of the public key) in bech32 with the human-readable part ${r.hrp} (${r.hrp}1…). Other Cosmos SDK chains use the same hash with their own prefix, so one key has a different address on each chain.`,
+  };
+}
 
 const hex = (b: number[]) => b.map((x) => `0x${x.toString(16).padStart(2, "0")}`).join(" ");
 const dec = (b: number[]) => b.join(", ");
@@ -137,7 +180,7 @@ function build(r: ChainPageRow, all: readonly ChainPageRow[]): ChainPage {
           : "Double SHA-256, as in Bitcoin.",
     });
   } else {
-    const a = ACCOUNT[r.name];
+    const a = accountInfo(r);
     if (a) formats.push({ label: a.format, detail: a.detail });
   }
   const lookAlikes =
@@ -185,7 +228,7 @@ function build(r: ChainPageRow, all: readonly ChainPageRow[]): ChainPage {
     : "";
   const formatShort = utxo
     ? `Base58Check (version byte ${dec(r.p2pkh ?? [])}${r.p2sh?.length ? ` / ${dec(r.p2sh)}` : ""})${r.hrp ? ` and bech32 (${r.hrp}1…)` : ""}`
-    : (ACCOUNT[r.name]?.format ?? "native");
+    : (accountInfo(r)?.format ?? "native");
   const faq = [
     {
       q: `How do I check a ${name} address is valid?`,
@@ -209,7 +252,7 @@ function build(r: ChainPageRow, all: readonly ChainPageRow[]): ChainPage {
   const related = ["validate-address", "chain-params"];
   if (utxo) related.push("convert-address", "xpub-addresses", "address-script");
   if (r.name === "bch") related.push("cashaddr");
-  const t = ACCOUNT[r.name]?.tool;
+  const t = accountInfo(r)?.tool;
   if (t) related.push(t);
   return {
     ...r,

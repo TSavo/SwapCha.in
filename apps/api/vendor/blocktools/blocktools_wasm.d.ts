@@ -260,6 +260,10 @@ export function evmAbiDecode(request_json: string): string;
  */
 export function evmAbiEncode(request_json: string): string;
 /**
+ * Solidity abi.encodePacked. Request JSON {types:"(t1,t2,..)", args:[..]}; returns {data, keccak256}.
+ */
+export function evmAbiEncodePacked(request_json: string): string;
+/**
  * CREATE / CREATE2 contract address. Request JSON {deployer, nonce} or {deployer, salt, init_code_hash | init_code}; a tx (from, nonce) also works.
  */
 export function evmCreateAddress(request_json: string): string;

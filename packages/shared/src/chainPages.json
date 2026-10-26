@@ -386,6 +386,136 @@
     ]
   },
   {
+    "name": "aptos",
+    "slug": "aptos",
+    "ticker": "APT",
+    "title": "Aptos",
+    "slip44": 637,
+    "curve": "ed25519",
+    "family": "aptos",
+    "decimals": 8,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "0xce2fd04ac9efa74f17595e5785e847a2399d7e637f5e8179244f76191f653276",
+        "kind": "Ed"
+      }
+    ]
+  },
+  {
+    "name": "sui",
+    "slug": "sui",
+    "ticker": "SUI",
+    "title": "Sui",
+    "slip44": 784,
+    "curve": "ed25519",
+    "family": "sui",
+    "decimals": 9,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "0x870deb25d5c0a4d7250d52d5cd58dacca2d51eb2a120a979b13384cd52e21e1b",
+        "kind": "Ed"
+      }
+    ]
+  },
+  {
+    "name": "near",
+    "slug": "near",
+    "ticker": "NEAR",
+    "title": "NEAR",
+    "slip44": 397,
+    "curve": "ed25519",
+    "family": "near",
+    "decimals": 24,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "ee93a4f66f8d16b819bb9beb9ffccdfcdc1412e87fee6a324c2a99a1e0e67148",
+        "kind": "Ed"
+      }
+    ]
+  },
+  {
+    "name": "xtz",
+    "slug": "tezos",
+    "ticker": "XTZ",
+    "title": "Tezos",
+    "slip44": 1729,
+    "curve": "ed25519",
+    "family": "xtz",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "tz1gcEWswVU6dxfNQWbhTgaZrUrNUFwrsT4z",
+        "kind": "Ed"
+      }
+    ]
+  },
+  {
+    "name": "egld",
+    "slug": "multiversx",
+    "ticker": "EGLD",
+    "title": "MultiversX",
+    "slip44": 508,
+    "curve": "ed25519",
+    "family": "egld",
+    "decimals": 18,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": null,
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "erd1a6f6fan035ttsxdmn04ellxdlnwpgyhg0lhx5vjv92v6rc8xw9yq83344f",
+        "kind": "Ed"
+      }
+    ]
+  },
+  {
     "name": "sol",
     "slug": "solana",
     "ticker": "SOL",
@@ -434,6 +564,734 @@
       {
         "address": "44AFFq5kSiGBoZ4NMDwYtN18obc8AemS33DBLWs3H7otXft3XjrpDtQGv7SqSsaBYBb98uNbr2VBBEt7f2wfn3RVGQBEP3A",
         "kind": "Xmr"
+      }
+    ]
+  },
+  {
+    "name": "strd",
+    "slug": "stride",
+    "ticker": "STRD",
+    "title": "Stride",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "strd",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "stride",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "stride1hsk6jryyqjfhp5dhc55tc9jtckygx0ep53d3mx",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "axl",
+    "slug": "axelar",
+    "ticker": "AXL",
+    "title": "Axelar",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "axl",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "axelar",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "axelar1hsk6jryyqjfhp5dhc55tc9jtckygx0epn5m9yt",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "cre",
+    "slug": "crescent",
+    "ticker": "CRE",
+    "title": "Crescent",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "cre",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "cre",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "cre1hsk6jryyqjfhp5dhc55tc9jtckygx0epnj7g68",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "kuji",
+    "slug": "kujira",
+    "ticker": "KUJI",
+    "title": "Kujira",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "kuji",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "kujira",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "kujira1hsk6jryyqjfhp5dhc55tc9jtckygx0epxj04zq",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "cmdx",
+    "slug": "comdex",
+    "ticker": "CMDX",
+    "title": "Comdex",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "cmdx",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "comdex",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "comdex1hsk6jryyqjfhp5dhc55tc9jtckygx0eps400ka",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "ntrn",
+    "slug": "neutron",
+    "ticker": "NTRN",
+    "title": "Neutron",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "ntrn",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "neutron",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "neutron1hsk6jryyqjfhp5dhc55tc9jtckygx0epn9y04d",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "somm",
+    "slug": "sommelier",
+    "ticker": "SOMM",
+    "title": "Sommelier",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "somm",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "somm",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "somm1hsk6jryyqjfhp5dhc55tc9jtckygx0epmxzp7q",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "fet",
+    "slug": "fetch-ai",
+    "ticker": "FET",
+    "title": "Fetch.ai",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "fet",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "fetch",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "fetch1hsk6jryyqjfhp5dhc55tc9jtckygx0epy8yfda",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "mars",
+    "slug": "mars-hub",
+    "ticker": "MARS",
+    "title": "Mars Hub",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "mars",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "mars",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "mars1hsk6jryyqjfhp5dhc55tc9jtckygx0ep285563",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "umee",
+    "slug": "umee",
+    "ticker": "UMEE",
+    "title": "Umee",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "umee",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "umee",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "umee1hsk6jryyqjfhp5dhc55tc9jtckygx0ep9vsjtc",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "noble",
+    "slug": "noble",
+    "ticker": "USDC",
+    "title": "Noble",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "noble",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "noble",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "noble1hsk6jryyqjfhp5dhc55tc9jtckygx0eplec9hy",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "sei",
+    "slug": "sei",
+    "ticker": "SEI",
+    "title": "Sei (Cosmos address)",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "sei",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "sei",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "sei1hsk6jryyqjfhp5dhc55tc9jtckygx0ep6kumft",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "tia",
+    "slug": "celestia",
+    "ticker": "TIA",
+    "title": "Celestia",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "tia",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "celestia",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "celestia1hsk6jryyqjfhp5dhc55tc9jtckygx0epxsua48",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "coreum",
+    "slug": "coreum",
+    "ticker": "CORE",
+    "title": "Coreum",
+    "slip44": 990,
+    "curve": "secp256k1",
+    "family": "coreum",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "core",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "core1hsk6jryyqjfhp5dhc55tc9jtckygx0epy54kg3",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "qsr",
+    "slug": "quasar",
+    "ticker": "QSR",
+    "title": "Quasar",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "qsr",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "quasar",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "quasar1hsk6jryyqjfhp5dhc55tc9jtckygx0epeehsz0",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "xprt",
+    "slug": "persistence",
+    "ticker": "XPRT",
+    "title": "Persistence",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "xprt",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "persistence",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "persistence1hsk6jryyqjfhp5dhc55tc9jtckygx0epekt7pw",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "akt",
+    "slug": "akash",
+    "ticker": "AKT",
+    "title": "Akash",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "akt",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "akash",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "akash1hsk6jryyqjfhp5dhc55tc9jtckygx0ep6pq2ks",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "kava",
+    "slug": "kava",
+    "ticker": "KAVA",
+    "title": "Kava (Cosmos address)",
+    "slip44": 459,
+    "curve": "secp256k1",
+    "family": "kava",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "kava",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "kava1hsk6jryyqjfhp5dhc55tc9jtckygx0ept0esed",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "blz",
+    "slug": "bluzelle",
+    "ticker": "BLZ",
+    "title": "Bluzelle",
+    "slip44": 483,
+    "curve": "secp256k1",
+    "family": "blz",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "bluzelle",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "bluzelle1hsk6jryyqjfhp5dhc55tc9jtckygx0epzzw0fm",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "band",
+    "slug": "bandchain",
+    "ticker": "BAND",
+    "title": "BandChain",
+    "slip44": 494,
+    "curve": "secp256k1",
+    "family": "band",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "band",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "band1hsk6jryyqjfhp5dhc55tc9jtckygx0epw4d0hz",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "cro",
+    "slug": "crypto-org",
+    "ticker": "CRO",
+    "title": "Crypto.org (Cronos POS)",
+    "slip44": 394,
+    "curve": "secp256k1",
+    "family": "cro",
+    "decimals": 8,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "cro",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "cro1hsk6jryyqjfhp5dhc55tc9jtckygx0ep0p95nm",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "bld",
+    "slug": "agoric",
+    "ticker": "BLD",
+    "title": "Agoric",
+    "slip44": 564,
+    "curve": "secp256k1",
+    "family": "bld",
+    "decimals": 6,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "agoric",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "agoric1hsk6jryyqjfhp5dhc55tc9jtckygx0ep980jlu",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "dydx",
+    "slug": "dydx-chain",
+    "ticker": "DYDX",
+    "title": "dYdX Chain",
+    "slip44": 118,
+    "curve": "secp256k1",
+    "family": "dydx",
+    "decimals": 18,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "dydx",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "dydx1hsk6jryyqjfhp5dhc55tc9jtckygx0ep7rrf0a",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "rune",
+    "slug": "thorchain",
+    "ticker": "RUNE",
+    "title": "THORChain",
+    "slip44": 931,
+    "curve": "secp256k1",
+    "family": "rune",
+    "decimals": 8,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "thor",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "thor1hsk6jryyqjfhp5dhc55tc9jtckygx0ep3a5k64",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "inj",
+    "slug": "injective",
+    "ticker": "INJ",
+    "title": "Injective (native)",
+    "slip44": 60,
+    "curve": "secp256k1",
+    "family": "inj",
+    "decimals": 18,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "inj",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "inj1mrdxhunfvjhe6lkancp72dq46da2jcz9lmv4wx",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "evmos",
+    "slug": "evmos",
+    "ticker": "EVMOS",
+    "title": "Evmos (native)",
+    "slip44": 60,
+    "curve": "secp256k1",
+    "family": "evmos",
+    "decimals": 18,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "evmos",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "evmos1mrdxhunfvjhe6lkancp72dq46da2jcz9hn2lxk",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "canto",
+    "slug": "canto",
+    "ticker": "CANTO",
+    "title": "Canto (native)",
+    "slip44": 60,
+    "curve": "secp256k1",
+    "family": "canto",
+    "decimals": 18,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "canto",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "canto1mrdxhunfvjhe6lkancp72dq46da2jcz98y6pgk",
+        "kind": "Cosmos"
+      }
+    ]
+  },
+  {
+    "name": "zeta",
+    "slug": "zetachain",
+    "ticker": "ZETA",
+    "title": "ZetaChain (native)",
+    "slip44": 60,
+    "curve": "secp256k1",
+    "family": "zeta",
+    "decimals": 18,
+    "p2pkh": null,
+    "p2sh": null,
+    "hrp": "zeta",
+    "wif": null,
+    "checksum": null,
+    "forkid": null,
+    "tx_format": "account",
+    "verified": true,
+    "scope": null,
+    "explorers": [],
+    "examples": [
+      {
+        "address": "zeta1mrdxhunfvjhe6lkancp72dq46da2jcz9rk4yxw",
+        "kind": "Cosmos"
       }
     ]
   },
