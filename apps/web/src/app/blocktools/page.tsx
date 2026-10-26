@@ -10,7 +10,7 @@ export const revalidate = 3600;
 export const metadata = btMeta(
   "/blocktools",
   "blocktools: all chains, one CLI",
-  "blocktools is an open source (MIT) command-line toolkit for blockchains: 41 small Unix tools that read wallets, derive addresses and build, check and sign transactions offline, across 38 verified chains in v0.1.0.",
+  "blocktools is an open source (MIT) command-line toolkit for blockchains: 42 small Unix tools that read wallets, derive addresses and build, check and sign transactions offline across many chains; see the chain table for what each supports.",
 );
 
 const btnPrimary =
@@ -116,7 +116,7 @@ export default async function BlocktoolsHome() {
             All chains, one CLI
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-violet-100">
-            41 small Unix tools that read wallet files and seed phrases, derive addresses, and
+            42 small Unix tools that read wallet files and seed phrases, derive addresses, and
             build, check and sign transactions, offline. Pipe them together. No browser, no wallet
             app.
           </p>
@@ -202,7 +202,7 @@ export default async function BlocktoolsHome() {
             [
               "⛓️",
               "One tool, many chains",
-              "Bitcoin and its forks, Ethereum and EVM, Solana, Tron, XRP, Cosmos, Cardano, Polkadot, TON and older Bitcoin forks: 38 verified chains in v0.1.0, each marked with what is built.",
+              "Bitcoin and its forks, Ethereum and EVM, Solana, Tron, XRP, Cosmos, Cardano, Polkadot, TON and older Bitcoin forks, each marked in the chain table with what is built.",
             ],
             [
               "💻",
@@ -212,7 +212,7 @@ export default async function BlocktoolsHome() {
             [
               "🔓",
               "Open source (MIT)",
-              "Source, 43 man pages and the recipes are on GitHub, so you can read it before you trust it.",
+              "Source, 44 man pages and the recipes are on GitHub, so you can read it before you trust it.",
             ],
             [
               "🔒",
@@ -435,7 +435,7 @@ export default async function BlocktoolsHome() {
             [
               "/blocktools/commands",
               "Commands",
-              `${BT_GROUPS.reduce((n, g) => n + g.tools.length, 0)} man pages in ${BT_GROUPS.length} groups (41 tools plus the wrapper and recover.sh).`,
+              `${BT_GROUPS.reduce((n, g) => n + g.tools.length, 0)} man pages in ${BT_GROUPS.length} groups (42 tools plus the wrapper and recover.sh).`,
               BT_GROUPS.map((g) => g.label).join(" · "),
             ],
             [

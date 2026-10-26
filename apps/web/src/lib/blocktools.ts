@@ -1,9 +1,9 @@
 /** Client-safe blocktools hub data. Every fact is from the TSavo/blocktools README at 657458a. */
 export const BT_INSTALL = [
-  "gh release download v0.1.0 -R TSavo/blocktools",
+  "gh release download v0.1.1 -R TSavo/blocktools",
   "sha256sum -c SHA256SUMS",
-  "tar xzf blocktools-v0.1.0-linux-x86_64.tar.gz",
-  "cd blocktools-v0.1.0-linux-x86_64",
+  "tar xzf blocktools-v0.1.1-linux-x86_64.tar.gz",
+  "cd blocktools-v0.1.1-linux-x86_64",
   "export PATH=$PWD/bin:$PATH MANPATH=$PWD/share/man:",
   "man blocktools",
 ].join("\n");
@@ -131,7 +131,7 @@ export const BT_ON_SWAPCHAN: { tool: string; href: string; label: string }[] = [
   { tool: "chain-table", href: "/tools/chain-params", label: "Chain parameters table" },
 ];
 
-/** The 43 man(1) pages at v0.1.0 (41 bin/ tools + blocktools + recover.sh), grouped by job. */
+/** The 44 man(1) pages at v0.1.1 (42 bin/ tools + blocktools + recover.sh), grouped by job. */
 export const BT_GROUPS: { id: string; label: string; blurb: string; tools: string[] }[] = [
   {
     id: "recover",
@@ -152,6 +152,7 @@ export const BT_GROUPS: { id: string; label: string; blurb: string; tools: strin
       "multibit-read",
       "blockchain-read",
       "bip38-open",
+      "phrase-to-key",
       "pw-candidates",
       "xmr-keys",
       "zec-sapling",
