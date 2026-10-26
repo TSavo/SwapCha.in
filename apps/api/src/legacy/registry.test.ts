@@ -25,8 +25,9 @@ describe("LegacyETH registry data", () => {
     expect(new Set(REGISTRY.map((e) => e.address.toLowerCase())).size).toBe(296);
   });
   it("only confirmed DEX/Fomo3D entries are scanned, each with a claim", () => {
-    const s = scanned();
+    const s = scanned().filter((e) => ["etherdelta-dex", "fomo3d"].includes(e.family));
     expect(s.length).toBe(43);
+    expect(scanned().length).toBe(79);
     for (const e of s) {
       expect(["etherdelta-dex", "fomo3d"]).toContain(e.family);
       expect(e.claim).toBe(e.family === "fomo3d" ? "withdraw()" : "withdraw(uint256)");
@@ -156,7 +157,7 @@ describe("review fixes", () => {
     expect(validEntry({ ...f, claim: "withdraw(uint256)" })).toBe(false);
     expect(validEntry({ ...d, claim: "transfer(address,uint256)" })).toBe(false);
     expect(refused()).toEqual([]);
-    for (const e of scanned())
+    for (const e of scanned().filter((x) => ["etherdelta-dex", "fomo3d"].includes(x.family)))
       expect(REGISTRY_ALLOWLIST[e.address.toLowerCase()]).toEqual([
         btSelector(e.family === "fomo3d" ? "withdraw()" : "withdraw(uint256)"),
       ]);

@@ -12,6 +12,12 @@
 import { formatUnits, type PublicClient, parseAbiItem } from "viem";
 import { btSelector, encodeFunctionData } from "../blocktools.js";
 import type { Evidence } from "../recover.js";
+import {
+  burnApprovals,
+  burnRefundAllowlist,
+  scanBurnRefund,
+  validBurnRefund,
+} from "./burnrefund.js";
 import REG from "./registry.json" with { type: "json" };
 
 export type Family = "etherdelta-dex" | "fomo3d" | string;
@@ -27,6 +33,10 @@ export interface RegistryEntry {
   eoaOnly?: boolean;
   ownerGated?: boolean;
   multiStep?: boolean;
+  /** refund families: per-address view that returns the ETH owed (allowed set pinned in burnrefund.ts) */
+  view?: string;
+  viewOn?: "self" | "vault";
+  vault?: string;
 }
 export const REGISTRY = (REG as { entries: RegistryEntry[] }).entries;
 /** The only claim each family module will ever build; pinned in code, not taken from the data file. */
@@ -36,15 +46,23 @@ export const FAMILY_CLAIM: Record<string, string> = {
 };
 export const SCANNED_FAMILIES = new Set<Family>(Object.keys(FAMILY_CLAIM));
 /** Confirmed rows whose claim matches the family's pinned selector; any mismatch is refused (not scanned). */
-export const validEntry = (e: RegistryEntry) =>
+const validPr1 = (e: RegistryEntry) =>
   e.status === "confirmed" && SCANNED_FAMILIES.has(e.family) && e.claim === FAMILY_CLAIM[e.family];
+export const validEntry = (e: RegistryEntry) => validPr1(e) || validBurnRefund(e);
 export const scanned = () => REGISTRY.filter(validEntry);
 export const refused = () => REGISTRY.filter((e) => e.status === "confirmed" && !validEntry(e));
 
 /** (contract, exact selector) pairs for confirmed entries; merged into intel.ts CLAIM_ALLOWLIST. */
-export const REGISTRY_ALLOWLIST: Record<string, string[]> = Object.fromEntries(
-  scanned().map((e) => [e.address.toLowerCase(), [btSelector(FAMILY_CLAIM[e.family]!)]]),
-);
+export const REGISTRY_ALLOWLIST: Record<string, string[]> = {
+  ...Object.fromEntries(
+    scanned()
+      .filter(validPr1)
+      .map((e) => [e.address.toLowerCase(), [btSelector(FAMILY_CLAIM[e.family]!)]]),
+  ),
+  ...burnRefundAllowlist(scanned().filter((e) => !validPr1(e))),
+};
+/** token -> the only spender a two-step approval may name (exact amount, never unlimited). */
+export const REGISTRY_APPROVALS: Record<string, string> = burnApprovals(scanned());
 
 /** Pure gating: claim only if something is owed, the contract can pay it, and the simulated claim succeeded. */
 export function claimableNow(owed: bigint, held: bigint | null, simOk: boolean) {
@@ -59,7 +77,8 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
       "EOA only: the contract rejects calls from smart-contract wallets (Safe, 4337); sign from the original key",
     );
   if (e.ownerGated) l.push("Owner action required: the contract owner must unlock claims first");
-  if (e.multiStep) l.push("Two steps: approve, then claim");
+  if (e.multiStep)
+    l.push("Two steps: approve the exact token amount to the redemption contract, then claim");
   if (held === null)
     l.push("Balance read failed: could not confirm the contract can pay, so no claim is offered");
   if (held !== null && held < owed)
@@ -84,12 +103,15 @@ export interface RegistryHit {
   heldWei: bigint | null;
   simOk: boolean;
   claimable: boolean;
+  /** two-step flows: 1 = the approval is next, 2 = the claim is next */
+  step?: 1 | 2 | undefined;
   labels: string[];
   tx?: { chainId: 1; to: string; data: `0x${string}`; value: "0"; description: string };
   evidence: Evidence[];
 }
 
-type Client = Pick<PublicClient, "multicall" | "getBalance" | "call">;
+type Client = Pick<PublicClient, "multicall" | "getBalance" | "call"> &
+  Partial<Pick<PublicClient, "request">>;
 
 export async function scanRegistry(
   c: Client,
@@ -105,7 +127,7 @@ export async function scanRegistry(
       ],
     };
   const at = { blockNumber: block };
-  const ents = scanned();
+  const ents = scanned().filter(validPr1);
   const dex = ents.filter((e) => e.family === "etherdelta-dex");
   const fomo = ents.filter((e) => e.family === "fomo3d");
   const ev = (
@@ -238,6 +260,19 @@ export async function scanRegistry(
       return h;
     }),
   );
+  const br = await scanBurnRefund(
+    c as never,
+    owner,
+    block,
+    scanned().filter((e) => !validPr1(e)),
+  ).catch(() => ({
+    hits: [],
+    failed: scanned()
+      .filter((e) => !validPr1(e))
+      .map((e) => e.name),
+  }));
+  failed.push(...br.failed);
+  for (const b of br.hits) hits.push({ ...b, labels: labels(b.entry, b.owedWei, b.heldWei) });
   const notChecked: string[] = [];
   const noBal = hits.filter((h) => h.heldWei === null).map((h) => h.entry.name);
   if (noBal.length)

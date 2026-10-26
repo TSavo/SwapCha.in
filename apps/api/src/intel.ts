@@ -44,7 +44,13 @@ import {
   xrpScan,
 } from "./ledgers.js";
 import { adaScan, dotScan, tonScan } from "./ledgers2.js";
-import { REGISTRY, REGISTRY_ALLOWLIST, scanRegistry } from "./legacy/registry.js";
+import { verifyApproval } from "./legacy/burnrefund.js";
+import {
+  REGISTRY,
+  REGISTRY_ALLOWLIST,
+  REGISTRY_APPROVALS,
+  scanRegistry,
+} from "./legacy/registry.js";
 import { hedgeyPlans, superfluidBalances, teamFinanceLocks, uncxLocks } from "./locks.js";
 import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
@@ -1513,7 +1519,10 @@ export const BASE_CLAIM_ALLOWLIST: Record<string, string[]> = {
 /** Registry addresses that collide with curated allowlist entries or dedicated scanners (must be empty). */
 export function registryCollisions(
   base: Record<string, string[]> = BASE_CLAIM_ALLOWLIST,
-  reg: Record<string, string[]> = REGISTRY_ALLOWLIST,
+  reg: Record<string, string[]> = {
+    ...REGISTRY_ALLOWLIST,
+    ...Object.fromEntries(Object.keys(REGISTRY_APPROVALS).map((t) => [t, ["approve"]])),
+  },
 ): string[] {
   const dedicated = new Set([
     ...Object.keys(base),
@@ -1535,8 +1544,15 @@ export const CLAIM_ALLOWLIST: Record<string, string[]> = {
 };
 export function verifyClaimTx(tx: { to: string; data: string; value: string }) {
   const sel = tx.data.slice(0, 10).toLowerCase();
-  const ok = (CLAIM_ALLOWLIST[tx.to.toLowerCase()] ?? []).includes(sel) && BigInt(tx.value) === 0n;
-  return { verified: ok, check: "claim-call allowlist (contract + exact selector, zero value)" };
+  const ok =
+    ((CLAIM_ALLOWLIST[tx.to.toLowerCase()] ?? []).includes(sel) && BigInt(tx.value) === 0n) ||
+    // LegacyETH two-step redemptions: approve only the pinned redemption contract, exact finite amount
+    verifyApproval(REGISTRY_APPROVALS, tx);
+  return {
+    verified: ok,
+    check:
+      "claim-call allowlist (contract + exact selector, zero value; approvals only to the pinned redemption contract, never unlimited)",
+  };
 }
 const claim = (chainId: number, to: string, data: `0x${string}`, description: string) => {
   const tx = { chainId, to, data, value: "0", description };
@@ -1575,8 +1591,9 @@ export async function legacyRegistry(
   const { hits, notChecked } = await scanRegistry(c0, owner, block);
   const items: Found[] = hits.map((h) => {
     const eth = Number(formatUnits(h.owedWei, 18));
+    const step1 = h.step === 1;
     const why = !h.simOk
-      ? `${h.entry.claim} reverts for you`
+      ? `${step1 ? `approve + ${h.entry.claim}` : h.entry.claim} reverts for you`
       : h.heldWei === null
         ? "the contract balance read failed, so payment could not be confirmed"
         : "the contract holds less ETH than it owes";
@@ -1585,12 +1602,16 @@ export async function legacyRegistry(
       protocol: h.entry.name,
       chainId: 1,
       what: h.claimable
-        ? `${eth} ETH withdrawable`
+        ? step1
+          ? `${eth} ETH redeemable in two steps (approve, then ${h.entry.claim})`
+          : `${eth} ETH withdrawable`
         : `Not claimable: the contract shows ${eth} ETH for you but ${h.entry.claim} would pay nothing (${why})`,
       valueUsd: h.claimable && ethPx ? r2(eth * ethPx) : null,
       ...(h.tx ? { claimTx: claim(1, h.tx.to, h.tx.data, h.tx.description) } : {}),
       action: h.claimable
-        ? `Withdraw your ETH from ${h.entry.name}, then swap on SwapChan`
+        ? step1
+          ? `Sign the approval; find_money then builds ${h.entry.claim}`
+          : `Withdraw your ETH from ${h.entry.name}, then swap on SwapChan`
         : "Nothing to sign: the balance view counts ETH the contract cannot pay out",
       link: h.claimable
         ? swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth))
@@ -3827,7 +3848,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
       sources.push(
-        `LegacyETH registry (${LEGACY_REGISTRY_SIZE} listed legacy contracts; confirmed EtherDelta-style DEXes and Fomo3D forks read on-chain, the rest reported as not checked yet)`,
+        `LegacyETH registry (${LEGACY_REGISTRY_SIZE} listed legacy contracts; confirmed DEXes, Fomo3D forks, ICO/presale refunds and burn-token redemptions read on-chain, the rest reported as not checked yet)`,
       );
       items.push(
         ...(wn as Found[]),
