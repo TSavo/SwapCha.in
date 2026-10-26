@@ -121,3 +121,65 @@ describe("Relay order verification", () => {
     vi.setSystemTime(new Date("2026-10-24T16:00:00Z"));
   });
 });
+
+describe("Relay depository pins", () => {
+  const withBaseDep = (dep: string) =>
+    structuredClone(FX.chains).map((c: any) =>
+      c.id === 8453 ? { ...c, protocol: { v2: { ...c.protocol.v2, depository: dep } } } : c,
+    );
+  const check = (v: Awaited<ReturnType<typeof verifyPayload>>) =>
+    v.checks.find((c) => c.name === "depository");
+
+  it("pins Base and Arbitrum to the known depository", async () => {
+    const { RELAY_DEPOSITORY_PINS } = await import("./relayPins.js");
+    expect(RELAY_DEPOSITORY_PINS[8453]).toBe(DEPOSITORY);
+    expect(RELAY_DEPOSITORY_PINS[42161]).toBe(DEPOSITORY);
+  });
+  it("match: chain list agrees with the pin -> uses the pinned depository", async () => {
+    const proto = relayProtocolFromChains(FX.chains);
+    expect(proto.chains[8453]).toMatchObject({ depository: DEPOSITORY, source: "pinned" });
+    const v = await verifyPayload(payload("native"), ctx);
+    expect(check(v)?.ok).toBe(true);
+    expect(check(v)?.detail).toMatch(/pinned/);
+  });
+  it("mismatch: chain list disagrees -> fails closed and alerts", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const chains = withBaseDep(EVIL);
+    const proto = relayProtocolFromChains(chains);
+    expect(proto.chains[8453]?.depository).toBeUndefined();
+    expect(proto.chains[8453]?.mismatch).toEqual({ api: EVIL, pinned: DEPOSITORY });
+    expect(err.mock.calls.flat().join(" ")).toMatch(/ALERT relay-depository-pin.*8453/);
+    // Even a tx that targets the API-supplied address is refused.
+    const p = payload("native");
+    const v = await verifyPayload(
+      { ...p, tx: { ...p.tx!, to: EVIL } },
+      { ...ctx, relayProtocol: async () => relayProtocolFromChains(chains) },
+    );
+    expect(v.verified).toBe(false);
+    expect(check(v)?.ok).toBe(false);
+    expect(check(v)?.detail).toMatch(/refusing/);
+    // And so is one to the pinned address: the chain list is not trustworthy right now.
+    const v2 = await verifyPayload(p, {
+      ...ctx,
+      relayProtocol: async () => relayProtocolFromChains(chains),
+    });
+    expect(v2.verified).toBe(false);
+    err.mockRestore();
+  });
+  it("unpinned chain: falls back to the chain list address", async () => {
+    const proto = relayProtocolFromChains(FX.chains, {});
+    expect(proto.chains[8453]).toMatchObject({ depository: DEPOSITORY, source: "unpinned" });
+    const v = await verifyPayload(payload("native"), {
+      ...ctx,
+      relayProtocol: async () => proto,
+    });
+    expect(check(v)?.ok).toBe(true);
+    expect(check(v)?.detail).toMatch(/not pinned/);
+  });
+  it("EVM pin comparison is case-insensitive", () => {
+    const proto = relayProtocolFromChains(
+      withBaseDep(DEPOSITORY.toUpperCase().replace("0X", "0x")),
+    );
+    expect(proto.chains[8453]?.source).toBe("pinned");
+  });
+});
