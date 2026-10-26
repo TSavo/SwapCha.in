@@ -61,6 +61,7 @@ export const evmSigHash: (a: number, b: number) => [number, number, number, numb
 export const evmSigLookup: (a: number, b: number, c: number, d: number) => [number, number, number, number];
 export const evmAbiDecode: (a: number, b: number) => [number, number, number, number];
 export const evmAbiEncode: (a: number, b: number) => [number, number, number, number];
+export const evmAbiEncodePacked: (a: number, b: number) => [number, number, number, number];
 export const evmCreateAddress: (a: number, b: number) => [number, number, number, number];
 export const evmAbiInspect: (a: number, b: number) => [number, number, number, number];
 export const evmBytecodeInspect: (a: number, b: number) => [number, number, number, number];
