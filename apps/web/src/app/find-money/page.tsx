@@ -46,26 +46,6 @@ export default function FindMoneyHub() {
       <Suspense>
         <FindMoneyTool />
       </Suspense>
-      <section className="mt-8">
-        <h2 className="mb-2 text-xl font-black">Specific checks</h2>
-        <ul className="list-disc pl-5">
-          <li>
-            <Link href="/find-money/powh3d" className="underline hover:text-amber-300">
-              PoWH3D (P3D) dividends and tokens
-            </Link>
-          </li>
-          <li>
-            <Link href="/find-money/guide" className="underline hover:text-amber-300">
-              Where crypto money gets stuck: the full guide
-            </Link>
-          </li>
-          <li>
-            <Link href="/recover/seed-phrase" className="underline hover:text-amber-300">
-              Only have a seed phrase? Derive every address offline, then paste them here
-            </Link>
-          </li>
-        </ul>
-      </section>
       <AgentCTASection tool="find_money" prompt="Find any money I forgot about in my wallets" />
       <section className="mt-8">
         <h2 className="mb-2 text-xl font-black">Swap what you found</h2>

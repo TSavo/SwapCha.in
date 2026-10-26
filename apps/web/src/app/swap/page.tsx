@@ -30,6 +30,7 @@ export default async function SwapHub() {
       <SectionHub
         id="swap"
         search
+        alsoSearched={ROUTES.length}
         extra={[{ id: "trending-pairs", label: "Every trending pair", items: pairs }]}
       />
       {trending.length > 0 && (

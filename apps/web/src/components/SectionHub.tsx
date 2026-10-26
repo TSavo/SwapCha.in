@@ -10,12 +10,15 @@ export function SectionHub({
   intro,
   search,
   collapseOver = 24,
+  alsoSearched = 0,
 }: {
   id: string;
   extra?: Group[];
   intro?: ReactNode;
   search?: boolean;
   collapseOver?: number;
+  /** Items elsewhere on the page that the search box also filters. */
+  alsoSearched?: number;
 }) {
   const s = SECTIONS.find((x) => x.id === id);
   if (!s) return null;
@@ -27,7 +30,9 @@ export function SectionHub({
       className="mb-8 rounded-3xl border border-violet-500/50 bg-violet-950/60 p-4 shadow-[0_0_30px_rgba(124,58,237,0.2)] sm:p-5"
     >
       {intro}
-      {(search ?? total > 12) && <HubSearch placeholder={`Search ${total} ${s.label} pages…`} />}
+      {(search ?? total > 12) && (
+        <HubSearch placeholder={`Search ${total + alsoSearched} ${s.label} pages…`} />
+      )}
       <div className="grid gap-5 md:grid-cols-2">
         {groups.map((g) => {
           const list = (

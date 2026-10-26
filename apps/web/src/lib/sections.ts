@@ -16,6 +16,7 @@ export type Section = {
 };
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const CAST_LABEL: Record<string, string> = { swapchan: "Swap-chan", bnb: "BNB" };
 
 export const SECTIONS: Section[] = [
   {
@@ -63,6 +64,7 @@ export const SECTIONS: Section[] = [
           { href: "/find-money/powh3d", label: "PoWH3D & old dividend contracts" },
           { href: "/airdrops", label: "Unclaimed airdrops" },
           { href: "/wallet", label: "Wallet history & PnL" },
+          { href: "/recover/seed-phrase", label: "Only have a seed phrase?" },
         ],
       },
     ],
@@ -181,6 +183,7 @@ export const SECTIONS: Section[] = [
           { href: "/dashboard", label: "Wallet dashboard" },
           { href: "/wallet", label: "History & PnL" },
           { href: "/airdrops", label: "Airdrop checker" },
+          { href: "/rebalance", label: "Portfolio rebalancer" },
         ],
       },
       {
@@ -256,7 +259,7 @@ export const SECTIONS: Section[] = [
         label: "Meet the cast",
         items: [
           { href: "/cast", label: "The whole cast" },
-          ...castOrder.map((k) => ({ href: `/cast/${k}`, label: cap(k) })),
+          ...castOrder.map((k) => ({ href: `/cast/${k}`, label: CAST_LABEL[k] ?? cap(k) })),
         ],
       },
       {

@@ -50,46 +50,12 @@ export default async function ToolsHub() {
         collapseOver={18}
         extra={[{ id: "trending-tokens", label: "Trending token pages", items: tokenPages }]}
       />
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {TOOLS.map((t) => (
-          <li key={t.href}>
-            <Link
-              href={t.href}
-              className="block h-full rounded-2xl border-2 border-violet-600 bg-violet-950 p-4 hover:border-amber-300"
-            >
-              <span className="text-2xl">{t.emoji}</span>
-              <h2 className="text-lg font-black">{t.name}</h2>
-              <p className="text-sm text-violet-200">{t.blurb}</p>
-              <p className="mt-2 text-xs text-violet-400">
-                MCP: <code>{t.mcp}</code>
-              </p>
-            </Link>
-          </li>
-        ))}
-      </ul>
       <section className="mt-10" id="developer-tools">
-        <h2 className="text-2xl font-black">Developer &amp; chain tools</h2>
+        <h2 className="text-2xl font-black">Good to know</h2>
         <p className="mb-4 text-violet-200">
           Address validator, converters, xpub derivation, SS58, Solana PDA and chain parameters.
           Public data only: no keys, no seed phrases, nothing stored.
         </p>
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {DEV_TOOLS.map((t) => (
-            <li key={t.slug}>
-              <Link
-                href={`/tools/${t.slug}`}
-                className="block h-full rounded-2xl border-2 border-violet-600 bg-violet-950 p-4 hover:border-amber-300"
-              >
-                <span className="text-2xl">{t.emoji}</span>
-                <h3 className="text-lg font-black">{t.h1}</h3>
-                <p className="text-sm text-violet-200">{t.description}</p>
-                <p className="mt-2 text-xs text-violet-400">
-                  MCP: <code>{t.mcp}</code>
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
         <p className="mt-4 text-sm text-violet-200">
           Address formats and a validator for each chain:{" "}
           <Link href="/chains" className="underline hover:text-amber-300">

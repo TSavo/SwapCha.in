@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
-import { SectionHub } from "@/components/SectionHub";
 import { Recover } from "@/components/tools/Recover";
 import { RelatedTools } from "@/components/tools/RelatedTools";
 import { SolRecover, type SolSpec } from "@/components/tools/SolRecover";
@@ -99,7 +98,6 @@ export default async function Page({
         </div>
         <h1 className="text-4xl font-black">Recover an old crypto wallet</h1>
       </header>
-      <SectionHub id="recover" />
 
       <section className="rounded-2xl border-2 border-rose-400 bg-rose-950 p-6">
         <h2 className="text-2xl font-black">Warnings (read these)</h2>
@@ -149,6 +147,11 @@ export default async function Page({
                 "/agents/secure-signing",
                 "Full signing guide (all branches)",
                 "Missing word, passphrase, Electrum, wallet.dat, hardware…",
+              ],
+              [
+                "/tools/key-recovery",
+                "Why keys never touch SwapChan",
+                "Where key derivation and recovery happen instead (your machine)",
               ],
             ] as const
           ).map(([href, t, d]) => (
