@@ -1,5 +1,4 @@
 import {
-  appDataHash,
   BaseUnits,
   COW_NETWORK,
   COW_VAULT_RELAYER,
@@ -14,6 +13,7 @@ import {
 } from "@swapchan/shared";
 import { Hono } from "hono";
 import { z } from "zod";
+import { btAppDataHash } from "./blocktools.js";
 import type { Fetch } from "./providers/types.js";
 
 const chainId = z.coerce
@@ -68,7 +68,7 @@ async function cowJson<T>(f: Fetch, url: string, init?: RequestInit): Promise<T>
 export function limitRoutes(f: Fetch = fetch, env: NodeJS.ProcessEnv = process.env) {
   const bps = env.SWAPCHAN_FEE_RECIPIENT ? Number(env.SWAPCHAN_FEE_BPS ?? 0) : 0;
   const appData = limitAppData(env.SWAPCHAN_FEE_RECIPIENT, bps);
-  const hash = appDataHash(appData);
+  const hash = btAppDataHash(appData);
   const uploaded = new Set<number>();
   const upload = async (c: number) => {
     if (uploaded.has(c)) return;

@@ -9,7 +9,8 @@ import {
   TRON,
   vmOf,
 } from "@swapchan/shared";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData } from "../blocktools.js";
+
 import { buildBtcPsbt, type UtxoSource } from "../btc.js";
 import { type Pricer, ZERO_ADDRESS } from "../pricing.js";
 import { type Fetch, getJson, type ProviderAdapter, placeholderFor } from "./types.js";

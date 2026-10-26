@@ -1,5 +1,6 @@
-import { appDataHash, COW_VAULT_RELAYER, limitAppData } from "@swapchan/shared";
+import { COW_VAULT_RELAYER, limitAppData } from "@swapchan/shared";
 import { describe, expect, it } from "vitest";
+import { btAppDataHash as appDataHash } from "./blocktools.js";
 import { createApp } from "./index.js";
 
 const FEE = "0xeb0eC7a28E4B6B175806E21D9D3afE45792C5c7B";

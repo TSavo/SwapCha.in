@@ -1,13 +1,5 @@
-import {
-  concat,
-  encodeFunctionData,
-  encodePacked,
-  getAddress,
-  type Hex,
-  pad,
-  parseAbiItem,
-  size,
-} from "viem";
+import { concat, encodePacked, getAddress, type Hex, pad, parseAbiItem, size } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import { evmClient, walletBalances } from "./onchain.js";
 import type { NewFound } from "./recover.js";
 

@@ -11,7 +11,6 @@
 import {
   createPublicClient,
   decodeEventLog,
-  encodeFunctionData,
   formatEther,
   getAddress,
   type Hex,
@@ -21,6 +20,7 @@ import {
 } from "viem";
 import { arbitrum, mainnet, optimism } from "viem/chains";
 import { getWithdrawals, publicActionsL1, publicActionsL2 } from "viem/op-stack";
+import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { json, prices, pxOf } from "./onchain.js";
 

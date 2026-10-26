@@ -11,14 +11,7 @@ import {
   vmOf,
 } from "@swapchan/shared";
 import { Hono } from "hono";
-import {
-  encodeFunctionData,
-  erc20Abi,
-  formatUnits,
-  getAddress,
-  isAddress,
-  parseAbiItem,
-} from "viem";
+import { erc20Abi, formatUnits, getAddress, isAddress, parseAbiItem } from "viem";
 import { z } from "zod";
 import { aaveSupplied } from "./aave.js";
 import {
@@ -28,7 +21,7 @@ import {
   resolveSelectors,
 } from "./abiprobe.js";
 import { beaconValidators } from "./beacon.js";
-import { btDetectChains, btSelector } from "./blocktools.js";
+import { btDetectChains, btSelector, encodeFunctionData } from "./blocktools.js";
 import { bridgeWithdrawals } from "./bridges.js";
 import { eigenLayer } from "./eigen.js";
 import { ensDeeds } from "./ensdeed.js";

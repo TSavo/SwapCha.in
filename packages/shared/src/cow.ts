@@ -1,4 +1,3 @@
-import { keccak256, toBytes } from "viem";
 import type { TypedData } from "./index.js";
 
 /** CoW Protocol orderbook network slug per chain id. */
@@ -50,8 +49,7 @@ export function limitAppData(recipient: string | undefined, bps: number): string
   if (recipient && bps > 0) metadata.partnerFee = { volumeBps: bps, recipient };
   return JSON.stringify({ appCode: "SwapChan", metadata, version: "1.4.0" });
 }
-/** CoW appData hash: keccak256 of the exact JSON document string. */
-export const appDataHash = (doc: string): `0x${string}` => keccak256(toBytes(doc));
+// appData hash (keccak-256 of the JSON doc) lives in apps/api (blocktools btAppDataHash): hashing belongs in blocktools.
 
 export interface LimitOrderParams {
   chainId: number;

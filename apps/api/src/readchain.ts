@@ -10,7 +10,6 @@ import {
   decodeEventLog,
   decodeFunctionResult,
   encodeEventTopics,
-  encodeFunctionData,
   erc20Abi,
   formatUnits,
   type Hex,
@@ -18,6 +17,7 @@ import {
   parseAbi,
   parseAbiItem,
 } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import {
   BadRequest,
   chainName,

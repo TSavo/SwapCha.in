@@ -1,5 +1,6 @@
-import { encodeFunctionData, formatUnits, getAddress, parseAbiItem, toHex } from "viem";
+import { formatUnits, getAddress, parseAbiItem, toHex } from "viem";
 import { callMany, SEL } from "./balscan.js";
+import { encodeFunctionData } from "./blocktools.js";
 import { evmClient, json, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
 import type { NewFound } from "./recover.js";
 import { cached } from "./scanner.js";

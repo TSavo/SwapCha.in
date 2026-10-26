@@ -9,7 +9,6 @@
  */
 import {
   createPublicClient,
-  encodeFunctionData,
   getAddress,
   type Hex,
   http,
@@ -18,6 +17,7 @@ import {
 } from "viem";
 import { arbitrum, base, mainnet, optimism } from "viem/chains";
 import { buildProveWithdrawal, getWithdrawalStatus, getWithdrawals } from "viem/op-stack";
+import { encodeFunctionData } from "./blocktools.js";
 
 type F = typeof fetch;
 

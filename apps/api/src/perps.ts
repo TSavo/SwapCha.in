@@ -6,15 +6,8 @@
  *    (receiver = the owner, simulated first). Open v2 positions are counted and reported as a plain note
  *    (closing needs a keeper-executed order with an execution fee).
  */
-import {
-  encodeAbiParameters,
-  encodeFunctionData,
-  formatUnits,
-  getAddress,
-  type Hex,
-  parseAbi,
-} from "viem";
-import { btKeccak256 } from "./blocktools.js";
+import { formatUnits, getAddress, type Hex, parseAbi } from "viem";
+import { btKeccak256, encodeAbiParameters, encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { evmClient, json, prices, pxOf } from "./onchain.js";
 

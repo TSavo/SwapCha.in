@@ -1,4 +1,5 @@
-import { encodeFunctionData, getAddress, parseAbiItem } from "viem";
+import { getAddress, parseAbiItem } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import { minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { evmClient } from "./onchain.js";
 import type { NewFound } from "./recover.js";

@@ -4,7 +4,8 @@
  *    (100 DAO = 1 ETH). Two steps: approve WithdrawDAO for the DAO balance, then withdraw(). SwapChan builds
  *    whichever step is next; the withdraw step is simulated from the owner before it is offered.
  */
-import { encodeFunctionData, formatEther, getAddress, parseAbi } from "viem";
+import { formatEther, getAddress, parseAbi } from "viem";
+import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { evmClient, prices, pxOf } from "./onchain.js";
 
