@@ -7,9 +7,11 @@ You have an old seed phrase or wallet file. blocktools turns it into **public ad
         ./blocktools run 'seed-repair < /in/seed.txt | seed-to-master | derive --chain btc --count 1'
         ./blocktools run 'seed-repair < /in/seed.txt | seed-to-master | derive --chain eth --count 1'
 
-   On v0.1.0 the README gives this JSON form for a plain address list:
+   For a plain address list, add `--address-list` (one `label<TAB>path<TAB>address` line per address, no key material; see [derive](/blocktools/recipes/derive)):
 
-        ... | derive --chain btc --count 1 --public-only | redact | jq -r 'select(.address)|[.chain+" "+.kind,.path,.address]|@tsv' > addresses.txt
+        ./blocktools run 'seed-repair < /in/seed.txt | seed-to-master | derive --preset scan-js --address-list' > addresses.txt
+
+   That needs v0.1.1 or newer. On v0.1.0, `redact` dropped those lines; the README gives a `jq` form for that release.
 
    Not sure what your file is? `./blocktools run 'classify /in/FILE'` names it, and `recipes/recover.sh FILE - --goal addresses` picks the pipeline.
 
@@ -19,4 +21,4 @@ You have an old seed phrase or wallet file. blocktools turns it into **public ad
 
 4. **Before anything is signed,** your agent calls `verify_tx` (guard + simulation + plain-English summary), you sign in your own wallet, and `broadcast_tx` relays it. The loop SwapChan documents is: `recovery_guide` → public addresses → `find_money` → `verify_tx` → human signs locally → `broadcast_tx`.
 
-Sources: blocktools README (worked examples, v0.1.0 note), recipes/README.md, recipes/goal-check-balance.md; SwapChan [/recover](/recover) and the [agent playbook](/agents/playbook).
+Sources: blocktools README (worked examples, v0.1.0 note), recipes/README.md, recipes/derive.md, recipes/goal-check-balance.md; SwapChan [/recover](/recover) and the [agent playbook](/agents/playbook).
