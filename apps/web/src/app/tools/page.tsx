@@ -74,6 +74,13 @@ export default function ToolsHub() {
             </li>
           ))}
         </ul>
+        <p className="mt-4 text-sm text-violet-200">
+          Looking for key derivation or wallet recovery? That never happens on SwapChan:{" "}
+          <Link href="/tools/key-recovery" className="underline hover:text-amber-300">
+            here is why and where it lives
+          </Link>
+          .
+        </p>
         <p className="mt-3 text-xs text-violet-400">{POWERED_BY}</p>
       </section>
       <section className="mt-10 rounded-3xl border border-fuchsia-400/40 bg-gradient-to-br from-violet-900 to-fuchsia-900/70 p-6">

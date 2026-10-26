@@ -141,6 +141,8 @@ describe("swapchan mcp over streamable http", () => {
         "substrate_tool",
         "hash_tool",
         "chain_params",
+        "tron_tx",
+        "supported_chains",
       ].sort(),
     );
     await c.close();
@@ -387,9 +389,11 @@ describe("swapchan mcp over streamable http", () => {
         "substrate_tool",
         "hash_tool",
         "chain_params",
+        "tron_tx",
+        "supported_chains",
       ].includes(t.name),
     );
-    expect(dev).toHaveLength(6);
+    expect(dev).toHaveLength(8);
     for (const t of dev) {
       expect(t.annotations?.readOnlyHint).toBe(true);
       expect(t.annotations?.destructiveHint).toBe(false);
@@ -417,6 +421,16 @@ describe("swapchan mcp over streamable http", () => {
     );
     expect(r.result.echo).toEqual({ op: "convert", address: "5Grw", prefix: 0 });
     expect(mock.calls).toContain("POST /tools/ss58");
+    const t = data(await c.callTool({ name: "tron_tx", arguments: { op: "txid", hex: "0a02" } }));
+    expect(t.result.echo).toEqual({ op: "txid", hex: "0a02" });
+    expect(mock.calls).toContain("POST /tools/tron-tx");
+    const e = data(
+      await c.callTool({
+        name: "address_tool",
+        arguments: { op: "cashaddr_encode", kind: "p2sh", hash: "ab" },
+      }),
+    );
+    expect(e.result.echo).toEqual({ op: "encode", kind: "p2sh", hash: "ab" });
     const x = await c.callTool({
       name: "xpub_addresses",
       arguments: { chain: "btc", xpub: `xprv${"A".repeat(107)}` },

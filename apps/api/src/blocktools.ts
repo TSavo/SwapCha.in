@@ -7,6 +7,8 @@ import { createRequire } from "node:module";
  */
 type Wasm = {
   version(): string;
+  supportedChains(): string;
+  unverifiedChains(): string;
   chainParams(): string;
   chainTable(): string;
   detectAddress(addr: string): string;

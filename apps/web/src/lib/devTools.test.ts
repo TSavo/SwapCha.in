@@ -27,7 +27,7 @@ describe("developer tool pages", () => {
     }
     expect(CHAIN_COUNT).toBe(41);
     expect(UTXO_CHAIN_COUNT).toBe(30);
-    expect(POWERED_BY).toBe("This tool is powered by blocktools.");
+    expect(POWERED_BY).toBe("Powered by blocktools");
   });
 
   it("JSON-LD: free DeveloperApplication, FAQPage matching visible FAQ, breadcrumb", () => {
@@ -85,5 +85,27 @@ describe("new tool pages and result-page links", () => {
       expect(l.length).toBe(RELATED_FOR[ctx].length);
       for (const x of l) expect(x.href).toMatch(/^\/tools\/[a-z0-9-]+$/);
     }
+  });
+});
+
+describe("tron-tx, supported-chains and cashaddr encode pages", () => {
+  it("exist, map to their MCP tools and send only declared fields", () => {
+    const tron = DEV_TOOLS.find((t) => t.slug === "tron-tx")!;
+    expect(tron.mcp).toBe("tron_tx");
+    expect(buildInput(tron.modes.find((m) => m.id === "txid")!, { hex: " 0a02 ", x: "y" })).toEqual(
+      {
+        op: "txid",
+        hex: "0a02",
+      },
+    );
+    expect(DEV_TOOLS.find((t) => t.slug === "supported-chains")!.mcp).toBe("supported_chains");
+    const enc = DEV_TOOLS.find((t) => t.slug === "cashaddr")!.modes.find((m) => m.id === "encode")!;
+    expect(buildInput(enc, { kind: "p2pkh", hash: "ab", prefix: "" })).toEqual({
+      op: "encode",
+      kind: "p2pkh",
+      hash: "ab",
+    });
+    for (const s of ["tron-tx", "supported-chains"])
+      expect(JSON.stringify(DEV_TOOLS.find((t) => t.slug === s))).not.toMatch(/blocktools/i);
   });
 });

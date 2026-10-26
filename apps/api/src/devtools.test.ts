@@ -162,6 +162,60 @@ describe("dev tools (blocktools, public input only)", () => {
     expect(ok("chain-params", { chain: "btc" })).toMatchObject({ ticker: "BTC" });
   });
 
+  it("tron-tx decodes unsigned raw_data, computes txid, refuses signed tx", () => {
+    const RAW =
+      "0a02ab122208001122334455667740e0a499ffbc315a67080112630a2d747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e5472616e73666572436f6e747261637412320a154174472e7d35395a6b5add427eecb7f4b62ad2b071121541a614f803b6fd780986a42c78ec9c7f77e6ded13c18c0843d7080d095ffbc31";
+    const TXID = "dded85a3588511384762f9e52c4168e087a19c2eea755ede8c12e612cb5b19e1";
+    expect(ok("tron-tx", { op: "txid", hex: RAW })).toEqual({ txid: TXID });
+    const d = ok("tron-tx", { op: "decode", hex: `0x${RAW}` });
+    expect(d).toMatchObject({ txid: TXID, signatures: 0, expiration: 1700000060000 });
+    expect((d.contracts as Record<string, unknown>[])[0]).toMatchObject({
+      type: "TransferContract",
+      amount_sun: "1000000",
+      owner: "TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7",
+      to: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+    });
+    // Transaction{raw_data=RAW, signature=[65 bytes]} -> refused
+    const varint = (n: number): string =>
+      n < 128 ? n.toString(16).padStart(2, "0") : ((n & 127) | 128).toString(16) + varint(n >> 7);
+    const signed = `0a${varint(RAW.length / 2)}${RAW}1241${"11".repeat(65)}`;
+    expect(runDevTool("tron-tx", { op: "decode", hex: signed })).toMatchObject({
+      ok: false,
+      error_code: "signed_tx_refused",
+    });
+    expect(runDevTool("tron-tx", { op: "txid", hex: "zz" })).toMatchObject({ ok: false });
+  });
+
+  it("supported-chains lists verified and unverified chains; cashaddr encode", () => {
+    const all = ok("supported-chains", {});
+    expect(all.verified).toBeGreaterThan(0);
+    expect((all.chains as unknown[]).length).toBe(
+      (all.verified as number) + (all.unverified as number),
+    );
+    expect(typeof all.version).toBe("string");
+    expect(ok("supported-chains", { chain: "btc" })).toMatchObject({
+      ticker: "BTC",
+      verified: true,
+    });
+    expect(runDevTool("supported-chains", { chain: "nope" })).toMatchObject({
+      ok: false,
+      error_code: "unknown_chain",
+    });
+    expect(
+      ok("cashaddr", {
+        op: "encode",
+        kind: "p2pkh",
+        hash: "76a04053bda0a88bda5177b86a15c3b29f559873",
+      }),
+    ).toEqual({ cashaddr: "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a" });
+    expect(
+      runDevTool("cashaddr", { op: "encode", kind: "p2wsh", hash: "00".repeat(20) }),
+    ).toMatchObject({
+      ok: false,
+      error_code: "bad_kind",
+    });
+  });
+
   it("no signing, recovery, raw-tx or secret functionality is exposed", () => {
     for (const k of Object.keys(DEV_TOOLS))
       expect(k).not.toMatch(
