@@ -33,8 +33,10 @@
       "address": "0xe0b7927c4af23765cb51314a0e0521a9645f0e2a",
       "family": "burn-token-for-eth",
       "listedEth": 11094.8206,
-      "status": "not-checked",
-      "multiStep": true
+      "status": "confirmed",
+      "multiStep": true,
+      "claim": "burn()",
+      "confirmedAtBlock": 26280214
     },
     {
       "key": "ens_old",
@@ -113,7 +115,9 @@
       "address": "0x3a3A65aAb0dd2A17E3F1947bA16138cd37d08c04",
       "family": "burn-token-for-eth",
       "listedEth": 935.3009,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "redeem(uint256)",
+      "confirmedAtBlock": 26280214
     },
     {
       "key": "ethfinex",
@@ -198,7 +202,9 @@
       "address": "0xd18475521245a127a933a4fcaf99e8c45a416f7e",
       "family": "burn-token-for-eth",
       "listedEth": 478.5146,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "sellTokens(uint256)",
+      "confirmedAtBlock": 26280214
     },
     {
       "key": "mcdex_perpetual",
@@ -331,8 +337,10 @@
       "address": "0x899f9a0440face1397a1ee1e3f6bf3580a6633d1",
       "family": "burn-token-for-eth",
       "listedEth": 195.6189,
-      "status": "not-checked",
-      "multiStep": true
+      "status": "confirmed",
+      "multiStep": true,
+      "claim": "redeemTokens(uint256)",
+      "confirmedAtBlock": 26280214
     },
     {
       "key": "ahoolee_token_sale",
@@ -340,7 +348,11 @@
       "address": "0x575cb87ab3c2329a0248c7d70e0ead8e57f3e3f7",
       "family": "refund-crowdsale",
       "listedEth": 191.5095,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "saleBalanceOf(address)",
+      "viewOn": "self"
     },
     {
       "key": "maker_weth",
@@ -506,8 +518,11 @@
       "address": "0xe9778e69a961e64d3cdbb34cf6778281d34667c2",
       "family": "refund-crowdsale",
       "listedEth": 106.1885,
-      "status": "not-checked",
-      "multiStep": true
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "getAvailableRefund(address)",
+      "viewOn": "self"
     },
     {
       "key": "opyn_crab_v2",
@@ -589,9 +604,13 @@
       "key": "presalepool_f058",
       "name": "Presale Pool (LINO / HEALP / Bulleon)",
       "address": "0xf058ee35f381a12b3a0f504025419dcaf047ce7f",
-      "family": "presale-pool",
+      "family": "presale-withdraw",
       "listedEth": 91.2344,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280214,
+      "view": "contributions(address)",
+      "viewOn": "self"
     },
     {
       "key": "ethertoken_v2",
@@ -643,7 +662,11 @@
       "address": "0x12d5b7c26DD8dc6E2F71f5bF240d5e76452b2FE5",
       "family": "refund-crowdsale",
       "listedEth": 81.8859,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "self"
     },
     {
       "key": "ethfinex_v2",
@@ -927,7 +950,11 @@
       "address": "0xcd806502ad2f9aeb32e23f8d647341d4b568201d",
       "family": "refund-crowdsale",
       "listedEth": 45.2352,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "weiBalances(address)",
+      "viewOn": "self"
     },
     {
       "key": "ethen",
@@ -967,7 +994,11 @@
       "address": "0xf8f6e626af09b0455acd9162beb5a484724f25b5",
       "family": "presale-pool",
       "listedEth": 39.2008,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280214,
+      "view": "balances(address)",
+      "viewOn": "self"
     },
     {
       "key": "fomo3d_short",
@@ -1230,7 +1261,11 @@
       "address": "0x9EA80e204045329Ba752D03C395F82A12799f13d",
       "family": "refund-crowdsale",
       "listedEth": 21.6614,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "EtherBalanceOf(address)",
+      "viewOn": "self"
     },
     {
       "key": "opyn_v1",
@@ -1304,7 +1339,11 @@
       "address": "0xb3b33f59174f2ef62167770e4c9cabaa3879eb5d",
       "family": "refund-crowdsale",
       "listedEth": 19.0616,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "self"
     },
     {
       "key": "gov_treasurer",
@@ -1382,7 +1421,11 @@
       "address": "0x3fD30f3E1fbF4F3Ea6BDf3E3bb11826266708869",
       "family": "refund-crowdsale",
       "listedEth": 16.6917,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "balances(address)",
+      "viewOn": "self"
     },
     {
       "key": "fnt",
@@ -1406,7 +1449,11 @@
       "address": "0x344285b2082d9c7981241dcc160beca6057637e6",
       "family": "presale-pool",
       "listedEth": 16.0151,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280214,
+      "view": "getAll(address)",
+      "viewOn": "self"
     },
     {
       "key": "sportcrypt",
@@ -1540,7 +1587,11 @@
       "address": "0x18777Aec0B231D1a4A9C66B51253088a03affDFc",
       "family": "refund-crowdsale",
       "listedEth": 10.7676,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposits(address)",
+      "viewOn": "self"
     },
     {
       "key": "potj",
@@ -1762,9 +1813,14 @@
       "key": "irb",
       "name": "IRB Tokens (IRB)",
       "address": "0x269b4c23ddab676e2869ae72cd6ae4f24bdfea45",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 5.2961,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0xcbe98a2b1f756bebe53d41eb3b94e566a0777ede"
     },
     {
       "key": "alttradex",
@@ -1794,9 +1850,14 @@
       "key": "etcetera_ico",
       "name": "Etcetera (ERA)",
       "address": "0xc49e03bdd6809fd168565b26d27d5cf72f9e9525",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 4.8841,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x17be2c0aca46dd60cfc58dbb13f0b1c6c1921db8"
     },
     {
       "key": "fomo3d_lightning",
@@ -1864,17 +1925,27 @@
       "key": "deskbell",
       "name": "DeskBell (DBT)",
       "address": "0x6e776e93291620dac8f3dde4a0b98c42a5359293",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 3.82,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x5a08600cbb2a6dd073a62cddb07861efe59d40f5"
     },
     {
       "key": "pallycoin_v2",
       "name": "PallyCoin Fork (PAL2)",
       "address": "0x77b275827eb3cf1792852b128a6dbc7a699bbd91",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 3.77,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0xad256f5183b2479a63fe06974485104ddad1b8ce"
     },
     {
       "key": "bitconnect2",
@@ -1904,9 +1975,14 @@
       "key": "cam",
       "name": "CamToken (CAM)",
       "address": "0xa785ecdc8f166d0644b853f29732ae128c5d775b",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 3.453,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x59450e7a13bb0ff6d6d58f60e3e6b3e07b7a32e1"
     },
     {
       "key": "powtf",
@@ -1948,15 +2024,24 @@
       "address": "0xe117bb9d1e0fc6e859d9bf174c53baa7c673547a",
       "family": "refund-crowdsale",
       "listedEth": 2.9484,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "balances(address)",
+      "viewOn": "self"
     },
     {
       "key": "linda_pre",
       "name": "LINDA Token (Presale)",
       "address": "0x8519f68a987048b879bed6afab25a0414828c236",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 2.9269,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0xd782ae82c167de179dec25278d855375d8174b60"
     },
     {
       "key": "pomda",
@@ -1979,9 +2064,14 @@
       "key": "linda_main",
       "name": "LINDA Token (Main Sale)",
       "address": "0xfcbc3a54c5663295d075b086441ee51c32ad152c",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 2.7485,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x551ccb65f02a5ddda909f181b1eb67c9226c6a2e"
     },
     {
       "key": "blackgold",
@@ -2003,9 +2093,14 @@
       "key": "monoreto",
       "name": "Monoreto (MNR)",
       "address": "0x65320b9aeac77e45369e4892da896b7a987a97f3",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 2.5553,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0xf671ab8f66212917d122e7cf52094440d6aedc82"
     },
     {
       "key": "decentether",
@@ -2039,7 +2134,11 @@
       "address": "0xc699d90671cb8373f21060592d41a7c92280adc4",
       "family": "refund-crowdsale",
       "listedEth": 2.3176,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "balances(address)",
+      "viewOn": "self"
     },
     {
       "key": "powh_clone1",
@@ -2143,17 +2242,27 @@
       "key": "ico_refund_79c5",
       "name": "Unverified ICO Refund (79c5)",
       "address": "0x79c59c24465fc3cc92e6419d4b59fdd285d874cf",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 1.5414,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0xe853148ef66505508b46b30511eeb4c7a4eaa370"
     },
     {
       "key": "quintessence",
       "name": "Quintessence (QST)",
       "address": "0xc86554bee96fdb3c85f85b576ed52d5e1eacc3a6",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 1.529,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0xc178d4fe4451d863cd01fd3e240d17194fd178bc"
     },
     {
       "key": "hourglass_clone6",
@@ -2185,7 +2294,11 @@
       "address": "0x3091d37ef18cb33af72cf7ca63714733172ce724",
       "family": "refund-crowdsale",
       "listedEth": 1.4008,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refund()",
+      "confirmedAtBlock": 26280214,
+      "view": "balances(address)",
+      "viewOn": "self"
     },
     {
       "key": "neutrino81",
@@ -2209,17 +2322,26 @@
       "key": "deck_coin",
       "name": "Deck Coin (DEK)",
       "address": "0xcb7f070fda083e8e5f40559376c360f0709e985c",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 1.2177,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x05b3abd9031a31a45121bda59c7bb52fc7db2590"
     },
     {
       "key": "vuepay",
       "name": "VuePayTokenSale (VUP)",
       "address": "0xcba6f10d1147b2c5a3d8d8cbd93c373b31c6c2c8",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 1.208,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "ETHContributed(address)",
+      "viewOn": "self"
     },
     {
       "key": "polarisdex",
@@ -2271,9 +2393,14 @@
       "key": "digitize",
       "name": "DigitizeCoin Presale (DTZ)",
       "address": "0x9527551ca444f6e5d9a0b281116586427366862a",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 1.1,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x0547d2aa5a072f7e8281ff7c422b43c9168ea2f3"
     },
     {
       "key": "ethmall",
@@ -2306,17 +2433,27 @@
       "key": "grapevine",
       "name": "Grapevine (GVINE)",
       "address": "0xea864a114c648eff4f92e55b870fe1e71fd60083",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 0.9768,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x57d1fbc0404ec7b431914cdea7a040953eaf925d"
     },
     {
       "key": "globalspy",
       "name": "GlobalSpy (SPY)",
       "address": "0x05711090b4d375431e841ea79e52666f623d3353",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 0.9698,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0xaae985547c1512ffccee43ce5f55d73d5df6edca"
     },
     {
       "key": "extoke",
@@ -2340,9 +2477,14 @@
       "key": "lendsbay",
       "name": "Lendsbay Token (LBT)",
       "address": "0x3adf5ee8777f471407e04a7453133477a2dc0c2c",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 0.845,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x4539d820c582c8a196891cd03ed0967dc3823656"
     },
     {
       "key": "algodex",
@@ -2384,9 +2526,14 @@
       "key": "kryptopy",
       "name": "Kryptopy Token (KPY)",
       "address": "0x09b8aaa7a883e60c23c6a0635940000c6e2e7560",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 0.59,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0x1bd8c0ed1cd007b7c7fbe092569905b6cc854baf"
     },
     {
       "key": "edex",
@@ -2460,9 +2607,14 @@
       "key": "enkronos",
       "name": "Enkronos Token (ENK)",
       "address": "0xda3fa12b3d41cd9948db6437f27c0c9978c55cbb",
-      "family": "refund-crowdsale",
+      "family": "refund-claim",
       "listedEth": 0.13,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280214,
+      "view": "deposited(address)",
+      "viewOn": "vault",
+      "vault": "0xfe911bd81e9e7295dcd997973036f723d3e02300"
     },
     {
       "key": "transit_refund_admin_unlock",
@@ -2516,5 +2668,6 @@
       "status": "not-checked",
       "multiStep": true
     }
-  ]
+  ],
+  "confirmationBlockPr2": 26280214
 }
