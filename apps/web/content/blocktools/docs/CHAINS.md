@@ -19,6 +19,11 @@ Source of truth: `crates/core/src/chains.rs`. Known-answer vectors come from `sc
 | ton | TON | 607 | — | — | — | — | — | 9 | — | account | no | none |
 | dot | DOT | 354 | — | — | — | — | — | 10 | — | account | no | none |
 | xlm | XLM | 148 | — | — | — | — | — | 7 | — | account | no | none |
+| aptos | APT | 637 | — | — | — | — | — | 8 | — | account | no | none |
+| sui | SUI | 784 | — | — | — | — | — | 9 | — | account | no | none |
+| near | NEAR | 397 | — | — | — | — | — | 24 | — | account | no | none |
+| xtz | XTZ | 1729 | — | — | — | — | — | 6 | — | account | no | none |
+| egld | EGLD | 508 | — | — | — | — | — | 18 | — | account | no | none |
 | qtum | QTUM | 2301 | 3a | 32 | qc | 128 | sha256d | 8 | — | legacy | yes | qtuminfo qtum.info |
 | ftc | FTC | 8 | 0e | 05 | fc | 142 | sha256d | 8 | — | legacy | yes | none |
 | nmc | NMC | 7 | 34 | 0d | nc | 180 | sha256d | 8 | — | legacy | yes | none |
@@ -44,6 +49,34 @@ Source of truth: `crates/core/src/chains.rs`. Known-answer vectors come from `sc
 | qrk | QRK | 82 | 3a | 09 | — | 186 | sha256d | 5 | — | legacy | yes | cryptoid chainz.cryptoid.info |
 | zec | ZEC | 133 | 1cb8 | 1cbd | — | 128 | sha256d | 8 | — | zcash-v5 | yes (transparent P2PKH) | none |
 | grs | GRS | 17 | 24 | 05 | grs | 128 | groestl512d | 8 | — | legacy-sha256 | yes | none listed |
+| strd | STRD | 118 | — | — | stride | — | — | 6 | — | account | no | none |
+| axl | AXL | 118 | — | — | axelar | — | — | 6 | — | account | no | none |
+| cre | CRE | 118 | — | — | cre | — | — | 6 | — | account | no | none |
+| kuji | KUJI | 118 | — | — | kujira | — | — | 6 | — | account | no | none |
+| cmdx | CMDX | 118 | — | — | comdex | — | — | 6 | — | account | no | none |
+| ntrn | NTRN | 118 | — | — | neutron | — | — | 6 | — | account | no | none |
+| somm | SOMM | 118 | — | — | somm | — | — | 6 | — | account | no | none |
+| fet | FET | 118 | — | — | fetch | — | — | 6 | — | account | no | none |
+| mars | MARS | 118 | — | — | mars | — | — | 6 | — | account | no | none |
+| umee | UMEE | 118 | — | — | umee | — | — | 6 | — | account | no | none |
+| noble | USDC | 118 | — | — | noble | — | — | 6 | — | account | no | none |
+| sei | SEI | 118 | — | — | sei | — | — | 6 | — | account | no | none |
+| tia | TIA | 118 | — | — | celestia | — | — | 6 | — | account | no | none |
+| coreum | CORE | 990 | — | — | core | — | — | 6 | — | account | no | none |
+| qsr | QSR | 118 | — | — | quasar | — | — | 6 | — | account | no | none |
+| xprt | XPRT | 118 | — | — | persistence | — | — | 6 | — | account | no | none |
+| akt | AKT | 118 | — | — | akash | — | — | 6 | — | account | no | none |
+| kava | KAVA | 459 | — | — | kava | — | — | 6 | — | account | no | none |
+| blz | BLZ | 483 | — | — | bluzelle | — | — | 6 | — | account | no | none |
+| band | BAND | 494 | — | — | band | — | — | 6 | — | account | no | none |
+| cro | CRO | 394 | — | — | cro | — | — | 8 | — | account | no | none |
+| bld | BLD | 564 | — | — | agoric | — | — | 6 | — | account | no | none |
+| dydx | DYDX | 118 | — | — | dydx | — | — | 18 | — | account | no | none |
+| rune | RUNE | 931 | — | — | thor | — | — | 8 | — | account | no | none |
+| inj | INJ | 60 | — | — | inj | — | — | 18 | — | account | no | none |
+| evmos | EVMOS | 60 | — | — | evmos | — | — | 18 | — | account | no | none |
+| canto | CANTO | 60 | — | — | canto | — | — | 18 | — | account | no | none |
+| zeta | ZETA | 60 | — | — | zeta | — | — | 18 | — | account | no | none |
 
 ### Fee-warning limits (verify-tx / wasm `verifyTx`, `chainParams().fee_warn`)
 
@@ -102,6 +135,7 @@ Scan and sweep: host tool `xmr-wallet` over a loopback monero-wallet-rpc. 2026-1
 
 ## Solana public data (2026-10-25)
 wasm/lib `sol`: PDA/ATA, on-curve, Anchor discriminator, legacy+v0 tx decode, ed25519 signature check, `solVerifyTx` policy. No Solana builder yet (planned: acct-tx style, solders vectors).
+- 2026-10-26: BCH CashAddr destinations in the CLIs: `tx-build --to`, `tx-verify --expect-to` and `tx-sign --expect-to` accept `bitcoincash:q…`/`p…`, bare and upper-case forms (mainnet prefix, 20-byte hash). Measured (Linux only): `crates/core/tests/cashaddr_script.rs` (2 tests; CashAddr spec table, the CashAddr maps to the same script as its legacy address; bad checksum, mixed case, `bchtest` refused) and `scripts/e2e.d/cashaddr-tx.sh` (tx-build bytes identical to the legacy `--to`, verify refuses a different destination, tx-sign passes). Untested: other CashAddr hash sizes (refused), eCash prefix on `xec`.
 - 2026-10-25: BCH CashAddr accepted by `addressToScript('bch', …)` and converted by `cashAddrToLegacy` / `legacyToCashAddr`.
 - 2026-10-25: EVM transfer builder for any chain id (`buildEvmTransfer`); UTXO selection (`selectUtxos`).
 - 2026-10-25: EVM recovery/sweep verifier (SwapChan parity, raw tx entry points).
@@ -149,10 +183,19 @@ Refused by msg-sign, before any key is read: a bare 32-byte hash (`blind_hash_me
 | stars | Stargaze | stargaze-1 | ustars | `Stargaze/TWAnySignerTests.cpp` Sign |
 | secret | Secret | secret-4 | uscrt | `Secret/SignerTests.cpp` Sign |
 | terra | Terra 2 | phoenix-1 | uluna | `TerraV2/SignerTests.cpp` SignSendTx |
+| cro | Crypto.org | crypto-org-chain-mainnet-1 | basecro | `CryptoOrg/TWAnySignerTests.cpp` SignTx_Proto_BCB213 |
 
-Measured (Linux only): `crates/acct/tests/twc_cosmos.rs` (7 tests). For each chain it decodes TWC's `tx_bytes`, verifies the signature, checks the detected chain, re-signs with TWC's public test key and requires the TxRaw to match byte for byte. The seventh test feeds TWC's IBC transfer, MsgVote, Terra CosmWasm and Stargaze CW721 vectors to the decoder and requires each to be refused. `scripts/e2e.d/twc-cosmos.sh` rebuilds the Osmosis vector from its inputs with the real CLI (`keys --hrp osmo`, `build`, `sign` with the code typed on a pty) and gets TWC's tx_bytes exactly, then checks the refusals below.
+Measured (Linux only): `crates/acct/tests/twc_cosmos.rs` (33 tests; 20 address-only hrps signed against vectors from `tools/twc-vectors/gen_cosmos23.rs`). Evmos has no published TWC signer vector: its vector was generated by running wallet-core adf80f8's own Rust signer on fixed inputs with a TWC public test key (`tools/twc-vectors/`, manual workflow `twc-vectors.yml` on Battleaxe; inputs and run id in the test). Injective (2 vectors: `NativeInjective/SignerTests.cpp`, `TransactionCompilerTests.cpp`) and ZetaChain (`rust/tw_tests/tests/chains/zetachain/zetachain_sign.rs`, athens testnet) sign with ethsecp256k1: keccak256(SignDoc), Injective's AuthInfo carries the 65-byte uncompressed key under `/injective.crypto.v1beta1.ethsecp256k1.PubKey`, ZetaChain the 33-byte key under `/ethermint.crypto.v1.ethsecp256k1.PubKey`; a fee with no coin (ZetaChain's vector) round-trips. For each chain it decodes TWC's `tx_bytes`, verifies the signature, checks the detected chain, re-signs with TWC's public test key and requires the TxRaw to match byte for byte. One test feeds TWC's IBC transfer, MsgVote, Terra CosmWasm and Stargaze CW721 vectors to the decoder and requires each to be refused. `scripts/e2e.d/twc-cosmos.sh` rebuilds the Osmosis vector from its inputs with the real CLI (`keys --hrp osmo`, `build`, `sign` with the code typed on a pty) and gets TWC's tx_bytes exactly, then checks the refusals below.
 
-Refused: any other hrp (`cosmos_hrp_without_vector`), which includes ethsecp256k1 chains (Injective, Evmos; their keys hash differently and TWC signs them with a different pubkey type); a `--to` on another hrp (`wrong network`); every message other than MsgSend (IBC, staking, governance, CosmWasm, NFTs); amino-JSON signing (TWC's Crypto.org and `SignTxJson` vectors are amino and are not ported); fee and amount in different denoms. Untested: TWC's `SignDirect_0a90010a` vector (a pre-built body passed through; its auth info carries no pubkey, which the decoder refuses), broadcast, multi-coin amounts, Terra Classic (same `terra` hrp; columbus-5 gets the chain-id warning but has no vector here), and chains TWC has but blocktools does not list (Akash, Kava, Kujira, Sei and the rest).
+Refused: any other hrp (`cosmos_hrp_without_vector`), which includes Canto (TWC adf80f8 signs Canto as plain Cosmos with a /cosmos.crypto.secp256k1.PubKey and sha256, which does not match its ethsecp256k1 address); a `--to` on another hrp (`wrong network`); every message other than MsgSend (IBC, staking, governance, CosmWasm, NFTs); amino-JSON signing (TWC's Crypto.org amino and `SignTxJson` vectors are not ported); fee and amount in different denoms. Untested: TWC's `SignDirect_0a90010a` vector (a pre-built body passed through; its auth info carries no pubkey, which the decoder refuses), broadcast, multi-coin amounts, Terra Classic (same `terra` hrp; columbus-5 gets the chain-id warning but has no vector here), and signing on the 23 address-only Cosmos rows below.
+
+### Cosmos SDK address rows (TWC address vectors, no signing)
+
+strd, axl, cre, kuji, cmdx, ntrn, somm, fet, mars, umee, noble, sei, tia, coreum, qsr, xprt, akt, kava, blz, band, bld, dydx and rune (THORChain), plus cro: derive (m/44'/coin'/0'/0/i), validate and auto-detect from the bech32 hrp. Hrp and coin type from TWC adf80f8 `registry.json`. Measured (Linux only): `crates/blocktools/tests/twc_cosmos_addr.rs` (4 tests) derives TWC's `tests/common/CoinAddressDerivationTests.cpp` address for the public 0x46×32 dummy key on all 24, checks the coin type and decimals and that `detect` returns exactly that chain, and replays 19 pubkey-to-address vectors from `tests/chains/Cosmos/<Chain>/TWAnyAddressTests.cpp`. `acct-tx` refuses to sign on these hrps (`cosmos_hrp_without_vector`) except cro, because TWC has no MsgSend vector for them. Untested: balance lookup, any transaction on these chains.
+
+### Ethermint (ethsecp256k1) address rows: inj, evmos, canto, zeta
+
+Injective, Evmos, Canto and ZetaChain native addresses: path m/44'/60'/0'/0/i (the same key as the EVM address), address = bech32(hrp, keccak256(uncompressed pubkey)[12..]), i.e. the EVM address bytes under the chain's hrp. Derive, validate and auto-detect from the hrp; address only. Hrp, path and 18 decimals from TWC adf80f8 `registry.json`. Measured (Linux only): `twc_ethermint_address` in `crates/blocktools/tests/twc_cosmos_addr.rs` derives TWC's `CoinAddressDerivationTests.cpp` address for the 0x46×32 key on all 4, replays the pubkey-to-address vector from `tests/chains/Cosmos/Native{Injective,Evmos,Canto}/TWAnyAddressTests.cpp` and `rust/tw_tests/tests/chains/zetachain/zetachain_address.rs`, and checks `detect` returns exactly that chain. `acct-tx` signs MsgSend on inj, zeta and evmos (TWC signer vectors; Evmos TWC-signer-generated, see above) and refuses canto (`cosmos_hrp_without_vector`). Untested: broadcast on any of them (no Evmos tx has been accepted by a node), balance lookup, any Canto transaction.
 
 ## Chain quirks and their known-answer vectors (2026-10-25)
 
@@ -189,3 +232,23 @@ array; `chain-table btc` for one row): name, ticker, SLIP-44 `coin_type`, `curve
 its version bytes / hrp / SS58 prefix, `native_seed`, `sign` (UTXO sighash scheme; `account_family`
 means the chain is signed by its own tool, e.g. acct-tx / xrp-tx), `buildable` (tx-build signs it),
 `verified` and the parameter `source`. The wasm build exports the same array as `chainTable()`.
+
+## Trust Wallet Core UTXO forks: PIVX, Syscoin, Firo (address + WIF only)
+
+Rows `pivx`, `sys`, `firo` carry each coin's own chainparams prefixes (PIVX 30/13/WIF 212; Syscoin 63/5/WIF 128, bech32 hrp `sys`; Firo 82/7/WIF 210). Signing is `Unknown`: `build`/`sign` refuse them; no transaction has been tested on any of these chains.
+
+Measured (Linux only): `scripts/e2e.d/twc-utxo.sh` gives Trust Wallet Core's published addresses (tests/chains, commit adf80f8) for Syscoin p2pkh and p2wpkh and Firo p2pkh from TWC's public test keys; the KAT table covers all three. Untested: PIVX against an outside vector from a private key (TWC only has a pubkey/mnemonic case), Syscoin's other address types.
+
+Exchange and staking addresses (validate and detect only; no output script is built, so `tx-build`/`verify-tx` cannot pay them): Firo `EXX...` (version 01 b9 bb), PIVX `EXM...` (01 b9 a2) and PIVX cold-staking `S...` (version 63), from each coin's `src/chainparams.cpp`. A PIVX `S...` address is also a valid Syscoin p2pkh (both use version 63), so `detect` lists both. Measured (Linux only): `crates/blocktools/tests/exchange_addr.rs` (3 tests) accepts the Firo wiki's published transparent/EXX pair ("Information for Exchanges", same key), rejects a one-character change and Firo testnet `EXT`, and accepts PIVX EXM/S addresses built from that hash160 by an independent hashlib base58check. Untested: the PIVX addresses against an address PIVX itself published (none found), sending to any of these address types.
+
+## Kusama and Polymesh (SS58 prefixes 2 and 12, address only)
+
+Rows `ksm` (SLIP-44 434) and `polyx` (595) use the same substrate key as `dot` (subkey mini-secret, sr25519) and only change the SS58 prefix. Signing is `Unknown`; no transaction is built or signed. Trust Wallet Core derives these chains with ed25519 SLIP-10 keys (`m/44'/434'/0'/0'/0'`), so a TWC wallet's Kusama/Polymesh address is not what these rows give from the same phrase; that is the ed25519 port, not done here.
+
+Measured (Linux only): `crates/secrets/tests/dot.rs` encodes TWC's published Kusama and Polymesh public keys to TWC's addresses (tests/chains/Kusama, Polymesh, commit adf80f8) and validates them; `scripts/e2e.d/twc-substrate.sh` checks the CLI rows (its expected Kusama address was computed independently in Python from subkey's published key), and that redact drops a Kusama address on a line labeled another chain. Untested: Polkadot.js/Talisman wallets on these prefixes, balances (no RPC row).
+
+## Aptos, Sui, NEAR, Tezos, MultiversX (ed25519 SLIP-0010, address only, 2026-10-26)
+
+Rows `aptos` (SLIP-44 637, `m/44'/637'/i'/0'/0'`, address `0x`+sha3-256(pub‖0x00)), `sui` (784, `m/44'/784'/i'/0'/0'`, `0x`+blake2b-256(0x00‖pub)) `near` (397, `m/44'/397'/i'`, implicit account = hex(pub)), `xtz` (1729, `m/44'/1729'/i'/0'`, tz1 = base58check(06a19f‖blake2b-160(pub)); tz2/tz3/KT1 validate) and `egld` (508, `m/44'/508'/0'/0'/i'`, bech32 `erd`). The secret is the 32-byte ed25519 seed as hex. Signing is `Unknown`; no transaction is built or signed. A 64-hex address is shape-ambiguous, so detect lists every chain it fits (`0x`+64 hex: aptos and sui; bare 64 hex: sui and near).
+
+Measured (Linux only): `crates/blocktools/tests/twc_ed25519.rs` (5 tests) replays Trust Wallet Core adf80f8 public vectors: CoinAddressDerivationTests.cpp dummy key 0x46×32 → TWC's Aptos/Sui/NEAR/Tezos/MultiversX addresses; Tezos and MultiversX AddressTests.cpp key → address and valid/invalid lists; TWHDWalletTests.cpp DeriveTezos public key and DeriveMultiversX key and address at the registry paths; Aptos AddressTests.cpp private/public key → address and its valid/invalid lists; Sui sui_address.rs valid/invalid lists; HDWalletTests.cpp AptosKey and NearKey (public test phrases) → TWC's private keys and NEAR address at the registry paths. Untested: NEAR named accounts (`alice.near`, refused), Tezos tz2/tz3 key derivation (secp256k1/P-256; validate only), Aptos multi-ed25519 and Sui secp256k1/secp256r1 schemes, any wallet app other than TWC, balances (no RPC row).

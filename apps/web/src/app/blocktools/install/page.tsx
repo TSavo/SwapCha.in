@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { BtPage, btMeta } from "@/components/blocktools/BtPage";
 import { CopyCode } from "@/components/blocktools/CopyCode";
-import { BT_INSTALL, BT_SOURCE_BUILD } from "@/lib/blocktools";
+import {
+  BT_INSTALL,
+  BT_SOURCE_BUILD,
+  BT_TARBALL,
+  BT_TARBALL_SHA256,
+  BT_VERSION,
+} from "@/lib/blocktools";
 import { BT_REPO } from "@/lib/blocktools.server";
 
 export const metadata = btMeta(
@@ -28,8 +34,10 @@ export default function Install() {
       <CopyCode code={BT_INSTALL} />
       <p className="mt-2 mb-8 text-sm text-violet-300">
         Needs the GitHub CLI (<code>gh</code>). If <code>sha256sum -c</code> fails, delete the
-        archive and do not run it. The tarball holds <code>bin/</code> (42 tools), man pages and
-        recipes. It has no Dockerfile: sealed runs (<code>./blocktools build</code>) need a v0.1.1
+        archive and do not run it. Expected SHA256 of <code>{BT_TARBALL}</code>:{" "}
+        <code className="break-all">{BT_TARBALL_SHA256}</code>. The tarball holds <code>bin/</code>{" "}
+        (42 tools), man pages and recipes. It has no Dockerfile: sealed runs (
+        <code>./blocktools build</code>) need a {BT_VERSION}
         source checkout and Docker.
       </p>
       <h2 className="mb-2 text-xl font-black">2. Build from source</h2>

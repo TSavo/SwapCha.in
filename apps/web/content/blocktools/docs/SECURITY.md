@@ -9,7 +9,7 @@
 > not a substitute for your own review. See [docs/SECURITY.md](SECURITY.md).
 
 ## What is tested (measured 2026-10-24, box, `cargo test --release` + `make e2e`)
-* Test counts are not written here (they went stale): `scripts/verify-and-push.sh` and CI run the whole
+* Test counts are not written here (they went stale): CI runs the whole
   workspace test suite and `scripts/e2e-local.sh`, and every push must be green.
 * Known-answer vectors: BIP39/BIP32 "abandon…about" root; BIP44/49/84/86 BTC;
   ETH (EIP-55); LTC, DOGE, Tron (indices 0/1 and xpub parity TDTk…), XRP (incl.
@@ -107,7 +107,7 @@ dictionary oracle for a low-entropy password. Tests: `rejects_xrp_seed_minikey_s
 ## Repo hygiene (security review 2026-10-25)
 
 GitHub Actions are pinned by commit SHA; release publishing is a separate job in the `release` environment
-(add required reviewers in repo Settings -> Environments for the manual approval to bite). `check-deps.sh`
+(the `release` environment must allow deployments only from `v*` tags; `scripts/release-env-check.sh` refuses to publish otherwise, no manual approval since 2026-10-26). `check-deps.sh`
 runs with `LC_ALL=C` and reads members from `cargo metadata --locked`. The 28 Python wheels (23.8 MB) once (unmeasured)
 committed at the repo root are removed going forward and `*.whl` is ignored; they remain in git history
 (no rewrite). `scripts/hygiene-check.sh` (gate and CI) fails on unpinned actions or tracked build artifacts.
@@ -116,7 +116,7 @@ committed at the repo root are removed going forward and `*.whl` is ignored; the
 
 `scripts/docs-check.sh` (gate and CI) fails if a tool under `tools/` is undocumented, a built tool is called
 "planned", a hand-written test count appears in README/DESIGN/SECURITY, a host-side network tool
-(utxo-fetch, tx-broadcast, xmr-wallet) is in the sealed image or the sealed-run allowlist, or in-tree scrypt
+(rpc, utxo-fetch, tx-broadcast, xmr-wallet) is in crates/io/sealed-tools.txt (the sealed-run allowlist and the image ship list), or in-tree scrypt
 reappears undisclosed. `scripts/e2e-local.sh` is part of the Linux gate; macOS (untested) is run by the macos CI job: `scripts/e2e-only/portable.sh`
 replaces `setsid` (Python `os.setsid` fallback) and `stat -c` (BSD `stat -f`); checks whose fixtures need
 the Python `cryptography` module (dat-read, recover, bitcoinj) print `skip ... pip install cryptography`

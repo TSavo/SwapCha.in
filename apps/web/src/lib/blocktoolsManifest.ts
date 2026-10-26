@@ -347,6 +347,15 @@ export const BT_ITEMS: BtItem[] = [
   },
   {
     kind: "recipes",
+    slug: "input-brainwallet",
+    group: "input",
+    file: "recipes/input-brainwallet.md",
+    title: 'A brainwallet phrase (pre-BIP39 "passphrase -> key")',
+    description:
+      "Before seed words (2011-2015) people typed any sentence into brainwallet.org or bitaddress.org's *Brain Wallet* tab and got a key: the private key is…",
+  },
+  {
+    kind: "recipes",
     slug: "input-electrum",
     group: "input",
     file: "recipes/input-electrum.md",
