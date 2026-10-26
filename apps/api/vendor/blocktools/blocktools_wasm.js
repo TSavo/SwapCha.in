@@ -255,7 +255,6 @@ module.exports.explainPlan = function(args) {
 };
 
 /**
- * Decode a transaction (hex/base64 raw, PSBT, EVM RLP, or a JSON line): JSON array of the tx-decode lines.
  * @param {string} input
  * @param {string} chain
  * @returns {string}
@@ -343,8 +342,8 @@ module.exports.describeTx = function(input, chain) {
 };
 
 /**
- * tx-verify: JSON {ok, failures, warnings}. `max_fee` is a decimal string (sats or wei) or "" (EVM: the
- * tx-sign default 0.01 ETH; UTXO: no cap). `allow_value_with_token` (default false) accepts ETH value
+ * tx-verify: JSON {ok, failures, warnings}. `max_fee` is a decimal string (sats or wei) or "" (the
+ * tx-sign default: 0.01 ETH-equivalent for EVM; UTXO per chain, see policy::default_fee_cap). `allow_value_with_token` (default false) accepts ETH value
  * alongside ERC-20 transfer calldata.
  * @param {string} input
  * @param {string} chain
