@@ -22,7 +22,7 @@ export function Greeting({ heroArt = false }: { heroArt?: boolean } = {}) {
       aria-label="Swap-chan says"
       aria-live="polite"
     >
-      <span className={heroArt ? "lg:hidden" : undefined}>
+      <span className={heroArt ? "hidden" : undefined}>
         <Character who="swapchan" size={88} mood={says?.mood ?? "idle"} />
       </span>
       <div className="relative rounded-2xl border-2 border-amber-400/50 bg-violet-950/90 px-4 py-3 pr-8 text-sm text-violet-100">

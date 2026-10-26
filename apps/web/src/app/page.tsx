@@ -54,6 +54,13 @@ export default function Home() {
           </Link>
         </p>
       </div>
+      <img
+        src="/characters/full/swapchan.webp"
+        alt="Swap-chan"
+        width={832}
+        height={1088}
+        className="animate-float -mb-2 w-36 drop-shadow-[0_0_24px_rgba(217,70,239,0.55)] lg:hidden"
+      />
       <div className="flex w-full flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center">
         <div className="order-2 flex flex-col items-center lg:order-none lg:w-64">
           <img
