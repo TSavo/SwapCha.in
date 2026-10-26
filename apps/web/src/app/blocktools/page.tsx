@@ -13,21 +13,6 @@ export const metadata = btMeta(
   "blocktools is an open source (MIT) command-line toolkit for blockchains: 41 small Unix tools that read wallets, derive addresses and build, check and sign transactions offline, across 38 verified chains in v0.1.0.",
 );
 
-/** Public repo stats from the GitHub API, hourly; null when unreachable (then nothing is shown). */
-async function getStars(): Promise<number | null> {
-  try {
-    const r = await fetch("https://api.github.com/repos/TSavo/blocktools", {
-      headers: { Accept: "application/vnd.github+json" },
-      next: { revalidate: 3600 },
-    });
-    if (!r.ok) return null;
-    const j = (await r.json()) as { stargazers_count?: number };
-    return typeof j.stargazers_count === "number" ? j.stargazers_count : null;
-  } catch {
-    return null;
-  }
-}
-
 const btnPrimary =
   "inline-flex items-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-lg font-black text-violet-950 shadow-[0_0_28px_rgba(251,191,36,0.5)] transition hover:bg-amber-300";
 const btnGhost =
@@ -67,7 +52,7 @@ const Guide = ({ children }: { children: React.ReactNode }) => (
 );
 
 export default async function BlocktoolsHome() {
-  const [{ releases }, stars] = await Promise.all([getReleases(), getStars()]);
+  const { releases } = await getReleases();
   const latest = pinnedRelease(releases);
   const tarball = latest?.assets.find((a) => a.name.endsWith(".tar.gz"));
   const sums = latest?.assets.find((a) => a.name === "SHA256SUMS");
@@ -118,7 +103,6 @@ export default async function BlocktoolsHome() {
           className="ml-auto font-bold text-violet-100 hover:text-amber-300"
         >
           ★ GitHub
-          {stars !== null && stars > 0 && <span className="ml-1 text-amber-300">{stars}</span>}
         </a>
       </div>
 
@@ -274,7 +258,7 @@ export default async function BlocktoolsHome() {
             ],
             [
               "Sealed runs",
-              "./blocktools run in Docker with --network none; only ./blocktools reveal, at a real terminal after a typed code, prints keys.",
+              "./blocktools run in Docker with --network none; only ./blocktools reveal, at a real terminal after a typed code, prints keys. reveal runs through the same sealed Docker flow, so it needs a source checkout.",
             ],
             [
               "Library and wasm",
