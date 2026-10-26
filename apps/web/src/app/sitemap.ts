@@ -23,6 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     page("/agents", 0.8),
     page("/tools", 0.9),
     ...DEV_TOOLS.map((t) => page(`/tools/${t.slug}`, 0.7)),
+    page("/tools/key-recovery", 0.5),
     page("/dashboard", 0.9),
     page("/find-money", 0.9),
     page("/find-money/powh3d", 0.8),

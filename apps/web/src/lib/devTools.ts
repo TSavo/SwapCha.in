@@ -7,7 +7,7 @@
 import { CHAIN_COUNT, UTXO_CHAIN_COUNT } from "@swapchan/shared";
 
 export { CHAIN_COUNT, UTXO_CHAIN_COUNT };
-export const POWERED_BY = "This tool is powered by blocktools.";
+export const POWERED_BY = "Powered by blocktools";
 
 export type Field = {
   name: string;
@@ -198,6 +198,17 @@ export const DEV_TOOLS: DevTool[] = [
         fields: [address],
       },
       { id: "decode", label: "Decode CashAddr", fn: "cashaddr", op: "decode", fields: [address] },
+      {
+        id: "encode",
+        label: "Hash → CashAddr",
+        fn: "cashaddr",
+        op: "encode",
+        fields: [
+          { name: "kind", label: "Type", kind: "select", options: ["p2pkh", "p2sh"] },
+          { name: "hash", label: "Hash (hex, 20 bytes)", placeholder: "76a04053…" },
+          { name: "prefix", label: "Prefix", placeholder: "bitcoincash", optional: true },
+        ],
+      },
     ],
     examples: [
       {
@@ -691,6 +702,94 @@ export const DEV_TOOLS: DevTool[] = [
       { label: "All chains", mode: "show", values: {} },
     ],
     related: ["validate-address", "convert-address", "xpub-addresses"],
+  },
+  {
+    slug: "tron-tx",
+    name: "Tron raw_data decoder & txid",
+    emoji: "🔺",
+    mcp: "tron_tx",
+    title: "Tron Transaction Decoder & TXID Calculator (raw_data hex) | SwapChan",
+    description:
+      "Decode an unsigned Tron raw_data hex into readable contracts and compute its transaction ID.",
+    h1: "Tron raw_data decoder and txid calculator",
+    intro:
+      "Paste an unsigned Tron raw_data hex (tronweb raw_data_hex) to see who sends what to whom, the expiry and fee limit, and the txid it will have.",
+    body: [
+      "A Tron transaction ID is the sha256 of its raw_data, so you can know the txid before anything is signed or broadcast. Decoding shows each contract (TRX transfer, TRC-20 call), the owner and recipient addresses, amounts in sun, the reference block, expiry and fee limit.",
+      "Only unsigned raw_data is accepted. A transaction that already carries signatures is refused, because signed bytes should stay in your wallet until you broadcast them.",
+    ],
+    keywords: ["tron transaction decoder", "tron txid", "raw_data_hex decode"],
+    faq: [
+      {
+        q: "How is the txid computed?",
+        a: "It is the sha256 hash of the raw_data bytes. Signatures are not part of it, so the txid is fixed before signing.",
+      },
+      {
+        q: "Why is my signed transaction refused?",
+        a: "This page only takes unsigned raw_data. Signed transactions can be broadcast by anyone holding them, so keep them in your wallet.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "decode",
+        label: "Decode",
+        fn: "tron-tx",
+        op: "decode",
+        fields: [{ name: "hex", label: "raw_data hex", placeholder: "0a02…" }],
+      },
+      {
+        id: "txid",
+        label: "TXID",
+        fn: "tron-tx",
+        op: "txid",
+        fields: [{ name: "hex", label: "raw_data hex", placeholder: "0a02…" }],
+      },
+    ],
+    examples: [
+      {
+        label: "1 TRX transfer",
+        mode: "decode",
+        values: {
+          hex: "0a02ab122208001122334455667740e0a499ffbc315a67080112630a2d747970652e676f6f676c65617069732e636f6d2f70726f746f636f6c2e5472616e73666572436f6e747261637412320a154174472e7d35395a6b5add427eecb7f4b62ad2b071121541a614f803b6fd780986a42c78ec9c7f77e6ded13c18c0843d7080d095ffbc31",
+        },
+      },
+    ],
+    related: ["validate-address", "convert-address", "chain-params"],
+  },
+  {
+    slug: "supported-chains",
+    name: "Supported chains list",
+    emoji: "🌐",
+    mcp: "supported_chains",
+    title: "Supported Crypto Chains: Verified Explorers & SLIP-44 Coin Types | SwapChan",
+    description:
+      "Every chain the address tools know, with ticker, SLIP-44 coin type, verification status and the explorer it was checked against.",
+    h1: "Supported chains",
+    intro:
+      "The list of chains the address, xpub and script tools support, which are verified against a live explorer, and which are known but not yet verified.",
+    body: [
+      "A chain is marked verified once its address format and balances have been checked against a public explorer; each entry lists that explorer and the date it was checked. Unverified chains are known but not supported by the other tools yet.",
+      "Look up one chain by name or ticker, or show the full list.",
+    ],
+    keywords: ["supported crypto chains", "slip44 coin type list"],
+    faq: [
+      {
+        q: "What does verified mean?",
+        a: "The chain's addresses and balances were checked against the listed public explorer on the listed date.",
+      },
+      {
+        q: "Can I use an unverified chain?",
+        a: "Not with the other tools. Unverified chains are listed so you can see what is coming, not used.",
+      },
+      { q: "Is it safe?", a: "Yes. It shows public constants only." },
+    ],
+    modes: [{ id: "show", label: "Show", fn: "supported-chains", fields: [chain(true)] }],
+    examples: [
+      { label: "Bitcoin", mode: "show", values: { chain: "btc" } },
+      { label: "All chains", mode: "show", values: {} },
+    ],
+    related: ["chain-params", "validate-address", "convert-address"],
   },
 ];
 

@@ -11,6 +11,7 @@ import { blocktools } from "./blocktools.js";
  * - body capped at MAX_BODY bytes; per-client fixed-window rate limit;
  * - anything that looks like a secret (xprv/WIF/seed words/secret-named fields) is refused before any call;
  * - no raw signed-tx decode/verify here: that input never leaves the browser (waits for the web WASM build).
+ *   tron-tx takes UNSIGNED raw_data only and refuses a tx that carries signatures (signed_tx_refused).
  */
 export const MAX_BODY = 4096;
 export const RATE_PER_MIN = 30;
@@ -106,7 +107,15 @@ export const DEV_TOOLS: Record<string, (i: In) => unknown> = {
     };
   },
   cashaddr: (i) => {
-    const op = str(i, "op", /^(to_legacy|to_cashaddr|decode)$/);
+    const op = str(i, "op", /^(to_legacy|to_cashaddr|decode|encode)$/);
+    if (op === "encode")
+      return {
+        cashaddr: w().cashAddrEncode(
+          optStr(i, "prefix", /^[a-z]{1,16}$/) ?? "bitcoincash",
+          str(i, "kind", /^(p2pkh|p2sh)$/),
+          unhex(str(i, "hash", /^(0x)?([0-9a-fA-F]{2}){20,64}$/)),
+        ),
+      };
     const address = str(i, "address");
     if (op === "to_legacy") return { legacy: w().cashAddrToLegacy(address) };
     if (op === "decode") return json(w().cashAddrDecode(address));
@@ -189,6 +198,28 @@ export const DEV_TOOLS: Record<string, (i: In) => unknown> = {
     return op === "encode"
       ? { base58: w().base58Encode(unhex(str(i, "data", HEX))) }
       : { hex: w().base58Decode(str(i, "data")) };
+  },
+  "tron-tx": (i) => {
+    const op = str(i, "op", /^(decode|txid)$/);
+    const hex = unhex(str(i, "hex", /^(0x)?([0-9a-fA-F]{2}){8,}$/));
+    const d = json(w().tronDecodeTx(hex)) as { signatures?: number; txid?: string };
+    // signed bytes stay in the user's wallet: only unsigned raw_data is accepted here
+    if ((d.signatures ?? 0) > 0) bad("signed_tx_refused");
+    return op === "txid" ? { txid: w().tronTxId(hex) } : d;
+  },
+  "supported-chains": (i) => {
+    const all = [
+      ...(json(w().supportedChains()) as { name: string; ticker: string }[]),
+      ...(json(w().unverifiedChains()) as { name: string; ticker: string }[]),
+    ];
+    const chain = optStr(i, "chain", CHAIN)?.toLowerCase();
+    if (chain)
+      return (
+        all.find((c) => c.name === chain || c.ticker.toLowerCase() === chain) ??
+        bad("unknown_chain")
+      );
+    const verified = all.filter((c) => (c as { verified?: boolean }).verified).length;
+    return { version: w().version(), verified, unverified: all.length - verified, chains: all };
   },
   "chain-params": (i) => {
     const all = json(w().chainParams()) as { name: string }[];

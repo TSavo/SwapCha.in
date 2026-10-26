@@ -2185,7 +2185,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "address_tool",
     {
       title: "Address detect / validate / convert / script (dev tool)",
-      description: `Work with public crypto addresses: op=detect (which chains/formats an address fits), validate (address + chain), convert (address to another chain's format, e.g. BTC→LTC), cashaddr_to_legacy / legacy_to_cashaddr / cashaddr_decode (Bitcoin Cash; prefix for to_cashaddr), to_script (address+chain → scriptPubKey hex), from_script (script hex+chain → address), base58_encode (hex data) / base58_decode (base58 data). convert accepts optional from chain. ${OFFLINE}`,
+      description: `Work with public crypto addresses: op=detect (which chains/formats an address fits), validate (address + chain), convert (address to another chain's format, e.g. BTC→LTC), cashaddr_to_legacy / legacy_to_cashaddr / cashaddr_decode / cashaddr_encode (Bitcoin Cash; prefix for to_cashaddr; encode takes kind p2pkh|p2sh + hash hex [+ prefix]), to_script (address+chain → scriptPubKey hex), from_script (script hex+chain → address), base58_encode (hex data) / base58_decode (base58 data). convert accepts optional from chain. ${OFFLINE}`,
       inputSchema: z.object({
         op: z.enum([
           "detect",
@@ -2194,6 +2194,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
           "cashaddr_to_legacy",
           "legacy_to_cashaddr",
           "cashaddr_decode",
+          "cashaddr_encode",
           "to_script",
           "from_script",
           "base58_encode",
@@ -2206,6 +2207,8 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
         script: z.string().max(400).optional(),
         data: z.string().max(1024).optional(),
         prefix: z.string().max(24).optional(),
+        kind: z.enum(["p2pkh", "p2sh"]).optional(),
+        hash: z.string().max(130).optional(),
       }),
       annotations: devAnn,
     },
@@ -2216,6 +2219,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
       cashaddr_to_legacy: ["cashaddr", "to_legacy"],
       legacy_to_cashaddr: ["cashaddr", "to_cashaddr"],
       cashaddr_decode: ["cashaddr", "decode"],
+      cashaddr_encode: ["cashaddr", "encode"],
       to_script: ["address-script", "to_script"],
       from_script: ["address-script", "from_script"],
       base58_encode: ["base58", "encode"],
@@ -2334,6 +2338,31 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
       annotations: devAnn,
     },
     dev({ "": ["chain-params"] }),
+  );
+
+  server.registerTool(
+    "tron_tx",
+    {
+      title: "Decode Tron raw_data / compute txid (dev tool)",
+      description: `Tron transaction inspection on UNSIGNED raw_data hex (tronweb raw_data_hex): op=decode (contracts, owner/to, amount_sun, TRC-20 call, ref block, expiry, fee limit, txid), txid (sha256 of raw_data). A tx that carries signatures is refused (signed_tx_refused); signed bytes stay in the wallet. ${OFFLINE}`,
+      inputSchema: z.object({
+        op: z.enum(["decode", "txid"]),
+        hex: pub(1024),
+      }),
+      annotations: devAnn,
+    },
+    dev({ decode: ["tron-tx", "decode"], txid: ["tron-tx", "txid"] }),
+  );
+
+  server.registerTool(
+    "supported_chains",
+    {
+      title: "Supported chains: verified / unverified (dev tool)",
+      description: `Chains the address tools know: name, ticker, title, SLIP-44, verified flag and the public explorer each was checked against (with date), plus library version. chain=<name or ticker> for one, omit for all. ${OFFLINE}`,
+      inputSchema: z.object({ chain: z.string().max(16).optional() }),
+      annotations: devAnn,
+    },
+    dev({ "": ["supported-chains"] }),
   );
 
   return server;
