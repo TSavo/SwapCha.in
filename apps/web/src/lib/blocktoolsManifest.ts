@@ -93,7 +93,7 @@ export const BT_ITEMS: BtItem[] = [
     file: "docs/getting-started.md",
     title: "Getting started",
     description:
-      "Getting started with blocktools: install from the v0.1.0 release or from source, then your first sealed run on public test data.",
+      "Getting started with blocktools: install from the v0.1.1 release or from source, then your first sealed run on public test data.",
   },
   {
     kind: "docs",
@@ -527,6 +527,10 @@ export const BT_TOOLS: { name: string; desc: string }[] = [
   {
     name: "multibit-read",
     desc: "MultiBit Classic .key export, bitcoinj/MultiBit Classic `.wallet` protobuf, or",
+  },
+  {
+    name: "phrase-to-key",
+    desc: "pre-BIP39 brainwallet phrase -> raw 32-byte private key, one line per scheme",
   },
   {
     name: "pw-candidates",

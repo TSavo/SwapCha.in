@@ -15,11 +15,11 @@ const QA: [string, string][] = [
   ],
   [
     "Which chains?",
-    "In v0.1.0 the chain table lists 38 verified chains, from Bitcoin and Ethereum to Solana, Tron, XRP, Cosmos, Cardano, Polkadot and TON, plus many older Bitcoin forks. Sweep building is per chain: check the table.",
+    "The chain table lists each supported chain, from Bitcoin and Ethereum to Solana, Tron, XRP, Cosmos, Cardano, Polkadot and TON, plus many older Bitcoin forks. Sweep building is per chain: check the table.",
   ],
   [
     "Which platforms?",
-    "Release binaries: Linux x86_64, glibc 2.34+ (sealed-run needs 2.39+). Sealed runs (./blocktools build) need a v0.1.0 source checkout and Docker, not just the tarball. No macOS, Windows or ARM binaries yet.",
+    "Release binaries: Linux x86_64, glibc 2.34+ (sealed-run needs 2.39+). Sealed runs (./blocktools build) need a v0.1.1 source checkout and Docker, not just the tarball. No macOS, Windows or ARM binaries yet.",
   ],
   [
     "Does SwapChan see my keys?",

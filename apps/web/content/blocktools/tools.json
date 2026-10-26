@@ -80,6 +80,10 @@
   "desc": "MultiBit Classic .key export, bitcoinj/MultiBit Classic `.wallet` protobuf, or"
  },
  {
+  "name": "phrase-to-key",
+  "desc": "pre-BIP39 brainwallet phrase -> raw 32-byte private key, one line per scheme"
+ },
+ {
   "name": "pw-candidates",
   "desc": "expand a token list into password candidates (btcrecover-style, from public"
  },

@@ -1,1 +1,1 @@
-Copied verbatim from https://github.com/TSavo/blocktools at tag v0.1.0 (commit 80e8e7b) — README.md, DESIGN.md, docs/*.md (subset), bindings/wasm/README.md (as docs/wasm.md), recipes/*.md. tools.json = NAME lines of man/man1/*.1. MIT License.
+Copied verbatim from https://github.com/TSavo/blocktools at tag v0.1.0 (commit 80e8e7b); tools.json and the release pins updated to v0.1.1 (2424787) — README.md, DESIGN.md, docs/*.md (subset), bindings/wasm/README.md (as docs/wasm.md), recipes/*.md. tools.json = NAME lines of man/man1/*.1. MIT License.
