@@ -1,6 +1,6 @@
 /**
  * Key recovery: step 1 of signing_guide ("do you have the key?").
- * Full playbook returned by MCP tools. Agents run reference code LOCALLY, OFFLINE
+ * Full playbook returned by MCP tools. Agents have the human run blocktools (https://github.com/TSavo/blocktools) LOCALLY, OFFLINE
  * on the user's own machine. SwapChan never receives seeds, keys, passwords or wallet files;
  * only PUBLIC addresses go to find_money.
  */
@@ -8,9 +8,9 @@ import { SITE } from "./onchain.js";
 
 export const KEY_WARNINGS = [
   "NEVER paste a seed phrase, private key, wallet file or password into a chat, an AI prompt, an email, or ANY website, including SwapChan. Nobody legitimate needs it.",
-  "Run recovery code on the user's own machine, ideally offline (disconnect networking or use a live USB). Agents: write the script to a local file and have the human run it; do not read the secret into your context.",
+  "Run recovery code on the user's own machine, ideally offline (disconnect networking or use a live USB). Agents: have the human run blocktools (or the listed tool) locally; do not read the secret into your context.",
   "Only PUBLIC addresses leave the machine. Feed those to find_money.",
-  "'Wallet recovery services' that DM you, ask for your phrase, or ask for fees up front are scams. Open-source tools (btcrecover, Ian Coleman BIP39 offline HTML, Electrum) run locally and need no one else.",
+  "'Wallet recovery services' that DM you, ask for your phrase, or ask for fees up front are scams. Open-source tools (blocktools https://github.com/TSavo/blocktools, btcrecover, Electrum) run locally and need no one else.",
   "Work on a COPY of any wallet file. Once found, move funds to a fresh wallet: an old key that has been typed into a script is no longer pristine.",
 ];
 
@@ -19,7 +19,8 @@ export const GAP_POLICY = {
   perPath: 20,
   heavyUser: 50,
   rule: "Derive GAP addresses on EVERY path below (not just index 0): 20 per path by default, 50+ for heavy users (many accounts, exchanges' deposit habits, Ledger Live with several accounts). If any address near index GAP-1 has history, raise GAP and rerun. Also derive with each BIP39 passphrase candidate the user remembers (blank first). Send ALL of them, labeled with wallet + path, to find_money_batch (up to 500 per batch).",
-  example: "GAP=20, one passphrase: 10 paths x 20 = 200 addresses. GAP=50: 500 (one full batch).",
+  example:
+    "blocktools derive --preset scan-js: 15 paths x 20 = 300 addresses per passphrase candidate. --index 0..49: 750 (split into 500-line batches).",
 };
 
 export const DERIVATION_PATHS = [
@@ -78,153 +79,68 @@ export const DERIVATION_PATHS = [
 export const UNCOMPRESSED_KEYS = {
   rule: "Derive BOTH the uncompressed and the compressed address of every old key and send both to find_money. A WIF starting with 5 is uncompressed; K or L is compressed. Paper wallets, brainwallets and wallets made before 2012 are usually uncompressed.",
   offlineCode:
-    "import { secp256k1 } from '@noble/curves/secp256k1'; import * as btc from '@scure/btc-signer'; // offline only\nconst pkU = secp256k1.getPublicKey(priv, false), pkC = secp256k1.getPublicKey(priv, true);\nconsole.log(btc.p2pkh(pkU).address, btc.p2pkh(pkC).address); // both PUBLIC -> find_money",
+    "key-to-addresses --chain btc < key.txt | redact   # blocktools, offline: prints both the compressed and uncompressed 1... address (and SegWit/Taproot), keys [REDACTED]",
 };
 
-/** Offline multi-chain deriver: every path below, GAP addresses each, optional passphrase candidates; prints labeled PUBLIC addresses for find_money_batch. Verified against the public "abandon x11 about" test vectors. */
-export const SCAN_JS = String.raw`// npm i @scure/bip39 @scure/bip32 @scure/btc-signer @noble/hashes @noble/curves @scure/base   (then go OFFLINE)
-// Run locally:  node scan.mjs  [GAP=20|50 env]  [PASSPHRASES=file.txt env, one candidate per line]
-// Prompts for the phrase, prints LABELED PUBLIC addresses only, one per line, ready to paste into find_money_batch.
-import { mnemonicToSeedSync, validateMnemonic } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english.js";
-import { HDKey } from "@scure/bip32";
-import { keccak_256 } from "@noble/hashes/sha3.js";
-import { sha256 } from "@noble/hashes/sha2.js";
-import { hmac } from "@noble/hashes/hmac.js";
-import { sha512 } from "@noble/hashes/sha2.js";
-import { secp256k1 } from "@noble/curves/secp256k1.js";
-import { ed25519 } from "@noble/curves/ed25519.js";
-import { base58, base58check } from "@scure/base";
-import * as btc from "@scure/btc-signer";
-import { readFileSync, writeFileSync } from "node:fs";
-import readline from "node:readline/promises";
-
-const GAP = Number(process.env.GAP || 20); // 20 per path; 50+ for heavy users
-const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
-const phrase = (process.env.PHRASE || (await rl.question("phrase (stays on this machine): "))).trim().toLowerCase().split(/\s+/).join(" ");
-rl.close();
-if (!validateMnemonic(phrase, wordlist)) throw new Error("checksum fails: see the missing-word branch");
-const passes = [""].concat(process.env.PASSPHRASES ? readFileSync(process.env.PASSPHRASES, "utf8").split("\n").filter(Boolean) : []);
-
-const evm = (k) => {
-  const pub = secp256k1.getPublicKey(k.privateKey, false).slice(1);
-  const h = Buffer.from(keccak_256(pub)).toString("hex").slice(-40);
-  const hh = Buffer.from(keccak_256(new TextEncoder().encode(h))).toString("hex");
-  return "0x" + [...h].map((c, i) => (parseInt(hh[i], 16) >= 8 ? c.toUpperCase() : c)).join("");
+/** blocktools: open-source offline key tooling. Every seed/key/keystore step below runs there, not in SwapChan. */
+export const BLOCKTOOLS = {
+  url: "https://github.com/TSavo/blocktools",
+  docs: "https://github.com/TSavo/blocktools/blob/main/recipes/offline-recovery-guide.md",
+  install: [
+    "git clone https://github.com/TSavo/blocktools && cd blocktools",
+    "cargo build --locked --release --workspace   # binaries land in target/release/",
+    'export PATH="$PWD/target/release:$PATH"',
+  ],
+  note: "Build from source while online (no packaged release has been published yet), read the code, then DISCONNECT from the network before any step that reads a seed, key or wallet file. The project's README also describes a sealed Docker wrapper (./blocktools run). Tested on Linux; macOS is untested.",
 };
-const tron = (k) => base58check(sha256).encode(Uint8Array.from(Buffer.from("41" + evm(k).slice(2).toLowerCase(), "hex")));
-// Solana: SLIP-10 ed25519, all segments hardened
-const slip10 = (seed, path) => {
-  let I = hmac(sha512, new TextEncoder().encode("ed25519 seed"), seed);
-  let key = I.slice(0, 32), chain = I.slice(32);
-  for (const seg of path.split("/").slice(1)) {
-    const idx = (parseInt(seg, 10) | 0x80000000) >>> 0;
-    const data = new Uint8Array(37); data.set(key, 1);
-    new DataView(data.buffer).setUint32(33, idx);
-    I = hmac(sha512, chain, data); key = I.slice(0, 32); chain = I.slice(32);
-  }
-  return base58.encode(ed25519.getPublicKey(key));
-};
-const BTC = {
-  44: (pk) => btc.p2pkh(pk).address,
-  49: (pk) => btc.p2sh(btc.p2wpkh(pk)).address,
-  84: (pk) => btc.p2wpkh(pk).address,
-  86: (pk) => btc.p2tr(pk.slice(1)).address,
-};
-// same-key coins: p2pkh/p2wpkh with each coin's version bytes (Exodus/Trezor/Ledger paths)
-const NET = { ltc: { bech32: "ltc", pubKeyHash: 0x30, scriptHash: 0x32, wif: 0xb0 }, doge: { bech32: "doge", pubKeyHash: 0x1e, scriptHash: 0x16, wif: 0x9e }, bch: { bech32: "bc", pubKeyHash: 0x00, scriptHash: 0x05, wif: 0x80 }, btg: { bech32: "btg", pubKeyHash: 0x26, scriptHash: 0x17, wif: 0x80 } };
-Object.assign(BTC, { ltc44: (pk) => btc.p2pkh(pk, NET.ltc).address, ltc84: (pk) => btc.p2wpkh(pk, NET.ltc).address, doge44: (pk) => btc.p2pkh(pk, NET.doge).address, bch44: (pk) => btc.p2pkh(pk, NET.bch).address, btg44: (pk) => btc.p2pkh(pk, NET.btg).address });
-const PATHS = [
-  ["MetaMask/Trezor/Trust/Exodus/Rabby EVM", "m/44'/60'/0'/0/{i}", "evm"],
-  ["Ledger Live EVM", "m/44'/60'/{i}'/0/0", "evm"],
-  ["Ledger legacy/MEW EVM", "m/44'/60'/0'/{i}", "evm"],
-  ["TronLink/Trust Tron", "m/44'/195'/0'/0/{i}", "tron"],
-  ["Phantom/Solflare/Backpack/Trust/Exodus Solana", "m/44'/501'/{i}'/0'", "sol"],
-  ["Solflare legacy/Sollet Solana", "m/44'/501'/{i}'", "sol"],
-  ["BTC legacy (1...)", "m/44'/0'/0'/0/{i}", "btc44"],
-  ["BTC nested SegWit (3...)", "m/49'/0'/0'/0/{i}", "btc49"],
-  ["BTC native SegWit (bc1q...) Exodus/Trezor/Ledger", "m/84'/0'/0'/0/{i}", "btc84"],
-  ["BTC Taproot (bc1p...)", "m/86'/0'/0'/0/{i}", "btc86"],
-  ["LTC legacy (L...)", "m/44'/2'/0'/0/{i}", "c.ltc44"],
-  ["LTC SegWit (ltc1q...)", "m/84'/2'/0'/0/{i}", "c.ltc84"],
-  ["DOGE (D...)", "m/44'/3'/0'/0/{i}", "c.doge44"],
-  ["BCH (legacy-format 1...)", "m/44'/145'/0'/0/{i}", "c.bch44"],
-  ["BTG (G...)", "m/44'/156'/0'/0/{i}", "c.btg44"],
-];
-const out = [];
-for (const [pi, pass] of passes.entries()) {
-  const seed = mnemonicToSeedSync(phrase, pass);
-  const root = HDKey.fromMasterSeed(seed);
-  const tag = pi ? " [passphrase #" + pi + "]" : "";
-  for (const [name, tpl, kind] of PATHS)
-    for (let i = 0; i < GAP; i++) {
-      const p = tpl.replace("{i}", String(i));
-      const a = kind === "sol" ? slip10(seed, p) : kind === "evm" ? evm(root.derive(p)) : kind === "tron" ? tron(root.derive(p)) : BTC[kind.startsWith("c.") ? kind.slice(2) : kind.slice(3)](root.derive(p).publicKey);
-      out.push(name + " " + p + tag + " " + a);
-    }
-}
-writeFileSync("addresses.txt", out.join("\n") + "\n");
-console.log(out.join("\n"));
-console.error("\n" + out.length + " public addresses (GAP=" + GAP + ", " + passes.length + " passphrase candidate(s)) -> addresses.txt. Paste ONLY this file into find_money_batch (max 500 per batch; split if larger). If any address near index GAP-1 shows activity, rerun with a bigger GAP.");`;
 
-const SCAN_PY = `# pip install bip_utils   (then go OFFLINE). Covers EVM, Solana, Tron and all 4 BTC script types.
-from getpass import getpass
-from bip_utils import (Bip39SeedGenerator, Bip44, Bip49, Bip84, Bip86, Bip44Coins, Bip49Coins,
-                       Bip84Coins, Bip86Coins, Bip44Changes)
-seed = Bip39SeedGenerator(getpass("phrase: ")).Generate(getpass("passphrase (blank if none): "))
-def scan(ctx, n=5):
-    acc = ctx.Purpose().Coin().Account(0).Change(Bip44Changes.CHAIN_EXT)
-    return [acc.AddressIndex(i).PublicKey().ToAddress() for i in range(n)]
-print("ETH ", scan(Bip44.FromSeed(seed, Bip44Coins.ETHEREUM)))
-print("TRON", scan(Bip44.FromSeed(seed, Bip44Coins.TRON)))
-print("SOL ", [Bip44.FromSeed(seed, Bip44Coins.SOLANA).Purpose().Coin().Account(i).Change(Bip44Changes.CHAIN_EXT).PublicKey().ToAddress() for i in range(5)])
-print("BTC44", scan(Bip44.FromSeed(seed, Bip44Coins.BITCOIN)))
-print("BTC49", scan(Bip49.FromSeed(seed, Bip49Coins.BITCOIN)))
-print("BTC84", scan(Bip84.FromSeed(seed, Bip84Coins.BITCOIN)))
-print("BTC86", scan(Bip86.FromSeed(seed, Bip86Coins.BITCOIN)))
-# Public addresses only -> find_money.`;
+const BT_INSTALL = `# blocktools (open source): ${BLOCKTOOLS.url}
+# Install from source while online (no packaged release yet), then go OFFLINE:
+#   ${BLOCKTOOLS.install.join("\n#   ")}
+# Tested on Linux; macOS is untested. Read the README's safety notes first: it recommends its sealed
+# Docker wrapper (./blocktools run) for hostile wallet files; at minimum run these on an OFFLINE machine.`;
 
-const MISSING_WORD = `// Missing or mistyped word: the last word carries a checksum, so most candidates fail validation.
-// Put "?" for an unknown word (or the word you doubt). One unknown = 2048 tries, seconds.
-import { validateMnemonic, mnemonicToSeedSync } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
-import { HDKey } from "@scure/bip32";
-import { privateKeyToAddress } from "viem/accounts"; import { toHex } from "viem";
-const words = process.env.PHRASE.split(" "); // set in the local shell, not in chat
-const known = (process.env.KNOWN_ADDRESS || "").toLowerCase(); // optional: an address you know you used
-const slots = words.map((w, i) => (w === "?" ? i : -1)).filter((i) => i >= 0);
-const tryAll = (ws, k) => { if (k === slots.length) { const m = ws.join(" ");
-  if (!validateMnemonic(m, wordlist)) return;
-  const a = privateKeyToAddress(toHex(HDKey.fromMasterSeed(mnemonicToSeedSync(m)).derive("m/44'/60'/0'/0/0").privateKey));
-  if (!known || a.toLowerCase() === known) console.log("candidate address", a); return; }
-  for (const w of wordlist) { ws[slots[k]] = w; tryAll(ws, k + 1); } };
-tryAll([...words], 0);
-// For swapped/mistyped words use btcrecover: python seedrecover.py --mnemonic-length 12 --addrs <known> --typos 2`;
+const SEED_BT = `${BT_INSTALL}
+# Put the phrase in seed.txt ON THE OFFLINE MACHINE (never in chat). Optional: passphrases.txt with
+# BIP39 passphrase ("25th word") candidates, one per line; the empty passphrase is always tried first.
+seed-to-master --passphrase-file passphrases.txt < seed.txt | derive --preset scan-js --address-list > addresses.txt
+# No passphrase candidates:  seed-to-master < seed.txt | derive --preset scan-js --address-list > addresses.txt
+# --preset scan-js = the 15 wallet paths in derivationPaths x 20 addresses (300 per passphrase candidate).
+# Heavy users: add --index 0..49 (50 per path). Preview the plan without any secret: derive --explain --preset scan-js
+# addresses.txt has one "wallet label<TAB>path<TAB>address" line per address: PUBLIC data only, no keys.
+# Delete seed.txt / passphrases.txt, then paste ONLY addresses.txt into find_money_batch
+# (max 500 per batch; split larger files: split -l 500 addresses.txt part-).`;
 
-const PASSPHRASE = `# BIP39 passphrase ("25th word"): common when a user set one and forgot it.
-# Install btcrecover offline: git clone https://github.com/3rdIteration/btcrecover
-# Build a passwordlist.txt from THEIR hints (pets, years, keyboard patterns) - never from a public dump.
-python btcrecover.py --wallet ethereum_bip39 --addrs <known_address> --addr-limit 5 \\
-  --mnemonic-prompt --passphrase-listfile passwordlist.txt --bip39-passphrase
-# Or brute short patterns: --passphrase-typos 2 --passphrase-min-typos 0 --passphrase-typos-capslock
-# When it finds a match it prints the address. Feed that address to find_money. Keys stay local.`;
+const MISSING_WORD = `${BT_INSTALL}
+# Missing or mistyped word. Write the phrase to seed.txt with "?" for each unknown word (one "?" = 2048 tries,
+# seconds; one word short = tried at every position; swapped adjacent pairs are tried too).
+# targets.txt: an address you know this wallet used (one per line), so only the real phrase prints.
+seed-repair < seed.txt | seed-to-master | derive --preset scan-js --match targets.txt --address-list
+# No known address? Drop --match and send the address list to find_money_batch (one block per checksum-valid candidate).
+# Two "?" are searched under a budget and may miss. Electrum 2.x seeds: see recipes/input-seed-phrase.md in blocktools.`;
 
-const KEYSTORE_V3 = `# Ethereum keystore v3 (geth / Mist / MyEtherWallet / Parity / MyCrypto JSON).
-# File looks like: {"crypto":{"cipher":"aes-128-ctr","kdf":"scrypt",...},"address":"...","version":3}
-# Offline (pip install eth-account):
-from getpass import getpass
-from eth_account import Account
-import json, pathlib
-ks = json.loads(pathlib.Path("UTC--….json").read_text())  # a COPY of the file
-acct = Account.from_key(Account.decrypt(ks, getpass("password: ")))
-print("address", acct.address)  # ONLY this goes to find_money
-# Forget password? Use btcrecover with a passwordlist built from THEIR hints:
-# python btcrecover.py --wallet UTC--….json --passwordlist passwordlist.txt --typos 2
+const PASSPHRASE = `${BT_INSTALL}
+# BIP39 passphrase ("25th word") forgotten. passphrases.txt = candidates from THEIR hints, one per line
+# (pets, years, keyboard patterns) - never a public dump. targets.txt = an address that wallet used.
+seed-to-master --passphrase-file passphrases.txt < seed.txt | derive --preset scan-js --match targets.txt --address-list
+# A hit prints the label, the path with " [passphrase #N]" (N = line in passphrases.txt) and the address.
+# Typo-style brute force of passphrases is not in blocktools: use btcrecover offline
+#   (git clone https://github.com/3rdIteration/btcrecover; --bip39-passphrase --passphrase-typos 2).
+# Feed matching PUBLIC addresses to find_money. Keys stay local.`;
+
+const KEYSTORE_V3 = `${BT_INSTALL}
+# Ethereum keystore v3 (geth / Mist / MyEtherWallet / Parity / MyCrypto UTC--....json). Work on a COPY.
+# keystore.pw = the password in a local file (never on the command line, never in chat).
+read-file keystore.pw UTC--copy.json | keystore-open | redact
+# Prints {"address":"0x...","private_key":"[REDACTED]",...}: ONLY the address goes to find_money.
+# Forgotten password? btcrecover with a passwordlist built from THEIR hints (not in blocktools):
+#   python btcrecover.py --wallet UTC--copy.json --passwordlist passwordlist.txt --typos 2
 # Never paste the JSON or the password into chat.`;
 
 const PRESALE = `# Ethereum 2014-15 presale wallet (CrowdSale JSON from ethereum.org).
 # File has "encseed", "ethaddr", "bkraddress", "email", "bkp". Password was chosen at purchase.
 # Tool: https://github.com/ethereum/pyethsaletool  (or btcrecover --wallet-type ethereum_presale)
+# (blocktools does not open presale wallets yet, so this branch keeps these tools.)
 # Offline:
 #   python pyethsaletool.py getprivkey wallet.json
 # It prompts for the password. On success it prints the private key and address.
@@ -263,12 +179,6 @@ const HARDWARE = `# Hardware wallet (Ledger / Trezor / BitBox / Coldcard): the s
 # If the device is lost but you have the BIP39 recovery sheet: treat it as a seed-phrase recovery
 # on a new device or an air-gapped offline machine - never type the sheet into a website.`;
 
-const RAW_KEY = `# You already have a private key (0x… hex) or a WIF.
-# Do NOT paste it into chat. Import it into a local wallet (Rabby / MetaMask "import account",
-# Electrum, Sparrow) on your machine, or use a one-shot offline script:
-#   from eth_account import Account; print(Account.from_key(open("key.txt").read().strip()).address)
-# Then find_money on that address. After moving funds, discard the old key.`;
-
 export type Situation =
   | "full"
   | "seed-phrase"
@@ -294,21 +204,29 @@ export interface RecoveryBranch {
   page?: string;
 }
 
+const RAW_KEY = `${BT_INSTALL}
+# You already have a private key (0x... hex) or a WIF. Do NOT paste it into chat.
+# key.txt = the key in a local file on the offline machine.
+key-to-addresses < key.txt | redact
+# Prints the PUBLIC addresses on every chain (Bitcoin: compressed AND uncompressed P2PKH, SegWit, Taproot;
+# EVM; and the other supported chains), keys shown as [REDACTED]. Limit with --chain btc,eth.
+# Then find_money on those addresses. After moving funds, discard the old key.`;
+
 export const RECOVERY_BRANCHES: RecoveryBranch[] = [
   {
     id: "seed-phrase",
     title: "BIP39 seed phrase (12/15/18/21/24 words)",
     when: "User has a complete BIP39 mnemonic from MetaMask, Trust, Exodus, Ledger sheet, Trezor, Phantom, Solflare, TronLink, etc.",
     steps: [
-      "Confirm the human will run the script on THEIR machine. Write scan.mjs or scan.py to disk; do not ask them to paste the phrase into chat.",
-      "Have them disconnect networking (or use a live USB), run the script, enter the phrase at the local prompt.",
-      "Script derives GAP addresses (20 per path; GAP=50 for heavy users) on all 10 wallet paths (MetaMask/Trezor/Trust/Exodus EVM, Ledger Live, Ledger legacy, TronLink, Phantom, Solflare legacy, BTC 44/49/84/86) and for each passphrase candidate (PASSPHRASES=file), and writes labeled PUBLIC addresses to addresses.txt.",
+      "Install blocktools (https://github.com/TSavo/blocktools) on THEIR machine from source, then disconnect networking (or use a live USB). Do not ask them to paste the phrase into chat; they put it in a local seed.txt.",
+      "They run: seed-to-master --passphrase-file passphrases.txt < seed.txt | derive --preset scan-js --address-list > addresses.txt",
+      "That derives 20 addresses on each of the 15 wallet paths (EVM MetaMask/Trezor/Trust/Exodus, Ledger Live, Ledger legacy, TronLink, Phantom, Solflare legacy, BTC 44/49/84/86, LTC 44/84, DOGE, BCH, BTG; --index 0..49 for heavy users) for the blank passphrase and each candidate, and writes labeled PUBLIC addresses only (label<TAB>path<TAB>address) to addresses.txt.",
       "Send the WHOLE addresses.txt to find_money_batch (it keeps the labels; up to 500 per batch). Do not send only index 0: forgotten money is usually on account 2, 3 or a Ledger Live account.",
       "If any address near index GAP-1 has activity, rerun with a bigger GAP. For any finding: verify_tx -> human signs locally -> broadcast_tx.",
       "After funds move, generate a NEW wallet for ongoing use; the typed seed is no longer pristine.",
     ],
-    code: `${SCAN_JS}\n\n# --- or Python (multi-chain) ---\n${SCAN_PY}`,
-    tools: ["@scure/bip39", "@scure/bip32", "viem", "bip_utils"],
+    code: SEED_BT,
+    tools: ["blocktools (seed-to-master, derive)"],
     page: `${SITE}/recover/seed-phrase`,
   },
   {
@@ -317,12 +235,12 @@ export const RECOVERY_BRANCHES: RecoveryBranch[] = [
     when: "User has most of a phrase but one (or a few) words are unknown, smudged, or possibly swapped.",
     steps: [
       "Put '?' in each unknown slot. One unknown word is ~2048 checksum-filtered tries (seconds).",
-      "Two unknown words is millions of tries; prefer a known address to filter, or use btcrecover with --typos.",
-      "Run the script offline. It only prints candidate PUBLIC addresses that pass the BIP39 checksum (and match KNOWN_ADDRESS if set).",
+      "Two unknown words is millions of tries (blocktools seed-repair budgets it); prefer a known address to filter, or use btcrecover with --typos.",
+      "Offline: seed-repair < seed.txt | seed-to-master | derive --preset scan-js --match targets.txt --address-list. Only checksum-valid candidates are derived, and --match prints only PUBLIC addresses matching a known one.",
       "Feed matching addresses to find_money.",
     ],
     code: MISSING_WORD,
-    tools: ["@scure/bip39", "btcrecover (seedrecover.py)"],
+    tools: ["blocktools (seed-repair, seed-to-master, derive)", "btcrecover (seedrecover.py)"],
     page: `${SITE}/recover/seed-phrase`,
   },
   {
@@ -331,11 +249,12 @@ export const RECOVERY_BRANCHES: RecoveryBranch[] = [
     when: "The 12/24 words are known, but the optional BIP39 passphrase is not, so derived addresses don't match what the user remembers.",
     steps: [
       "Build passwordlist.txt from THEIR personal hints only (pets, years, keyboard walks, old passwords they volunteer). Never use a public dump.",
-      "Run btcrecover offline against a known address from that wallet.",
-      "On match, derive addresses and call find_money.",
+      "Offline: seed-to-master --passphrase-file passphrases.txt < seed.txt | derive --preset scan-js --match targets.txt --address-list (targets.txt = a known address from that wallet).",
+      "For typo-style brute force of a passphrase, use btcrecover offline (blocktools does not do this).",
+      "On match, derive the full address list for that passphrase and call find_money_batch.",
     ],
     code: PASSPHRASE,
-    tools: ["btcrecover"],
+    tools: ["blocktools (seed-to-master, derive)", "btcrecover"],
     page: `${SITE}/recover/seed-phrase`,
   },
   {
@@ -344,12 +263,12 @@ export const RECOVERY_BRANCHES: RecoveryBranch[] = [
     when: "User has a UTC--…json or a 'Keystore File' download, and (hopefully) the password.",
     steps: [
       "Work on a COPY of the file. Never upload it.",
-      "If the password is known: decrypt offline with eth-account; print the address; find_money.",
+      "If the password is known: decrypt offline with blocktools: read-file keystore.pw UTC--copy.json | keystore-open | redact (prints the address, key [REDACTED]); find_money.",
       "If the password is forgotten: btcrecover with a passwordlist built from their hints + --typos.",
       "Import the key into a local wallet only long enough to sign recovery txs (verify_tx first, human sign-off).",
     ],
     code: KEYSTORE_V3,
-    tools: ["eth-account", "btcrecover"],
+    tools: ["blocktools (keystore-open, redact)", "btcrecover"],
     page: `${SITE}/recover/keystore`,
   },
   {
@@ -424,11 +343,15 @@ export const RECOVERY_BRANCHES: RecoveryBranch[] = [
     title: "Raw private key or WIF already in hand",
     when: "User has a 0x… hex key or a WIF string written down.",
     steps: [
-      "Do not paste it into chat. Import into a local wallet or derive the address with a one-shot offline script.",
+      "Do not paste it into chat. Put it in a local key.txt and run blocktools offline: key-to-addresses < key.txt | redact (public addresses on every chain, compressed and uncompressed BTC).",
       "find_money on the address. Sweep to a fresh wallet after recovery.",
     ],
     code: RAW_KEY,
-    tools: ["eth-account", "Rabby / MetaMask import", "Electrum / Sparrow"],
+    tools: [
+      "blocktools (key-to-addresses, redact)",
+      "Rabby / MetaMask import",
+      "Electrum / Sparrow",
+    ],
   },
   {
     id: "password-hints",
@@ -484,12 +407,13 @@ export function recoveryGuide(situation: Situation | string = "full") {
       "Recover keys LOCALLY and OFFLINE on the user's machine. SwapChan and the agent never see seeds, keys, passwords or wallet files. Only PUBLIC addresses are sent to find_money.",
     warnings: KEY_WARNINGS,
     decisionTree: DECISION_TREE,
+    blocktools: BLOCKTOOLS,
     derivationPaths: DERIVATION_PATHS,
     uncompressedKeys: UNCOMPRESSED_KEYS,
     gapPolicy: GAP_POLICY,
     situations: branches,
     nextSteps: [
-      "find_money_batch with EVERY labeled public address the local script printed (GAP per path, all paths, all passphrase candidates); find_money for a single address",
+      "find_money_batch with EVERY labeled public address in addresses.txt (blocktools derive --address-list) (GAP per path, all paths, all passphrase candidates); find_money for a single address",
       "verify_tx on every unsigned recovery / swap tx",
       "human reviews the verify_tx summary and signs in THEIR wallet (hardware preferred)",
       "broadcast_tx (optional; Flashbots Protect on Ethereum mainnet) then tx_status",
@@ -502,6 +426,6 @@ export function recoveryGuide(situation: Situation | string = "full") {
       signingGuide: `${SITE}/agents/secure-signing`,
     },
     trust:
-      "SwapChan never receives secrets, never signs, never holds keys or funds. This guide is information plus reference code the human runs locally.",
+      "SwapChan never receives secrets, never signs, never holds keys or funds. This guide is information plus blocktools commands the human runs locally.",
   };
 }

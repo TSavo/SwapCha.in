@@ -2001,7 +2001,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "signing_guide",
     {
       title: "How to let an AI agent sign crypto safely (full playbook)",
-      description: `FULL in-context playbook. Signing starts with "do you have the key?" Step 1 key recovery (complete BIP39, missing word, passphrase, keystore v3, 2014-15 Ethereum presale, Electrum, wallet.dat, blockchain.info, hardware, raw key, password-hints) with reference code the human runs LOCALLY OFFLINE; only PUBLIC addresses leave the machine. Step 2 verify_tx. Step 3 human sign-off on EVERY tx and sign in their own wallet. Step 4 broadcast_tx. Pass situation to get one branch, or situation=full (default) for everything. Never ask the user to paste a seed or key into chat. ${DISPLAY}`,
+      description: `FULL in-context playbook. Signing starts with "do you have the key?" Step 1 key recovery (complete BIP39, missing word, passphrase, keystore v3, 2014-15 Ethereum presale, Electrum, wallet.dat, blockchain.info, hardware, raw key, password-hints) with blocktools commands the human runs LOCALLY OFFLINE; only PUBLIC addresses leave the machine. Step 2 verify_tx. Step 3 human sign-off on EVERY tx and sign in their own wallet. Step 4 broadcast_tx. Pass situation to get one branch, or situation=full (default) for everything. Never ask the user to paste a seed or key into chat. ${DISPLAY}`,
       inputSchema: z.object({
         chain: z.enum(["evm", "solana", "tron"]).optional(),
         situation: situationArg,
@@ -2021,7 +2021,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "recovery_guide",
     {
       title: "Wallet / key recovery playbook (local, offline)",
-      description: `Step 1 of signing_guide, also callable alone. Returns the COMPLETE recovery playbook in-context (or one branch via situation=): BIP39 scan across MetaMask/Ledger Live/Ledger legacy/Trezor/Phantom/Solflare/Trust/Exodus/TronLink and BTC BIP44/49/84/86 paths, missing-word checksum brute force, BIP39 passphrase search, Ethereum keystore v3, 2014-15 presale JSON, Electrum seeds, wallet.dat (btcrecover), blockchain.info legacy, hardware wallets, raw keys, password-guessing from the user's own hints. Reference code runs on the user's machine; SwapChan never receives secrets. Strong warnings against pasting phrases into chat or "recovery service" scams. After addresses: find_money -> verify_tx -> human signs -> broadcast_tx. ${DISPLAY}`,
+      description: `Step 1 of signing_guide, also callable alone. Returns the COMPLETE recovery playbook in-context (or one branch via situation=): BIP39 scan across MetaMask/Ledger Live/Ledger legacy/Trezor/Phantom/Solflare/Trust/Exodus/TronLink and BTC BIP44/49/84/86 paths, missing-word checksum brute force, BIP39 passphrase search, Ethereum keystore v3, 2014-15 presale JSON, Electrum seeds, wallet.dat (btcrecover), blockchain.info legacy, hardware wallets, raw keys, password-guessing from the user's own hints. Commands use open-source blocktools on the user's machine (passphrase typo search and presale use btcrecover / pyethsaletool); SwapChan never receives secrets. Strong warnings against pasting phrases into chat or "recovery service" scams. After addresses: find_money -> verify_tx -> human signs -> broadcast_tx. ${DISPLAY}`,
       inputSchema: z.object({ situation: situationArg }),
       annotations: ro,
     },

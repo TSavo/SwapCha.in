@@ -14,6 +14,7 @@
 - Unsigned sweeps: GET https://api.swapchan.com/onchain/utxo-sweep?coin=&from=&to= , page https://swapchan.com/recover?sweep=utxo&coin=&from=
 - Liquidity/Pendle exits carry live-quoted minimum outputs (1% slippage) and a 20-minute deadline; submitting through a private RPC is recommended.
 - Guide: https://swapchan.com/find-money/guide
+- Lost the wallet app? MCP recovery_guide / https://swapchan.com/recover: the human runs open-source blocktools (https://github.com/TSavo/blocktools, build from source) OFFLINE, e.g. `seed-to-master < seed.txt | derive --preset scan-js --address-list > addresses.txt`, and pastes only the PUBLIC addresses.txt into find_money_batch. Never paste a seed or key; SwapChan never sees keys.
 
 ## Earn with SwapChan (agent builders, bots, sites)
 - 5 bp (half of SwapChan's 0.1% fee) on every swap routed with your partner id, when the provider verifies the fee.

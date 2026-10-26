@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentCTAs } from "@/components/AgentCTA";
-import { DEV_TOOLS, POWERED_BY } from "@/lib/devTools";
+import { PoweredBy } from "@/components/devtools/PoweredBy";
+import { DEV_TOOLS } from "@/lib/devTools";
 import { TOOLS } from "@/lib/toolList";
 
 export const metadata: Metadata = {
@@ -81,7 +82,9 @@ export default function ToolsHub() {
           </Link>
           .
         </p>
-        <p className="mt-3 text-xs text-violet-400">{POWERED_BY}</p>
+        <p className="mt-3 text-xs text-violet-400">
+          <PoweredBy />
+        </p>
       </section>
       <section className="mt-10 rounded-3xl border border-fuchsia-400/40 bg-gradient-to-br from-violet-900 to-fuchsia-900/70 p-6">
         <h2 className="text-2xl font-black">Give your AI agent all of these</h2>

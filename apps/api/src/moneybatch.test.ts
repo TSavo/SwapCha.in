@@ -88,6 +88,25 @@ describe("batch dedupe", () => {
     expect(v.totalEstUsd).toBe(10);
     expect(v.wallets[1]!.duplicateOf).toBeTruthy();
   });
+  it("reads blocktools `derive --address-list` output (label<TAB>path<TAB>address) with labels", () => {
+    // Real lines from `seed-to-master | derive --preset scan-js --address-list` for the BIP39 test vector.
+    const txt = [
+      "MetaMask/Trezor/Trust/Exodus/Rabby EVM\tm/44'/60'/0'/0/0\t0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+      "Ledger Live EVM\tm/44'/60'/0'/0/0\t0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+      "Solflare legacy/Sollet Solana\tm/44'/501'/0'\tGjJyeC1r2RgkuoCWMyPYkCWSGSGLcz266EaAkLA27AhL",
+      "LTC legacy (L...)\tm/44'/2'/0'/0/0\tLUWPbpM43E2p7ZSh8cyTBEkvpHmr3cB8Ez",
+      "MetaMask/Trezor/Trust/Exodus/Rabby EVM\tm/44'/60'/0'/0/0 [passphrase #1]\t0x0000000000000000000000000000000000000001",
+    ].join("\n");
+    const { addresses } = parseAddresses(txt);
+    expect(addresses.map((a) => a.input)).toEqual([
+      "0x9858EfFD232B4033E47d90003D41EC34EcaEda94",
+      "GjJyeC1r2RgkuoCWMyPYkCWSGSGLcz266EaAkLA27AhL",
+      "LUWPbpM43E2p7ZSh8cyTBEkvpHmr3cB8Ez",
+      "0x0000000000000000000000000000000000000001",
+    ]);
+    for (const a of addresses) expect(a.label).toMatch(/m\/44'/);
+    expect(addresses[0]!.label).toContain("MetaMask");
+  });
   it("takes hundreds of labeled addresses (text lines or objects)", () => {
     const hex = (i: number) => `0x${i.toString(16).padStart(40, "0")}`;
     const text = Array.from(
