@@ -104,6 +104,14 @@ export function DevToolForm({ tool }: { tool: DevTool }) {
                     <option key={o}>{o}</option>
                   ))}
                 </select>
+              ) : f.kind === "block" ? (
+                <textarea
+                  {...common}
+                  rows={6}
+                  maxLength={f.max ?? 12000}
+                  placeholder={f.placeholder}
+                  onChange={(e) => set(e.target.value)}
+                />
               ) : f.kind === "lines" ? (
                 <textarea
                   {...common}

@@ -14,6 +14,13 @@ import { blocktools } from "./blocktools.js";
  *   tron-tx takes UNSIGNED raw_data only and refuses a tx that carries signatures (signed_tx_refused).
  */
 export const MAX_BODY = 4096;
+/** Tools whose public input is naturally larger (contract bytecode, EIP-712 documents, ABIs). */
+export const BIG_BODY: Record<string, number> = {
+  "bytecode-inspect": 60_000,
+  "typed-data-verify": 16_384,
+  "evm-abi": 16_384,
+};
+export const bodyLimit = (fn: string) => (Object.hasOwn(BIG_BODY, fn) ? BIG_BODY[fn]! : MAX_BODY);
 export const RATE_PER_MIN = 30;
 const MAX_STR = 1024;
 
@@ -49,16 +56,31 @@ export function refuseSecrets(v: unknown, depth = 0): void {
 }
 
 type In = Record<string, unknown>;
-const str = (i: In, k: string, re?: RegExp): string => {
+const str = (i: In, k: string, re?: RegExp, max = MAX_STR): string => {
   const v = i[k];
   if (typeof v !== "string" || !v.trim()) return bad(`missing_${k}`);
   const s = v.trim();
-  if (s.length > MAX_STR) return bad(`too_long_${k}`);
+  if (s.length > max) return bad(`too_long_${k}`);
   if (re && !re.test(s)) return bad(`bad_${k}`);
   return s;
 };
-const optStr = (i: In, k: string, re?: RegExp) =>
-  i[k] === undefined || i[k] === "" ? undefined : str(i, k, re);
+const optStr = (i: In, k: string, re?: RegExp, max = MAX_STR) =>
+  i[k] === undefined || i[k] === "" ? undefined : str(i, k, re, max);
+/** A JSON document given either as an object or as JSON text (pasted into a page). */
+const doc = (i: In, k: string, max: number): string => {
+  const v = i[k];
+  if (v && typeof v === "object") {
+    const t = JSON.stringify(v);
+    return t.length > max ? bad(`too_long_${k}`) : t;
+  }
+  const t = str(i, k, undefined, max);
+  try {
+    JSON.parse(t);
+  } catch {
+    bad(`bad_${k}`);
+  }
+  return t;
+};
 const int = (i: In, k: string, def: number, min: number, max: number): number => {
   const v = i[k] ?? def;
   const n = typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v;
@@ -67,6 +89,14 @@ const int = (i: In, k: string, def: number, min: number, max: number): number =>
 };
 const CHAIN = /^[a-z0-9]{2,8}$/;
 const HEX = /^(0x)?([0-9a-fA-F]{2})*$/;
+const EVM_ADDR = /^0x[0-9a-fA-F]{40}$/;
+/** ABI args: a JSON array, or JSON array text from a page field. */
+const args = (i: In): unknown[] => {
+  const v = i.args ?? [];
+  const a = typeof v === "string" ? (v.trim() ? (json(v) as unknown) : []) : v;
+  if (!Array.isArray(a) || a.length > 64) return bad("bad_args");
+  return a;
+};
 const unhex = (s: string) => s.replace(/^0x/, "");
 const json = (s: string) => JSON.parse(s) as unknown;
 
@@ -207,6 +237,43 @@ export const DEV_TOOLS: Record<string, (i: In) => unknown> = {
     if ((d.signatures ?? 0) > 0) bad("signed_tx_refused");
     return op === "txid" ? { txid: w().tronTxId(hex) } : d;
   },
+  // EVM tools (blocktools 4e4a404 / 5dd2037 / 69e09b9): ABI, CREATE/CREATE2, bytecode, EIP-712.
+  // All hashing, ABI coding and signer recovery runs in blocktools; SwapChan only shapes input.
+  "evm-abi": (i) => {
+    const op = str(i, "op", /^(encode|decode|inspect)$/);
+    if (op === "inspect") return json(w().evmAbiInspect(str(i, "abi", undefined, 12_000)));
+    if (op === "encode")
+      return json(w().evmAbiEncode(JSON.stringify({ sig: str(i, "sig"), args: args(i) })));
+    const req: Record<string, unknown> = { input: str(i, "input", HEX, 12_000) };
+    const sig = optStr(i, "sig");
+    const abi = optStr(i, "abi", undefined, 12_000);
+    const types = optStr(i, "types", /^\(.*\)$/);
+    if (sig) req.sig = sig;
+    if (abi) req.abi = abi;
+    if (types) req.types = types;
+    if (i.output === true || i.output === "true") req.output = true;
+    return json(w().evmAbiDecode(JSON.stringify(req)));
+  },
+  "create-address": (i) => {
+    const deployer = str(i, "deployer", EVM_ADDR);
+    const salt = optStr(i, "salt", /^(0x)?[0-9a-fA-F]{64}$/);
+    if (!salt) {
+      const n = i.nonce;
+      const nonce = typeof n === "number" ? n : str(i, "nonce", /^(0x[0-9a-fA-F]{1,16}|\d{1,20})$/);
+      return json(w().evmCreateAddress(JSON.stringify({ deployer, nonce })));
+    }
+    const hash = optStr(i, "init_code_hash", /^(0x)?[0-9a-fA-F]{64}$/);
+    const req: Record<string, unknown> = { deployer, salt };
+    if (hash) req.init_code_hash = hash;
+    else req.init_code = str(i, "init_code", HEX, 12_000);
+    return json(w().evmCreateAddress(JSON.stringify(req)));
+  },
+  "bytecode-inspect": (i) => json(w().evmBytecodeInspect(str(i, "code", HEX, 59_000))),
+  "typed-data-verify": (i) => {
+    const sig = optStr(i, "signature", /^(0x)?([0-9a-fA-F]{128}|[0-9a-fA-F]{130})$/);
+    const signer = optStr(i, "signer", EVM_ADDR);
+    return json(w().evmTypedDataVerify(doc(i, "typed_data", 15_000), sig ?? null, signer ?? null));
+  },
   "supported-chains": (i) => {
     const all = [
       ...(json(w().supportedChains()) as { name: string; ticker: string }[]),
@@ -260,7 +327,14 @@ export function devToolRoutes(opts: { perMinute?: number; now?: () => number } =
   const now = opts.now ?? Date.now;
   const windows = new Map<string, { start: number; count: number }>();
   const r = new Hono();
-  r.get("/", (c) => c.json({ tools: Object.keys(DEV_TOOLS), maxBody: MAX_BODY, perMinute: limit }));
+  r.get("/", (c) =>
+    c.json({
+      tools: Object.keys(DEV_TOOLS),
+      maxBody: MAX_BODY,
+      bigBody: BIG_BODY,
+      perMinute: limit,
+    }),
+  );
   r.post("/:fn", async (c) => {
     c.header("cache-control", "no-store");
     const t = now();
@@ -279,11 +353,11 @@ export function devToolRoutes(opts: { perMinute?: number; now?: () => number } =
       return c.json({ ok: false, error_code: "rate_limited" }, 429);
     }
     const fn = c.req.param("fn");
-    if (Number(c.req.header("content-length") ?? 0) > MAX_BODY)
+    const cap = bodyLimit(fn);
+    if (Number(c.req.header("content-length") ?? 0) > cap)
       return c.json({ ok: false, tool: fn, error_code: "body_too_large" }, 413);
     const raw = await c.req.text().catch(() => "");
-    if (raw.length > MAX_BODY)
-      return c.json({ ok: false, tool: fn, error_code: "body_too_large" }, 413);
+    if (raw.length > cap) return c.json({ ok: false, tool: fn, error_code: "body_too_large" }, 413);
     let body: unknown;
     try {
       body = JSON.parse(raw);

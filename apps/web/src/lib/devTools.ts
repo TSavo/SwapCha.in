@@ -12,7 +12,9 @@ export const POWERED_BY = "Powered by blocktools";
 export type Field = {
   name: string;
   label: string;
-  kind?: "text" | "number" | "lines" | "select";
+  /** block: multi-line text sent as one string (JSON, ABI, bytecode); lines: whitespace-split list */
+  kind?: "text" | "number" | "lines" | "select" | "block";
+  max?: number;
   options?: string[];
   placeholder?: string;
   optional?: boolean;
@@ -756,6 +758,306 @@ export const DEV_TOOLS: DevTool[] = [
       },
     ],
     related: ["validate-address", "convert-address", "chain-params"],
+  },
+  {
+    slug: "evm-abi",
+    name: "ABI encoder, decoder & inspector",
+    emoji: "🧩",
+    mcp: "evm_abi",
+    title: "Ethereum ABI Encoder & Calldata Decoder (+ ABI Inspector) | SwapChan",
+    description:
+      "Encode Solidity function calls to calldata, decode calldata, return data and reverts, and inspect an ABI for selectors and interfaces.",
+    h1: "Ethereum ABI encoder, calldata decoder and ABI inspector",
+    intro:
+      "Turn a function signature and arguments into calldata, decode calldata back into readable arguments, or paste an ABI to list its selectors and the standards it implements.",
+    body: [
+      "Encoding takes a signature like transfer(address,uint256) and a JSON list of arguments, and gives the 4-byte selector plus the full calldata. Decoding takes calldata (or return data with a type list such as (uint256,address)) and a signature or ABI, and shows each argument with its type.",
+      "The inspector lists every function, event and error with its selector or topic, flags selector collisions, and checks the ERC-165, ERC-20, ERC-721 and ERC-1155 interfaces. The decoder is strict: non-canonical encodings are refused rather than guessed.",
+    ],
+    keywords: ["abi encoder", "calldata decoder", "function selector", "abi decode online"],
+    faq: [
+      {
+        q: "What format do arguments use?",
+        a: "A JSON list. Numbers can be decimal or 0x hex strings, addresses can be checksummed or one case, and arrays and tuples are nested JSON lists.",
+      },
+      {
+        q: "Can it decode a revert?",
+        a: "Yes. Paste the revert data with the error signature or ABI. Panic codes are explained.",
+      },
+      {
+        q: "What does a selector collision mean?",
+        a: "Two different functions in the ABI share the same 4-byte selector, so a call could reach the wrong one. It is rare but worth knowing about.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "encode",
+        label: "Encode",
+        fn: "evm-abi",
+        op: "encode",
+        fields: [
+          { name: "sig", label: "Function signature", placeholder: "transfer(address,uint256)" },
+          {
+            name: "args",
+            label: "Arguments (JSON list)",
+            kind: "block",
+            placeholder: '["0x…", "1000"]',
+          },
+        ],
+      },
+      {
+        id: "decode",
+        label: "Decode",
+        fn: "evm-abi",
+        op: "decode",
+        fields: [
+          {
+            name: "input",
+            label: "Calldata / return data (hex)",
+            kind: "block",
+            placeholder: "0xa9059cbb…",
+          },
+          {
+            name: "sig",
+            label: "Signature",
+            placeholder: "transfer(address,uint256)",
+            optional: true,
+          },
+          {
+            name: "abi",
+            label: "ABI (JSON or one signature per line)",
+            kind: "block",
+            optional: true,
+          },
+          {
+            name: "types",
+            label: "Return types",
+            placeholder: "(uint256,address)",
+            optional: true,
+          },
+        ],
+      },
+      {
+        id: "inspect",
+        label: "Inspect ABI",
+        fn: "evm-abi",
+        op: "inspect",
+        fields: [{ name: "abi", label: "ABI (JSON or one signature per line)", kind: "block" }],
+      },
+    ],
+    examples: [
+      {
+        label: "ERC-20 transfer",
+        mode: "encode",
+        values: {
+          sig: "transfer(address,uint256)",
+          args: '["0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB", "1000000000000000000"]',
+        },
+      },
+      {
+        label: "Decode transfer",
+        mode: "decode",
+        values: {
+          input:
+            "0xa9059cbb000000000000000000000000bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb0000000000000000000000000000000000000000000000000de0b6b3a7640000",
+          sig: "transfer(address,uint256)",
+        },
+      },
+      {
+        label: "ERC-165",
+        mode: "inspect",
+        values: { abi: "function supportsInterface(bytes4) view returns (bool)" },
+      },
+    ],
+    related: ["bytecode-inspect", "create-address", "typed-data-verify"],
+  },
+  {
+    slug: "create-address",
+    name: "CREATE / CREATE2 address calculator",
+    emoji: "🏗️",
+    mcp: "create_address",
+    title: "CREATE & CREATE2 Contract Address Calculator | SwapChan",
+    description:
+      "Compute the address a contract will be deployed at, from the deployer and nonce (CREATE) or salt and init code (CREATE2).",
+    h1: "Contract address calculator (CREATE and CREATE2)",
+    intro:
+      "Find out where a contract will land before it is deployed: from a deployer and its nonce, or from a factory, a salt and the init code or its hash.",
+    body: [
+      "A plain CREATE address depends only on the deployer and its nonce, so you can predict every contract an account will deploy. CREATE2 (EIP-1014) uses the factory address, a 32-byte salt and the keccak-256 of the init code instead, which is how counterfactual wallets and deterministic deployments work.",
+      "Give either the init code or its hash for CREATE2. Results are EIP-55 checksummed.",
+    ],
+    keywords: [
+      "create2 address calculator",
+      "contract address from nonce",
+      "predict contract address",
+    ],
+    faq: [
+      {
+        q: "Which nonce do I use?",
+        a: "The deployer's transaction count at the time of the deploy. For a contract deployer, it is the contract's own nonce, which starts at 1.",
+      },
+      {
+        q: "Do I need the full init code for CREATE2?",
+        a: "No. The keccak-256 hash of the init code is enough.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "create",
+        label: "CREATE",
+        fn: "create-address",
+        fields: [
+          { name: "deployer", label: "Deployer address", placeholder: "0x…" },
+          { name: "nonce", label: "Nonce", placeholder: "0" },
+        ],
+      },
+      {
+        id: "create2",
+        label: "CREATE2",
+        fn: "create-address",
+        fields: [
+          { name: "deployer", label: "Factory address", placeholder: "0x…" },
+          { name: "salt", label: "Salt (32 bytes hex)", placeholder: "0x00…" },
+          { name: "init_code_hash", label: "Init code hash", placeholder: "0x…", optional: true },
+          { name: "init_code", label: "Init code (hex)", kind: "block", optional: true },
+        ],
+      },
+    ],
+    examples: [
+      {
+        label: "Nonce 0",
+        mode: "create",
+        values: { deployer: "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826", nonce: "0" },
+      },
+      {
+        label: "CREATE2",
+        mode: "create2",
+        values: {
+          deployer: "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826",
+          salt: "0x1111111111111111111111111111111111111111111111111111111111111111",
+          init_code: "0x6080604052348015600f57600080fd5b50",
+        },
+      },
+    ],
+    related: ["bytecode-inspect", "evm-abi", "validate-address"],
+  },
+  {
+    slug: "bytecode-inspect",
+    name: "Contract bytecode inspector",
+    emoji: "🔬",
+    mcp: "bytecode_inspect",
+    title: "EVM Bytecode Inspector: Proxy, 7702, EOF, Solidity Metadata | SwapChan",
+    description:
+      "Paste contract runtime bytecode to see if it is a minimal proxy, an EIP-7702 delegation or EOF, its size limit status, Solidity metadata and likely selectors.",
+    h1: "EVM bytecode inspector",
+    intro:
+      "Paste the runtime code of a contract (eth_getCode) to see what kind of code it is, where a proxy or delegation points, and what is inside.",
+    body: [
+      "It recognises EIP-1167 minimal proxies (and their implementation), EIP-7702 account delegations (and the delegate), and EOF containers. It reports the code size against the EIP-170 limit of 24,576 bytes and the code's keccak-256 hash.",
+      "For ordinary contracts it reads the Solidity metadata trailer (compiler version and IPFS hash), counts notable opcodes like DELEGATECALL, CREATE2 and SELFDESTRUCT, and lists 4-byte values that look like function selectors. The selector list is a heuristic, not a guarantee.",
+    ],
+    keywords: ["bytecode decoder", "minimal proxy detector", "eip-7702 delegation check"],
+    faq: [
+      {
+        q: "Where do I get the bytecode?",
+        a: "From a block explorer's contract page, or eth_getCode on any RPC. Use the deployed runtime code, not the creation code.",
+      },
+      {
+        q: "Why does it say selector candidates?",
+        a: "Selectors are guessed from the code's dispatch pattern. Most are real, but compilers can produce look-alikes.",
+      },
+      {
+        q: "What is an EIP-7702 delegation?",
+        a: "Code that makes an ordinary account run another contract's code. The page shows which contract it points to.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "inspect",
+        label: "Inspect",
+        fn: "bytecode-inspect",
+        fields: [
+          {
+            name: "code",
+            label: "Runtime bytecode (hex)",
+            kind: "block",
+            max: 59000,
+            placeholder: "0x6080…",
+          },
+        ],
+      },
+    ],
+    examples: [
+      {
+        label: "Minimal proxy",
+        mode: "inspect",
+        values: {
+          code: "0x363d3d373d3d3d363d73bebebebebebebebebebebebebebebebebebebebe5af43d82803e903d91602b57fd5bf3",
+        },
+      },
+    ],
+    related: ["evm-abi", "create-address", "validate-address"],
+  },
+  {
+    slug: "typed-data-verify",
+    name: "EIP-712 typed data hash & signature checker",
+    emoji: "🖋️",
+    mcp: "typed_data_verify",
+    title: "EIP-712 Typed Data Hash & Signature Checker | SwapChan",
+    description:
+      "Compute the EIP-712 digest of typed data and check who signed it: domain separator, message hash and the recovered signer address.",
+    h1: "EIP-712 typed data hash and signature checker",
+    intro:
+      "Paste typed data (the JSON a wallet shows for signTypedData), and optionally a signature and the address you expect, to see the hashes and whether that address really signed it.",
+    body: [
+      "The page computes the encoded type, domain separator, message hash and final digest exactly as wallets do. With a signature it recovers the signer's address; with an expected address it tells you if they match.",
+      "This checks signatures that already exist. It never signs anything and never needs a private key. Both 65-byte and EIP-2098 compact signatures are accepted.",
+    ],
+    keywords: ["eip712 hash", "verify typed data signature", "signTypedData decoder"],
+    faq: [
+      {
+        q: "What can I use this for?",
+        a: "Checking a permit, an order or a login message before you trust it: see what the digest commits to and which address signed it.",
+      },
+      {
+        q: "Does it need my key?",
+        a: "No. It only reads the typed data and a signature that already exists. Never paste a private key or seed phrase.",
+      },
+      {
+        q: "What does low_s mean?",
+        a: "Whether the signature uses the canonical low-s form most wallets and contracts require. A high-s signature can still recover an address but many contracts reject it.",
+      },
+      { q: "Is it safe?", a: SAFE_A },
+    ],
+    modes: [
+      {
+        id: "verify",
+        label: "Check",
+        fn: "typed-data-verify",
+        fields: [
+          { name: "typed_data", label: "Typed data (JSON)", kind: "block", max: 15000 },
+          { name: "signature", label: "Signature (hex)", placeholder: "0x…", optional: true },
+          { name: "signer", label: "Expected signer", placeholder: "0x…", optional: true },
+        ],
+      },
+    ],
+    examples: [
+      {
+        label: "EIP-712 Mail example",
+        mode: "verify",
+        values: {
+          typed_data:
+            '{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"Person":[{"name":"name","type":"string"},{"name":"wallet","type":"address"}],"Mail":[{"name":"from","type":"Person"},{"name":"to","type":"Person"},{"name":"contents","type":"string"}]},"primaryType":"Mail","domain":{"name":"Ether Mail","version":"1","chainId":1,"verifyingContract":"0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"},"message":{"from":{"name":"Cow","wallet":"0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826"},"to":{"name":"Bob","wallet":"0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB"},"contents":"Hello, Bob!"}}',
+          signature:
+            "0x4355c47d63924e8a72e509b65029052eb6c299d53a04e167c5775fd466751c9d07299936d304c153f6443dfa05f40ff007d72911b6f72307f996231605b915621c",
+          signer: "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826",
+        },
+      },
+    ],
+    related: ["evm-abi", "bytecode-inspect", "create-address"],
   },
   {
     slug: "supported-chains",
