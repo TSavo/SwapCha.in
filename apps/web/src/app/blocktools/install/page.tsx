@@ -35,8 +35,9 @@ export default function Install() {
       <p className="mt-2 mb-8 text-sm text-violet-300">
         Needs the GitHub CLI (<code>gh</code>). If <code>sha256sum -c</code> fails, delete the
         archive and do not run it. Expected SHA256 of <code>{BT_TARBALL}</code>:{" "}
-        <code className="break-all">{BT_TARBALL_SHA256}</code>. The tarball holds{" "}
-        <code>bin/</code> (42 tools), man pages and recipes. It has no Dockerfile: sealed runs (<code>./blocktools build</code>) need a {BT_VERSION}
+        <code className="break-all">{BT_TARBALL_SHA256}</code>. The tarball holds <code>bin/</code>{" "}
+        (42 tools), man pages and recipes. It has no Dockerfile: sealed runs (
+        <code>./blocktools build</code>) need a {BT_VERSION}
         source checkout and Docker.
       </p>
       <h2 className="mb-2 text-xl font-black">2. Build from source</h2>
