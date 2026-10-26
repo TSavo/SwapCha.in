@@ -73,18 +73,22 @@ export default function Page() {
           </Link>
           .
         </p>
-        <pre className="overflow-x-auto rounded-xl bg-black/50 p-3 text-xs">{`# while online: build blocktools from source (read it first; no packaged release yet)
-git clone https://github.com/TSavo/blocktools && cd blocktools
-cargo build --locked --release --workspace
-export PATH="$PWD/target/release:$PATH"
+        <pre className="overflow-x-auto rounded-xl bg-black/50 p-3 text-xs">{`# while online: download blocktools v0.1.0 (Linux x86_64) and check it
+curl -LO https://github.com/TSavo/blocktools/releases/download/v0.1.0/blocktools-v0.1.0-linux-x86_64.tar.gz
+curl -LO https://github.com/TSavo/blocktools/releases/download/v0.1.0/SHA256SUMS
+sha256sum -c SHA256SUMS   # must say OK; if not, stop
+tar xzf blocktools-v0.1.0-linux-x86_64.tar.gz
+export PATH="$PWD/blocktools-v0.1.0-linux-x86_64/bin:$PATH"
 # now disconnect from the internet; put the phrase in seed.txt (never in chat)
 seed-to-master < seed.txt | derive --preset scan-js --address-list > addresses.txt
 # optional 25th-word guesses, one per line (blank is always tried too):
 seed-to-master --passphrase-file passphrases.txt < seed.txt | derive --preset scan-js --address-list > addresses.txt
 # then delete seed.txt and passphrases.txt`}</pre>
         <p className="text-sm text-violet-300">
-          blocktools is tested on Linux; macOS is untested. Its README also offers a sealed Docker
-          wrapper for opening wallet files.
+          The release is for Linux x86_64 only. On macOS or Windows, build it from source (git
+          clone, then cargo build --locked --release --workspace; macOS is untested) or use a Linux
+          machine or live USB. Its README also offers a sealed Docker wrapper for opening wallet
+          files.
         </p>
         <p className="text-sm text-violet-300">
           Checked against the public test phrase “abandon ×11 about”: index 0 gives

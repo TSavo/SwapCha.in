@@ -29,7 +29,8 @@ export default function Page() {
           <a className="underline" href={BLOCKTOOLS_URL} target="_blank" rel="noopener noreferrer">
             blocktools
           </a>{" "}
-          built from source on an offline machine, put the password in a local file and run{" "}
+          (the v0.1.0 Linux release, checked with sha256sum -c, or built from source) on an offline
+          machine, put the password in a local file and run{" "}
           <code>read-file keystore.pw UTC--copy.json | keystore-open | redact</code>. It prints the
           address with the private key shown as [REDACTED].
         </li>

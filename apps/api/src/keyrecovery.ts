@@ -86,18 +86,28 @@ export const UNCOMPRESSED_KEYS = {
 export const BLOCKTOOLS = {
   url: "https://github.com/TSavo/blocktools",
   docs: "https://github.com/TSavo/blocktools/blob/main/recipes/offline-recovery-guide.md",
+  release: "https://github.com/TSavo/blocktools/releases/tag/v0.1.0",
   install: [
+    "curl -LO https://github.com/TSavo/blocktools/releases/download/v0.1.0/blocktools-v0.1.0-linux-x86_64.tar.gz",
+    "curl -LO https://github.com/TSavo/blocktools/releases/download/v0.1.0/SHA256SUMS",
+    "sha256sum -c SHA256SUMS   # must print: blocktools-v0.1.0-linux-x86_64.tar.gz: OK",
+    "tar xzf blocktools-v0.1.0-linux-x86_64.tar.gz",
+    'export PATH="$PWD/blocktools-v0.1.0-linux-x86_64/bin:$PATH"',
+  ],
+  buildFromSource: [
     "git clone https://github.com/TSavo/blocktools && cd blocktools",
     "cargo build --locked --release --workspace   # binaries land in target/release/",
     'export PATH="$PWD/target/release:$PATH"',
   ],
-  note: "Build from source while online (no packaged release has been published yet), read the code, then DISCONNECT from the network before any step that reads a seed, key or wallet file. The project's README also describes a sealed Docker wrapper (./blocktools run). Tested on Linux; macOS is untested.",
+  note: "Download the v0.1.0 release while online and check it with sha256sum -c, read the README, then DISCONNECT from the network before any step that reads a seed, key or wallet file. The release is Linux x86_64 only (glibc); on macOS or Windows, build from source (macOS untested) or use a Linux machine or live USB. The project's README also describes a sealed Docker wrapper (./blocktools run), which needs the source checkout to build its image.",
 };
 
 const BT_INSTALL = `# blocktools (open source): ${BLOCKTOOLS.url}
-# Install from source while online (no packaged release yet), then go OFFLINE:
+# Install while online (release v0.1.0, Linux x86_64 only), then go OFFLINE:
 #   ${BLOCKTOOLS.install.join("\n#   ")}
-# Tested on Linux; macOS is untested. Read the README's safety notes first: it recommends its sealed
+# macOS/Windows: no release build; build from source (macOS untested) or use Linux:
+#   ${BLOCKTOOLS.buildFromSource.join("\n#   ")}
+# Read the README's safety notes first: it recommends its sealed
 # Docker wrapper (./blocktools run) for hostile wallet files; at minimum run these on an OFFLINE machine.`;
 
 const SEED_BT = `${BT_INSTALL}
@@ -218,7 +228,7 @@ export const RECOVERY_BRANCHES: RecoveryBranch[] = [
     title: "BIP39 seed phrase (12/15/18/21/24 words)",
     when: "User has a complete BIP39 mnemonic from MetaMask, Trust, Exodus, Ledger sheet, Trezor, Phantom, Solflare, TronLink, etc.",
     steps: [
-      "Install blocktools (https://github.com/TSavo/blocktools) on THEIR machine from source, then disconnect networking (or use a live USB). Do not ask them to paste the phrase into chat; they put it in a local seed.txt.",
+      "Install blocktools (https://github.com/TSavo/blocktools) on THEIR machine (Linux x86_64: download the v0.1.0 release and check it with sha256sum -c SHA256SUMS; other systems: build from source), then disconnect networking (or use a live USB). Do not ask them to paste the phrase into chat; they put it in a local seed.txt.",
       "They run: seed-to-master --passphrase-file passphrases.txt < seed.txt | derive --preset scan-js --address-list > addresses.txt",
       "That derives 20 addresses on each of the 15 wallet paths (EVM MetaMask/Trezor/Trust/Exodus, Ledger Live, Ledger legacy, TronLink, Phantom, Solflare legacy, BTC 44/49/84/86, LTC 44/84, DOGE, BCH, BTG; --index 0..49 for heavy users) for the blank passphrase and each candidate, and writes labeled PUBLIC addresses only (label<TAB>path<TAB>address) to addresses.txt.",
       "Send the WHOLE addresses.txt to find_money_batch (it keeps the labels; up to 500 per batch). Do not send only index 0: forgotten money is usually on account 2, 3 or a Ledger Live account.",
