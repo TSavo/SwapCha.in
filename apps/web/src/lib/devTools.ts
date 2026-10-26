@@ -8,6 +8,8 @@ import { CHAIN_COUNT, UTXO_CHAIN_COUNT } from "@swapchan/shared";
 
 export { CHAIN_COUNT, UTXO_CHAIN_COUNT };
 export const POWERED_BY = "Powered by blocktools";
+/** Public repo (made public 2026-10-26). The footer links here. */
+export const BLOCKTOOLS_URL = "https://github.com/TSavo/blocktools";
 
 export type Field = {
   name: string;

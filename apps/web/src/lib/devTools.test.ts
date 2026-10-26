@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BLOCKTOOLS_URL,
   buildInput,
   CHAIN_COUNT,
   DEV_TOOLS,
@@ -28,6 +29,7 @@ describe("developer tool pages", () => {
     expect(CHAIN_COUNT).toBe(42);
     expect(UTXO_CHAIN_COUNT).toBe(31);
     expect(POWERED_BY).toBe("Powered by blocktools");
+    expect(BLOCKTOOLS_URL).toBe("https://github.com/TSavo/blocktools");
   });
 
   it("JSON-LD: free DeveloperApplication, FAQPage matching visible FAQ, breadcrumb", () => {
@@ -107,5 +109,21 @@ describe("tron-tx, supported-chains and cashaddr encode pages", () => {
     });
     for (const s of ["tron-tx", "supported-chains"])
       expect(JSON.stringify(DEV_TOOLS.find((t) => t.slug === s))).not.toMatch(/blocktools/i);
+  });
+});
+
+describe("Powered by blocktools footer", () => {
+  it("is a link to the public repo (noopener) on every tool page and the /tools hub", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = (p: string) => readFileSync(join(__dirname, "..", p), "utf8");
+    const pb = src("components/devtools/PoweredBy.tsx");
+    expect(pb).toMatch(/<a\s+href=\{BLOCKTOOLS_URL\}/);
+    expect(pb).toMatch(/rel="noopener noreferrer"/);
+    expect(pb).toMatch(/\{POWERED_BY\}/);
+    for (const p of ["components/devtools/DevToolPage.tsx", "app/tools/page.tsx"]) {
+      expect(src(p)).toMatch(/<PoweredBy \/>/);
+      expect(src(p)).not.toMatch(/\{POWERED_BY\}/);
+    }
   });
 });

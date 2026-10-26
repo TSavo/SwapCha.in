@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
+import { BLOCKTOOLS_URL } from "@/lib/devTools";
 
 export const metadata: Metadata = {
   title: "Decrypt an Ethereum keystore v3 file (offline) | SwapChan",
   description:
-    "Recover geth, Mist, MyEtherWallet, Parity and MyCrypto UTC--…json keystores locally. Password known: eth-account. Password forgotten: btcrecover with your own hints. Never upload the JSON.",
+    "Recover geth, Mist, MyEtherWallet, Parity and MyCrypto UTC--…json keystores locally. Password known: blocktools keystore-open. Password forgotten: btcrecover with your own hints. Never upload the JSON.",
   alternates: { canonical: "/recover/keystore" },
 };
 
@@ -24,7 +25,13 @@ export default function Page() {
       </section>
       <ol className="list-decimal space-y-2 pl-6">
         <li>
-          Password known: <code>pip install eth-account</code>, decrypt offline, print address.
+          Password known: with{" "}
+          <a className="underline" href={BLOCKTOOLS_URL} target="_blank" rel="noopener noreferrer">
+            blocktools
+          </a>{" "}
+          built from source on an offline machine, put the password in a local file and run{" "}
+          <code>read-file keystore.pw UTC--copy.json | keystore-open | redact</code>. It prints the
+          address with the private key shown as [REDACTED].
         </li>
         <li>
           Password forgotten: build passwordlist.txt from YOUR hints, run btcrecover with --typos.
@@ -35,7 +42,7 @@ export default function Page() {
         <h2 className="text-2xl font-black">Use this in your agent</h2>
         <p>
           Call <code>recovery_guide</code> with <code>situation=keystore</code> (or{" "}
-          <code>password-hints</code>) for the full reference code.
+          <code>password-hints</code>) for the exact commands.
         </p>
         <AgentCTAs />
       </section>

@@ -864,7 +864,7 @@ export function signingGuide(
         n: 1,
         name: "Key recovery (do you have the key?)",
         summary:
-          "If the user cannot already sign, recover the key offline on their machine. Only PUBLIC addresses leave the box. Full playbook is in `keyRecovery` below (pass situation= to get one branch). From a phrase, derive MANY addresses: 20 per path (50+ for heavy users) on every wallet path, plus passphrase candidates (keyRecovery.gapPolicy), and send them all, labeled, to find_money_batch.",
+          "If the user cannot already sign, recover the key offline on their machine with blocktools. Only PUBLIC addresses leave the box. Full playbook is in `keyRecovery` below (pass situation= to get one branch). From a phrase, derive MANY addresses: 20 per path (50+ for heavy users) on every wallet path, plus passphrase candidates (keyRecovery.gapPolicy), and send them all, labeled, to find_money_batch.",
         tool: "recovery_guide / signing_guide",
       },
       {

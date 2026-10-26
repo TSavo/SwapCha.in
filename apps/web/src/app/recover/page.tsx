@@ -159,8 +159,8 @@ export default async function Page({
         <p>
           Call the MCP tool <code>signing_guide</code> (or <code>recovery_guide</code>). Pass{" "}
           <code>situation</code> for one branch, or <code>situation=full</code> for the complete
-          playbook in-context: every method, decision tree, derivation paths and reference code.
-          Example prompt:
+          playbook in-context: every method, decision tree, derivation paths and blocktools
+          commands. Example prompt:
         </p>
         <blockquote className="rounded-xl bg-violet-900 p-4 text-lg font-bold">
           “Help me recover my old wallet. Here’s what I still have: …”

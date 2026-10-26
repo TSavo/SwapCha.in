@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { DEV_TOOLS, type DevTool, devToolLd, POWERED_BY } from "@/lib/devTools";
+import { DEV_TOOLS, type DevTool, devToolLd } from "@/lib/devTools";
 import { DevToolForm } from "./DevToolForm";
+import { PoweredBy } from "./PoweredBy";
 
 /** Shared layout for every /tools/<slug> developer tool: H1, form, copy, FAQ, related, JSON-LD. */
 export function DevToolPage({ tool }: { tool: DevTool }) {
@@ -65,7 +66,7 @@ export function DevToolPage({ tool }: { tool: DevTool }) {
         </section>
       )}
       <footer className="mt-10 border-t border-violet-800 pt-4 text-xs text-violet-400">
-        {POWERED_BY}
+        <PoweredBy />
       </footer>
     </article>
   );

@@ -86,7 +86,7 @@ export const CATALOG: { tool: string; group: string; when: string }[] = [
   {
     tool: "recovery_guide",
     group: "sign",
-    when: "User lost the wallet app but has a phrase, old keystore, 2015 presale JSON, Electrum, wallet.dat… Local offline code; only addresses come back.",
+    when: "User lost the wallet app but has a phrase, old keystore, 2015 presale JSON, Electrum, wallet.dat… Local offline blocktools commands; only addresses come back.",
   },
   {
     tool: "broadcast_tx",
@@ -216,7 +216,7 @@ export const WORKFLOWS: Record<
     when: '"I have an old file from 2015" / "I have the words but no app."',
     steps: [
       "NEVER ask for the phrase/key/file contents in chat. Explain why (logs, scams).",
-      "recovery_guide {situation} (seed-phrase, missing-word, passphrase, keystore, presale, electrum, wallet-dat, …) → write/run the reference script LOCALLY OFFLINE with the user.",
+      "recovery_guide {situation} (seed-phrase, missing-word, passphrase, keystore, presale, electrum, wallet-dat, …) → the human runs the blocktools commands LOCALLY OFFLINE.",
       "The script prints labeled PUBLIC addresses only: GAP per path (20 default, 50+ for heavy users) on all 10 paths (MetaMask/Trezor/Trust/Exodus EVM, Ledger Live, Ledger legacy, TronLink, Phantom, Solflare legacy, BTC 44/49/84/86), for every passphrase candidate. 10 paths x 20 = 200 addresses per phrase; GAP=50 = 500.",
       "Paste ALL of them into find_money_batch (up to 500 labeled addresses per batch; labels come back as walletLabel). Never scan only index 0. If anything near index GAP-1 has activity, rerun with a bigger GAP.",
       "Then the find-money workflow. Signing happens locally (same script or an imported wallet), after verify_tx and an explicit human yes; broadcast_tx relays the signed bytes.",
