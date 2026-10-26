@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { btSelector } from "../blocktools.js";
-import { CLAIM_ALLOWLIST, verifyClaimTx } from "../intel.js";
+import { BASE_CLAIM_ALLOWLIST, CLAIM_ALLOWLIST, registryCollisions, verifyClaimTx } from "../intel.js";
 import {
   claimableNow,
+  refused,
+  validEntry,
   labels,
   REGISTRY,
   REGISTRY_ALLOWLIST,
@@ -134,5 +136,54 @@ describe("scanRegistry (mocked reads)", () => {
     const l = r.notChecked.join(" ");
     expect(l).toContain(dex[0]!.name);
     expect(l).toContain("not checked (read failed)");
+  });
+});
+
+describe("review fixes", () => {
+  it("failed balance read fails closed", () => {
+    expect(claimableNow(5n, null, true)).toBe(false);
+    expect(labels(scanned()[0]!, 5n, null).join(" ")).toMatch(/Balance read failed/);
+  });
+  it("claim selector is pinned per family; mismatching rows are refused", () => {
+    const d = scanned().find((x) => x.family === "etherdelta-dex")!;
+    const f = scanned().find((x) => x.family === "fomo3d")!;
+    expect(validEntry({ ...d, claim: "withdraw()" })).toBe(false);
+    expect(validEntry({ ...f, claim: "withdraw(uint256)" })).toBe(false);
+    expect(validEntry({ ...d, claim: "transfer(address,uint256)" })).toBe(false);
+    expect(refused()).toEqual([]);
+    for (const e of scanned())
+      expect(REGISTRY_ALLOWLIST[e.address.toLowerCase()]).toEqual([
+        btSelector(e.family === "fomo3d" ? "withdraw()" : "withdraw(uint256)"),
+      ]);
+  });
+  it("registry never collides with curated allowlist or dedicated scanners", () => {
+    expect(registryCollisions()).toEqual([]);
+    const p3d = Object.keys(BASE_CLAIM_ALLOWLIST)[0]!;
+    expect(registryCollisions(BASE_CLAIM_ALLOWLIST, { [p3d]: ["0x00000000"] })).toEqual([p3d]);
+    const idex = REGISTRY.find((e) => e.key === "idex")!.address.toLowerCase();
+    expect(registryCollisions(BASE_CLAIM_ALLOWLIST, { [idex]: ["0x00000000"] })).toEqual([idex]);
+  });
+  it("does not scan unpinned when the block number is unknown", async () => {
+    let n = 0;
+    const c = { multicall: async () => (n++, []), getBalance: async () => 0n, call: async () => ({}) };
+    const r = await scanRegistry(c as never, OWNER, undefined);
+    expect(n).toBe(0);
+    expect(r.hits).toEqual([]);
+    expect(r.notChecked.join(" ")).toMatch(/not checked \(could not read the current block\)/);
+  });
+  it("balance read failure is reported as not checked and no tx", async () => {
+    const d = scanned().find((x) => x.family === "etherdelta-dex")!;
+    const c = {
+      multicall: async (a: { contracts: { functionName: string; address: string }[] }) =>
+        a.contracts.map((x) => ({ status: "success", result: x.address === d.address ? 5n : 0n })),
+      getBalance: async () => {
+        throw new Error("rpc");
+      },
+      call: async () => ({ data: "0x" }),
+    };
+    const r = await scanRegistry(c as never, OWNER, 9n);
+    expect(r.hits.length).toBe(1);
+    expect(r.hits[0]!.tx).toBeUndefined();
+    expect(r.notChecked.join(" ")).toContain(`${d.name}: not checked (balance read failed)`);
   });
 });

@@ -29,18 +29,28 @@ export interface RegistryEntry {
   multiStep?: boolean;
 }
 export const REGISTRY = (REG as { entries: RegistryEntry[] }).entries;
-export const SCANNED_FAMILIES = new Set<Family>(["etherdelta-dex", "fomo3d"]);
-export const scanned = () =>
-  REGISTRY.filter((e) => e.status === "confirmed" && SCANNED_FAMILIES.has(e.family));
+/** The only claim each family module will ever build; pinned in code, not taken from the data file. */
+export const FAMILY_CLAIM: Record<string, string> = {
+  "etherdelta-dex": "withdraw(uint256)",
+  fomo3d: "withdraw()",
+};
+export const SCANNED_FAMILIES = new Set<Family>(Object.keys(FAMILY_CLAIM));
+/** Confirmed rows whose claim matches the family's pinned selector; any mismatch is refused (not scanned). */
+export const validEntry = (e: RegistryEntry) =>
+  e.status === "confirmed" && SCANNED_FAMILIES.has(e.family) && e.claim === FAMILY_CLAIM[e.family];
+export const scanned = () => REGISTRY.filter(validEntry);
+export const refused = () =>
+  REGISTRY.filter((e) => e.status === "confirmed" && !validEntry(e));
 
 /** (contract, exact selector) pairs for confirmed entries; merged into intel.ts CLAIM_ALLOWLIST. */
 export const REGISTRY_ALLOWLIST: Record<string, string[]> = Object.fromEntries(
-  scanned().map((e) => [e.address.toLowerCase(), [btSelector(e.claim!)]]),
+  scanned().map((e) => [e.address.toLowerCase(), [btSelector(FAMILY_CLAIM[e.family]!)]]),
 );
 
 /** Pure gating: claim only if something is owed, the contract can pay it, and the simulated claim succeeded. */
 export function claimableNow(owed: bigint, held: bigint | null, simOk: boolean) {
-  return owed > 0n && simOk && (held === null || held >= owed);
+  // fail closed: an unread balance is not proof the contract can pay
+  return owed > 0n && simOk && held !== null && held >= owed;
 }
 /** Labels shown with every item. */
 export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): string[] {
@@ -51,6 +61,7 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
     );
   if (e.ownerGated) l.push("Owner action required: the contract owner must unlock claims first");
   if (e.multiStep) l.push("Two steps: approve, then claim");
+  if (held === null) l.push("Balance read failed: could not confirm the contract can pay, so no claim is offered");
   if (held !== null && held < owed)
     l.push(
       `Underfunded: the contract holds ${formatUnits(held, 18)} ETH but owes you ${formatUnits(owed, 18)} ETH`,
@@ -85,7 +96,13 @@ export async function scanRegistry(
   owner: `0x${string}`,
   block: bigint | undefined,
 ): Promise<{ hits: RegistryHit[]; notChecked: string[] }> {
-  const at = block ? { blockNumber: block } : {};
+  // never scan unpinned: reads at different blocks could disagree and evidence would not be reproducible
+  if (block === undefined)
+    return {
+      hits: [],
+      notChecked: [`LegacyETH registry: ${REGISTRY.length} listed contracts not checked (could not read the current block)`],
+    };
+  const at = { blockNumber: block };
   const ents = scanned();
   const dex = ents.filter((e) => e.family === "etherdelta-dex");
   const fomo = ents.filter((e) => e.family === "fomo3d");
@@ -102,7 +119,7 @@ export async function scanRegistry(
     abi,
     args,
     raw: Array.isArray(raw) ? raw.map(String) : String(raw),
-    block: block?.toString(),
+    block: block.toString(),
   });
   // one Multicall3 batch for every first-stage read
   const first = await c.multicall({
@@ -220,9 +237,12 @@ export async function scanRegistry(
     }),
   );
   const notChecked: string[] = [];
+  const noBal = hits.filter((h) => h.heldWei === null).map((h) => h.entry.name);
+  if (noBal.length)
+    notChecked.push(`LegacyETH registry: ${noBal.join(", ")}: not checked (balance read failed)`);
   if (failed.length)
     notChecked.push(`LegacyETH registry: ${failed.join(", ")}: not checked (read failed)`);
-  const pending = REGISTRY.filter((e) => e.status === "not-checked");
+  const pending = REGISTRY.filter((e) => e.status === "not-checked" || (e.status === "confirmed" && !validEntry(e)));
   if (pending.length)
     notChecked.push(
       `LegacyETH registry: ${pending.length} of ${REGISTRY.length} listed contracts not checked yet (claim not confirmed; families: ${[...new Set(pending.map((e) => e.family))].join(", ")})`,
