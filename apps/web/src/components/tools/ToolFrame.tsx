@@ -61,13 +61,6 @@ export function ToolFrame({
   return (
     <article className="w-full" data-testid="tool-page">
       <script type="application/ld+json">{JSON.stringify(ld)}</script>
-      <nav className="mb-1 text-xs font-bold text-violet-300 md:text-sm">
-        <Link href="/tools" className="hover:text-amber-300">
-          Free DeFi tools
-        </Link>
-        {" · "}
-        {info.name}
-      </nav>
       <h1 className="text-2xl font-black md:text-3xl">{h1}</h1>
       <p className="mb-4 text-sm text-violet-200 md:text-base">{intro}</p>
       <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start">

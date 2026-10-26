@@ -3,8 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
+import { pageLabel, relatedFor, sectionFor } from "@/lib/sections";
 
-type Item = { href: string; label: string; icon: ReactNode; match?: (p: string) => boolean };
+type Item = {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  sec?: string;
+  match?: (p: string) => boolean;
+};
 
 const Face = () => (
   <img
@@ -17,22 +24,22 @@ const Face = () => (
 );
 
 const MAIN: Item[] = [
-  { href: "/", label: "Swap", icon: "🔁", match: (p) => p === "/" || p.startsWith("/swap") },
-  { href: "/find-money", label: "Find money", icon: <Face /> },
+  { href: "/", label: "Swap", icon: "🔁", sec: "swap" },
+  { href: "/find-money", label: "Find money", icon: <Face />, sec: "find" },
   // Label only: the route stays /dashboard.
-  { href: "/dashboard", label: "My wallet", icon: "👛" },
-  { href: "/recover", label: "Recover", icon: "🔑" },
+  { href: "/dashboard", label: "My wallet", icon: "👛", sec: "wallet" },
+  { href: "/recover", label: "Recover", icon: "🔑", sec: "recover" },
 ];
 const EXPLORE: Item[] = [
-  { href: "/tools", label: "Tools", icon: "🧰" },
-  { href: "/chains", label: "Chains", icon: "⛓️" },
-  { href: "/how-it-works", label: "How it works", icon: "✨" },
+  { href: "/tools", label: "Tools", icon: "🧰", sec: "tools" },
+  { href: "/chains", label: "Chains", icon: "⛓️", sec: "chains" },
+  { href: "/how-it-works", label: "How it works", icon: "✨", sec: "how" },
 ];
 const AGENTS: Item = {
   href: "/agents",
   label: "AI agents",
   icon: "🤖",
-  match: (p) => p === "/agents" || p.startsWith("/agents/"),
+  sec: "agents",
 };
 const DEV: Item[] = [
   { href: "/agents#setup", label: "MCP setup", icon: "🔌", match: () => false },
@@ -41,6 +48,7 @@ const DEV: Item[] = [
 
 function isActive(it: Item, p: string) {
   if (it.match) return it.match(p);
+  if (it.sec) return sectionFor(p)?.id === it.sec;
   return p === it.href || p.startsWith(`${it.href}/`);
 }
 
@@ -56,22 +64,46 @@ function NavItem({
   onNav: () => void;
 }) {
   const active = isActive(it, p);
+  const subs = active && !small && it.sec ? (sectionFor(p)?.nav ?? []) : [];
   return (
-    <Link
-      href={it.href}
-      onClick={onNav}
-      aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-2.5 rounded-xl px-2.5 font-bold transition ${
-        small ? "py-1.5 text-[13px] text-violet-300" : "py-2 text-[15px] text-violet-50"
-      } ${
-        active
-          ? "bg-amber-400 text-violet-950 shadow-[0_0_18px_rgba(251,191,36,0.45)]"
-          : "hover:bg-violet-500/30 hover:text-amber-300"
-      }`}
-    >
-      <span className="flex w-[22px] justify-center">{it.icon}</span>
-      {it.label}
-    </Link>
+    <>
+      <Link
+        href={it.href}
+        onClick={onNav}
+        aria-current={active ? "page" : undefined}
+        className={`flex items-center gap-2.5 rounded-xl px-2.5 font-bold transition ${
+          small ? "py-1.5 text-[13px] text-violet-300" : "py-2 text-[15px] text-violet-50"
+        } ${
+          active
+            ? "bg-amber-400 text-violet-950 shadow-[0_0_18px_rgba(251,191,36,0.45)]"
+            : "hover:bg-violet-500/30 hover:text-amber-300"
+        }`}
+      >
+        <span className="flex w-[22px] justify-center">{it.icon}</span>
+        {it.label}
+      </Link>
+      {subs.length > 0 && (
+        <ul
+          data-testid="nav-subitems"
+          className="mb-1 ml-[22px] border-l-2 border-amber-300/50 pl-2"
+        >
+          {subs.map((c) => (
+            <li key={c.href}>
+              <Link
+                href={c.href}
+                onClick={onNav}
+                aria-current={p === c.href ? "page" : undefined}
+                className={`block rounded-lg px-2 py-1 text-[13px] font-bold ${
+                  p === c.href ? "text-amber-300" : "text-violet-300 hover:text-amber-300"
+                }`}
+              >
+                {c.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   );
 }
 
@@ -105,6 +137,26 @@ function Sidebar({ p, onNav }: { p: string; onNav: () => void }) {
         >
           <span className="flex w-[22px] justify-center">🤖</span>For AI agents
         </Link>
+        {isActive(AGENTS, p) && (
+          <ul
+            data-testid="nav-subitems"
+            className="mt-1 ml-[22px] border-l-2 border-fuchsia-300/60 pl-2"
+          >
+            {(sectionFor(p)?.nav ?? []).map((c) => (
+              <li key={c.href}>
+                <Link
+                  href={c.href}
+                  onClick={onNav}
+                  className={`block rounded-lg px-2 py-1 text-[13px] font-bold ${
+                    p === c.href ? "text-amber-300" : "text-violet-300 hover:text-amber-300"
+                  }`}
+                >
+                  {c.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="mx-2.5 mt-4 mb-1 text-[11px] font-extrabold tracking-widest text-violet-400 uppercase">
           Explore
         </div>
@@ -131,6 +183,41 @@ function Sidebar({ p, onNav }: { p: string; onNav: () => void }) {
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Section › Page breadcrumb plus a short Related row, on every child page (not on hubs). */
+function Crumbs({ p }: { p: string }) {
+  const s = sectionFor(p);
+  if (!s || p === "/" || p === s.hub) return null;
+  const rel = relatedFor(s, p);
+  return (
+    <div className="site-chrome mx-3 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs font-bold sm:mx-6 md:text-sm">
+      <nav aria-label="Breadcrumb" data-testid="breadcrumb" className="text-violet-300">
+        <Link href={s.hub} className="hover:text-amber-300">
+          {s.label}
+        </Link>
+        <span className="mx-1.5 text-violet-500">›</span>
+        <span className="text-violet-50">{pageLabel(s, p)}</span>
+      </nav>
+      {rel.length > 0 && (
+        <div
+          data-testid="related"
+          className="flex flex-wrap items-center gap-1.5 text-[11px] md:text-xs"
+        >
+          <span className="text-violet-400">Related:</span>
+          {rel.map((r) => (
+            <Link
+              key={r.href}
+              href={r.href}
+              className="rounded-full border border-violet-600 px-2 py-0.5 text-violet-200 hover:border-amber-300 hover:text-amber-300"
+            >
+              {r.label}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -191,6 +278,7 @@ export function AppShell({ connect, children }: { connect: ReactNode; children: 
           <b className="text-amber-300">Free</b> · never holds your keys ·{" "}
           <b className="text-amber-300">your wallet signs</b>
         </div>
+        <Crumbs p={p} />
         <div className="flex-1 pb-20 md:pb-6">{children}</div>
       </div>
       <nav

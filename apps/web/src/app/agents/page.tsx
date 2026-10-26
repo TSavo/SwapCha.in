@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AgentCTAs, ClientTabs } from "@/components/AgentCTA";
+import { SectionHub } from "@/components/SectionHub";
 import { API_URL, CONFIGS, MCP_URL, TOOLS } from "@/lib/agents";
 
 const REGISTER = `curl -X POST ${API_URL}/partners -H 'content-type: application/json' \\
@@ -41,6 +42,7 @@ export default function Agents() {
         </div>
       </section>
 
+      <SectionHub id="agents" />
       <h2 id="setup" className="mt-10 mb-3 scroll-mt-4 text-2xl font-black">
         Set this up for my agent
       </h2>

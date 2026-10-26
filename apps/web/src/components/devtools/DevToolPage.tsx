@@ -18,13 +18,6 @@ export function DevToolPage({ tool }: { tool: DevTool }) {
   return (
     <article className="w-full" data-testid="devtool-page">
       <script type="application/ld+json">{JSON.stringify(devToolLd(tool))}</script>
-      <nav className="mb-1 text-xs font-bold text-violet-300 md:text-sm">
-        <Link href="/tools" className="hover:text-amber-300">
-          Free tools
-        </Link>
-        {" · Developer & chain tools · "}
-        {tool.name}
-      </nav>
       <h1 className="text-2xl font-black md:text-3xl">{tool.h1}</h1>
       <p className="mb-4 text-sm text-violet-200 md:text-base">{tool.intro}</p>
       {tool.warning && (

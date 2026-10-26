@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AgentCTASection } from "@/components/AgentCTASection";
 import { FindMoneyTool } from "@/components/FindMoneyTool";
+import { SectionHub } from "@/components/SectionHub";
 import { SwapTabs } from "@/components/SwapTabs";
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default function FindMoneyHub() {
         </div>
       </div>
       <h1 className="mb-2 text-3xl font-black">Find money you forgot about</h1>
+      <SectionHub id="find" />
       <p className="mb-4 text-violet-200">
         One scan checks wallet balances, unclaimed rewards, legacy contracts, vaults, LPs, lending,
         Lido withdrawals, Safes, dust and risky approvals across every chain SwapChan supports. Each

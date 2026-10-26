@@ -12,12 +12,6 @@ export const metadata: Metadata = {
 export default function KeyRecoveryInfo() {
   return (
     <article className="w-full max-w-3xl">
-      <nav className="mb-1 text-xs font-bold text-violet-300 md:text-sm">
-        <Link href="/tools" className="hover:text-amber-300">
-          Free tools
-        </Link>
-        {" · Key derivation & recovery"}
-      </nav>
       <h1 className="text-2xl font-black md:text-3xl">Key derivation and wallet recovery</h1>
       <p className="mb-4 text-sm text-violet-200 md:text-base">
         There is no key derivation or recovery tool on this site, on purpose. SwapChan never asks

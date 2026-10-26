@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AgentCTAs } from "@/components/AgentCTA";
+import { SectionHub } from "@/components/SectionHub";
 import { DashboardHome } from "@/components/tools/Dashboard";
 
 export const metadata: Metadata = {
@@ -18,6 +19,8 @@ export default function DashboardPage() {
         Solana and Tron.
       </p>
       <DashboardHome />
+      <div className="mt-8" />
+      <SectionHub id="wallet" />
       <section className="mt-10 rounded-3xl border border-fuchsia-400/40 bg-gradient-to-br from-violet-900 to-fuchsia-900/70 p-6">
         <h2 className="text-2xl font-black">
           Or ask your AI agent: “Here's my wallet 0x…, find me money.”

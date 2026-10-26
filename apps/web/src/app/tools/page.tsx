@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentCTAs } from "@/components/AgentCTA";
 import { PoweredBy } from "@/components/devtools/PoweredBy";
+import { SectionHub } from "@/components/SectionHub";
 import { DEV_TOOLS } from "@/lib/devTools";
 import { TOOLS } from "@/lib/toolList";
+import { trendingTokens } from "@/lib/trending";
 
 export const metadata: Metadata = {
   title: "The ultimate free DeFi toolbox: wallet money finder, simulator, PnL, gas | SwapChan",
@@ -12,7 +14,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tools" },
 };
 
-export default function ToolsHub() {
+export const revalidate = 600;
+
+export default async function ToolsHub() {
+  const tokens = (await trendingTokens()).filter((t) => t.indexable).slice(0, 40);
+  const tokenPages = tokens.flatMap((t) => [
+    { href: `/token/${t.chain}/${t.address}/pools`, label: `${t.symbol} pools` },
+    { href: `/token/${t.chain}/${t.address}/whales`, label: `${t.symbol} whales` },
+  ]);
   const ld = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -35,6 +44,12 @@ export default function ToolsHub() {
         No sign-up, no paywall, live on-chain data. Paste a wallet, token or tx and get an answer
         that ends in a best-price swap. Every tool is also an MCP tool your AI agent can call.
       </p>
+      <SectionHub
+        id="tools"
+        search
+        collapseOver={18}
+        extra={[{ id: "trending-tokens", label: "Trending token pages", items: tokenPages }]}
+      />
       <ul className="grid gap-3 sm:grid-cols-2">
         {TOOLS.map((t) => (
           <li key={t.href}>

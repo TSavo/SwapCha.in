@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentCTASection } from "@/components/AgentCTASection";
 import { RouteHub } from "@/components/RouteHub";
+import { SectionHub } from "@/components/SectionHub";
 import { ROUTES } from "@/lib/routes";
 import { CHAIN_LABEL, trendingTokens, trendSlugs } from "@/lib/trending";
 
@@ -14,7 +15,11 @@ export const metadata: Metadata = {
 };
 
 export default async function SwapHub() {
-  const trending = (await trendingTokens()).filter((t) => t.indexable).slice(0, 30);
+  const all = (await trendingTokens()).filter((t) => t.indexable);
+  const trending = all.slice(0, 30);
+  const pairs = all.flatMap((t) =>
+    trendSlugs(t).map((s) => ({ href: `/swap/${s}`, label: s.replace(/-/g, " ") })),
+  );
   return (
     <div className="w-full">
       <h1 className="mb-2 text-3xl font-black">Cheapest swap routes</h1>
@@ -22,6 +27,11 @@ export default async function SwapHub() {
         {ROUTES.length} routes, each with a live quote from 0x, CoW, Velora, LI.FI, Across and
         Relay.
       </p>
+      <SectionHub
+        id="swap"
+        search
+        extra={[{ id: "trending-pairs", label: "Every trending pair", items: pairs }]}
+      />
       {trending.length > 0 && (
         <section className="mb-8" data-testid="trending-swaps">
           <h2 className="mb-2 text-xl font-black">Trending swaps</h2>
