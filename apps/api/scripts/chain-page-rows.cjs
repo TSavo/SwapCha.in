@@ -10,6 +10,9 @@ const ACCOUNT_EXAMPLES = {
   atom: "cosmos1hsk6jryyqjfhp5dhc55tc9jtckygx0eph6dd02",
   algo: "VCMJKWOY5P5P7SKMZFFOCEROPJCZOTIJMNIYNUCKH7LRO45JMJP6UYBIJA",
   dot: "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5",
+  // ksm/polyx: the dot example's public key re-encoded with SS58 prefix 2 / 12.
+  ksm: "DnZxLFY3cddikU5Thok5wbWRMskbCrSnh316FEhfQVHwKPb",
+  polyx: "2DfAYFfZtXNuHLWiX2byrxFktDJh939eg6aKF5fiHxSAkFqy",
   ada: "addr1qx2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x",
   ton: "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N",
   xlm: "GA7QYNF7SOWQ3GLR2BGMZEHXAVIRZA4KVWLTJJFC7MGXUA74P7UJVSGZ",

@@ -57,6 +57,18 @@ const ACCOUNT: Record<string, { format: string; detail: string; tool?: string }>
       "A 32-byte sr25519 public key in SS58 with network prefix 0, which makes Polkadot addresses start with 1. The same key shows a different string on Kusama (prefix 2) or generic Substrate (prefix 42, starts with 5).",
     tool: "ss58",
   },
+  ksm: {
+    format: "SS58, network prefix 2 (starts with a capital letter)",
+    detail:
+      "The same 32-byte sr25519 public key as Polkadot, in SS58 with network prefix 2, so Kusama addresses start with a capital letter such as C, D, E, F, G, H or J. One key gives a different string on each Substrate network.",
+    tool: "ss58",
+  },
+  polyx: {
+    format: "SS58, network prefix 12 (starts with 2)",
+    detail:
+      "A 32-byte sr25519 public key in SS58 with network prefix 12, so Polymesh addresses start with 2. The same key shows a different string on Polkadot (prefix 0) or Kusama (prefix 2).",
+    tool: "ss58",
+  },
   ada: {
     format: "bech32 with the addr prefix (Shelley)",
     detail:
