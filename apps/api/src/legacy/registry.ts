@@ -39,8 +39,7 @@ export const SCANNED_FAMILIES = new Set<Family>(Object.keys(FAMILY_CLAIM));
 export const validEntry = (e: RegistryEntry) =>
   e.status === "confirmed" && SCANNED_FAMILIES.has(e.family) && e.claim === FAMILY_CLAIM[e.family];
 export const scanned = () => REGISTRY.filter(validEntry);
-export const refused = () =>
-  REGISTRY.filter((e) => e.status === "confirmed" && !validEntry(e));
+export const refused = () => REGISTRY.filter((e) => e.status === "confirmed" && !validEntry(e));
 
 /** (contract, exact selector) pairs for confirmed entries; merged into intel.ts CLAIM_ALLOWLIST. */
 export const REGISTRY_ALLOWLIST: Record<string, string[]> = Object.fromEntries(
@@ -61,7 +60,8 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
     );
   if (e.ownerGated) l.push("Owner action required: the contract owner must unlock claims first");
   if (e.multiStep) l.push("Two steps: approve, then claim");
-  if (held === null) l.push("Balance read failed: could not confirm the contract can pay, so no claim is offered");
+  if (held === null)
+    l.push("Balance read failed: could not confirm the contract can pay, so no claim is offered");
   if (held !== null && held < owed)
     l.push(
       `Underfunded: the contract holds ${formatUnits(held, 18)} ETH but owes you ${formatUnits(owed, 18)} ETH`,
@@ -100,7 +100,9 @@ export async function scanRegistry(
   if (block === undefined)
     return {
       hits: [],
-      notChecked: [`LegacyETH registry: ${REGISTRY.length} listed contracts not checked (could not read the current block)`],
+      notChecked: [
+        `LegacyETH registry: ${REGISTRY.length} listed contracts not checked (could not read the current block)`,
+      ],
     };
   const at = { blockNumber: block };
   const ents = scanned();
@@ -242,7 +244,9 @@ export async function scanRegistry(
     notChecked.push(`LegacyETH registry: ${noBal.join(", ")}: not checked (balance read failed)`);
   if (failed.length)
     notChecked.push(`LegacyETH registry: ${failed.join(", ")}: not checked (read failed)`);
-  const pending = REGISTRY.filter((e) => e.status === "not-checked" || (e.status === "confirmed" && !validEntry(e)));
+  const pending = REGISTRY.filter(
+    (e) => e.status === "not-checked" || (e.status === "confirmed" && !validEntry(e)),
+  );
   if (pending.length)
     notChecked.push(
       `LegacyETH registry: ${pending.length} of ${REGISTRY.length} listed contracts not checked yet (claim not confirmed; families: ${[...new Set(pending.map((e) => e.family))].join(", ")})`,

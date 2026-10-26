@@ -1524,7 +1524,8 @@ export function registryCollisions(
 {
   const hit = registryCollisions();
   // fail at module load (and so in every test/build smoke) rather than silently overwrite a curated entry
-  if (hit.length) throw new Error(`LegacyETH registry collides with curated claim allowlist: ${hit.join(", ")}`);
+  if (hit.length)
+    throw new Error(`LegacyETH registry collides with curated claim allowlist: ${hit.join(", ")}`);
 }
 /** Exact (contract, selector) pairs SwapChan will ever build claim txs for. */
 export const CLAIM_ALLOWLIST: Record<string, string[]> = {

@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { btSelector } from "../blocktools.js";
-import { BASE_CLAIM_ALLOWLIST, CLAIM_ALLOWLIST, registryCollisions, verifyClaimTx } from "../intel.js";
+import {
+  BASE_CLAIM_ALLOWLIST,
+  CLAIM_ALLOWLIST,
+  registryCollisions,
+  verifyClaimTx,
+} from "../intel.js";
 import {
   claimableNow,
-  refused,
-  validEntry,
   labels,
   REGISTRY,
   REGISTRY_ALLOWLIST,
+  refused,
   scanned,
   scanRegistry,
+  validEntry,
 } from "./registry.js";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as const;
@@ -165,7 +170,11 @@ describe("review fixes", () => {
   });
   it("does not scan unpinned when the block number is unknown", async () => {
     let n = 0;
-    const c = { multicall: async () => (n++, []), getBalance: async () => 0n, call: async () => ({}) };
+    const c = {
+      multicall: async () => (n++, []),
+      getBalance: async () => 0n,
+      call: async () => ({}),
+    };
     const r = await scanRegistry(c as never, OWNER, undefined);
     expect(n).toBe(0);
     expect(r.hits).toEqual([]);
