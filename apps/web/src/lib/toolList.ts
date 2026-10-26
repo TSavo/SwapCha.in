@@ -65,7 +65,7 @@ export const TOOLS: ToolInfo[] = [
     mcp: "airdrop_check",
     emoji: "🪂",
     blurb:
-      "Merkl rewards on 9 chains, legacy contracts (PoWH3D, Fomo3D, EtherDelta), Solana and Tron.",
+      "Merkl rewards on 9 chains, legacy contracts (PoWH3D, Fomo3D, EtherDelta, 43 more old DEXes and Fomo3D forks), Solana and Tron.",
     prompt: "Does vitalik.eth have anything unclaimed?",
   },
   {

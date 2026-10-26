@@ -16,6 +16,7 @@ swapchan.com/recover, checked by `verifyRecovery`, which fails closed). No tx = 
 
 - History archaeology on EVM/Tron/Solana/BTC; unknown-contract probing (ABIs + selectors, simulated).
 - Legacy: PoWH3D, Fomo3D, EtherDelta, IDEX v1, IronHands/Doublr, P3D clones, Liquity, ENS old-registrar deeds (releaseDeed).
+- LegacyETH registry (apps/api/src/legacy/registry.json, 296 contracts from legacyeth.com / its CC0 dataset): 43 confirmed and scanned (26 EtherDelta-style DEXes via tokens(0,owner) + withdraw(uint256); 17 Fomo3D forks via pIDxAddr_/getPlayerVaults + withdraw(), EOA only). 6 covered by dedicated code. The remaining 247 are reported as "not checked yet" until a family module confirms their claim with a real holder (e.g. Ethen uses balances/withdrawEther). Regenerate with scripts/gen-legacy-registry.py.
 - Lending: Aave v2/v3 + Spark withdraw tx; Compound/Venus detect.
 - Vault registry (Yearn, Beefy, Morpho, savings 4626) with redeem tx; maxWithdraw-capped.
 - Staked LP: every Curve gauge (7 chains), Convex/Aura, SushiSwap MasterChef; Uniswap v4 exits; Pendle matured PT/LP/SY.

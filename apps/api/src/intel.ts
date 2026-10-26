@@ -44,6 +44,7 @@ import {
   xrpScan,
 } from "./ledgers.js";
 import { adaScan, dotScan, tonScan } from "./ledgers2.js";
+import { REGISTRY, REGISTRY_ALLOWLIST, scanRegistry } from "./legacy/registry.js";
 import { hedgeyPlans, superfluidBalances, teamFinanceLocks, uncxLocks } from "./locks.js";
 import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
@@ -1500,14 +1501,37 @@ const LIQUITY_BORROWER_OPS = "0x24179CD81c9e782A4096035f7eC97fB8B783e007";
 const LIQUITY_TROVES = "0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2";
 /** IronHands "Doublr" (doublr.io): FIFO doubler queue funded by new deposits + P3D dividends. */
 export const IRONHANDS = "0xE58b65d1c0C8e8b2a0e3A3AcEC633271531084ED";
-/** Exact (contract, selector) pairs SwapChan will ever build claim txs for. */
-export const CLAIM_ALLOWLIST: Record<string, string[]> = {
+/** Hand-curated (contract, selector) pairs; the registry may not touch any of these. */
+export const BASE_CLAIM_ALLOWLIST: Record<string, string[]> = {
   [P3D.toLowerCase()]: [btSelector("withdraw()"), btSelector("exit()")],
   [FOMO3D.toLowerCase()]: [btSelector("withdraw()")],
   [ETHERDELTA.toLowerCase()]: [btSelector("withdraw(uint256)")],
   // payout() is permissionless, zero-value; only offered when the owner is at the head of the queue
   [IRONHANDS.toLowerCase()]: [btSelector("payout()")],
   [LIQUITY_BORROWER_OPS.toLowerCase()]: [btSelector("claimCollateral()")],
+};
+/** Registry addresses that collide with curated allowlist entries or dedicated scanners (must be empty). */
+export function registryCollisions(
+  base: Record<string, string[]> = BASE_CLAIM_ALLOWLIST,
+  reg: Record<string, string[]> = REGISTRY_ALLOWLIST,
+): string[] {
+  const dedicated = new Set([
+    ...Object.keys(base),
+    ...REGISTRY.filter((e) => e.status === "covered-elsewhere").map((e) => e.address.toLowerCase()),
+  ]);
+  return Object.keys(reg).filter((a) => dedicated.has(a.toLowerCase()));
+}
+{
+  const hit = registryCollisions();
+  // fail at module load (and so in every test/build smoke) rather than silently overwrite a curated entry
+  if (hit.length)
+    throw new Error(`LegacyETH registry collides with curated claim allowlist: ${hit.join(", ")}`);
+}
+/** Exact (contract, selector) pairs SwapChan will ever build claim txs for. */
+export const CLAIM_ALLOWLIST: Record<string, string[]> = {
+  ...BASE_CLAIM_ALLOWLIST,
+  // LegacyETH registry: confirmed contracts only, generated from apps/api/src/legacy/registry.json
+  ...REGISTRY_ALLOWLIST,
 };
 export function verifyClaimTx(tx: { to: string; data: string; value: string }) {
   const sel = tx.data.slice(0, 10).toLowerCase();
@@ -1522,7 +1546,8 @@ const claim = (chainId: number, to: string, data: `0x${string}`, description: st
 
 /** Fomo3D withdraw() pays only if the contract holds the ETH and the call succeeds. */
 export function fomoClaimable(tot: bigint, held: bigint | null, simOk: boolean) {
-  return tot > 0n && simOk && (held === null || held >= tot);
+  // fail closed: a failed balance read is not proof the contract can pay
+  return tot > 0n && simOk && held !== null && held >= tot;
 }
 /** IronHands payout(): half the balance goes to the queue head, capped at what the head is owed. */
 export function ironHandsPayNow(
@@ -1534,6 +1559,50 @@ export function ironHandsPayNow(
   const half = held - held / 2n;
   return half < head[1] ? half : head[1];
 }
+/**
+ * LegacyETH registry scan (legacy/registry.ts): every confirmed EtherDelta-style DEX and Fomo3D fork from
+ * legacyeth.com/contracts, Multicall3-batched and pinned to one block. Unconfirmed entries come back in
+ * notChecked, never as a zero.
+ */
+export async function legacyRegistry(
+  env: NodeJS.ProcessEnv,
+  owner: `0x${string}`,
+  ethPx: number | null,
+  blockNumber?: bigint,
+): Promise<{ items: Found[]; notChecked: string[] }> {
+  const c0 = evmClient(1, env);
+  const block = blockNumber ?? (await c0.getBlockNumber().catch(() => undefined));
+  const { hits, notChecked } = await scanRegistry(c0, owner, block);
+  const items: Found[] = hits.map((h) => {
+    const eth = Number(formatUnits(h.owedWei, 18));
+    const why = !h.simOk
+      ? `${h.entry.claim} reverts for you`
+      : h.heldWei === null
+        ? "the contract balance read failed, so payment could not be confirmed"
+        : "the contract holds less ETH than it owes";
+    return {
+      kind: "legacy",
+      protocol: h.entry.name,
+      chainId: 1,
+      what: h.claimable
+        ? `${eth} ETH withdrawable`
+        : `Not claimable: the contract shows ${eth} ETH for you but ${h.entry.claim} would pay nothing (${why})`,
+      valueUsd: h.claimable && ethPx ? r2(eth * ethPx) : null,
+      ...(h.tx ? { claimTx: claim(1, h.tx.to, h.tx.data, h.tx.description) } : {}),
+      action: h.claimable
+        ? `Withdraw your ETH from ${h.entry.name}, then swap on SwapChan`
+        : "Nothing to sign: the balance view counts ETH the contract cannot pay out",
+      link: h.claimable
+        ? swapUrl(1, NATIVE_TOKEN, 1, usdcOf(1)!, String(eth))
+        : `https://etherscan.io/address/${h.entry.address}`,
+      risk: ["Legacy unaudited contract.", ...h.labels].join(" "),
+      evidence: h.evidence,
+      confidence: h.claimable ? "high" : "low",
+    };
+  });
+  return { items, notChecked };
+}
+export const LEGACY_REGISTRY_SIZE = REGISTRY.length;
 export async function legacyEth(
   env: NodeJS.ProcessEnv,
   owner: `0x${string}`,
@@ -1693,7 +1762,7 @@ export async function legacyEth(
         chainId: 1,
         what: payable
           ? `${eth} ETH in win/gen/aff vaults`
-          : `Not claimable: vaults show ${eth} ETH but withdraw() would pay nothing (${sim ? "contract holds less ETH than the vaults" : "withdraw() reverts for you"})`,
+          : `Not claimable: vaults show ${eth} ETH but withdraw() would pay nothing (${!sim ? "withdraw() reverts for you" : held === null ? "contract balance read failed, so payment could not be confirmed" : "contract holds less ETH than the vaults"})`,
         valueUsd: payable ? usd(eth) : null,
         ...(payable
           ? {
@@ -3642,8 +3711,17 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           }
         return mi;
       })();
-      const legacyP = prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]).then((eth) =>
-        legacyEth(env, own, pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null),
+      const ethPxP = prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]).then(
+        (eth) => pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null,
+      );
+      const legacyP = ethPxP.then((px) => legacyEth(env, own, px));
+      const registryP = timed(
+        "LegacyETH registry",
+        ethPxP
+          .then((px) => legacyRegistry(env, own, px))
+          .then((r) => (notChecked.push(...r.notChecked), r.items)),
+        [] as Found[],
+        Number(env.FIND_LEGACY_REGISTRY_TIMEOUT_MS ?? 12_000),
       );
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
       const archChains = env.ETHERSCAN_API_KEY
@@ -3745,9 +3823,12 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           ),
         ),
       ]);
-      items.push(...(merklR as Found[]), ...(legacyR as Found[]));
+      items.push(...(merklR as Found[]), ...(legacyR as Found[]), ...(await registryP));
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
+      sources.push(
+        `LegacyETH registry (${LEGACY_REGISTRY_SIZE} listed legacy contracts; confirmed EtherDelta-style DEXes and Fomo3D forks read on-chain, the rest reported as not checked yet)`,
+      );
       items.push(
         ...(wn as Found[]),
         ...(lido as Found[]),
@@ -5776,7 +5857,16 @@ export function intelRoutes(
       const address = getAddress(need(c.req.query("address"), "address"));
       const eth = await prices(f, [{ chainId: 1, address: NATIVE_TOKEN }]);
       const ethUsd = pxOf(eth, 1, NATIVE_TOKEN)?.price ?? null;
-      const items = (await legacyEth(env, address, ethUsd)).map((i) => ({
+      const [base, reg] = await Promise.all([
+        legacyEth(env, address, ethUsd),
+        legacyRegistry(env, address, ethUsd).catch((e) => ({
+          items: [] as Found[],
+          notChecked: [
+            `LegacyETH registry: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`,
+          ],
+        })),
+      ]);
+      const items = [...base, ...reg.items].map((i) => ({
         ...i,
         ...recoveryFlow(null, null, address, {
           title: `${i.protocol}: ${i.what}`,
@@ -5788,6 +5878,7 @@ export function intelRoutes(
         address,
         ethUsd,
         items,
+        notChecked: reg.notChecked,
         fullScan: `https://swapchan.com/find-money?address=${address}`,
       };
     }),

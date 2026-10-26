@@ -106,6 +106,7 @@ describe("legacy: Fomo3D not-claimable + IronHands queue", () => {
     expect(fomoClaimable(10n, 5n, true)).toBe(false);
     expect(fomoClaimable(10n, 100n, false)).toBe(false);
     expect(fomoClaimable(0n, 100n, true)).toBe(false);
+    expect(fomoClaimable(10n, null, true)).toBe(false); // failed balance read fails closed
   });
   it("ironhands pays half the balance capped at the head's payout, only to the head", () => {
     const me = "0x00000000000000000000000000000000000000aa";
