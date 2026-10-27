@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { PoweredBy } from "@/components/devtools/PoweredBy";
 import { API_URL } from "@/lib/agents";
+import { initcodeStartsWith } from "@/lib/creationCheck";
 
 type Eip1193 = { request: (a: { method: string; params?: unknown[] }) => Promise<unknown> };
 type Param = { name: string; type: string; components?: Param[] };
@@ -350,8 +351,8 @@ function DeployCard(p: { chainId: number }) {
       // Local checks: a creation (no `to`) on this chain, exactly the checked initcode and value.
       if (c.verdict !== "pass" || c.to !== null || c.chainId !== p.chainId || !ack)
         throw new Error("the pre-signing check did not pass for this creation");
-      if (!c.data.toLowerCase().includes(code.trim().replace(/^0x/i, "").toLowerCase()))
-        throw new Error("initcode does not contain the pasted bytecode");
+      if (!initcodeStartsWith(c.data, code))
+        throw new Error("initcode does not start with the pasted bytecode");
       const prov = (await connector.getProvider()) as Eip1193;
       await prov.request({
         method: "wallet_switchEthereumChain",
