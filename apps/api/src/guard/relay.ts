@@ -8,8 +8,9 @@ import { RELAY_DEPOSITORY_PINS } from "./relayPins.js";
  * /requests only lists submitted deposits), so the quote is requested with
  * includeProtocolData and verified locally: recompute the order id from orderData, check the
  * order's recipient / min output / input payment, and bind the deposit tx to that order id
- * at Relay's canonical depository (pinned in relayPins.ts; GET /chains only for unpinned chains,
- * never from the quote). A /chains depository that disagrees with the pin fails closed.
+ * at Relay's canonical depository (pinned in relayPins.ts, never from the quote or /chains).
+ * A /chains depository that disagrees with the pin fails closed, and a source chain with no pin
+ * is refused (RELAY_CHAIN_NOT_PINNED) before /chains is even fetched.
  */
 export interface RelayOrder {
   orderId: string;
@@ -24,8 +25,8 @@ export interface RelayProtocol {
     {
       name: string;
       depository?: string;
-      /** "pinned" = /chains matched the pin; "unpinned" = /chains only. */
-      source?: "pinned" | "unpinned";
+      /** "pinned" = /chains matched the pin. Unpinned chains get no depository (fail closed). */
+      source?: "pinned";
       /** /chains disagreed with the pin: depository is withheld and deposits are refused. */
       mismatch?: { api: string; pinned: string };
     }
@@ -77,14 +78,22 @@ export function relayProtocolFromChains(
     } else if (pinned) {
       out.chains[c.id] = { name: p.chainId, depository: normDep(pinned), source: "pinned" };
     } else {
-      out.chains[c.id] = {
-        name: p.chainId,
-        ...(api ? { depository: api, source: "unpinned" as const } : {}),
-      };
+      // Unpinned: name only (needed for destination checks). The /chains depository is NOT used.
+      out.chains[c.id] = { name: p.chainId };
     }
   }
   return out;
 }
+
+/** Error code for a Relay deposit from a chain with no confirmed depository pin. */
+export const RELAY_CHAIN_NOT_PINNED = "RELAY_CHAIN_NOT_PINNED";
+/** True when SwapChan has a confirmed Relay depository pin for this chain. */
+export const relayChainPinned = (
+  chainId: number,
+  pins: Readonly<Record<number, string>> = RELAY_DEPOSITORY_PINS,
+) => Object.hasOwn(pins, chainId) && !!pins[chainId];
+export const relayNotPinnedMessage = (chainId: number) =>
+  `${RELAY_CHAIN_NOT_PINNED}: chain ${chainId} has no confirmed Relay depository pin; SwapChan refuses Relay deposits from it (no fallback to Relay's /chains list) until the depository is confirmed`;
 
 const DEPOSIT_ABI = parseAbi([
   "function depositNative(address depositor,bytes32 id)",
@@ -148,12 +157,7 @@ export function checkRelayOrder(c: Sink, i: RelayCheckInput) {
       "depository",
       `tx.to ${i.tx.to} is not Relay's canonical depository ${src.depository}`,
     );
-  c.ok(
-    "depository",
-    src.source === "pinned"
-      ? `pinned Relay depository ${src.depository} (chain list agrees)`
-      : `Relay depository ${src.depository} from chain list (chain not pinned)`,
-  );
+  c.ok("depository", `pinned Relay depository ${src.depository} (chain list agrees)`);
 
   let fn: string;
   let args: readonly unknown[];

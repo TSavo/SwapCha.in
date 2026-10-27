@@ -24,7 +24,12 @@ import {
 import { crossCheckPsbt, crossCheckSvm } from "./btcheck.js";
 import type { GuardCtx } from "./ctx.js";
 import { type Decoded, decodeApprove, decodeEvm, lifiNonEvm } from "./evm.js";
-import { checkRelayOrder, type RelayOrder } from "./relay.js";
+import {
+  checkRelayOrder,
+  type RelayOrder,
+  relayChainPinned,
+  relayNotPinnedMessage,
+} from "./relay.js";
 import {
   ata,
   checkSvmIxs,
@@ -696,6 +701,12 @@ export async function verifyPayload(p: Payload, ctx: GuardCtx): Promise<Verifica
   const sameVm = vmOf(req.fromChainId) === vmOf(req.toChainId);
   const dest = req.recipient ?? (sameVm ? req.taker : undefined);
   try {
+    // Fail closed: a Relay order from a chain with no confirmed depository pin is refused before
+    // anything else runs, so Relay's /chains list is never fetched or used as a fallback.
+    if (p.provider === "relay" && !relayChainPinned(req.fromChainId, ctx.relayPins)) {
+      c.bad("relayChainPinned", relayNotPinnedMessage(req.fromChainId));
+      return { verified: false, level: "full", checks: c.checks };
+    }
     await checkApprovals(c, p, ctx);
     if (p.order) checkOrder(c, p, dest);
     else if (p.tx && p.tx.data !== "0x") await checkEvmTx(c, p, p.tx, ctx, dest);

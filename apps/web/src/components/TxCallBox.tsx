@@ -1,4 +1,7 @@
+"use client";
+
 import { type TxCall, txCallLines } from "../lib/callSummary";
+import { CopyButton } from "./FullAddress";
 
 /** What the claim tx calls: contract (explorer link), function + selector, args in plain words. */
 export function TxCallBox({ call }: { call: TxCall }) {
@@ -10,7 +13,7 @@ export function TxCallBox({ call }: { call: TxCall }) {
     >
       <div>{fn}</div>
       <div>
-        {on}
+        {on} <CopyButton value={call.contract} />
         {call.contractExplorerUrl && (
           <>
             {" "}

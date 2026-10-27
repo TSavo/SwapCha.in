@@ -166,15 +166,51 @@ describe("Relay depository pins", () => {
     expect(v2.verified).toBe(false);
     err.mockRestore();
   });
-  it("unpinned chain: falls back to the chain list address", async () => {
+  it("unpinned chain: the chain list address is never used as a fallback", () => {
     const proto = relayProtocolFromChains(FX.chains, {});
-    expect(proto.chains[8453]).toMatchObject({ depository: DEPOSITORY, source: "unpinned" });
-    const v = await verifyPayload(payload("native"), {
-      ...ctx,
-      relayProtocol: async () => proto,
-    });
-    expect(check(v)?.ok).toBe(true);
-    expect(check(v)?.detail).toMatch(/not pinned/);
+    expect(proto.chains[8453]?.depository).toBeUndefined();
+    expect(proto.chains[8453]?.name).toBeTruthy();
+  });
+  it("unpinned source chain: refused with RELAY_CHAIN_NOT_PINNED and /chains is not consulted", async () => {
+    const relayProtocol = vi.fn(async () => relayProtocolFromChains(FX.chains));
+    const v = await verifyPayload(payload("native"), { ...ctx, relayProtocol, relayPins: {} });
+    expect(v.verified).toBe(false);
+    const bad = v.checks.find((c) => c.name === "relayChainPinned");
+    expect(bad?.ok).toBe(false);
+    expect(bad?.detail).toMatch(/^RELAY_CHAIN_NOT_PINNED: chain 8453/);
+    expect(relayProtocol).not.toHaveBeenCalled();
+  });
+  it("pinned chains behave exactly as before (only the destination unpinned is fine)", async () => {
+    const pins = { 8453: DEPOSITORY };
+    for (const k of ["native", "erc20"] as const) {
+      const v = await verifyPayload(payload(k), { ...ctx, relayPins: pins });
+      expect(v.checks.filter((c) => !c.ok)).toEqual([]);
+      expect(v.verified).toBe(true);
+      expect(v.level).toBe("full");
+      expect(check(v)?.detail).toMatch(/pinned Relay depository/);
+    }
+  });
+  it("live ctx: an unpinned source chain makes no request to Relay /chains (mocked fetch)", async () => {
+    const { liveGuardCtx } = await import("./ctx.js");
+    const f = vi.fn(async () => new Response("{}", { status: 500 }));
+    const live = liveGuardCtx({} as NodeJS.ProcessEnv, f as never);
+    const p = payload("native");
+    // xlayer 196 is deliberately unpinned in relayPins.ts.
+    const v = await verifyPayload(
+      {
+        ...p,
+        req: { ...p.req, fromChainId: 196 } as Payload["req"],
+        tx: { ...p.tx!, chainId: 196 },
+      },
+      live,
+    );
+    expect(v.verified).toBe(false);
+    expect(v.checks.find((c) => c.name === "relayChainPinned")?.detail).toMatch(
+      /RELAY_CHAIN_NOT_PINNED/,
+    );
+    expect(
+      f.mock.calls.map((c) => String((c as unknown[])[0])).filter((u) => u.includes("/chains")),
+    ).toEqual([]);
   });
   it("EVM pin comparison is case-insensitive", () => {
     const proto = relayProtocolFromChains(

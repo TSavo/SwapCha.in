@@ -115,6 +115,7 @@ const scanGate = gate(
   Number(process.env.FIND_QUEUE_WAIT_MS ?? 30_000),
 );
 
+import { fullAddress } from "./addrDisplay.js";
 import {
   broadcastClientKey,
   broadcastExtra,
@@ -170,7 +171,8 @@ const BLOCKSCOUT: Record<number, string> = {
 const TRANSFER = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)",
 );
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+/** Full address (EIP-55 for EVM), never shortened: lookalike addresses copy the ends. */
+const short = fullAddress;
 const toUsdc = (chainId: number, from: string, amount?: string) =>
   swapUrl(chainId, from, chainId, usdcOf(chainId) ?? nativeOf(chainId), amount);
 const buy = (chainId: number, token: string) =>

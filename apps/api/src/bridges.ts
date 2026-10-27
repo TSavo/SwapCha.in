@@ -20,6 +20,7 @@ import {
 } from "viem";
 import { arbitrum, mainnet, optimism } from "viem/chains";
 import { getWithdrawals, publicActionsL1, publicActionsL2 } from "viem/op-stack";
+import { fullAddress } from "./addrDisplay.js";
 import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { json, prices, pxOf } from "./onchain.js";
@@ -147,7 +148,7 @@ export async function opWithdrawals(f: F, env: NodeJS.ProcessEnv, owner: string)
         kind: step ? "claimable" : "lead",
         protocol: "Optimism bridge withdrawal",
         chainId: 1,
-        what: `L2→L1 withdrawal ${x.h.slice(0, 10)}… ${isEth ? `${n!.toPrecision(6)} ETH` : `token ${x.token.slice(0, 10)}… amount ${x.amount}`}: ${x.status}`,
+        what: `L2→L1 withdrawal ${x.h.slice(0, 10)}… ${isEth ? `${n!.toPrecision(6)} ETH` : `token ${fullAddress(x.token)} amount ${x.amount}`}: ${x.status}`,
         valueUsd: n !== null && p ? r2(n * p) : null,
         ...(x.ok
           ? {

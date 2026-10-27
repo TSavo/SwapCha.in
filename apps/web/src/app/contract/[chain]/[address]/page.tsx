@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LookupForm } from "@/components/tools/LookupForm";
 import { ToolFrame } from "@/components/tools/ToolFrame";
+import { displayAddress } from "@/lib/address";
 import { CHAIN_NAME, chainParam, intel } from "@/lib/intel";
 import { tool } from "@/lib/toolList";
 
@@ -12,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   void chainParam;
   void CHAIN_NAME;
   return {
-    title: `Contract ${p.address.slice(0, 10)}… on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}: owner powers & risks | SwapChan`,
+    title: `Contract ${displayAddress(p.address)} on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}: owner powers & risks | SwapChan`,
     description: `Is ${p.address} on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain} safe? Verified source, proxy and owner powers (pause, blacklist, mint) explained.`,
     alternates: { canonical: `/contract/${p.chain}/${p.address}` },
   };
@@ -29,7 +30,7 @@ export default async function Page({ params }: Props) {
     <ToolFrame
       info={tool("contract_reader")}
       path={`/contract/${p.chain}/${p.address}`}
-      h1={`Contract ${p.address.slice(0, 10)}… on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}`}
+      h1={`Contract ${displayAddress(p.address)} on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}`}
       intro={"Verification, proxy status and what the owner can do, in plain English."}
       data={d}
       form={

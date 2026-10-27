@@ -1,4 +1,5 @@
 import { type AbiParameter, decodeFunctionData, parseAbi } from "viem";
+import { displayAddress } from "./address";
 
 const ty = (x: AbiParameter): string =>
   x.type.startsWith("tuple") && "components" in x
@@ -135,7 +136,7 @@ export function txCallLines(c: TxCall): string[] {
       : "plain transfer (no contract call)";
   return [
     `Calls ${fn}`,
-    `on contract ${c.contract} (${c.chain})`,
+    `on contract ${displayAddress(c.contract)} (${c.chain})`,
     ...c.args.map((a) => `${a.name} (${a.type}) = ${a.value}`),
   ];
 }

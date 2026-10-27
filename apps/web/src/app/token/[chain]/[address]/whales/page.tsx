@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LookupForm } from "@/components/tools/LookupForm";
 import { ToolFrame } from "@/components/tools/ToolFrame";
+import { displayAddress } from "@/lib/address";
 import { CHAIN_NAME, chainParam, intel } from "@/lib/intel";
 import { tool } from "@/lib/toolList";
 
@@ -12,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   void chainParam;
   void CHAIN_NAME;
   return {
-    title: `Whale watch: ${p.address.slice(0, 10)}… on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain} | SwapChan`,
+    title: `Whale watch: ${displayAddress(p.address)} on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain} | SwapChan`,
     description: `Are whales buying or selling ${p.address} on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}? Large transfers, live.`,
     alternates: { canonical: `/token/${p.chain}/${p.address}/whales` },
   };
@@ -29,7 +30,7 @@ export default async function Page({ params }: Props) {
     <ToolFrame
       info={tool("whale_watch")}
       path={`/token/${p.chain}/${p.address}/whales`}
-      h1={`Whale watch: ${p.address.slice(0, 10)}… on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}`}
+      h1={`Whale watch: ${displayAddress(p.address)} on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}`}
       intro={"Large recent transfers and what the biggest wallets are doing."}
       data={d}
       form={

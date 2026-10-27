@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LookupForm } from "@/components/tools/LookupForm";
 import { ToolFrame } from "@/components/tools/ToolFrame";
+import { displayAddress } from "@/lib/address";
 import { CHAIN_NAME, chainParam, intel } from "@/lib/intel";
 import { tool } from "@/lib/toolList";
 
@@ -12,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   void chainParam;
   void CHAIN_NAME;
   return {
-    title: `Token pools & liquidity: ${p.address.slice(0, 10)}… on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain} | SwapChan`,
+    title: `Token pools & liquidity: ${displayAddress(p.address)} on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain} | SwapChan`,
     description: `Liquidity pools for ${p.address} on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}: DEX, depth, volume. Then swap it at the best price.`,
     alternates: { canonical: `/token/${p.chain}/${p.address}/pools` },
   };
@@ -29,7 +30,7 @@ export default async function Page({ params }: Props) {
     <ToolFrame
       info={tool("token_pools")}
       path={`/token/${p.chain}/${p.address}/pools`}
-      h1={`Where ${p.address.slice(0, 10)}… trades on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}`}
+      h1={`Where ${displayAddress(p.address)} trades on ${CHAIN_NAME[chainParam(p.chain)] ?? p.chain}`}
       intro={"Every pool, its DEX and its liquidity, deepest first."}
       data={d}
       form={

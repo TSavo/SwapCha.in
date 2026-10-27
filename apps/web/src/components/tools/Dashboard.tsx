@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { SpeechBubble } from "@/components/Character";
 import { ConnectButton } from "@/components/ConnectButton";
+import { FullAddress } from "@/components/FullAddress";
 import { API_URL } from "@/lib/api";
 import { describeCall } from "@/lib/callSummary";
 import { useSolana } from "@/lib/useSolana";
@@ -159,7 +160,7 @@ function SignStep({
       >
         <span>
           <b>You will sign a call to contract</b>{" "}
-          <span data-testid="sign-contract">{call.contract}</span> (chain {tx.chainId})
+          <FullAddress address={call.contract} testId="sign-contract" /> (chain {tx.chainId})
         </span>
         <span>
           <b>function</b>{" "}
@@ -277,7 +278,7 @@ export function DashboardView({ address: input }: { address: string }) {
     <div className="flex w-full flex-col gap-4" data-testid="dashboard">
       <p className="font-mono text-xs break-all text-violet-300">
         {input !== addr ? `${input} → ` : ""}
-        {addr}
+        <FullAddress address={addr} />
       </p>
       <Section title="💰 Money we found" q={money}>
         {(d) => (

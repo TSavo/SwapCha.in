@@ -1,4 +1,5 @@
 import { TRON } from "@swapchan/shared";
+import { fullAddress } from "./addrDisplay.js";
 import { b58decode, json, tronAddr } from "./onchain.js";
 import { cached } from "./scanner.js";
 
@@ -191,7 +192,7 @@ export async function tronExtras(
                 kind: "tron",
                 protocol: `Tron delegated ${res.toLowerCase()}`,
                 chainId: TRON,
-                what: `${amt / 1e6} TRX of ${res.toLowerCase()} delegated to ${to.slice(0, 6)}…${to.slice(-4)}${locked ? ` (delegation lock until ${new Date(exp!).toISOString().slice(0, 10)})` : ""}`,
+                what: `${amt / 1e6} TRX of ${res.toLowerCase()} delegated to ${fullAddress(to)}${locked ? ` (delegation lock until ${new Date(exp!).toISOString().slice(0, 10)})` : ""}`,
                 valueUsd: usd(amt / 1e6),
                 confidence: "high",
                 ...(locked

@@ -1,4 +1,5 @@
 import { concat, encodePacked, getAddress, type Hex, pad, parseAbiItem, size } from "viem";
+import { fullAddress } from "./addrDisplay.js";
 import { encodeFunctionData } from "./blocktools.js";
 import { evmClient, walletBalances } from "./onchain.js";
 import type { NewFound } from "./recover.js";
@@ -138,7 +139,7 @@ export async function ownedSafes(
           const solo = thr === 1n;
           out.push({
             kind: "claimable",
-            protocol: `Safe ${safe.slice(0, 6)}…${safe.slice(-4)}`,
+            protocol: `Safe ${fullAddress(safe)}`,
             chainId,
             what: `You own this Safe (${thr}-of-${owners.length}); it holds ${list} (live balances, priced)`,
             valueUsd: usd,
