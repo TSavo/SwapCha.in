@@ -12,6 +12,7 @@ import {
   TypedData,
 } from "@swapchan/shared";
 import { z } from "zod";
+import { currentClientIp } from "./clientctx.js";
 
 /** Error from the SwapChan HTTP API, carrying its status and message. */
 export class ApiError extends Error {
@@ -35,6 +36,8 @@ export class SwapChanApi {
     private readonly baseUrl: string,
     private readonly opts: {
       apiKey?: string | undefined;
+      /** SWAPCHAN_INTERNAL_KEY: when set, the caller IP is forwarded to the API with this proof. */
+      internalKey?: string | undefined;
       fetch?: FetchFn;
       timeoutMs?: number;
     } = {},
@@ -49,6 +52,11 @@ export class SwapChanApi {
     const headers: Record<string, string> = { accept: "application/json" };
     if (init?.body) headers["content-type"] = "application/json";
     if (this.opts.apiKey) headers["x-api-key"] = this.opts.apiKey;
+    const ip = currentClientIp();
+    if (ip && this.opts.internalKey) {
+      headers["x-swapchan-client-ip"] = ip;
+      headers["x-swapchan-internal-key"] = this.opts.internalKey;
+    }
     const f = this.opts.fetch ?? fetch;
     let res: Response;
     try {

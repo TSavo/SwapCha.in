@@ -1,6 +1,8 @@
 export interface Config {
   apiUrl: string;
   apiKey: string | undefined;
+  /** Shared secret with the API (SWAPCHAN_INTERNAL_KEY); unset = caller IPs are not forwarded. */
+  internalKey: string | undefined;
   port: number;
   host: string;
   /** Allowed MCP API keys. Empty + allowAnonymous=false => every HTTP request is rejected. */
@@ -31,6 +33,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       "",
     ),
     apiKey: env.SWAPCHAN_API_KEY || undefined,
+    internalKey: env.SWAPCHAN_INTERNAL_KEY || undefined,
     port: int(env.MCP_PORT ?? env.PORT, 8788),
     host: env.MCP_HOST ?? "127.0.0.1",
     mcpApiKeys: new Set(

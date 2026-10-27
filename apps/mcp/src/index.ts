@@ -6,7 +6,7 @@ import { createHttpServer } from "./http.js";
 import { createSwapChanServer } from "./tools.js";
 
 const cfg = loadConfig();
-const api = new SwapChanApi(cfg.apiUrl, { apiKey: cfg.apiKey });
+const api = new SwapChanApi(cfg.apiUrl, { apiKey: cfg.apiKey, internalKey: cfg.internalKey });
 
 if (process.argv.includes("--stdio") || process.env.MCP_TRANSPORT === "stdio") {
   // Local, single-user: no API key/rate limit (the process boundary is the trust boundary). Logs go to stderr.

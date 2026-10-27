@@ -15,6 +15,7 @@ services:
       # connection queued behind DNS, so all hosts looked slow at ~4% CPU.
       UV_THREADPOOL_SIZE: "64"
       # scan concurrency gate (scanctx.gate); 8 overloads the public RPCs (every scan hits 17s), 4 holds ~15s
+      SWAPCHAN_INTERNAL_KEY: ${SWAPCHAN_INTERNAL_KEY:-} # proves MCP->API calls; unset = x-swapchan-client-ip ignored
       FIND_MAX_CONCURRENT: ${FIND_MAX_CONCURRENT:-4}
       ZEROX_API_KEY: ${ZEROX_API_KEY:-}
       LIFI_API_KEY: ${LIFI_API_KEY:-}
@@ -75,6 +76,7 @@ services:
       TZ: America/Los_Angeles
       SWAPCHAN_API_URL: http://api:8787
       MCP_API_KEYS: ${MCP_API_KEYS:-}
+      SWAPCHAN_INTERNAL_KEY: ${SWAPCHAN_INTERNAL_KEY:-} # same value as api; unset = MCP callers share one API rate bucket
       MCP_ALLOW_ANONYMOUS: ${MCP_ALLOW_ANONYMOUS:-0} # deploy.sh sets 1 when no MCP keys are configured
     ports: ["127.0.0.1:8788:8788"]
     depends_on: [api]

@@ -3,6 +3,7 @@ import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import type { SwapChanApi } from "./api.js";
 import { extractKey, isValidKey, RateLimiter } from "./auth.js";
+import { withClientIp } from "./clientctx.js";
 import type { Config } from "./config.js";
 import { createSwapChanServer, SERVER_NAME, SERVER_VERSION } from "./tools.js";
 
@@ -61,7 +62,9 @@ export function createHttpServer(
       clientId,
       scopes: ["swap:quote"],
     };
-    void node(req as Parameters<typeof node>[0], res);
+    const cf = req.headers["cf-connecting-ip"];
+    const clientIp = (Array.isArray(cf) ? cf[0] : cf)?.trim() || undefined;
+    withClientIp(clientIp, () => void node(req as Parameters<typeof node>[0], res));
   });
 
   return {
