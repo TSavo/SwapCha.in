@@ -1,3 +1,4 @@
+import { getAddress } from "viem";
 import { describe, expect, it } from "vitest";
 import { blocktools } from "./blocktools.js";
 import {
@@ -17,6 +18,7 @@ const IMPL = "0x2222222222222222222222222222222222222222";
 const BEACON = "0x3333333333333333333333333333333333333333";
 const USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
 const USDC_IMPL = "0x43506849d7c04f9138d1a2050bbf3a0c054402dd";
+const USDC_IMPL_CS = getAddress(USDC_IMPL);
 const DEPLOYER = "0x6ac7ea33f8831ea9dcc53393aaa88b25a785dbf0";
 const word = (h: string) => `0x${h.replace(/^0x/, "").padStart(64, "0")}`;
 const hexOf = (s: string) => `0x${Buffer.from(s, "utf8").toString("hex")}`;
@@ -121,11 +123,23 @@ describe("proxy kinds", () => {
     });
     const { f, urls } = sourcify({ [USDC]: PROXY_ABI, [USDC_IMPL]: TOKEN_ABI });
     const info = await contractTool({ f, env: {}, rpc }).abiInfo({ chainId: 1, address: USDC });
-    expect(info.proxy).toEqual({ kind: "OpenZeppelin legacy", implementation: USDC_IMPL });
-    expect(info.abiOf).toBe(USDC_IMPL);
+    // EIP-55 checksummed for display, never lowercase
+    expect(info.proxy).toEqual({ kind: "OpenZeppelin legacy", implementation: USDC_IMPL_CS });
+    expect(info.abiOf).toBe(USDC_IMPL_CS);
+    expect(info.warnings.join(" ")).toContain(`(${USDC_IMPL_CS})`);
+    expect(info.warnings.join(" ")).not.toContain(USDC_IMPL);
     expect(info.functions.map((x) => x.name)).toContain("transfer");
     expect(info.warnings.join(" ")).toMatch(/proxy \(OpenZeppelin legacy\)/);
     expect(urls[0]).toContain(USDC_IMPL);
+    // /contract-tool/encode carries the same checksummed implementation; `to` stays the raw proxy address
+    const enc = await contractTool({ f, env: {}, rpc }).encodeCall({
+      chainId: 1,
+      address: USDC,
+      function: "setX",
+      args: ["1"],
+    });
+    expect(enc.proxy).toEqual({ kind: "OpenZeppelin legacy", implementation: USDC_IMPL_CS });
+    expect(enc.to).toBe(USDC);
   });
   it("EIP-897 fallback only when no slot matched and the ABI has implementation(); never for a pasted ABI", async () => {
     const n = net({

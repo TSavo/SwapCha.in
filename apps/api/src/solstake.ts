@@ -45,7 +45,7 @@ export async function marinadeTickets(
         kind: "claimable" as const,
         protocol: "Marinade unstake ticket",
         chainId: SOLANA,
-        what: `${a.pubkey.slice(0, 6)}…: ${sol.toFixed(4)} SOL ${ready ? "ready to claim" : `unstaking (created epoch ${created}, now ${ep.epoch})`}`,
+        what: `${a.pubkey}: ${sol.toFixed(4)} SOL ${ready ? "ready to claim" : `unstaking (created epoch ${created}, now ${ep.epoch})`}`,
         valueUsd: p ? r2(sol * p) : null,
         ...(ready
           ? {
@@ -55,7 +55,7 @@ export async function marinadeTickets(
                   kind: "svm-instructions",
                   data: { instructions: [marinadeClaimIx(a.pubkey, owner)] },
                 },
-                description: `Marinade claim(${sol.toFixed(4)} SOL) from ticket ${a.pubkey.slice(0, 8)}…`,
+                description: `Marinade claim(${sol.toFixed(4)} SOL) from ticket ${a.pubkey}`,
               },
             }
           : {}),
@@ -105,7 +105,7 @@ export async function kaminoObligations(f: F, owner: string): Promise<Found[]> {
         kind: "lending" as const,
         protocol: "Kamino Lend",
         chainId: SOLANA,
-        what: `obligation ${String(o.obligationAddress ?? "").slice(0, 6)}…: $${r2(dep)} supplied, $${r2(bor)} borrowed (net $${r2(net)})`,
+        what: `obligation ${String(o.obligationAddress ?? "")}: $${r2(dep)} supplied, $${r2(bor)} borrowed (net $${r2(net)})`,
         valueUsd: r2(net),
         action:
           "SwapChan can't build the Kamino withdraw tx yet; withdraw in Kamino, then swap on SwapChan",

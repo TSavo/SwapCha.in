@@ -2755,9 +2755,9 @@ export async function solanaArchaeology(
     const mint = info?.mint ?? "?";
     out.push({
       kind: "claimable",
-      protocol: `SPL token ${mint.slice(0, 6)}…`,
+      protocol: `SPL token ${mint}`,
       chainId: SOLANA,
-      what: `${ui} tokens (mint ${mint}) in ATA ${a.pubkey.slice(0, 8)}…`,
+      what: `${ui} tokens (mint ${mint}) in ATA ${a.pubkey}`,
       valueUsd: null,
       confidence: "medium",
       action: "Swap the SPL token on SwapChan (or close empty ATAs to reclaim rent)",
@@ -2813,7 +2813,7 @@ export async function solanaArchaeology(
       if (prog === "Stake11111111111111111111111111111111111111") continue;
       out.push({
         kind: "legacy",
-        protocol: `Solana program ${prog.slice(0, 8)}…`,
+        protocol: `Solana program ${prog}`,
         chainId: SOLANA,
         what: `Wallet history includes program ${prog} — check its dApp for claimable/unstake`,
         valueUsd: null,

@@ -1093,7 +1093,7 @@ export async function btcXpubScan(f: F, xpubOrAddr: string): Promise<StuckFound[
           kind: "claimable",
           protocol: "Bitcoin UTXO",
           chainId: BITCOIN,
-          what: `${btc} BTC across UTXOs at ${xpubOrAddr.slice(0, 12)}…`,
+          what: `${btc} BTC across UTXOs at ${xpubOrAddr}`,
           valueUsd: btcP ? r2(btc * btcP) : null,
           confidence: "high",
           action: "Spend via your wallet / SwapChan BTC route (PSBT)",
