@@ -32,6 +32,7 @@ type Result = Freshness & {
   atRiskUsd?: number;
   items: Item[];
   headline?: string;
+  burnAddress?: boolean;
   owedNotClaimableNow?: { protocol: string; owed: string | null; reason: string; link?: string }[];
   progress?: { done: number; total: number; percent: number };
   status?: string;
@@ -135,6 +136,12 @@ export function FindMoneyTool() {
           {res.progress && res.status !== "done" && (
             <p className="text-sm">
               Scanned {res.progress.done}/{res.progress.total} wallets…
+            </p>
+          )}
+          {res.burnAddress && (
+            <p className="mb-2 rounded-xl bg-violet-900 p-3 text-sm" data-testid="find-money-burn">
+              {res.headline ??
+                "This is a known burn address: assets sent here can't be recovered by anyone, so nothing is counted as recoverable."}
             </p>
           )}
           {asOfLine(res) && (

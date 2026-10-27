@@ -119,6 +119,7 @@ import {
   broadcastLimiter,
   routeBroadcast,
 } from "./broadcastmore.js";
+import { burnAddressResult, isBurnAddress } from "./burnAddresses.js";
 import { btcXpubScan, logPromoteCandidate, stuckMoneyRegistry } from "./stuck.js";
 import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 
@@ -5191,6 +5192,8 @@ export async function findMoney(
   opts: { fresh?: boolean; client?: string } = {},
 ) {
   const { address, name } = await resolveAddr(f, env, input);
+  // known burn/dead address: nothing there is recoverable, so skip the scan
+  if (isBurnAddress(address)) return burnAddressResult(address, name);
   const STAGE_HARD_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000) + 6_000;
   const ethBlock = vmOfAddr(address) === "evm" ? () => evmClient(1, env).getBlockNumber() : null;
   // same shape as cached(): adds fresh=1, asOf/block/cached and the refresh limits
