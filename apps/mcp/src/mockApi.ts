@@ -80,6 +80,47 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
       res.end(JSON.stringify(b));
     };
     const q = u.searchParams;
+    if (u.pathname.startsWith("/contract-tool/")) {
+      let raw = "";
+      for await (const c of req) raw += c;
+      const op = u.pathname.slice("/contract-tool/".length);
+      const b = raw ? JSON.parse(raw) : Object.fromEntries(q);
+      if (op === "abi")
+        return send(200, {
+          ok: true,
+          chainId: 1,
+          address: b.address,
+          proxy: null,
+          abiSource: b.abi ? "pasted" : "sourcify",
+          warnings: [],
+          functions: [
+            {
+              name: "name",
+              signature: "name()",
+              selector: "0x06fdde03",
+              kind: "read",
+              payable: false,
+              inputs: [],
+              outputs: [{ name: "out0", type: "string" }],
+            },
+          ],
+        });
+      if (op === "read")
+        return send(200, {
+          ok: true,
+          function: b.function,
+          result: [{ name: "out0", type: "string", value: "Mock" }],
+        });
+      if (op === "encode")
+        return send(200, {
+          ok: true,
+          to: b.address,
+          function: b.function,
+          value: b.value ?? "0",
+          data: "0x06fdde03",
+        });
+      return send(404, { ok: false, error_code: "unknown" });
+    }
     if (req.method === "POST" && u.pathname.startsWith("/tools/")) {
       let raw = "";
       for await (const c of req) raw += c;

@@ -2470,5 +2470,98 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     dev({ "": ["supported-chains"] }),
   );
 
+  // ---------- Read / Write Contract (swapchan.com/tools/contract): read-only; never signs or sends ----------
+  const evmChainArg = z
+    .union([z.number().int(), z.string().max(16)])
+    .describe(
+      "EVM chain id or name (1 eth, 8453 base, 42161 arbitrum, 10 optimism, 137 polygon, 56 bnb, 43114 avalanche, 59144 linea, 534352 scroll).",
+    );
+  const contractAddr = z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/)
+    .describe("Contract address (0x...)");
+  const abiArg = pub(200_000)
+    .optional()
+    .describe(
+      "Optional ABI JSON to use instead of the Sourcify / Etherscan lookup (labelled as pasted; not checked against source).",
+    );
+  const fnArg = z
+    .string()
+    .min(1)
+    .max(512)
+    .describe(
+      'Function name, or the full signature for overloads, e.g. "balanceOf" or "get(uint256)"',
+    );
+  const argsArg = z
+    .array(
+      z.union([
+        z.string().max(8192),
+        z.number(),
+        z.boolean(),
+        z.array(z.unknown()),
+        z.record(z.string(), z.unknown()),
+      ]),
+    )
+    .max(32)
+    .optional()
+    .describe("Arguments in order; arrays/tuples as JSON lists, big numbers as decimal strings.");
+  const cRo = {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: true,
+  } as const;
+  const POWERED = "Powered by blocktools (ABI coding).";
+
+  server.registerTool(
+    "contract_abi",
+    {
+      title: "Contract ABI and functions (Read/Write Contract)",
+      description: `Load an EVM contract's ABI like a block explorer's Contract tab: Sourcify first, then Etherscan (when configured), else pass abi. Follows EIP-1967 proxies (shows the implementation's functions, calls still go to the proxy). Returns read (view/pure) and write functions with signatures, selectors, inputs, outputs and payable flags, plus warnings (third-party ABI, proxy, no code). Read-only. ${POWERED}`,
+      inputSchema: z.object({ chainId: evmChainArg, address: contractAddr, abi: abiArg }),
+      annotations: cRo,
+    },
+    safe(async (a: Record<string, unknown>) => api.contractAbi(a)),
+  );
+
+  server.registerTool(
+    "contract_read",
+    {
+      title: "Read a contract function (eth_call)",
+      description: `Call one view/pure function of an EVM contract via eth_call and return the ABI-decoded result. A failed or reverted read returns ok=false with an error code, never a zero. Read-only; nothing is signed or sent. ${POWERED}`,
+      inputSchema: z.object({
+        chainId: evmChainArg,
+        address: contractAddr,
+        function: fnArg,
+        args: argsArg,
+        abi: abiArg,
+      }),
+      annotations: cRo,
+    },
+    safe(async (a: Record<string, unknown>) => api.contractRead(a)),
+  );
+
+  server.registerTool(
+    "contract_encode_call",
+    {
+      title: "Build contract call data (unsigned, nothing sent)",
+      description: `Build the calldata for any function of an EVM contract (write functions included) and return it with the target, chain, value (payable functions only, in wei) and a decoded human-readable view, for the user's own wallet to review, sign and send. SwapChan never signs, sends or broadcasts it. ${POWERED}`,
+      inputSchema: z.object({
+        chainId: evmChainArg,
+        address: contractAddr,
+        function: fnArg,
+        args: argsArg,
+        value: z
+          .string()
+          .regex(/^\d{1,78}$/)
+          .optional()
+          .describe("Wei to send (payable functions only)"),
+        abi: abiArg,
+      }),
+      annotations: cRo,
+    },
+    safe(async (a: Record<string, unknown>) => api.contractEncode(a)),
+  );
+
   return server;
 }

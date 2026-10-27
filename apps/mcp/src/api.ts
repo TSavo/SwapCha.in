@@ -153,6 +153,38 @@ export class SwapChanApi {
       body: JSON.stringify(input),
     });
   }
+  /** Read/Write Contract: ABI + functions (GET unless an ABI is pasted). */
+  contractAbi(b: Record<string, unknown>): Promise<Rec> {
+    return b.abi
+      ? this.rec(
+          "/contract-tool/abi",
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(b),
+          },
+          30_000,
+        )
+      : this.rec(
+          `/contract-tool/abi?${qs({ chainId: String(b.chainId), address: String(b.address) })}`,
+          undefined,
+          30_000,
+        );
+  }
+  contractRead(b: Record<string, unknown>): Promise<Rec> {
+    return this.rec(
+      "/contract-tool/read",
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) },
+      30_000,
+    );
+  }
+  contractEncode(b: Record<string, unknown>): Promise<Rec> {
+    return this.rec(
+      "/contract-tool/encode",
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) },
+      30_000,
+    );
+  }
   private rec(path: string, init?: RequestInit, timeoutMs?: number): Promise<Rec> {
     return this.req(z.record(z.string(), z.unknown()), path, init, timeoutMs);
   }

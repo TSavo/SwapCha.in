@@ -94,6 +94,15 @@ export const TOOLS: ToolInfo[] = [
     prompt: "My bridge tx 0x… is stuck, what happened?",
   },
   {
+    href: "/tools/contract",
+    name: "Read & Write Contract",
+    mcp: "contract_read",
+    emoji: "📜",
+    blurb:
+      "Load a verified ABI (Sourcify, Etherscan), query read functions and build write calls your own wallet signs.",
+    prompt: "What does balanceOf(0x…) return on the USDC contract on Base?",
+  },
+  {
     href: "/gas",
     name: "Gas tracker & best time to swap",
     mcp: "best_time_to_swap",

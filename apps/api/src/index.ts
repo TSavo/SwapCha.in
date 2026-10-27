@@ -16,6 +16,7 @@ import { z } from "zod";
 import { fanOut, logGuardFailure } from "./aggregate.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
 import { mempoolUtxos } from "./btc.js";
+import { contractRoutes } from "./contracttool.js";
 import { devToolRoutes } from "./devtools.js";
 import {
   buildPayload,
@@ -384,6 +385,8 @@ export function createApp(
   app.route("/limit", limitRoutes(opts.cowFetch ?? fetch, env));
   // pure blocktools developer tools on public input (no body logging, size-capped, per-client rate limit)
   app.route("/tools", devToolRoutes());
+  // Read/Write Contract (/tools/contract): ABI lookup, eth_call reads, unsigned calldata. Never signs or sends.
+  app.route("/contract-tool", contractRoutes({ f: opts.scannerFetch ?? fetch, env }));
   app.get("/status", async (c) => {
     const req = StatusRequest.parse(c.req.query());
     const p = providers.find((x) => x.name === req.provider);
