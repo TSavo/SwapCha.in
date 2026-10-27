@@ -27,8 +27,8 @@ describe("LegacyETH registry data", () => {
   });
   it("only confirmed DEX/Fomo3D entries are scanned, each with a claim", () => {
     const s = scanned().filter((e) => ["etherdelta-dex", "fomo3d"].includes(e.family));
-    expect(s.length).toBe(43);
-    expect(scanned().length).toBe(135);
+    expect(s.length).toBe(44);
+    expect(scanned().length).toBe(149);
     for (const e of s) {
       expect(["etherdelta-dex", "fomo3d"]).toContain(e.family);
       expect(e.claim).toBe(e.family === "fomo3d" ? "withdraw()" : "withdraw(uint256)");
@@ -202,9 +202,9 @@ describe("review fixes", () => {
 describe("PR 3 families", () => {
   const fam = (f: string) => scanned().filter((e) => e.family === f);
   it("56 confirmed rows by family, claim pinned, allowlisted with the exact selector", () => {
-    expect(fam("weth-wrapper").length).toBe(5);
+    expect(fam("weth-wrapper").length).toBe(8);
     expect(fam("ether-balances").length).toBe(1);
-    expect(fam("presale-safe-withdrawal").length).toBe(1);
+    expect(fam("presale-safe-withdrawal").length).toBe(3);
     expect(fam("hourglass").length).toBe(49);
     for (const f of ["weth-wrapper", "ether-balances", "presale-safe-withdrawal", "hourglass"])
       for (const e of fam(f)) {

@@ -1783,7 +1783,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "airdrop_check",
     {
       title: "Airdrops & claimables",
-      description: `Unclaimed rewards and claimables for a wallet: Merkl incentive rewards on 9 EVM chains, legacy contracts (PoWH3D, Fomo3D, EtherDelta, Liquity surplus, and the LegacyETH registry: confirmed EtherDelta-style DEXes, Fomo3D forks, PoWH3D/Hourglass clones, old ETH wrappers, ICO/presale refunds and burn-token redemptions; unconfirmed listed contracts are reported as not checked yet) with allowlist-verified unsigned claim txs, Tron voting rewards/unfreezes, Solana rent in empty token accounts. HONEST COVERAGE: one-off project airdrops (JUP, ENS, UNI, LayerZero…) are NOT covered (no free unified source); say so. ${NEXT} ${DISPLAY}`,
+      description: `Unclaimed rewards and claimables for a wallet: Merkl incentive rewards on 9 EVM chains, legacy contracts (PoWH3D, Fomo3D, EtherDelta, Liquity surplus, and the LegacyETH registry: confirmed EtherDelta-style DEXes, Fomo3D forks, PoWH3D/Hourglass clones, old ETH wrappers, ICO/presale refunds, NFT-market pull payments (MoonCatRescue, CryptoCats, CryptoPhunks pendingWithdrawals) and burn-token redemptions; unconfirmed listed contracts are reported as not checked yet) with allowlist-verified unsigned claim txs, Tron voting rewards/unfreezes, Solana rent in empty token accounts. HONEST COVERAGE: one-off project airdrops (JUP, ENS, UNI, LayerZero…) are NOT covered (no free unified source); say so. ${NEXT} ${DISPLAY}`,
       inputSchema: z.object({ address: walletArg }),
       annotations: ro,
     },
