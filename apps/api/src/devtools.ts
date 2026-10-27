@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { blocktools } from "./blocktools.js";
+import { forwardedClientIp } from "./clientip.js";
 
 /**
  * Public developer & chain tools (swapchan.com/tools/<slug>, MCP address_tool / xpub_addresses / solana_address /
@@ -320,7 +321,11 @@ export function runDevTool(
 
 /** Client key for the rate limit: the proxy-set client IP; never logged or stored beyond the 60s window. */
 const clientOf = (h: (n: string) => string | undefined) =>
-  h("cf-connecting-ip") ?? h("x-forwarded-for")?.split(",")[0]?.trim() ?? h("x-real-ip") ?? "local";
+  forwardedClientIp(h) ??
+  h("cf-connecting-ip") ??
+  h("x-forwarded-for")?.split(",")[0]?.trim() ??
+  h("x-real-ip") ??
+  "local";
 
 export function devToolRoutes(opts: { perMinute?: number; now?: () => number } = {}) {
   const limit = opts.perMinute ?? RATE_PER_MIN;
