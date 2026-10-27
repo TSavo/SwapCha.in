@@ -42,8 +42,12 @@ describe("LegacyETH PR 7", () => {
     expect(d.length).toBe(10 + 64);
     expect(() => simClaimData(s, "0x1234")).toThrow();
     expect(simClaimData(SIM_SPECS.personabid!, OWNER)).toBe(btSelector("claimAndRefund()"));
-    expect(verifyClaimTx({ to: s.address, data: d, value: "0" }).verified).toBe(true);
-    expect(verifyClaimTx({ to: s.address, data: d, value: "1" }).verified).toBe(false);
+    expect(verifyClaimTx({ to: s.address, data: d, value: "0" }, undefined, OWNER).verified).toBe(
+      true,
+    );
+    expect(verifyClaimTx({ to: s.address, data: d, value: "1" }, undefined, OWNER).verified).toBe(
+      false,
+    );
   });
   it("scan simulates and builds the claim with the owner's address", async () => {
     const e = REGISTRY.find((x) => x.key === "ambassadors_fund")!;

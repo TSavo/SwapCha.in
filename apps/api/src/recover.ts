@@ -10,6 +10,8 @@ import {
   toHex,
 } from "viem";
 import { type BtVerdict, btSelector, btVerifyRecovery, encodeFunctionData } from "./blocktools.js";
+import { FAMILY_CLAIM, scanned } from "./legacy/registry.js";
+import { SIM_SPECS, simDisplaySig } from "./legacy/simclaim.js";
 import {
   chainName,
   EXPLORER,
@@ -105,10 +107,36 @@ export const STANDARD_RECOVERY: { sig: string; owners: number[] }[] = [
 
 /** Display-only extra signatures SwapChan builds claim txs for outside STANDARD_RECOVERY (intel.ts allowlist). */
 const DISPLAY_ONLY_SIGS = ["payout()"];
-const DISPLAY_ABI: AbiFunction[] = [
-  ...STANDARD_RECOVERY.map((r) => r.sig),
-  ...DISPLAY_ONLY_SIGS,
-].map((sig) => parseAbiItem(`function ${sig}`) as AbiFunction);
+/** LegacyETH registry claim signatures (pinned per family / per sim-claim row), so their calls are named
+ *  instead of "unknown function". Display only: the allowlist in intel.ts decides what is built. */
+const registryClaimSigs = (): string[] => [
+  ...Object.values(SIM_SPECS).map(simDisplaySig),
+  ...Object.values(FAMILY_CLAIM),
+  ...scanned()
+    .map((e) => e.claim)
+    .filter((c): c is string => !!c),
+];
+const DISPLAY_ABI: AbiFunction[] = (() => {
+  const seen = new Set<string>();
+  const out: AbiFunction[] = [];
+  for (const sig of [
+    ...STANDARD_RECOVERY.map((r) => r.sig),
+    ...DISPLAY_ONLY_SIGS,
+    ...registryClaimSigs(),
+  ]) {
+    let f: AbiFunction;
+    try {
+      f = parseAbiItem(`function ${sig}`) as AbiFunction;
+    } catch {
+      continue;
+    }
+    const k = `${f.name}(${f.inputs.map((x) => x.type).join(",")})`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(f);
+  }
+  return out;
+})();
 
 const typeOf = (x: AbiParameter): string =>
   x.type.startsWith("tuple") && "components" in x
@@ -267,6 +295,22 @@ const EXPLORERS: Record<number, string> = {
   43114: "https://snowtrace.io",
 };
 
+/** Fixed-claim checker (intel.ts verifyClaimTx), injected at startup to avoid an import cycle. */
+let claimCheck: ((tx: RecoveryTx, owner: string) => boolean) | null = null;
+export function setClaimCheck(f: (tx: RecoveryTx, owner: string) => boolean) {
+  claimCheck = f;
+}
+/** recoveryTx.verified: the blocktools payee verifier, or for fixed claims (LegacyETH registry, curated legacy
+ *  contracts) the exact claim allowlist, which pays msg.sender only. verifiedBy says which check passed. */
+export function recoveryVerdict(
+  tx: RecoveryTx,
+  owner: string,
+): { verified: boolean; verifiedBy?: "blocktools" | "claim-allowlist" } {
+  if (verifyRecovery(tx, owner).verified) return { verified: true, verifiedBy: "blocktools" };
+  if (claimCheck?.(tx, owner)) return { verified: true, verifiedBy: "claim-allowlist" };
+  return { verified: false };
+}
+
 /** Machine-readable recovery package: everything an agent needs to verify and act without our UI. */
 export function recoveryInfo(
   owner: string,
@@ -298,7 +342,7 @@ export function recoveryInfo(
     recoveryTx: {
       ...tx,
       unsigned: true,
-      verified: verifyRecovery(tx, owner).verified,
+      ...recoveryVerdict(tx, owner),
       payee: owner,
     },
     swapUrl: it.swapUrl,

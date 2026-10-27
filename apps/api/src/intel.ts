@@ -53,6 +53,7 @@ import {
   scanned as registryScanned,
   scanRegistry,
 } from "./legacy/registry.js";
+import { CALLER_ARG_SPECS, simClaimData } from "./legacy/simclaim.js";
 import { hedgeyPlans, superfluidBalances, teamFinanceLocks, uncxLocks } from "./locks.js";
 import { clPositions } from "./lp.js";
 import { v4Positions } from "./lpv4.js";
@@ -93,6 +94,7 @@ import {
   lidoWithdrawals,
   ownedSafes,
   recoveryFlow,
+  setClaimCheck,
   solanaStake,
   verifyRecovery,
   wrappedNative,
@@ -384,7 +386,7 @@ export async function simClaimAllowlisted(
     tx.data.slice(0, 10).toLowerCase() !== "0x095ea7b3" ||
     !(toAddr.toLowerCase() in REGISTRY_APPROVALS_LC())
   )
-    return verifyClaimTx(tx).verified;
+    return verifyClaimTx(tx, undefined, from).verified;
   let bal: bigint;
   try {
     bal = BigInt(
@@ -1590,16 +1592,30 @@ export function verifyClaimTx(
   tx: { to: string; data: string; value: string },
   /** LegacyETH approvals: the owner's token balanceOf at the pinned block (the approval may not exceed it) */
   approveMax?: bigint,
+  /** the sender; required for caller-argument claims (their calldata must be exactly selector + this address) */
+  owner?: string,
 ) {
   const sel = tx.data.slice(0, 10).toLowerCase();
+  const caller = CALLER_ARG_SPECS[tx.to.toLowerCase()];
+  const exact = (): boolean => {
+    if (!caller) return true;
+    if (!owner) return false;
+    try {
+      return tx.data.toLowerCase() === simClaimData(caller, owner);
+    } catch {
+      return false;
+    }
+  };
   const ok =
-    ((CLAIM_ALLOWLIST[tx.to.toLowerCase()] ?? []).includes(sel) && BigInt(tx.value) === 0n) ||
+    ((CLAIM_ALLOWLIST[tx.to.toLowerCase()] ?? []).includes(sel) &&
+      BigInt(tx.value) === 0n &&
+      exact()) ||
     // LegacyETH two-step redemptions: approve only the pinned redemption contract, exact finite amount
     verifyApproval(REGISTRY_APPROVALS, tx, approveMax);
   return {
     verified: ok,
     check:
-      "claim-call allowlist (contract + exact selector, zero value; approvals only to the pinned redemption contract, never more than the token balance you hold)",
+      "claim-call allowlist (contract + exact selector, zero value; caller-argument claims: exact calldata with your own address; approvals only to the pinned redemption contract, never more than the token balance you hold)",
   };
 }
 const claim = (
@@ -1615,6 +1631,14 @@ const claim = (
 };
 
 /** Lowercased addresses of every scanned LegacyETH registry contract (Ethereum mainnet). */
+setClaimCheck((tx, owner) => {
+  try {
+    return verifyClaimTx(tx, undefined, owner).verified;
+  } catch {
+    return false;
+  }
+});
+
 export const registryAddressSet = () =>
   new Set(registryScanned().map((e) => e.address.toLowerCase()));
 /** Drop chain-1 items whose claim tx targets a scanned registry contract: the registry scan already reports it,

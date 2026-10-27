@@ -176,6 +176,16 @@ export function simClaimData(s: SimSpec, owner: string): `0x${string}` {
   if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) throw new Error("bad owner address");
   return `${sel}${owner.slice(2).toLowerCase().padStart(64, "0")}` as `0x${string}`;
 }
+/** Caller-argument sim-claims by contract address: their only valid calldata is simClaimData(spec, owner). */
+export const CALLER_ARG_SPECS: Record<string, SimSpec> = Object.fromEntries(
+  Object.values(SIM_SPECS)
+    .filter((s) => s.arg === "caller")
+    .map((s) => [s.address, s]),
+);
+/** Display signature for a sim-claim: names the caller argument ("release(address account)"). */
+export function simDisplaySig(s: SimSpec): string {
+  return s.arg === "caller" ? s.claim.replace("(address)", "(address account)") : s.claim;
+}
 const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
