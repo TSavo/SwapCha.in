@@ -4,7 +4,7 @@
 
 ## MCP server
 - URL: https://mcp.swapchan.com/mcp (Streamable HTTP; stdio via `swapchan-mcp --stdio`)
-- Tools: get_supported_chains, get_supported_tokens, get_quote, compare_routes, build_swap_tx, get_route_status, scan_new_tokens, scan_trending, scan_movers, token_risk, get_wallet_balances, check_approvals, build_revoke_tx, explain_transaction, get_gas, token_info, resolve_name, watch_token, list_watches, check_watches, unwatch_token, get_yields
+- Tools: get_supported_chains, get_supported_tokens, get_quote, compare_routes, build_swap_tx, get_route_status, scan_new_tokens, scan_trending, scan_movers, token_risk, get_wallet_balances, check_approvals, build_revoke_tx, explain_transaction, get_gas, token_info, resolve_name, watch_token, list_watches, check_watches, unwatch_token, get_yields, contract_abi, contract_read, contract_encode_call
 - REST mirrors: https://api.swapchan.com/onchain/{balances,approvals,revoke,tx,gas,token,name,yields,watches}
 - Setup guide: https://swapchan.com/agents
 
@@ -35,3 +35,8 @@
 - Scanner page: https://swapchan.com/scanner
 - Example: GET https://api.swapchan.com/quotes?fromChainId=1&toChainId=8453&fromToken=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&toToken=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&amount=100000000&slippageBps=50
 - Auth: optional `x-api-key` header for higher limits.
+
+## Read & Write Contract (https://swapchan.com/tools/contract)
+- MCP tools contract_abi, contract_read, contract_encode_call (read-only). REST: GET/POST https://api.swapchan.com/contract-tool/abi, POST /contract-tool/read, POST /contract-tool/encode.
+- EVM chains: 1, 8453, 42161, 10, 137, 56, 43114, 59144, 534352. ABI from Sourcify, then Etherscan, or a pasted ABI. EIP-1967 proxies are followed.
+- Reads are eth_call; a failed read returns ok=false with an error code, never a zero. Write calls are unsigned call data that the user's own wallet signs and sends; SwapChan never signs or sends.

@@ -43,6 +43,18 @@ export const TOOLS = [
   ["bridge_doctor", "Diagnose a stuck bridge across LI.FI, Across, Relay, deBridge, THORChain."],
   ["best_time_to_swap", "Gas percentiles and the cheapest hour of day."],
   ["get_supported_chains", "Every chain SwapChan routes on."],
+  [
+    "contract_abi",
+    "A contract's verified ABI (Sourcify, Etherscan), EIP-1967 proxies followed, read and write functions.",
+  ],
+  [
+    "contract_read",
+    "Call a view function via eth_call and decode the result; a failed read is an error, never a zero.",
+  ],
+  [
+    "contract_encode_call",
+    "Build unsigned call data for any function, with a decoded view, for your own wallet to send.",
+  ],
   ["get_supported_tokens", "Token list per chain; any ERC-20 by address works too."],
   ["get_quote", "Best route across 0x, CoW, Velora, LI.FI, Across, Relay and Jupiter."],
   ["compare_routes", "All routes side by side: net USD, gas, fees, ETA."],

@@ -228,6 +228,7 @@ export const SECTIONS: Section[] = [
         label: "Developer tools",
         items: [
           ...DEV_TOOLS.map((t) => ({ href: `/tools/${t.slug}`, label: t.name })),
+          { href: "/tools/contract", label: "Read & Write Contract" },
           { href: "/tools/key-recovery", label: "Key recovery (why not here)" },
         ],
       },

@@ -11,6 +11,9 @@ Swap-chan for AI agents: best-price **same-chain and cross-chain** EVM swap quot
 | Tool                   | What it does                                                                                                                           |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `get_supported_chains` | Chains + their chain-chan mascots                                                                                                      |
+| `contract_abi`         | Contract ABI from Sourcify / Etherscan (or pasted), EIP-1967 proxies followed                                                          |
+| `contract_read`        | eth_call a view function and decode it (failed read = error, never zero)                                                               |
+| `contract_encode_call` | Unsigned call data + decoded view for your own wallet to send                                                                          |
 | `get_supported_tokens` | Token list, optional `chainId` / `search`                                                                                              |
 | `get_quote`            | Single best route (net USD after gas + fees)                                                                                           |
 | `compare_routes`       | All routes ranked; `alsoToChainIds` compares same-chain vs cross-chain destinations                                                    |

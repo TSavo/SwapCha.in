@@ -64,6 +64,13 @@ export default async function ToolsHub() {
           .
         </p>
         <p className="mt-4 text-sm text-violet-200">
+          Call any EVM contract like a block explorer&apos;s Contract tab:{" "}
+          <Link href="/tools/contract" className="underline hover:text-amber-300">
+            Read &amp; Write Contract
+          </Link>
+          .
+        </p>
+        <p className="mt-4 text-sm text-violet-200">
           Looking for key derivation or wallet recovery? That never happens on SwapChan:{" "}
           <Link href="/tools/key-recovery" className="underline hover:text-amber-300">
             here is why and where it lives

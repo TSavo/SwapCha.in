@@ -147,8 +147,49 @@ describe("swapchan mcp over streamable http", () => {
         "bytecode_inspect",
         "typed_data_verify",
         "supported_chains",
+        "contract_abi",
+        "contract_read",
+        "contract_encode_call",
       ].sort(),
     );
+    await c.close();
+  });
+
+  it("contract tools are read-only and never send", async () => {
+    const c = await connect();
+    const { tools } = await c.listTools();
+    const A = "0x1111111111111111111111111111111111111111";
+    for (const n of ["contract_abi", "contract_read", "contract_encode_call"]) {
+      const t = tools.find((x) => x.name === n)!;
+      expect(t.annotations?.readOnlyHint).toBe(true);
+      expect(t.annotations?.destructiveHint).toBe(false);
+      expect(t.description).not.toMatch(/\bfees?\b|\bfree\b|bps|\bpay(ment)?\b/i);
+    }
+    const text = (r: unknown) => (r as { content: { text: string }[] }).content[0]!.text;
+    expect(
+      text(await c.callTool({ name: "contract_abi", arguments: { chainId: 1, address: A } })),
+    ).toContain("name()");
+    expect(
+      text(
+        await c.callTool({
+          name: "contract_read",
+          arguments: { chainId: 1, address: A, function: "name" },
+        }),
+      ),
+    ).toContain("Mock");
+    expect(
+      text(
+        await c.callTool({
+          name: "contract_encode_call",
+          arguments: { chainId: "eth", address: A, function: "name()" },
+        }),
+      ),
+    ).toContain("0x06fdde03");
+    const bad = (await c.callTool({
+      name: "contract_read",
+      arguments: { chainId: 1, address: "0x12", function: "name" },
+    })) as { isError?: boolean };
+    expect(bad.isError).toBe(true);
     await c.close();
   });
 
