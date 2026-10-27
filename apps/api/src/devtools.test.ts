@@ -12,7 +12,7 @@ const ALICE_HEX = "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da
 const post = (app: ReturnType<typeof devToolRoutes>, fn: string, body: unknown, ip = "1.2.3.4") =>
   app.request(`/${fn}`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": ip },
+    headers: { "content-type": "application/json", "cf-connecting-ip": ip },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 const ok = (fn: string, i: unknown) => {

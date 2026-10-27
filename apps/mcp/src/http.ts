@@ -35,7 +35,7 @@ export function createHttpServer(
     const key = extractKey(req.headers);
     let clientId: string;
     if (key && isValidKey(key, cfg.mcpApiKeys)) clientId = `key:${key.slice(0, 6)}`;
-    else if (!key && cfg.allowAnonymous) clientId = `anon:${req.socket.remoteAddress ?? "?"}`;
+    else if (!key && cfg.allowAnonymous) clientId = `anon:${anonClientAddress(req)}`;
     else
       return json(
         res,
@@ -74,4 +74,13 @@ export function createHttpServer(
       server.close();
     },
   };
+}
+
+/**
+ * Rate-limit address for anonymous callers. Behind the Cloudflare tunnel every request arrives from the tunnel's own
+ * address, so cf-connecting-ip (set by Cloudflare) is used when present; else the socket address.
+ */
+export function anonClientAddress(req: Pick<IncomingMessage, "headers" | "socket">): string {
+  const cf = req.headers["cf-connecting-ip"];
+  return (Array.isArray(cf) ? cf[0] : cf)?.trim() || req.socket?.remoteAddress || "?";
 }

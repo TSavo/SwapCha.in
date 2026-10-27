@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { blocktools } from "./blocktools.js";
-import { forwardedClientIp } from "./clientip.js";
+import { socketAddressOf, trustedClientIp } from "./clientip.js";
 
 /**
  * Public developer & chain tools (swapchan.com/tools/<slug>, MCP address_tool / xpub_addresses / solana_address /
@@ -320,12 +320,8 @@ export function runDevTool(
 }
 
 /** Client key for the rate limit: the proxy-set client IP; never logged or stored beyond the 60s window. */
-const clientOf = (h: (n: string) => string | undefined) =>
-  forwardedClientIp(h) ??
-  h("cf-connecting-ip") ??
-  h("x-forwarded-for")?.split(",")[0]?.trim() ??
-  h("x-real-ip") ??
-  "local";
+export const clientOf = (h: (n: string) => string | undefined, remoteAddress?: string) =>
+  trustedClientIp(h, remoteAddress);
 
 export function devToolRoutes(opts: { perMinute?: number; now?: () => number } = {}) {
   const limit = opts.perMinute ?? RATE_PER_MIN;
@@ -343,7 +339,7 @@ export function devToolRoutes(opts: { perMinute?: number; now?: () => number } =
   r.post("/:fn", async (c) => {
     c.header("cache-control", "no-store");
     const t = now();
-    const who = clientOf((n) => c.req.header(n));
+    const who = clientOf((n) => c.req.header(n), socketAddressOf(c.env));
     let win = windows.get(who);
     if (!win || t - win.start >= 60_000) {
       win = { start: t, count: 0 };

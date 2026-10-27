@@ -23,8 +23,13 @@ const EXACT_BURN = new Set([
   "1111111111111111111114oLvT2",
 ]);
 
+// Tron black hole in hex form (0x41 + 20 zero bytes), compared lowercase without 0x
+const TRON_HEX_BURN = new Set(["410000000000000000000000000000000000000000"]);
+
 export function isBurnAddress(address: string): boolean {
   const a = address.trim();
+  if (/^(0x)?41[0-9a-fA-F]{40}$/.test(a))
+    return TRON_HEX_BURN.has(a.replace(/^0x/i, "").toLowerCase());
   if (/^0x[0-9a-fA-F]{40}$/.test(a)) return EVM_BURN.has(a.toLowerCase());
   return EXACT_BURN.has(a);
 }

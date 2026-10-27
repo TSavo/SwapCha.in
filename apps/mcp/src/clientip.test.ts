@@ -3,7 +3,7 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SwapChanApi } from "./api.js";
 import { loadConfig } from "./config.js";
-import { createHttpServer } from "./http.js";
+import { anonClientAddress, createHttpServer } from "./http.js";
 import { startMockApi } from "./mockApi.js";
 
 const KEY = "ip-test-key";
@@ -79,5 +79,18 @@ describe("MCP forwards the caller IP to the API", () => {
     const { s, call } = await start(SECRET);
     for (const h of await call()) expect(h["x-swapchan-client-ip"]).toBeUndefined();
     await s.close();
+  });
+});
+
+describe("anonymous MCP rate-limit address", () => {
+  const req = (headers: Record<string, string | string[]>, remoteAddress = "172.18.0.5") =>
+    ({ headers, socket: { remoteAddress } }) as never;
+  it("uses cf-connecting-ip when present, not the tunnel address", () => {
+    expect(anonClientAddress(req({ "cf-connecting-ip": "203.0.113.9" }))).toBe("203.0.113.9");
+    expect(anonClientAddress(req({ "cf-connecting-ip": ["203.0.113.8"] }))).toBe("203.0.113.8");
+  });
+  it("falls back to the socket address; ignores x-forwarded-for", () => {
+    expect(anonClientAddress(req({ "x-forwarded-for": "9.9.9.9" }))).toBe("172.18.0.5");
+    expect(anonClientAddress(req({}, ""))).toBe("?");
   });
 });
