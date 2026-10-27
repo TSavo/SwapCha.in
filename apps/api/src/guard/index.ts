@@ -254,7 +254,12 @@ export function thorMemoMismatch(
       (!!wid && !!aid && ap === wp && asym === wsym && wid.endsWith(aid)) ||
       // Bare "CHAIN.SYMBOL" (THORChain drops the contract, measured for ETH.USDC/ETH.USDT): only when exactly one
       // Available pool has that chain and symbol and it is the requested contract, so another token can't pass.
-      (!!wid && !aid && ap === wp && asym === wsym && soleSymbolPool(pools, wp!, wsym!) === want);
+      (!!wid &&
+        !aid &&
+        a === `${wp}.${wsym}` &&
+        ap === wp &&
+        asym === wsym &&
+        soleSymbolPool(pools, wp!, wsym!) === want);
   }
   if (!assetOk) return `memo asset ${asset} is not ${toAsset}`;
   if (isReceiveOnly(toChainId)) {

@@ -26,6 +26,16 @@ describe("guard: bare THORChain token form (ETH.USDC) only for the requested tok
     expect(thorMemoMismatch(MEMO_USDC, 1, USDC, ETH_TO, POOLS)).toBeNull();
     expect(thorMemoMismatch(MEMO_USDT, 1, USDT, ETH_TO, POOLS)).toBeNull();
   });
+  it("bare branch needs exactly CHAIN.SYMBOL: ETH.USDC.E, ETH.USDC.EVIL-0X1, ETH.USDC- refused", () => {
+    for (const a of ["ETH.USDC.E", "ETH.USDC.EVIL-0X1", "ETH.USDC-", "eth.usdc.e"])
+      expect(
+        thorMemoMismatch(`=:${a}:${ETH_TO}:1/1/0:swapchan:10`, 1, USDC, ETH_TO, POOLS),
+      ).toMatch(/memo asset/);
+  });
+  it("exact bare form still accepted, any case", () => {
+    expect(thorMemoMismatch(`=:ETH.USDC:${ETH_TO}:1/1/0`, 1, USDC, ETH_TO, POOLS)).toBeNull();
+    expect(thorMemoMismatch(`=:eth.usdc:${ETH_TO}:1/1/0`, 1, USDC, ETH_TO, POOLS)).toBeNull();
+  });
   it("refuses the bare form without a pool list", () => {
     expect(thorMemoMismatch(MEMO_USDC, 1, USDC, ETH_TO)).toMatch(/memo asset ETH.USDC/);
   });
