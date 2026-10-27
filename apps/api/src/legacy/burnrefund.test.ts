@@ -67,25 +67,49 @@ describe("PR 2 families: data", () => {
     const ap = (sp: `0x${string}`, amt: bigint) =>
       encodeFunctionData({ abi: [APPROVE], functionName: "approve", args: [sp, amt] });
     expect(
-      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "0" }).verified,
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "0" }, 10n).verified,
     ).toBe(true);
     expect(
-      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, maxUint256), value: "0" }).verified,
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, maxUint256), value: "0" }, 10n)
+        .verified,
     ).toBe(false);
     expect(
-      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 0n), value: "0" }).verified,
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 0n), value: "0" }, 10n).verified,
     ).toBe(false);
-    expect(verifyClaimTx({ to: dgd, data: ap(OWNER, 5n), value: "0" }).verified).toBe(false);
+    expect(verifyClaimTx({ to: dgd, data: ap(OWNER, 5n), value: "0" }, 10n).verified).toBe(false);
     expect(
-      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "1" }).verified,
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "1" }, 10n).verified,
     ).toBe(false);
     expect(
-      verifyApproval(REGISTRY_APPROVALS, {
-        to: OWNER,
-        data: ap(acid as `0x${string}`, 5n),
-        value: "0",
-      }),
+      verifyApproval(
+        REGISTRY_APPROVALS,
+        {
+          to: OWNER,
+          data: ap(acid as `0x${string}`, 5n),
+          value: "0",
+        },
+        10n,
+      ),
     ).toBe(false);
+    // no balance known: fail closed
+    expect(
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 5n), value: "0" }).verified,
+    ).toBe(false);
+    // approval amount above the owner's on-chain balance at the pinned block
+    expect(
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 11n), value: "0" }, 10n).verified,
+    ).toBe(false);
+    expect(
+      verifyClaimTx({ to: dgd, data: ap(acid as `0x${string}`, 10n), value: "0" }, 10n).verified,
+    ).toBe(true);
+    // spender word with dirty top 12 bytes (same low 20 bytes as the pinned spender)
+    const good = ap(acid as `0x${string}`, 5n);
+    const dirty = `${good.slice(0, 10)}${"00".repeat(11)}01${good.slice(34)}`;
+    expect(dirty.length).toBe(good.length);
+    expect(verifyApproval(REGISTRY_APPROVALS, { to: dgd, data: dirty, value: "0" }, 10n)).toBe(
+      false,
+    );
+    expect(verifyApproval(REGISTRY_APPROVALS, { to: dgd, data: good, value: "0" }, 10n)).toBe(true);
     const v = pr2().find((e) => e.family === "refund-claim")!;
     expect(
       verifyClaimTx({ to: v.address, data: btSelector("claimRefund()"), value: "0" }).verified,
@@ -218,7 +242,9 @@ describe("scanBurnRefund (mocked reads)", () => {
         args: [BURN_SPECS.digixdao!.claimTo, 1000n],
       }),
     );
-    expect(verifyClaimTx(h.tx!).verified).toBe(true);
+    expect(h.tx!.approveMax).toBe(1000n);
+    expect(verifyClaimTx(h.tx!, h.tx!.approveMax).verified).toBe(true);
+    expect(verifyClaimTx(h.tx!, 999n).verified).toBe(false);
     expect(sims.length).toBe(1);
   });
   it("two-step burn: once approved, step 2 is the claim", async () => {

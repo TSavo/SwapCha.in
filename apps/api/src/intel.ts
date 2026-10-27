@@ -1542,21 +1542,31 @@ export const CLAIM_ALLOWLIST: Record<string, string[]> = {
   // LegacyETH registry: confirmed contracts only, generated from apps/api/src/legacy/registry.json
   ...REGISTRY_ALLOWLIST,
 };
-export function verifyClaimTx(tx: { to: string; data: string; value: string }) {
+export function verifyClaimTx(
+  tx: { to: string; data: string; value: string },
+  /** LegacyETH approvals: the owner's token balanceOf at the pinned block (the approval may not exceed it) */
+  approveMax?: bigint,
+) {
   const sel = tx.data.slice(0, 10).toLowerCase();
   const ok =
     ((CLAIM_ALLOWLIST[tx.to.toLowerCase()] ?? []).includes(sel) && BigInt(tx.value) === 0n) ||
     // LegacyETH two-step redemptions: approve only the pinned redemption contract, exact finite amount
-    verifyApproval(REGISTRY_APPROVALS, tx);
+    verifyApproval(REGISTRY_APPROVALS, tx, approveMax);
   return {
     verified: ok,
     check:
-      "claim-call allowlist (contract + exact selector, zero value; approvals only to the pinned redemption contract, never unlimited)",
+      "claim-call allowlist (contract + exact selector, zero value; approvals only to the pinned redemption contract, never more than the token balance you hold)",
   };
 }
-const claim = (chainId: number, to: string, data: `0x${string}`, description: string) => {
+const claim = (
+  chainId: number,
+  to: string,
+  data: `0x${string}`,
+  description: string,
+  approveMax?: bigint,
+) => {
   const tx = { chainId, to, data, value: "0", description };
-  if (!verifyClaimTx(tx).verified) throw new Error("claim tx failed allowlist");
+  if (!verifyClaimTx(tx, approveMax).verified) throw new Error("claim tx failed allowlist");
   return tx;
 };
 
@@ -1607,7 +1617,7 @@ export async function legacyRegistry(
           : `${eth} ETH withdrawable`
         : `Not claimable: the contract shows ${eth} ETH for you but ${h.entry.claim} would pay nothing (${why})`,
       valueUsd: h.claimable && ethPx ? r2(eth * ethPx) : null,
-      ...(h.tx ? { claimTx: claim(1, h.tx.to, h.tx.data, h.tx.description) } : {}),
+      ...(h.tx ? { claimTx: claim(1, h.tx.to, h.tx.data, h.tx.description, h.tx.approveMax) } : {}),
       action: h.claimable
         ? step1
           ? `Sign the approval; find_money then builds ${h.entry.claim}`
