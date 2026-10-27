@@ -113,6 +113,12 @@ const scanGate = gate(
   Number(process.env.FIND_QUEUE_WAIT_MS ?? 30_000),
 );
 
+import {
+  broadcastClientKey,
+  broadcastExtra,
+  broadcastLimiter,
+  routeBroadcast,
+} from "./broadcastmore.js";
 import { btcXpubScan, logPromoteCandidate, stuckMoneyRegistry } from "./stuck.js";
 import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 
@@ -5839,17 +5845,30 @@ export function intelRoutes(
       return verifyTx(f, env, chainOf(b.chainId), b.tx, (b.expected ?? {}) as never);
     }),
   );
-  app.post("/broadcast", (c) =>
-    run(c, async () => {
+  const bcastLimit = broadcastLimiter(Number(env.SWAPCHAN_BROADCAST_PER_MIN) || 10);
+  app.post("/broadcast", async (c) => {
+    const who = broadcastClientKey(
+      (n) => c.req.header(n),
+      (c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined)?.incoming
+        ?.socket?.remoteAddress,
+    );
+    const lim = bcastLimit(who);
+    if (!lim.ok) {
+      c.header("retry-after", String(lim.retryAfter));
+      return c.json({ error: "rate limit exceeded" }, 429);
+    }
+    return run(c, async () => {
       const b = TxBody.parse(await c.req.json());
+      const where = routeBroadcast(b.chainId, chainOf);
+      if ("extra" in where) return broadcastExtra(f, env, where.extra, b.tx, !!b.strict);
       return broadcastTx(f, env, {
-        chainId: chainOf(b.chainId),
+        chainId: where.core,
         tx: b.tx as never,
         ...(b.private ? { private: true } : {}),
         ...(b.strict ? { strict: true } : {}),
       });
-    }),
-  );
+    });
+  });
   app.get("/tx-status", (c) =>
     run(c, () =>
       txStatus(

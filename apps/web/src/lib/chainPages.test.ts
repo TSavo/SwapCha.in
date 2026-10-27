@@ -33,8 +33,11 @@ describe("/chains pages", () => {
   });
   it("every page states its tier: address checking only, offline CLI only where chainTable says buildable", () => {
     for (const c of CHAIN_PAGES) {
-      expect(c.capability).toMatch(/^Address checking only/);
-      expect(c.intro).toMatch(/^Address checking only/);
+      const tier = c.broadcast
+        ? /^Address checking, plus relaying an already-signed transaction/
+        : /^Address checking only/;
+      expect(c.capability).toMatch(tier);
+      expect(c.intro).toMatch(tier);
     }
     expect(chainPage("bitcoin")?.offlineCli).toBe(true);
     expect(chainPage("ethereum")?.offlineCli).toBe(false);
