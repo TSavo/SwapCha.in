@@ -23,8 +23,8 @@ import {
   scanBurnRefund,
   validBurnRefund,
 } from "./burnrefund.js";
-import { scanSimClaim, simClaimAllowlist, simLabel, validSimClaim } from "./simclaim.js";
 import REG from "./registry.json" with { type: "json" };
+import { scanSimClaim, simClaimAllowlist, simLabel, validSimClaim } from "./simclaim.js";
 
 export type Family = "etherdelta-dex" | "fomo3d" | string;
 export interface RegistryEntry {
@@ -120,7 +120,9 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
   const sl = simLabel(e);
   if (sl) l.push(sl);
   if (e.family === "ethfinex-wrapper")
-    l.push("Ethfinex wrapper: burns your ETHW wrapper tokens 1:1 for ETH (deposit lock long expired)");
+    l.push(
+      "Ethfinex wrapper: burns your ETHW wrapper tokens 1:1 for ETH (deposit lock long expired)",
+    );
   if (held !== null && held < owed)
     l.push(
       `Underfunded: the contract holds ${formatUnits(held, 18)} ETH but owes you ${formatUnits(owed, 18)} ETH`,
@@ -343,12 +345,12 @@ export async function scanRegistry(
                   args: [amt],
                 })
               : sig === "withdraw(uint256,uint8,bytes32,bytes32,uint256)"
-              ? encodeFunctionData({
-                  abi: [A.withdrawLock],
-                  functionName: "withdraw",
-                  args: [amt, 0, `0x${"0".repeat(64)}`, `0x${"0".repeat(64)}`, 0n],
-                })
-              : encodeFunctionData({ abi: [A.withdraw1], functionName: "withdraw", args: [amt] })
+                ? encodeFunctionData({
+                    abi: [A.withdrawLock],
+                    functionName: "withdraw",
+                    args: [amt, 0, `0x${"0".repeat(64)}`, `0x${"0".repeat(64)}`, 0n],
+                  })
+                : encodeFunctionData({ abi: [A.withdraw1], functionName: "withdraw", args: [amt] })
       ) as `0x${string}`;
       const [held, simOk] = await Promise.all([
         c.getBalance({ address: e.address as `0x${string}`, ...at }).catch(() => null),

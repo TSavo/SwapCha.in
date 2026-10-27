@@ -23,25 +23,101 @@ export interface SimSpec {
 /** Confirmed at block 26280699 (one real holder each: the simulated claim paid that holder ETH and moved no
  *  tokens out of their address; an unrelated address got 0 or a revert). Pinned per registry key. */
 export const SIM_SPECS: Record<string, SimSpec> = {
-  hong: { address: "0x9fa8fa61a10ff892e4ebceb7f4e0fc684c2ce0a9", claim: "refundMyIcoInvestment()", kind: "refund" },
-  foreground: { address: "0x943e99d9efd4b44d808f6c83373a9a2c1e15e0f8", claim: "claimRefund()", kind: "refund" },
-  digipulse_token_sale: { address: "0x9aca6abfe63a5ae0dc6258cefb65207ec990aa4d", claim: "refundEther()", kind: "refund" },
-  bayesin_bys_crowsale: { address: "0xe8b1b40f2d307bce891833f46eef1f69560e6926", claim: "safeWithdrawal()", kind: "refund" },
-  contribution_pool: { address: "0xa812137eff2b368d0b2880a39b609fb60c426850", claim: "withdraw()", kind: "pool" },
-  arbitrage_eth_staking: { address: "0x5eee354e36ac51e9d3f7283005cab0c55f423b23", claim: "withdrawAll()", kind: "pool" },
-  bingo4beast_2: { address: "0x4fb7d68e0116f35ade131b6535b2db1027bf7650", claim: "withdraw()", kind: "pool" },
-  p4rty_dao_vault: { address: "0x9465a32618a9172b3c14d82cecdca788de1ef878", claim: "withdraw()", kind: "pool" },
-  ethpyramid: { address: "0x2fa0ac498d01632f959d3c18e38f4390b005e200", claim: "withdraw()", kind: "dividends" },
-  treasure: { address: "0x25a06d4e1f804ce62cf11b091180a5c84980d93a", claim: "withdraw()", kind: "dividends" },
-  nexgen: { address: "0xffd31e68bf7af89df862435a138615bd60abf574", claim: "withdraw()", kind: "dividends" },
-  eks: { address: "0xe01e2a3ceafa8233021fc759e5a69863558326b6", claim: "withdraw()", kind: "dividends" },
-  presalepool_48c1: { address: "0x48c128eafc3b937fb1f97889ad174ac02b4952cb", claim: "withdrawAll()", kind: "pool" },
-  presalepool_ff2c: { address: "0xff2c689cb750f2a7d46e7471521189ced948f965", claim: "withdrawAll()", kind: "pool" },
-  presalepool_d677: { address: "0xd6770aac65a48f5715889a4cdbf30a4faf73a073", claim: "withdrawAll()", kind: "pool" },
-  presalepool_796d: { address: "0x796dbc51b37f2d92b0af1271fd9520c8efd1be61", claim: "withdrawAll()", kind: "pool" },
-  presalepool_50c1: { address: "0x50c19ffdbda85d1a07c09f01e113a94923801d32", claim: "withdrawAll()", kind: "pool" },
-  presalepool_6f40: { address: "0x6f40d96713b60d5083bc2493251907ca673de1b8", claim: "withdrawAll()", kind: "pool" },
-  presalepool_b990: { address: "0xb9906cf500d5e61b9673115151104c990a804dcb", claim: "withdrawAll()", kind: "pool" },
+  hong: {
+    address: "0x9fa8fa61a10ff892e4ebceb7f4e0fc684c2ce0a9",
+    claim: "refundMyIcoInvestment()",
+    kind: "refund",
+  },
+  foreground: {
+    address: "0x943e99d9efd4b44d808f6c83373a9a2c1e15e0f8",
+    claim: "claimRefund()",
+    kind: "refund",
+  },
+  digipulse_token_sale: {
+    address: "0x9aca6abfe63a5ae0dc6258cefb65207ec990aa4d",
+    claim: "refundEther()",
+    kind: "refund",
+  },
+  bayesin_bys_crowsale: {
+    address: "0xe8b1b40f2d307bce891833f46eef1f69560e6926",
+    claim: "safeWithdrawal()",
+    kind: "refund",
+  },
+  contribution_pool: {
+    address: "0xa812137eff2b368d0b2880a39b609fb60c426850",
+    claim: "withdraw()",
+    kind: "pool",
+  },
+  arbitrage_eth_staking: {
+    address: "0x5eee354e36ac51e9d3f7283005cab0c55f423b23",
+    claim: "withdrawAll()",
+    kind: "pool",
+  },
+  bingo4beast_2: {
+    address: "0x4fb7d68e0116f35ade131b6535b2db1027bf7650",
+    claim: "withdraw()",
+    kind: "pool",
+  },
+  p4rty_dao_vault: {
+    address: "0x9465a32618a9172b3c14d82cecdca788de1ef878",
+    claim: "withdraw()",
+    kind: "pool",
+  },
+  ethpyramid: {
+    address: "0x2fa0ac498d01632f959d3c18e38f4390b005e200",
+    claim: "withdraw()",
+    kind: "dividends",
+  },
+  treasure: {
+    address: "0x25a06d4e1f804ce62cf11b091180a5c84980d93a",
+    claim: "withdraw()",
+    kind: "dividends",
+  },
+  nexgen: {
+    address: "0xffd31e68bf7af89df862435a138615bd60abf574",
+    claim: "withdraw()",
+    kind: "dividends",
+  },
+  eks: {
+    address: "0xe01e2a3ceafa8233021fc759e5a69863558326b6",
+    claim: "withdraw()",
+    kind: "dividends",
+  },
+  presalepool_48c1: {
+    address: "0x48c128eafc3b937fb1f97889ad174ac02b4952cb",
+    claim: "withdrawAll()",
+    kind: "pool",
+  },
+  presalepool_ff2c: {
+    address: "0xff2c689cb750f2a7d46e7471521189ced948f965",
+    claim: "withdrawAll()",
+    kind: "pool",
+  },
+  presalepool_d677: {
+    address: "0xd6770aac65a48f5715889a4cdbf30a4faf73a073",
+    claim: "withdrawAll()",
+    kind: "pool",
+  },
+  presalepool_796d: {
+    address: "0x796dbc51b37f2d92b0af1271fd9520c8efd1be61",
+    claim: "withdrawAll()",
+    kind: "pool",
+  },
+  presalepool_50c1: {
+    address: "0x50c19ffdbda85d1a07c09f01e113a94923801d32",
+    claim: "withdrawAll()",
+    kind: "pool",
+  },
+  presalepool_6f40: {
+    address: "0x6f40d96713b60d5083bc2493251907ca673de1b8",
+    claim: "withdrawAll()",
+    kind: "pool",
+  },
+  presalepool_b990: {
+    address: "0xb9906cf500d5e61b9673115151104c990a804dcb",
+    claim: "withdrawAll()",
+    kind: "pool",
+  },
 };
 const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -53,7 +129,8 @@ export function validSimClaim(e: RegistryEntry): boolean {
 }
 export function simClaimAllowlist(ents: RegistryEntry[]): Record<string, string[]> {
   const o: Record<string, string[]> = {};
-  for (const e of ents.filter(validSimClaim)) o[SIM_SPECS[e.key]!.address] = [btSelector(SIM_SPECS[e.key]!.claim)];
+  for (const e of ents.filter(validSimClaim))
+    o[SIM_SPECS[e.key]!.address] = [btSelector(SIM_SPECS[e.key]!.claim)];
   return o;
 }
 export function simLabel(e: RegistryEntry): string | undefined {
@@ -116,13 +193,21 @@ export async function scanSimClaim(
 ): Promise<{ hits: SimHit[]; failed: string[] }> {
   const es = ents.filter(validSimClaim);
   if (!es.length) return { hits: [], failed: [] };
-  const calls = es.map((e) => ({ from: owner, to: SIM_SPECS[e.key]!.address, data: btSelector(SIM_SPECS[e.key]!.claim) }));
+  const calls = es.map((e) => ({
+    from: owner,
+    to: SIM_SPECS[e.key]!.address,
+    data: btSelector(SIM_SPECS[e.key]!.claim),
+  }));
   // one call per blockStateCall: each claim is simulated alone on the pinned state
   const rs = await (c.request
     ? (c.request({
         method: "eth_simulateV1",
         params: [
-          { blockStateCalls: calls.map((x) => ({ calls: [x] })), traceTransfers: true, validation: false },
+          {
+            blockStateCalls: calls.map((x) => ({ calls: [x] })),
+            traceTransfers: true,
+            validation: false,
+          },
           `0x${block.toString(16)}`,
         ],
       } as never) as Promise<{ calls?: { status?: string; logs?: Log[] }[] }[]>)

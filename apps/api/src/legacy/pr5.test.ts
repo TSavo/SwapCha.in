@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { btSelector } from "../blocktools.js";
 import { registryCollisions, verifyClaimTx } from "../intel.js";
-import { labels, REGISTRY, REGISTRY_ALLOWLIST, scanned, scanRegistry, validEntry } from "./registry.js";
+import {
+  labels,
+  REGISTRY,
+  REGISTRY_ALLOWLIST,
+  scanned,
+  scanRegistry,
+  validEntry,
+} from "./registry.js";
 import { SIM_SPECS, scanSimClaim, tracedPayout, validSimClaim } from "./simclaim.js";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as const;
@@ -38,14 +45,20 @@ describe("LegacyETH PR 5", () => {
   });
   it("tracedPayout: only native ETH contract -> owner; a token leaving the owner fails closed", () => {
     const c = hong().address;
-    expect(tracedPayout({ status: "0x1", logs: [eth(c, OWNER, 5n), eth(c, "0x22", 7n)] }, c, OWNER)).toBe(5n);
+    expect(
+      tracedPayout({ status: "0x1", logs: [eth(c, OWNER, 5n), eth(c, "0x22", 7n)] }, c, OWNER),
+    ).toBe(5n);
     expect(tracedPayout({ status: "0x1", logs: [eth("0x33", OWNER, 5n)] }, c, OWNER)).toBe(0n);
     const tok = { address: "0x44", topics: [TT, w(OWNER), w(c)], data: w("1") };
     expect(tracedPayout({ status: "0x1", logs: [eth(c, OWNER, 5n), tok] }, c, OWNER)).toBeNull();
     expect(tracedPayout({ status: "0x0", logs: [] }, c, OWNER)).toBeNull();
     expect(tracedPayout(undefined, c, OWNER)).toBeNull();
   });
-  const mk = (o: { pay?: bigint; mode?: "none" | "error" | "short" | "revert" | "token"; held?: bigint | null }) => {
+  const mk = (o: {
+    pay?: bigint;
+    mode?: "none" | "error" | "short" | "revert" | "token";
+    held?: bigint | null;
+  }) => {
     const es = scanned().filter(validSimClaim);
     return {
       getBalance: async () => {
@@ -55,16 +68,20 @@ describe("LegacyETH PR 5", () => {
       ...(o.mode === "none"
         ? {}
         : {
-            request: async (a: { params: [{ blockStateCalls: { calls: { to: string }[] }[] }] }) => {
+            request: async (a: {
+              params: [{ blockStateCalls: { calls: { to: string }[] }[] }];
+            }) => {
               if (o.mode === "error") throw new Error("rpc");
               const b = a.params[0].blockStateCalls;
-              if (o.mode === "short") return b.slice(1).map(() => ({ calls: [{ status: "0x1", logs: [] }] }));
+              if (o.mode === "short")
+                return b.slice(1).map(() => ({ calls: [{ status: "0x1", logs: [] }] }));
               return b.map(({ calls: [x] }) => {
                 const isHong = x!.to === hong().address.toLowerCase();
                 if (!isHong) return { calls: [{ status: "0x0", logs: [] }] };
                 if (o.mode === "revert") return { calls: [{ status: "0x0", logs: [] }] };
                 const logs = [eth(x!.to, OWNER, o.pay ?? 0n)];
-                if (o.mode === "token") logs.push({ address: "0x44", topics: [TT, w(OWNER), w(x!.to)], data: w("1") });
+                if (o.mode === "token")
+                  logs.push({ address: "0x44", topics: [TT, w(OWNER), w(x!.to)], data: w("1") });
                 return { calls: [{ status: "0x1", logs }] };
               });
             },
