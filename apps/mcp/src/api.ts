@@ -10,6 +10,8 @@ import {
   type Token,
   Token as TokenSchema,
   TypedData,
+  UtxoDeposit,
+  UtxoTrack,
 } from "@swapchan/shared";
 import { z } from "zod";
 import { currentClientIp } from "./clientctx.js";
@@ -329,6 +331,17 @@ export class SwapChanApi {
   }
   status(r: StatusRequest): Promise<StatusResponse> {
     return this.req(StatusResponse, `/status?${qs(r)}`);
+  }
+  /** LTC/DOGE/BCH -> anything via THORChain: vault, exact amount, required memo, minimum, expiry. */
+  utxoDeposit(r: QuoteRequest, refund: string): Promise<UtxoDeposit> {
+    return this.req(UtxoDeposit, "/utxo/deposit", {
+      method: "POST",
+      body: JSON.stringify({ ...r, refund }),
+    });
+  }
+  /** Read-only THORChain progress of an inbound txid. */
+  utxoStatus(txid: string): Promise<UtxoTrack> {
+    return this.req(UtxoTrack, `/utxo/status?${qs({ txid })}`);
   }
 }
 

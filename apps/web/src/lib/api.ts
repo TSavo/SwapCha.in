@@ -13,6 +13,8 @@ import {
   type Token,
   Token as TokenSchema,
   type TypedData,
+  UtxoDeposit,
+  UtxoTrack,
 } from "@swapchan/shared";
 import { z } from "zod";
 import { activePartner } from "./embed";
@@ -90,6 +92,16 @@ export const api = {
     mocked
       ? Promise.resolve(mockStatus(req.txHash))
       : call(`/status?${toQuery({ ...req })}`, StatusResponseSchema),
+  /** LTC/DOGE/BCH deposit-address flow (THORChain only). */
+  utxoDeposit: (req: QuoteRequest, refund: string): Promise<UtxoDeposit> =>
+    call("/utxo/deposit", UtxoDeposit, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...req, refund }),
+    }),
+  /** Read-only THORChain progress of an inbound txid. */
+  utxoStatus: (txid: string): Promise<UtxoTrack> =>
+    call(`/utxo/status?${toQuery({ txid })}`, UtxoTrack),
 };
 
 const COW_NETWORK: Record<number, string> = {

@@ -128,17 +128,19 @@ const base = {
   slippageBps: 100,
 };
 describe("gateUtxoRoute", () => {
-  it("refuses a receive-only chain as origin with a clear error", () => {
-    for (const id of RECEIVE_ONLY_CHAINS)
+  it("allows LTC/DOGE/BCH as origin (THORChain only) with clear refusals", () => {
+    for (const id of RECEIVE_ONLY_CHAINS) {
+      const from = { ...base, fromChainId: id, fromToken: NON_EVM[id]!.native };
+      expect(gateUtxoRoute({ ...from, toChainId: 1, toToken: base.fromToken })).toMatchObject({
+        fromChainId: id,
+      });
+      expect(() => gateUtxoRoute({ ...from, toChainId: id, toToken: NON_EVM[id]!.native })).toThrow(
+        /not a swap/,
+      );
       expect(() =>
-        gateUtxoRoute({
-          ...base,
-          fromChainId: id,
-          fromToken: NON_EVM[id]!.native,
-          toChainId: 1,
-          toToken: base.fromToken,
-        }),
-      ).toThrow(/receive-only.*not the sending chain/);
+        gateUtxoRoute({ ...from, fromToken: "0xdead", toChainId: 1, toToken: base.fromToken }),
+      ).toThrow(/only the native coin/);
+    }
   });
   it("requires the native coin and a valid recipient for the destination; canonicalizes BCH", () => {
     const r = gateUtxoRoute({
@@ -241,7 +243,7 @@ describe("thorchain: EVM -> LTC/DOGE/BCH", () => {
       expect(v.checks.filter((c) => !c.ok)).toEqual([]);
     }
   });
-  it("never quotes from a receive-only chain, and refuses a bad recipient before calling THORChain", async () => {
+  it("supports LTC/DOGE/BCH as origin, and refuses a bad recipient before calling THORChain", async () => {
     const m = thorMock();
     const p = thorchain(pricer, env, m.f);
     for (const id of RECEIVE_ONLY_CHAINS)
@@ -253,7 +255,7 @@ describe("thorchain: EVM -> LTC/DOGE/BCH", () => {
           toChainId: 1,
           toToken: base.fromToken,
         } as QuoteRequest),
-      ).toBe(false);
+      ).toBe(true);
     await expect(
       p.quote(
         {
@@ -349,12 +351,12 @@ describe("API: /chains, /tokens, /quotes, /build", () => {
     const t = await (await app.request(`/tokens?chainId=${DOGECOIN}`)).json();
     expect(t).toEqual([expect.objectContaining({ symbol: "DOGE", decimals: 8 })]);
   });
-  it("/quotes refuses a receive-only origin with 400 and a clear message", async () => {
+  it("/quotes refuses LTC to LTC with 400 and a clear message", async () => {
     const r = await app.request(
-      `/quotes?${new URLSearchParams({ fromChainId: String(LITECOIN), toChainId: "1", fromToken: NON_EVM[LITECOIN]!.native, toToken: base.fromToken, amount: "100000000" })}`,
+      `/quotes?${new URLSearchParams({ fromChainId: String(LITECOIN), toChainId: String(LITECOIN), fromToken: NON_EVM[LITECOIN]!.native, toToken: NON_EVM[LITECOIN]!.native, amount: "100000000" })}`,
     );
     expect(r.status).toBe(400);
-    expect((await r.json()).error).toMatch(/Litecoin is receive-only/);
+    expect((await r.json()).error).toMatch(/Litecoin to Litecoin is not a swap/);
   });
   it("/quotes refuses a wrong-chain recipient, quotes a valid one", async () => {
     const q = (recipient: string) =>

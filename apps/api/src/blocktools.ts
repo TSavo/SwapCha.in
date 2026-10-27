@@ -85,6 +85,17 @@ type Wasm = {
     memoHex: string,
     rbf?: boolean | null,
   ): string;
+  /** cd93cd8: THORChain inbound send check on btc/ltc/doge/bch; never throws; {ok, failures[], outputs, memo, fee, rbf} */
+  verifyThorSend(
+    chain: string,
+    txOrPsbt: string,
+    expectedVault: string,
+    expectedMemo: string,
+    expectedAmount: string,
+    changeAddr: string,
+    takerAddrs: string,
+    maxFee: string,
+  ): string;
   tronTxId(rawDataHex: string): string;
   serializeNvcTxFromJson(json: string, expectedTxid: string): string;
   verifyRecovery(txJson: string, owner: string, nowS: number): string;
@@ -425,7 +436,14 @@ export type BtPsbt = { psbt: string; fee: string; vsize: number; rbf: boolean };
  *  WASM is unavailable (fail closed, no TS fallback). */
 export function btBuildPsbt(
   chain: string,
-  utxos: { txid: string; vout: number; amount: number | string; address: string }[],
+  utxos: {
+    txid: string;
+    vout: number;
+    amount: number | string;
+    address: string;
+    /** raw previous tx hex: required by blocktools for legacy (P2PKH) and P2SH inputs */
+    prev_tx?: string | undefined;
+  }[],
   to: string,
   amount: bigint,
   change: string,
@@ -439,6 +457,7 @@ export function btBuildPsbt(
         vout: u.vout,
         amount: BigInt(u.amount).toString(),
         address: u.address,
+        ...(u.prev_tx ? { prev_tx: u.prev_tx } : {}),
       }),
     )
     .join("\n");
@@ -446,6 +465,44 @@ export function btBuildPsbt(
   return JSON.parse(
     need().buildPsbtWithMemo(chain, lines, to, amount.toString(), change, feeRate, memoHex, false),
   ) as BtPsbt;
+}
+
+export type BtThorSend = {
+  ok: boolean;
+  /** blocktools reasons: chain tx vault amount memo change output_count rbf fee input_unknown input_foreign
+   *  vault_invalid change_invalid taker_invalid */
+  failures: string[];
+  outputs: { address: string | null; amount: string; kind: string }[];
+  memo: string | null;
+  fee: string | null;
+  rbf: boolean | null;
+};
+/** THORChain inbound send check (blocktools verifyThorSend): exactly [vault == amount, optional change, OP_RETURN ==
+ *  memo], non-RBF, every input value proven and owned by `takers`, fee <= maxFee (decimal string). Throws if the
+ *  WASM is unavailable (fail closed, no TS fallback). */
+export function btVerifyThorSend(
+  chain: string,
+  psbt: string,
+  vault: string,
+  memo: string,
+  amount: bigint,
+  change: string,
+  takers: string[],
+  /** null = blocktools' per-chain default cap */
+  maxFee: bigint | null,
+): BtThorSend {
+  return JSON.parse(
+    need().verifyThorSend(
+      chain,
+      psbt,
+      vault,
+      memo,
+      amount.toString(),
+      change,
+      JSON.stringify(takers),
+      maxFee === null ? "" : maxFee.toString(),
+    ),
+  ) as BtThorSend;
 }
 
 /** ABI encoding (blocktools evmAbiEncode). Drop-in for viem's encodeFunctionData / encodeAbiParameters: viem-style

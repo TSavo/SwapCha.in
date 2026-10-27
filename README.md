@@ -82,7 +82,7 @@ Returns `id`, a private dashboard `token` and `dashboardUrl`. Sites can embed th
 
 ### Networks
 
-Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea, Scroll — plus Bitcoin, Solana and Tron. Same-chain and cross-chain. Litecoin, Dogecoin and Bitcoin Cash are receive-only destinations (paid out by THORChain; payout addresses are checked by blocktools). Sending from them is not supported yet.
+Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea, Scroll — plus Bitcoin, Solana and Tron. Same-chain and cross-chain. Litecoin, Dogecoin and Bitcoin Cash swap through THORChain only, in both directions. Payout and refund addresses are checked by blocktools. To send them you either get an unsigned PSBT (built and checked by blocktools: THORChain vault, exact amount, memo, change back to you, no RBF, fee cap) that you sign in your own wallet, or a THORChain deposit address with the exact amount, the required memo, the minimum and the expiry (not from an exchange: exchanges cannot add the memo). Progress is tracked read-only by txid.
 
 ### Open by design
 

@@ -8,6 +8,7 @@ import {
   QuoteRequest,
   StatusRequest,
   SUPPORTED_CHAINS,
+  sameAddressSpace,
   tokenList,
   vmOf,
 } from "@swapchan/shared";
@@ -45,7 +46,7 @@ import { kyberswap } from "./providers/kyberswap.js";
 import { lifi } from "./providers/lifi.js";
 import { oneinch } from "./providers/oneinch.js";
 import { relay } from "./providers/relay.js";
-import { thorchain } from "./providers/thorchain.js";
+import { type ThorAdapter, thorchain } from "./providers/thorchain.js";
 import type { Fetch, ProviderAdapter } from "./providers/types.js";
 import { velora } from "./providers/velora.js";
 import { zerox } from "./providers/zerox.js";
@@ -398,6 +399,28 @@ export function createApp(
   app.route("/tools", devToolRoutes());
   // Read/Write Contract (/tools/contract): ABI lookup, eth_call reads, unsigned calldata. Never signs or sends.
   app.route("/contract-tool", contractRoutes({ f: opts.scannerFetch ?? fetch, env }));
+  // LTC/DOGE/BCH deposit-address flow (THORChain only): vault, exact amount, memo with the refund address, minimum.
+  app.post("/utxo/deposit", async (c) => {
+    const body = z
+      .object({ refund: z.string().min(1).max(120) })
+      .passthrough()
+      .parse(await c.req.json());
+    const req = gateUtxoRoute(QuoteRequest.parse(body));
+    if (!isReceiveOnly(req.fromChainId))
+      return c.json({ error: "deposit addresses are for sending LTC, DOGE or BCH" }, 400);
+    const thor = providers.find((x) => x.name === "thorchain") as ThorAdapter | undefined;
+    if (!thor?.deposit) return c.json({ error: "THORChain is not available" }, 503);
+    return c.json(await thor.deposit(req, body.refund, AbortSignal.timeout(10_000)));
+  });
+  // Read-only THORChain progress of an LTC/DOGE/BCH (or any) inbound txid.
+  app.get("/utxo/status", async (c) => {
+    const { txid } = z
+      .object({ txid: z.string().regex(/^(0x)?[0-9a-fA-F]{64}$/) })
+      .parse(c.req.query());
+    const thor = providers.find((x) => x.name === "thorchain") as ThorAdapter | undefined;
+    if (!thor?.track) return c.json({ error: "THORChain is not available" }, 503);
+    return c.json(await thor.track(txid, AbortSignal.timeout(8000)));
+  });
   app.get("/status", async (c) => {
     const req = StatusRequest.parse(c.req.query());
     const p = providers.find((x) => x.name === req.provider);
@@ -418,7 +441,8 @@ export function payoutFor(
   recipient: string | undefined,
   allowForeign: boolean,
 ): { recipient: string | undefined } | { error: string } {
-  const cross = vmOf(qreq.fromChainId) !== vmOf(qreq.toChainId);
+  // LTC/DOGE/BCH share the "uvm" tag but not addresses, so LTC -> DOGE needs a recipient like any cross-VM route.
+  const cross = !sameAddressSpace(qreq.fromChainId, qreq.toChainId);
   if (cross) {
     const r = recipient ?? qreq.recipient;
     return r ? { recipient: r } : { error: "cross-VM route: pass recipient" };

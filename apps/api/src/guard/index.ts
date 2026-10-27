@@ -9,13 +9,16 @@ import {
   type Quote,
   type QuoteRequest,
   SOLANA,
+  sameAddressSpace,
   type TxRequest,
   type TypedData,
   vmOf,
 } from "@swapchan/shared";
 import * as bitcoin from "bitcoinjs-lib";
 import type { Hex } from "viem";
+import { btVerifyThorSend } from "../blocktools.js";
 import { UTXO_DEST, validateUtxoRecipient } from "../utxodest.js";
+import { fullAddr } from "../utxosend.js";
 import {
   COW_SETTLEMENT,
   evmAllowed,
@@ -198,6 +201,32 @@ function checkRecipientMemo(c: Acc, memo: string, dest: string | undefined, toCh
     c.test("recipient", lc(m.dest) === lc(dest), `memo destination ${m.dest} != ${dest}`);
   c.test("minOut", m.limit > 0n, "memo has no output limit");
   c.part("minOut-bound", "THORChain limit is in 1e8 units; checked > 0 only");
+}
+
+/**
+ * The memo SwapChan expects on a THORChain-only send, built by SwapChan itself rather than trusted from the payload:
+ * THORChain's limit/streaming/affiliate fields are kept, but the asset must be one SwapChan accepts for the requested
+ * destination and the destination (and refund) must be SwapChan's validated addresses. A memo that names anything
+ * else therefore never equals what SwapChan expects, so blocktools' byte compare refuses it too.
+ */
+export function expectedThorMemo(
+  quoteMemo: string,
+  toChainId: number,
+  dest: string | undefined,
+  refund: string | undefined,
+): string | null {
+  const p = quoteMemo.split(":");
+  if (!parseThorMemo(quoteMemo) || !dest) return null;
+  const forms = THOR_DEST_ASSET[toChainId];
+  if (forms && !forms.includes(p[1] ?? "")) p[1] = forms[0]!;
+  let d = dest;
+  if (isReceiveOnly(toChainId)) {
+    const v = validateUtxoRecipient(toChainId, dest);
+    if (!v.ok) return null;
+    d = v.address;
+  } else if (lc(p[2]!.split("/")[0]!) === lc(dest)) d = p[2]!.split("/")[0]!;
+  p[2] = p[2]!.includes("/") && refund ? `${d}/${refund}` : d;
+  return p.join(":");
 }
 
 async function thorVault(ctx: GuardCtx, chainId: number) {
@@ -676,6 +705,84 @@ function tronRaw(
 }
 const tronHex = (a: string) => hex.encode(base58.decode(a).slice(0, 21));
 
+/**
+ * LTC/DOGE/BCH PSBT to a THORChain vault. blocktools' verifyThorSend does the whole check (no TS fallback; missing
+ * WASM = refused): outputs exactly [vault == amount, optional change to the taker, OP_RETURN == memo], every input
+ * value proven (prev_tx for legacy) and owned by the taker, no RBF, fee under the chain cap. The memo it read back
+ * must then pay this request's validated recipient.
+ */
+async function checkUtxo(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: string) {
+  const d = UTXO_DEST[p.req.fromChainId];
+  if (!d) return c.bad("chain", `chain ${p.req.fromChainId} is not LTC, DOGE or BCH`);
+  if (p.provider !== "thorchain") return c.bad("router", `${d.sym} is sent through THORChain only`);
+  if (n.kind !== "uvm-psbt") return c.bad("decode", `unexpected ${n.kind} payload for ${d.sym}`);
+  const data = n.data as { psbt?: unknown; summary?: { memo?: unknown } } | null;
+  const psbt = typeof data?.psbt === "string" ? data.psbt : "";
+  const quoted = typeof data?.summary?.memo === "string" ? data.summary.memo : "";
+  if (!psbt || !quoted) return c.bad("decode", "PSBT or memo missing");
+  const taker = p.req.taker;
+  if (!taker) return c.bad("taker", "no sending address");
+  const tv = validateUtxoRecipient(p.req.fromChainId, taker);
+  if (!tv.ok) return c.bad("taker", tv.reason);
+  const memo = expectedThorMemo(quoted, p.req.toChainId, dest, tv.address);
+  if (!memo) return c.bad("memo", "cannot build the expected THORChain memo for this request");
+  const v = await thorVault(ctx, p.req.fromChainId);
+  if (!v) return c.bad("router", `THORChain ${d.sym} vault unavailable`);
+  if (v.halted) return c.bad("router", `THORChain ${d.sym} is halted`);
+  const from = fullAddr(p.req.fromChainId, tv.address);
+  let r: ReturnType<typeof btVerifyThorSend>;
+  try {
+    r = btVerifyThorSend(
+      d.bt,
+      psbt,
+      fullAddr(p.req.fromChainId, v.address),
+      memo,
+      BigInt(p.req.amount),
+      from,
+      [from],
+      null,
+    );
+  } catch (e) {
+    return c.bad(
+      "blocktools",
+      `blocktools unavailable: ${String((e as Error).message).slice(0, 80)}`,
+    );
+  }
+  // Two layers, both kept. SwapChan's own memo checks on the memo read back from the PSBT give the specific
+  // reasons ("recipient", "outToken", "minOut"); blocktools' exact byte compare of the whole send comes on top,
+  // its failure names mapped onto SwapChan's guard reasons.
+  const onChain = r.memo;
+  if (onChain === null) c.bad("memo", "no THORChain memo (OP_RETURN) in the PSBT");
+  else checkRecipientMemo(c, onChain, dest, p.req.toChainId);
+  if (onChain !== null && onChain !== memo)
+    c.bad("memo", "PSBT memo differs from the memo SwapChan expects (bytes, case included)");
+  const bad = new Map<string, string[]>();
+  for (const f of r.failures) {
+    const k = THOR_SEND_REASON[f] ?? "blocktools";
+    bad.set(k, [...(bad.get(k) ?? []), f]);
+  }
+  for (const [k, fs] of bad) c.bad(k, `blocktools verifyThorSend: ${fs.join(", ")}`);
+  if (r.ok && bad.size === 0) c.ok("blocktools");
+  else if (!bad.size) c.bad("blocktools", "verifyThorSend did not pass");
+}
+/** blocktools verifyThorSend failure name -> SwapChan guard reason. */
+export const THOR_SEND_REASON: Record<string, string> = {
+  vault: "router",
+  vault_invalid: "router",
+  amount: "value",
+  memo: "memo",
+  change: "change",
+  change_invalid: "change",
+  output_count: "outputs",
+  rbf: "rbf",
+  fee: "fee",
+  input_unknown: "input",
+  input_foreign: "input",
+  taker_invalid: "taker",
+  tx: "decode",
+  chain: "chain",
+};
+
 async function checkTron(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: string) {
   const taker = p.req.taker!;
   if (n.kind === "tvm-deposit") {
@@ -729,7 +836,7 @@ async function checkTron(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: 
 export async function verifyPayload(p: Payload, ctx: GuardCtx): Promise<Verification> {
   const c = new Acc();
   const { req } = p;
-  const sameVm = vmOf(req.fromChainId) === vmOf(req.toChainId);
+  const sameVm = sameAddressSpace(req.fromChainId, req.toChainId);
   const dest = req.recipient ?? (sameVm ? req.taker : undefined);
   try {
     // Fail closed: a Relay order from a chain with no confirmed depository pin is refused before
@@ -745,6 +852,7 @@ export async function verifyPayload(p: Payload, ctx: GuardCtx): Promise<Verifica
       if (!req.taker) c.part("taker", "indicative quote without taker");
       else if (p.nonEvmTx.vm === "svm") await checkSvm(c, p, p.nonEvmTx, ctx, dest);
       else if (p.nonEvmTx.vm === "bvm") await checkBtc(c, p, p.nonEvmTx, ctx, dest);
+      else if (p.nonEvmTx.vm === "uvm") await checkUtxo(c, p, p.nonEvmTx, ctx, dest);
       else await checkTron(c, p, p.nonEvmTx, ctx, dest);
     } else if (p.tx && p.tx.data === "0x") {
       c.bad("tx", "empty calldata");

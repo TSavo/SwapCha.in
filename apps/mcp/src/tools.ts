@@ -159,7 +159,7 @@ const chainId = z
   .int()
   .positive()
   .describe(
-    "Chain id: 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon, 56 BNB Chain, 43114 Avalanche, 59144 Linea, 534352 Scroll, 792703809 Solana, 8253038 Bitcoin, 728126428 Tron, plus receive-only 2000000002 Litecoin, 2000000003 Dogecoin, 2000000145 Bitcoin Cash (destination only, via THORChain; not accepted as the sending chain). Non-EVM chains route via Relay, LI.FI and THORChain.",
+    "Chain id: 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon, 56 BNB Chain, 43114 Avalanche, 59144 Linea, 534352 Scroll, 792703809 Solana, 8253038 Bitcoin, 728126428 Tron, plus THORChain-only 2000000002 Litecoin, 2000000003 Dogecoin, 2000000145 Bitcoin Cash (either side, THORChain only; sending them needs the native coin and returns an unsigned PSBT on /build or a deposit address from POST /utxo/deposit with the required memo). Non-EVM chains route via Relay, LI.FI and THORChain.",
   );
 
 const partnerId = z
@@ -351,6 +351,49 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     safe(
       async () => api.chains(),
       () => ({ says: "Pick your departure gate! Every chain-chan is ready to carry your tokens~" }),
+    ),
+  );
+
+  server.registerTool(
+    "get_utxo_deposit",
+    {
+      title: "LTC/DOGE/BCH deposit address (THORChain)",
+      description:
+        "Send Litecoin, Dogecoin or Bitcoin Cash through THORChain from any wallet that can add an OP_RETURN memo. Returns THORChain's vault, the exact amount, the REQUIRED memo (with the refund address in it), the minimum, the expiry and warnings. Tell the user: the memo is mandatory, never send from an exchange (exchanges cannot add the memo), send exactly this amount once before expiry. Nothing is sent by this call. For an unsigned PSBT instead, use get_quote then build with the sender as taker.",
+      inputSchema: z.object({
+        fromChainId: z
+          .number()
+          .int()
+          .describe("2000000002 Litecoin, 2000000003 Dogecoin or 2000000145 Bitcoin Cash"),
+        fromToken: z.string().describe("The chain's native coin address from get_supported_tokens"),
+        toChainId: chainId,
+        toToken: z.string(),
+        amount: z.string().regex(/^\d+$/).describe("Base units (1e8 per coin)"),
+        recipient: z.string().describe("Payout address on toChainId"),
+        refund: z.string().describe("The user's own address on the sending chain, for refunds"),
+        slippageBps: z.number().int().min(1).max(5000).default(100),
+      }),
+      annotations: ro,
+    },
+    safe(
+      async ({ refund, ...r }: Record<string, unknown> & { refund: string }) =>
+        api.utxoDeposit(r as unknown as QuoteRequest, refund),
+      () => ({ says: "Exact amount, exact memo, before expiry~ and never from an exchange!" }),
+    ),
+  );
+
+  server.registerTool(
+    "track_utxo_swap",
+    {
+      title: "Track an LTC/DOGE/BCH swap (THORChain)",
+      description:
+        "Read-only progress of a THORChain swap by its inbound txid: waiting, seen, swapping, paid_out, refunded or failed, with a THORChain link and the payout tx link when there is one.",
+      inputSchema: z.object({ txid: z.string().regex(/^(0x)?[0-9a-fA-F]{64}$/) }),
+      annotations: ro,
+    },
+    safe(
+      async ({ txid }: { txid: string }) => api.utxoStatus(txid),
+      () => ({ says: "Watching the vault for you~" }),
     ),
   );
 
