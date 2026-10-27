@@ -3,7 +3,7 @@
  * Trustless: SwapChan never holds keys and cannot alter a signed tx. verify_tx reads chain state and simulates;
  * broadcast_tx only relays bytes the user's wallet already signed.
  */
-import { NATIVE_TOKEN, SOLANA, TRON } from "@swapchan/shared";
+import { BROADCAST_COUNT, broadcastSummary, NATIVE_TOKEN, SOLANA, TRON } from "@swapchan/shared";
 import {
   decodeFunctionData,
   formatEther,
@@ -664,6 +664,14 @@ export async function broadcastTx(
   if (chainId === BITCOIN) {
     const raw = String(b.tx);
     if (!isHex(raw)) throw new BadRequest("bitcoin tx must be raw hex");
+    if (/^70736274ff/i.test(raw))
+      throw new BadRequest("that is a PSBT; finalize it in your wallet and send the raw tx hex");
+    if (b.strict)
+      return {
+        broadcast: false,
+        reason:
+          "strict: verify_tx cannot decode Bitcoin transactions, so strict mode refuses; send without strict to relay it unchanged",
+      };
     const r = await f("https://mempool.space/api/tx", {
       method: "POST",
       body: raw,
@@ -857,8 +865,7 @@ export function signingGuide(
 ) {
   const keyRecovery = recoveryGuide(situation);
   return {
-    principle:
-      "Signing starts with 'do you have the key?'. Step 1 recover the key LOCALLY (never in chat). Step 2 verify_tx. Step 3 human signs EVERY tx in their own wallet. Step 4 broadcast_tx. SwapChan never holds keys or funds.",
+    principle: `Signing starts with 'do you have the key?'. Step 1 recover the key LOCALLY (never in chat). Step 2 verify_tx. Step 3 human signs EVERY tx in their own wallet. Step 4 broadcast_tx (relays already-signed txs on ${BROADCAST_COUNT} chains; any other chain is broadcast from the user's own wallet). SwapChan never holds keys or funds.`,
     steps: [
       {
         n: 1,
@@ -884,8 +891,7 @@ export function signingGuide(
       {
         n: 4,
         name: "Broadcast",
-        summary:
-          "Optional relay of the already-signed bytes. Private via Flashbots Protect on Ethereum. Cannot alter a signed tx.",
+        summary: `Optional relay of the already-signed bytes, unchanged. broadcast_tx can send to ${broadcastSummary()}. Any other chain: broadcast from the coin's own wallet. Private via Flashbots Protect on Ethereum. Cannot alter a signed tx.`,
         tool: "broadcast_tx then tx_status",
       },
     ],
@@ -899,7 +905,7 @@ export function signingGuide(
       "find_money or get_quote: unsigned tx",
       "verify_tx: verdict + plain-language summary",
       "the human reviews the summary and signs in their own wallet",
-      "broadcast_tx (optional; private via Flashbots Protect on Ethereum): hash",
+      `broadcast_tx (optional; ${BROADCAST_COUNT} chains, others via the user's own wallet; private via Flashbots Protect on Ethereum): hash`,
       "tx_status: confirmed",
     ],
     custody: [

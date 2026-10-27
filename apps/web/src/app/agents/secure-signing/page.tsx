@@ -32,7 +32,7 @@ const STEPS = [
   {
     n: "4",
     title: "Broadcast",
-    body: "Optional relay of already-signed bytes via broadcast_tx. Private via Flashbots Protect on Ethereum. Cannot alter a signed tx. Track with tx_status.",
+    body: "Optional relay of already-signed bytes via broadcast_tx (51 chains; see /broadcast for the list, any other chain is sent from your own wallet). Private via Flashbots Protect on Ethereum. Cannot alter a signed tx. Track with tx_status.",
     href: "/broadcast",
   },
 ];
