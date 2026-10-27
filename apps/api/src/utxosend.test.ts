@@ -313,7 +313,11 @@ describe("THORChain deposit address and tracking (mocked thornode)", () => {
     const t = (o = {}) => thorchain(pricer, env, net(o).f);
     const s = () => AbortSignal.timeout(2000);
     await expect(t().deposit(req, DOGE_TO, s())).rejects.toThrow(/refund address/);
-    await expect(t().deposit(req, "", s())).rejects.toThrow(/refund address required/);
+    // no refund address: allowed, and the response says refunds go to the sender
+    await expect(t().deposit(req, "", s())).resolves.toMatchObject({
+      refundInMemo: false,
+      refundTo: "sender",
+    });
     await expect(t({ halted: true }).deposit(req, LTC_P2PKH, s())).rejects.toThrow(/paused/);
     await expect(t({ dust: "10000000" }).deposit(req, LTC_P2PKH, s())).rejects.toThrow(/minimum/);
     // a bech32 refund makes THORChain's memo 84 bytes: over LTC's 80, refused (never truncated)

@@ -127,8 +127,9 @@ const scale = (x: bigint, from: number, to: number) =>
  * routes run fee-free and rank with our fee as a handicap. Measured from fees.affiliate.
  */
 export type ThorAdapter = ProviderAdapter & {
-  /** Deposit-address flow for LTC/DOGE/BCH: vault, exact amount, memo (with the refund address), minimum, expiry. */
-  deposit(req: QuoteRequest, refund: string, signal: AbortSignal): Promise<UtxoDeposit>;
+  /** Deposit-address flow for LTC/DOGE/BCH: vault, exact amount, memo, minimum, expiry. refund is optional and goes
+   *  in the memo only if THORChain fits it; otherwise refunds go to the sending address (said plainly). */
+  deposit(req: QuoteRequest, refund: string | undefined, signal: AbortSignal): Promise<UtxoDeposit>;
   /** Read-only progress of an inbound txid on THORChain. */
   track(txid: string, signal: AbortSignal): Promise<UtxoTrack>;
 };
@@ -175,8 +176,10 @@ export function thorchain(
       if (a.startsWith(`${pre}.`) && a.toUpperCase().endsWith(`-${up}`)) return a;
     return null;
   };
-  /** keepRefund: never drop the refund address on "memo too long" (the deposit flow refuses instead: a deposit from
-   *  an exchange would otherwise be refunded to an address the user does not control). refund: overrides req.taker. */
+  /** refund: overrides req.taker (the deposit flow passes the user's refund address). keepRefund: never drop it on
+   *  "memo too long" (refuse instead). The deposit flow does NOT set it: measured 2026-10-27, THORChain refuses every
+   *  LTC/DOGE/BCH memo that names a refund address, so it drops the refund and tells the user plainly that refunds go
+   *  back to the sending address. */
   const call = async (
     req: QuoteRequest,
     signal: AbortSignal,
@@ -250,8 +253,10 @@ export function thorchain(
       // "/<refund>" overflows for every BTC address type. THORChain refunds to the sending address when the memo
       // names none, and our PSBT spends only the taker's UTXOs, so a refund still goes to req.taker.
       // The affiliate is never dropped: if it is what overflows, the retry fails and we refuse below.
-      // LTC/DOGE (80 bytes) behave like BTC; BCH allows 220. Only the in-app PSBT path may drop it: that PSBT
-      // spends only the taker's coins, so THORChain's default refund (the sending address) is the taker.
+      // LTC/DOGE/BCH behave like BTC. Measured 2026-10-27 on thornode: every LTC, DOGE and BCH quote that names a
+      // refund address answers "generated memo too long" (BCH included: a ~102-byte memo is refused although an
+      // OP_RETURN could carry 220). In the PSBT path the PSBT spends only the taker's coins, so the default refund
+      // is the taker; the deposit flow says plainly that refunds go to the sending address.
       q.delete("refund_address");
       r = await ask();
       refundDropped = true;
@@ -260,11 +265,15 @@ export function thorchain(
       const e = r.error ?? r.message ?? "";
       if (MEMO_TOO_LONG.test(e)) {
         const sym = PREFIX[req.fromChainId] ?? "this chain";
-        const lim = sym === "BTC" ? 80 : (MEMO_LIMIT[sym.toLowerCase()] ?? 80);
+        // BCH: THORChain enforces its own limit below the 220-byte OP_RETURN (measured: ~102 bytes refused).
+        const lim =
+          sym === "BCH"
+            ? "THORChain's memo limit"
+            : `${sym === "BTC" ? 80 : (MEMO_LIMIT[sym.toLowerCase()] ?? 80)}-byte OP_RETURN`;
         throw new RouteRefused(
           opts.keepRefund
-            ? `THORChain: the swap memo with your refund address does not fit ${sym}'s ${lim}-byte OP_RETURN; use a shorter refund address (for example a legacy or P2SH one) or the in-app transaction`
-            : `THORChain: memo does not fit ${sym}'s ${lim}-byte OP_RETURN for this destination; refusing rather than dropping SwapChan's fee`,
+            ? `THORChain: the swap memo with a refund address does not fit ${sym}'s ${lim}; THORChain accepts no refund address in the memo for this route`
+            : `THORChain: the swap memo does not fit ${sym}'s ${lim} even without a refund address; refusing rather than dropping SwapChan's fee`,
         );
       }
       throw new Error(e);
@@ -447,13 +456,17 @@ export function thorchain(
         );
       if (!isNative(req.fromChainId, req.fromToken))
         throw new RouteRefused(`${d.name}: only the native coin can be sent`);
-      if (!refund?.trim())
-        throw new RouteRefused(`refund address required: a ${d.name} address you control`);
-      const rv = validateUtxoRecipient(req.fromChainId, refund);
-      if (!rv.ok) throw new RouteRefused(`refund address: ${rv.reason}`);
+      // The refund address is optional: THORChain refuses a refund address in every LTC/DOGE/BCH memo measured so
+      // far, and without one it refunds to the address that sent the coins.
+      let given = "";
+      if (refund?.trim()) {
+        const rv = validateUtxoRecipient(req.fromChainId, refund);
+        if (!rv.ok) throw new RouteRefused(`refund address: ${rv.reason}`);
+        given = rv.address;
+      }
       const { taker: _t, ...noTaker } = req;
-      const [{ r, dst }, ibs] = await Promise.all([
-        call(noTaker as QuoteRequest, signal, { keepRefund: true, refund: rv.address }),
+      const [{ r, dst, refundDropped }, ibs] = await Promise.all([
+        call(noTaker as QuoteRequest, signal, given ? { refund: given } : {}),
         getJson<
           {
             chain: string;
@@ -471,10 +484,13 @@ export function thorchain(
         throw new RouteRefused(
           `THORChain's memo is ${memoBytes} bytes, over ${d.sym}'s ${limit}-byte OP_RETURN limit; not offered`,
         );
-      // THORChain's own memo must carry this refund address (dest field "<payout>/<refund>").
-      const refundInMemo = (memo.split(":")[2] ?? "").split("/")[1] ?? "";
-      if (refundInMemo.toLowerCase() !== rv.address.toLowerCase())
-        throw new Error("THORChain: the memo does not carry the refund address; not offered");
+      // THORChain's own memo decides where a refund goes: dest field "<payout>/<refund>" or "<payout>" alone.
+      const memoRefund = (memo.split(":")[2] ?? "").split("/")[1] ?? "";
+      const refundInMemo = !!given && !refundDropped;
+      if (refundInMemo ? memoRefund.toLowerCase() !== given.toLowerCase() : memoRefund !== "")
+        throw new Error(
+          "THORChain: the memo's refund address is not the expected one; not offered",
+        );
       const ib = ibs.find((x) => x.chain === d.sym);
       if (!ib || ib.halted || ib.chain_trading_paused)
         throw new RouteRefused(`THORChain has paused ${d.name} right now; try again later`);
@@ -501,11 +517,20 @@ export function thorchain(
         minimum: dust.toString(),
         minimumDisplay: fromBaseUnits(dust, 8),
         expiresAt: r.expiry,
-        refund: rv.address,
+        refund: given,
+        refundInMemo,
+        refundTo: refundInMemo ? "memo" : "sender",
         expectedOut: fromBaseUnits(out, dst.decimals),
         warnings: [
+          ...(refundInMemo
+            ? []
+            : [
+                `REFUNDS GO BACK TO THE ADDRESS THAT SENT THE COINS. THORChain does not fit a refund address in this ${d.sym} memo, so if the swap fails it refunds to the ${d.name} address your coins came from. Never send from an exchange or from any address you do not control: a refund there can be lost.`,
+              ]),
           `The memo is required. A ${d.sym} send without this exact memo in an OP_RETURN output cannot be matched to your swap.`,
-          "Do not send from an exchange: exchanges cannot add the memo, and a refund would go to the address in the memo, not to the exchange.",
+          refundInMemo
+            ? "Do not send from an exchange: exchanges cannot add the memo, and a refund would go to the address in the memo, not to the exchange."
+            : "Do not send from an exchange: exchanges cannot add the memo.",
           `Send exactly ${fromBaseUnits(amount, 8)} ${d.sym} in one transaction before the quote expires.`,
         ],
       };

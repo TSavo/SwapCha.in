@@ -161,7 +161,9 @@ export function createApp(
         id: Number(id),
         ...v,
         vm: vmOf(Number(id)),
-        ...(isReceiveOnly(Number(id)) ? { receiveOnly: true } : {}),
+        ...(isReceiveOnly(Number(id))
+          ? { receiveOnly: false, thorchainOnly: true, canSend: true, canReceive: true }
+          : {}),
       })),
     ),
   );
@@ -399,10 +401,10 @@ export function createApp(
   app.route("/tools", devToolRoutes());
   // Read/Write Contract (/tools/contract): ABI lookup, eth_call reads, unsigned calldata. Never signs or sends.
   app.route("/contract-tool", contractRoutes({ f: opts.scannerFetch ?? fetch, env }));
-  // LTC/DOGE/BCH deposit-address flow (THORChain only): vault, exact amount, memo with the refund address, minimum.
+  // LTC/DOGE/BCH deposit-address flow (THORChain only): vault, exact amount, memo, minimum. refund is optional.
   app.post("/utxo/deposit", async (c) => {
     const body = z
-      .object({ refund: z.string().min(1).max(120) })
+      .object({ refund: z.string().max(120).optional() })
       .passthrough()
       .parse(await c.req.json());
     const req = gateUtxoRoute(QuoteRequest.parse(body));

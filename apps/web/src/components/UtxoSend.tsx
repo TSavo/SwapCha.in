@@ -80,7 +80,7 @@ export function UtxoSend({
       {!thor && <p className="text-sm">Waiting for a THORChain quote.</p>}
       <label className="block text-sm">
         {tab === "deposit"
-          ? `Your ${chainName} refund address`
+          ? `Your ${chainName} refund address (optional)`
           : `Your ${chainName} sending address`}
         <input
           className="mt-1 w-full font-mono"
@@ -89,10 +89,17 @@ export function UtxoSend({
           data-testid="utxo-refund"
         />
       </label>
+      {tab === "deposit" && (
+        <p className="text-sm">
+          THORChain usually cannot fit a refund address in a {chainName} memo. Then a failed swap is
+          refunded to the address your coins are sent from, so send only from a wallet address you
+          control, never from an exchange.
+        </p>
+      )}
       {tab === "deposit" ? (
         <button
           type="button"
-          disabled={!ready || !refund || busy}
+          disabled={!ready || busy}
           data-testid="utxo-deposit-btn"
           onClick={() => run(async () => setDeposit(await api.utxoDeposit(request!, refund)))}
         >
@@ -159,9 +166,17 @@ function DepositView({ d }: { d: UtxoDeposit }) {
       </p>
       <p>Minimum: {d.minimumDisplay}</p>
       <p>Expires: {new Date(d.expiresAt * 1000).toLocaleString()}</p>
-      <p>
-        Refund address: <FullAddress address={d.refund} />
-      </p>
+      {d.refundInMemo ? (
+        <p>
+          Refund address (in the memo): <FullAddress address={d.refund} />
+        </p>
+      ) : (
+        <p role="alert" className="font-bold" data-testid="utxo-refund-sender">
+          Refunds go back to the address that sent the coins. The memo has no refund address
+          {d.refund ? " (the address you entered is not in it)" : ""}. Never send from an exchange
+          or any address you do not control.
+        </p>
+      )}
       <ul className="list-disc pl-5">
         {d.warnings.map((w) => (
           <li key={w}>{w}</li>
