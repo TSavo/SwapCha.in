@@ -27,8 +27,8 @@ export type ChainPage = ChainPageRow & {
 const CAPABILITY =
   "Address checking only: SwapChan validates the format and tells you which address type it is. It does not hold funds, sign transactions or recover wallets for this chain.";
 
-const BROADCAST_LINE =
-  " The broadcast_tx tool can relay a transaction you already signed in your own wallet to this chain, unchanged; it never signs.";
+const CAPABILITY_BROADCAST =
+  "Address checking, plus relaying an already-signed transaction: SwapChan validates the format and tells you which address type it is, and the broadcast_tx tool can relay a transaction you already signed in your own wallet, unchanged. It does not hold funds, sign transactions or recover wallets for this chain.";
 
 const SITE = "https://swapchan.com";
 const SAFE =
@@ -270,14 +270,14 @@ function build(r: ChainPageRow, all: readonly ChainPageRow[]): ChainPage {
     ...r,
     h1: `${name} (${r.ticker}) address validator`,
     pageTitle: `${name} Address Validator & Format (${r.ticker}) | SwapChan`,
-    description: `Check a ${name} (${r.ticker}) address format: ${formatShort}. Address checking only, no keys.`,
-    intro: `Address checking only. Paste a ${name} address to check its checksum and format and see which address type it is. Below: how ${r.ticker} addresses are built, an example, and the chains it can be confused with.`,
+    description: `Check a ${name} (${r.ticker}) address format: ${formatShort}. ${BROADCAST_SLUGS.has(r.slug) ? "Address checking and relay of already-signed transactions" : "Address checking only"}, no keys.`,
+    intro: `${BROADCAST_SLUGS.has(r.slug) ? "Address checking, plus relaying an already-signed transaction" : "Address checking only"}. Paste a ${name} address to check its checksum and format and see which address type it is. Below: how ${r.ticker} addresses are built, an example, and the chains it can be confused with.`,
     formats,
     notes,
     faq,
     lookAlikes,
     related,
-    capability: BROADCAST_SLUGS.has(r.slug) ? CAPABILITY + BROADCAST_LINE : CAPABILITY,
+    capability: BROADCAST_SLUGS.has(r.slug) ? CAPABILITY_BROADCAST : CAPABILITY,
     broadcast: BROADCAST_SLUGS.has(r.slug),
     offlineCli: CHAIN_TABLE.find((t) => t.name === r.name)?.buildable === true,
   };

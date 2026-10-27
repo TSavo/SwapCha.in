@@ -1,3 +1,4 @@
+import { BROADCAST_COUNT } from "@swapchan/shared";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentCTAs } from "@/components/AgentCTA";
@@ -32,7 +33,7 @@ const STEPS = [
   {
     n: "4",
     title: "Broadcast",
-    body: "Optional relay of already-signed bytes via broadcast_tx (51 chains; see /broadcast for the list, any other chain is sent from your own wallet). Private via Flashbots Protect on Ethereum. Cannot alter a signed tx. Track with tx_status.",
+    body: `Optional relay of already-signed bytes via broadcast_tx (${BROADCAST_COUNT} chains; see /broadcast for the list, any other chain is sent from your own wallet). Private via Flashbots Protect on Ethereum. Cannot alter a signed tx. Track with tx_status.`,
     href: "/broadcast",
   },
 ];

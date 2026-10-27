@@ -46,26 +46,78 @@ const short = (s: unknown) =>
     .slice(0, 300);
 
 class NodeRejected extends Error {}
+/** XRP tec*: the ledger applied the tx (fee charged) but its action failed. Not a rejection. */
+class Applied extends Error {
+  constructor(
+    readonly code: string,
+    msg: string,
+    readonly hash: string,
+  ) {
+    super(msg);
+  }
+}
+/**
+ * Node replies meaning "I already have this exact tx" (mempool or chain). These are success, not rejection.
+ * Deliberately NOT matched: txn-mempool-conflict / nonce too low, which mean a DIFFERENT tx spends the same inputs/nonce.
+ */
+export const ALREADY_KNOWN =
+  /already known|known transaction|txn-already-(in-mempool|known)|transaction already in block ?chain|already in (the )?(mempool|pool|block ?chain)|tx already exists|already imported|tefALREADY/i;
+type EachResult =
+  | { ok: true; v: string; already?: boolean }
+  | { ok: false; reason: string; applied?: { code: string; hash: string } };
 /** Try each endpoint in order; a NodeRejected answer is final, any other failure falls through. */
-async function each<T>(c: BroadcastChain, eps: string[], fn: (ep: string) => Promise<T>) {
+async function each(
+  c: BroadcastChain,
+  eps: string[],
+  fn: (ep: string) => Promise<string>,
+): Promise<EachResult> {
   for (const ep of eps) {
     try {
-      return { ok: true as const, v: await fn(ep) };
+      return { ok: true, v: await fn(ep) };
     } catch (e) {
-      if (e instanceof NodeRejected)
-        return { ok: false as const, reason: `node rejected: ${short(e.message)}` };
+      if (e instanceof Applied)
+        return {
+          ok: false,
+          applied: { code: e.code, hash: e.hash },
+          reason: `applied with ${e.code}: the transaction is on the ledger and the fee was charged, but its action failed (${short(e.message)})`,
+        };
+      if (e instanceof NodeRejected) {
+        if (ALREADY_KNOWN.test(e.message)) return { ok: true, v: "", already: true };
+        return { ok: false, reason: `node rejected: ${short(e.message)}` };
+      }
     }
   }
-  return { ok: false as const, reason: `no ${c.name} endpoint answered; nothing was broadcast` };
+  return { ok: false, reason: `no ${c.name} endpoint answered; nothing was broadcast` };
+}
+/** Node replies are read up to 64 KB; anything longer is cut (a broadcast reply is a few hundred bytes). */
+export const MAX_REPLY_BYTES = 64 * 1024;
+async function readCapped(r: Response): Promise<string> {
+  if (!r.body) return "";
+  const reader = r.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let n = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const room = MAX_REPLY_BYTES - n;
+    chunks.push(value.length > room ? value.subarray(0, room) : value);
+    n += Math.min(value.length, room);
+    if (n >= MAX_REPLY_BYTES) {
+      await reader.cancel().catch(() => {});
+      break;
+    }
+  }
+  return Buffer.concat(chunks).toString("utf8");
 }
 async function post(f: F, url: string, body: string | Uint8Array, type: string, ms = 20_000) {
   const r = await f(url, {
     method: "POST",
     headers: { "content-type": type },
     body,
+    redirect: "error",
     signal: AbortSignal.timeout(ms),
   });
-  const text = await r.text();
+  const text = await readCapped(r);
   let j: unknown = null;
   try {
     j = JSON.parse(text);
@@ -164,9 +216,13 @@ export async function broadcastExtra(
         if (!res) throw new Error(`bad reply ${r.status}`);
         if (res.status === "error") throw new NodeRejected(res.error_message ?? res.error);
         const code = String(res.engine_result ?? "");
+        const hash = String(res.tx_json?.hash ?? "");
+        // tec* is checked first: rippled reports those as accepted, but only the fee took effect.
+        if (/^tec/.test(code)) throw new Applied(code, res.engine_result_message ?? "", hash);
+        if (/^tefALREADY/.test(code)) return hash;
         if (!(res.accepted === true || /^tes|^terQUEUED/.test(code)))
           throw new NodeRejected(`${code} ${res.engine_result_message ?? ""}`.trim());
-        return String(res.tx_json?.hash ?? "");
+        return hash;
       };
       break;
     }
@@ -257,7 +313,22 @@ export async function broadcastExtra(
       ...pre,
     };
   const r = await each(c, eps, send);
-  if (!r.ok) return { broadcast: false, reason: r.reason, ...base, ...pre };
+  if (!r.ok) {
+    if (r.applied) {
+      const h = r.applied.hash || (pre.hash as string | undefined) || null;
+      return {
+        broadcast: true,
+        applied: true,
+        succeeded: false,
+        result: r.applied.code,
+        hash: h,
+        ...base,
+        reason: r.reason,
+        explorer: c.explorerTx && h ? `${c.explorerTx}${h}` : null,
+      };
+    }
+    return { broadcast: false, reason: r.reason, ...base, ...pre };
+  }
   const hash = r.v || (pre.hash as string | undefined) || null;
   return {
     broadcast: true,
@@ -266,7 +337,10 @@ export async function broadcastExtra(
     ...(pre.from ? { from: pre.from } : {}),
     via: "public node",
     explorer: c.explorerTx && hash ? `${c.explorerTx}${hash}` : null,
-    note: "Relayed unchanged. verify_tx cannot decode this chain; SwapChan did not check what the tx does.",
+    ...(r.already ? { alreadyKnown: true } : {}),
+    note: r.already
+      ? "The network already had this exact transaction (in the mempool or on chain); nothing new was sent."
+      : "Relayed unchanged. verify_tx cannot decode this chain; SwapChan did not check what the tx does.",
   };
 }
 
@@ -291,16 +365,40 @@ export function routeBroadcast(
   }
 }
 
-/** Per-client fixed 60 s window, same shape as the dev-tools limiter; IPs are kept only for the window. */
-export function broadcastLimiter(perMinute = 10, now: () => number = Date.now) {
+/**
+ * Rate-limit key for /onchain/broadcast. cf-connecting-ip (set by Cloudflare) first, else the socket address, else
+ * "local". x-forwarded-for is never used: a client can set it to anything and pick its own bucket.
+ */
+export function broadcastClientKey(
+  header: (name: string) => string | undefined,
+  remoteAddress?: string,
+): string {
+  return header("cf-connecting-ip")?.trim() || remoteAddress?.trim() || "local";
+}
+
+/**
+ * Per-client fixed 60 s window. Expired windows are swept at most once a minute; past maxKeys the OLDEST windows are
+ * evicted one by one (never everyone at once). IPs are kept only for the window.
+ */
+export function broadcastLimiter(perMinute = 10, now: () => number = Date.now, maxKeys = 50_000) {
   const windows = new Map<string, { start: number; count: number }>();
+  let lastSweep = Number.NEGATIVE_INFINITY;
   return (who: string): { ok: true } | { ok: false; retryAfter: number } => {
     const t = now();
+    if (t - lastSweep >= 60_000) {
+      lastSweep = t;
+      for (const [k, v] of windows) if (t - v.start >= 60_000) windows.delete(k);
+    }
     let w = windows.get(who);
     if (!w || t - w.start >= 60_000) {
+      windows.delete(who); // re-insert so Map order stays oldest-window-first
       w = { start: t, count: 0 };
       windows.set(who, w);
-      if (windows.size > 50_000) windows.clear();
+      while (windows.size > maxKeys) {
+        const oldest = windows.keys().next().value;
+        if (oldest === undefined) break;
+        windows.delete(oldest);
+      }
     }
     w.count++;
     return w.count > perMinute

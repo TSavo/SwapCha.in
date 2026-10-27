@@ -111,7 +111,12 @@ const scanGate = gate(
   Number(process.env.FIND_QUEUE_WAIT_MS ?? 30_000),
 );
 
-import { broadcastExtra, broadcastLimiter, routeBroadcast } from "./broadcastmore.js";
+import {
+  broadcastClientKey,
+  broadcastExtra,
+  broadcastLimiter,
+  routeBroadcast,
+} from "./broadcastmore.js";
 import { btcXpubScan, logPromoteCandidate, stuckMoneyRegistry } from "./stuck.js";
 import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 
@@ -5752,10 +5757,11 @@ export function intelRoutes(
   );
   const bcastLimit = broadcastLimiter(Number(env.SWAPCHAN_BROADCAST_PER_MIN) || 10);
   app.post("/broadcast", async (c) => {
-    const who =
-      c.req.header("cf-connecting-ip") ??
-      c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "local";
+    const who = broadcastClientKey(
+      (n) => c.req.header(n),
+      (c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined)?.incoming
+        ?.socket?.remoteAddress,
+    );
     const lim = bcastLimit(who);
     if (!lim.ok) {
       c.header("retry-after", String(lim.retryAfter));

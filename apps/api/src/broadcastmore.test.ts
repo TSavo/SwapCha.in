@@ -308,3 +308,133 @@ describe("rate limit", () => {
     expect(lim("a").ok).toBe(true);
   });
 });
+
+// --- review follow-ups (PR 36) ---
+import { readFileSync } from "node:fs";
+import { stringToHex, keccak256 as viemKeccak } from "viem";
+import { btKeccak256 } from "./blocktools.js";
+import { ALREADY_KNOWN, broadcastClientKey, MAX_REPLY_BYTES } from "./broadcastmore.js";
+
+describe("PR 36 review follow-ups", () => {
+  const evmChain = BROADCAST_EXTRA.find((c) => c.family === "evm")!;
+  const signEvm = async () =>
+    privateKeyToAccount(generatePrivateKey()).signTransaction({
+      chainId: evmChain.chainId!,
+      type: "eip1559",
+      to: "0x000000000000000000000000000000000000dEaD",
+      value: 0n,
+      nonce: 0,
+      gas: 21000n,
+      maxFeePerGas: 1n,
+      maxPriorityFeePerGas: 1n,
+    });
+
+  it("btKeccak256 hashes the BYTES of a hex string (known vectors)", () => {
+    expect(btKeccak256("0x")).toBe(
+      "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+    );
+    // keccak256 of the single byte 0x00, not of the text "0x00"
+    expect(btKeccak256("0x00")).toBe(
+      "0xbc36789e7a1e281436464229828f817d6612f7b477d66591ff96a9e064bcc98a",
+    );
+    expect(btKeccak256("0x00")).not.toBe(viemKeccak(stringToHex("0x00")));
+  });
+
+  it("EVM 'already known' is success and returns the precomputed keccak of the raw bytes", async () => {
+    const raw = await signEvm();
+    const { f } = mock(() => ({
+      body: { jsonrpc: "2.0", id: 1, error: { code: -32000, message: "already known" } },
+    }));
+    const r = await broadcastExtra(f, {}, evmChain, raw);
+    expect(r.broadcast).toBe(true);
+    expect(r.alreadyKnown).toBe(true);
+    expect(r.hash).toBe(viemKeccak(raw));
+  });
+
+  it("Bitcoin-family 'txn-already-in-mempool' is success; 'txn-mempool-conflict' stays a rejection", async () => {
+    const c = BROADCAST_EXTRA.find((x) => x.family === "utxo")!;
+    const raw = "01".repeat(100);
+    const ok = await broadcastExtra(
+      mock(() => ({ status: 400, body: { error: { message: "txn-already-in-mempool" } } })).f,
+      {},
+      c,
+      raw,
+    );
+    expect(ok.broadcast).toBe(true);
+    expect(ok.alreadyKnown).toBe(true);
+    const bad = await broadcastExtra(
+      mock(() => ({ status: 400, body: { error: { message: "txn-mempool-conflict" } } })).f,
+      {},
+      c,
+      raw,
+    );
+    expect(bad.broadcast).toBe(false);
+    expect(String(bad.reason)).toMatch(/node rejected/);
+    expect(ALREADY_KNOWN.test("known transaction: 0xabc")).toBe(true);
+    expect(ALREADY_KNOWN.test("nonce too low")).toBe(false);
+  });
+
+  it("XRP tec* is reported as applied with fee charged, not as a node rejection", async () => {
+    const c = BROADCAST_EXTRA.find((x) => x.family === "xrp")!;
+    const { f } = mock(() => ({
+      body: {
+        result: {
+          accepted: true,
+          engine_result: "tecUNFUNDED_PAYMENT",
+          engine_result_message: "Insufficient XRP balance to send.",
+          tx_json: { hash: "AB".repeat(32) },
+        },
+      },
+    }));
+    const r = await broadcastExtra(f, {}, c, "12".repeat(80));
+    expect(r.broadcast).toBe(true);
+    expect(r.applied).toBe(true);
+    expect(r.succeeded).toBe(false);
+    expect(r.result).toBe("tecUNFUNDED_PAYMENT");
+    expect(r.hash).toBe("AB".repeat(32));
+    expect(String(r.reason)).toMatch(/fee was charged/);
+    expect(String(r.reason)).not.toMatch(/node rejected/);
+  });
+
+  it("relay fetches refuse redirects and read at most 64 KB", async () => {
+    const c = BROADCAST_EXTRA.find((x) => x.family === "xrp")!;
+    const { f, calls } = mock(() => ({ body: "x".repeat(200_000) }));
+    const r = await broadcastExtra(f, {}, c, "12".repeat(80));
+    expect(r.broadcast).toBe(false);
+    expect(calls.length).toBeGreaterThan(0);
+    for (const call of calls) expect(call.init.redirect).toBe("error");
+    expect(MAX_REPLY_BYTES).toBe(65536);
+  });
+
+  it("rate-limit key ignores x-forwarded-for", () => {
+    const h = (m: Record<string, string>) => (n: string) => m[n];
+    expect(
+      broadcastClientKey(h({ "cf-connecting-ip": "1.1.1.1", "x-forwarded-for": "9.9.9.9" })),
+    ).toBe("1.1.1.1");
+    expect(broadcastClientKey(h({ "x-forwarded-for": "9.9.9.9" }), "10.0.0.5")).toBe("10.0.0.5");
+    expect(broadcastClientKey(h({ "x-forwarded-for": "9.9.9.9" }))).toBe("local");
+  });
+
+  it("limiter drops expired windows and evicts only the oldest past the cap", () => {
+    let t = 0;
+    const lim = broadcastLimiter(1, () => t, 3);
+    expect(lim("a").ok).toBe(true);
+    t = 1;
+    lim("b");
+    t = 2;
+    lim("c");
+    t = 3;
+    lim("d"); // cap 3: evicts only "a"
+    expect(lim("b").ok).toBe(false); // b still limited (not wiped)
+    expect(lim("c").ok).toBe(false);
+    expect(lim("a").ok).toBe(true); // a was evicted, fresh window
+    t = 70_000; // all expired
+    expect(lim("b").ok).toBe(true);
+  });
+
+  it("README and docs counts match BROADCAST_COUNT", () => {
+    const readme = readFileSync(new URL("../../../README.md", import.meta.url), "utf8");
+    expect(readme).toContain(`to ${BROADCAST_COUNT} chains`);
+    expect(broadcastSummary()).toMatch(new RegExp(`^${BROADCAST_COUNT} chains`));
+  });
+});

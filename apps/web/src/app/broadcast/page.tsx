@@ -37,10 +37,13 @@ export default function Page() {
         <p className="text-sm text-violet-200">{BROADCAST_CHAINS.map((c) => c.name).join(", ")}.</p>
       </section>
       <p className="text-sm text-violet-200">
-        verify_tx checks run first on the core EVM chains, Solana and Tron. It cannot decode the
-        other chains, so those are relayed unchanged without a check, and <code>strict</code>{" "}
-        refuses them. Any coin not listed here (for example QTUM and the old coins only cryptoid
-        indexes): sign and send from the coin&apos;s own wallet.
+        verify_tx checks run first on the core EVM chains, Solana and Tron. It cannot decode Bitcoin
+        or the other chains, so those are relayed unchanged without a check, and{" "}
+        <code>strict=true</code> refuses Bitcoin and every other chain outside that core set.
+        Bitcoin-family transactions are not checked against the network: sign for the correct coin.
+        BCH, BSV and other forks can share pre-split coins, so one transaction may be valid on both.
+        Any coin not listed here (for example QTUM and the old coins only cryptoid indexes): sign
+        and send from the coin&apos;s own wallet.
       </p>
       <p>
         API: <code>POST https://api.swapchan.com/onchain/broadcast</code> · status:{" "}

@@ -2,8 +2,8 @@
  * broadcast_tx chain table: the one source of truth for which chains SwapChan can RELAY an already-signed
  * transaction to (API route, MCP tool description and enum, /chains/<slug> capability line, docs).
  * SwapChan never signs, never builds keys and cannot alter signed bytes; every endpoint below is a free public
- * node or explorer. Each endpoint was checked live with a read-only call (status/version/chainId) on 2026-10-26;
- * nothing was ever broadcast by those checks.
+ * node or explorer. Endpoints were only probed with read-only status calls (status/version/chainId); request
+ * formats come from each node's documentation and are covered by mocked tests. Nothing was ever broadcast.
  */
 export type BroadcastFamily =
   | "evm"
@@ -307,7 +307,7 @@ const FAMILY_LABEL: Record<string, string> = {
 };
 const group = (c: BroadcastChain) =>
   c.family === "evm" ? "evm" : c.family === "bitcoin" || c.family === "utxo" ? "utxo" : "other";
-/** "52 chains: EVM (23): Ethereum, …; Bitcoin family (19): …; Other ledgers (10): …" for descriptions and docs. */
+/** "<BROADCAST_COUNT> chains. EVM (n): Ethereum, …; Bitcoin family (19): …; Other ledgers (10): …" for descriptions and docs. */
 export function broadcastSummary(): string {
   const parts = (["evm", "utxo", "other"] as const).map((g) => {
     const cs = BROADCAST_CHAINS.filter((c) => group(c) === g);
