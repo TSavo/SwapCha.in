@@ -2,6 +2,8 @@
   "source": "LegacyETH open dataset (CC0), github.com/LegacyETHcom/legacyeth-open-data @6b21442 + legacyeth.com/contracts detail pages",
   "generated": "2026-10-26",
   "confirmationBlock": 26280060,
+  "confirmationBlockPr2": 26280214,
+  "confirmationBlockPr3": 26280374,
   "entries": [
     {
       "key": "thedao",
@@ -34,9 +36,9 @@
       "family": "burn-token-for-eth",
       "listedEth": 11094.8206,
       "status": "confirmed",
-      "multiStep": true,
       "claim": "burn()",
-      "confirmedAtBlock": 26280214
+      "confirmedAtBlock": 26280214,
+      "multiStep": true
     },
     {
       "key": "ens_old",
@@ -342,9 +344,9 @@
       "family": "burn-token-for-eth",
       "listedEth": 195.6189,
       "status": "confirmed",
-      "multiStep": true,
       "claim": "redeemTokens(uint256)",
-      "confirmedAtBlock": 26280214
+      "confirmedAtBlock": 26280214,
+      "multiStep": true
     },
     {
       "key": "ahoolee_token_sale",
@@ -555,9 +557,9 @@
       "family": "hourglass",
       "listedEth": 102.5884,
       "status": "confirmed",
-      "eoaOnly": true,
       "claim": "withdraw()",
-      "confirmedAtBlock": 26280380
+      "confirmedAtBlock": 26280380,
+      "eoaOnly": true
     },
     {
       "key": "remove_putin_bounty_admin_unlock",
@@ -1555,9 +1557,9 @@
       "family": "hourglass",
       "listedEth": 13.2134,
       "status": "confirmed",
-      "eoaOnly": true,
       "claim": "withdraw()",
-      "confirmedAtBlock": 26280380
+      "confirmedAtBlock": 26280380,
+      "eoaOnly": true
     },
     {
       "key": "futurists",
@@ -1722,9 +1724,9 @@
       "family": "hourglass",
       "listedEth": 8.0196,
       "status": "confirmed",
-      "eoaOnly": true,
       "claim": "withdraw()",
-      "confirmedAtBlock": 26280380
+      "confirmedAtBlock": 26280380,
+      "eoaOnly": true
     },
     {
       "key": "p4d",
@@ -1965,9 +1967,9 @@
       "family": "hourglass",
       "listedEth": 4.2186,
       "status": "confirmed",
-      "eoaOnly": true,
       "claim": "withdraw()",
-      "confirmedAtBlock": 26280380
+      "confirmedAtBlock": 26280380,
+      "eoaOnly": true
     },
     {
       "key": "mysteryman",
@@ -2780,7 +2782,5 @@
       "status": "not-checked",
       "multiStep": true
     }
-  ],
-  "confirmationBlockPr2": 26280214,
-  "confirmationBlockPr3": 26280374
+  ]
 }

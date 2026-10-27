@@ -227,6 +227,8 @@ export async function scanRegistry(
   });
   // Hourglass clones: myDividends(true) reads msg.sender, so it is read as the owner in one eth_simulateV1
   // batch at the pinned block. No simulateV1, a failed call or an odd return: that clone is not checked.
+  // withdraw() paying exactly myDividends(true) was confirmed per clone at confirmation time only (block 26280380);
+  // the scan does not re-simulate withdraw(). The amount shown is myDividends(true) alone, never a token sell value.
   if (hg.length) {
     const data = btSelector("myDividends(bool)") + "1".padStart(64, "0");
     const rs = await (c.request
