@@ -1,4 +1,4 @@
-import { forwardedClientIp } from "./clientip.js";
+import { trustedClientIp } from "./clientip.js";
 /**
  * find_money freshness: `fresh=1` re-scans one address (its `money:` entry and every per-address
  * cache entry that feeds it), rate-limited per address and globally so it cannot hammer RPCs.
@@ -27,12 +27,8 @@ export function resetFreshLimits() {
 }
 
 /** Client key: the proxy-set client IP, same source as the dev-tools rate limit; kept only for the 60s window. */
-export const clientIpOf = (h: (n: string) => string | undefined) =>
-  forwardedClientIp(h) ??
-  h("cf-connecting-ip") ??
-  h("x-forwarded-for")?.split(",")[0]?.trim() ??
-  h("x-real-ip") ??
-  "local";
+export const clientIpOf = (h: (n: string) => string | undefined, remoteAddress?: string) =>
+  trustedClientIp(h, remoteAddress);
 
 /** Take one fresh-scan slot for this address, or say how long to wait. */
 export function freshGate(
