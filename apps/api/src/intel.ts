@@ -28,6 +28,7 @@ import { ensDeeds } from "./ensdeed.js";
 import { ETH_FORKS, type EthFork, ethForkScan, forkSweep } from "./ethforks.js";
 import { exitDeadline, minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { evmSweep, extraEvmScan } from "./extraevm.js";
+import { moneyWithFreshness } from "./fresh.js";
 import { stakedLp, sushiChef } from "./gauges.js";
 import { EVM_ROUTERS } from "./guard/allowlist.js";
 import { recoveryGuide } from "./keyrecovery.js";
@@ -5116,10 +5117,12 @@ export async function findMoney(
   env: NodeJS.ProcessEnv,
   db: DatabaseSync | null,
   input: string,
+  opts: { fresh?: boolean } = {},
 ) {
   const { address, name } = await resolveAddr(f, env, input);
   const STAGE_HARD_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000) + 6_000;
-  return cached(`money:${address}`, 180_000, () =>
+  const ethBlock = vmOfAddr(address) === "evm" ? () => evmClient(1, env).getBlockNumber() : null;
+  return moneyWithFreshness(`money:${address}`, 180_000, address, !!opts.fresh, ethBlock, () =>
     scanGate.run(() =>
       withScanScope(STAGE_HARD_MS, async () => {
         const t0scan = Date.now();
@@ -5972,7 +5975,11 @@ export function intelRoutes(
     run(c, async () => playbook(c.req.query("workflow"), c.req.query("full") === "true")),
   );
   app.get("/money", (c) =>
-    run(c, () => findMoney(f, env, linksDb, need(c.req.query("address"), "address"))),
+    run(c, () =>
+      findMoney(f, env, linksDb, need(c.req.query("address"), "address"), {
+        fresh: ["1", "true"].includes(c.req.query("fresh") ?? ""),
+      }),
+    ),
   );
   return app;
 }

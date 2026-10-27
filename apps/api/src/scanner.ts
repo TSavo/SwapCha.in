@@ -72,6 +72,23 @@ export function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Pro
   return v;
 }
 export const clearScannerCache = () => cache.clear();
+/** True when a live (unexpired) entry exists for key. */
+export const peekCached = (key: string, ttlMs: number) => {
+  const hit = cache.get(key);
+  return !!hit && Date.now() - hit.at < ttlMs;
+};
+/** Drop every entry whose key names this address (money:, bal:, air:, hist:...); other addresses are untouched. */
+export function clearCachedFor(address: string) {
+  const a = address.toLowerCase();
+  if (a.length < 20) return 0;
+  let n = 0;
+  for (const k of cache.keys())
+    if (k.toLowerCase().includes(a)) {
+      cache.delete(k);
+      n++;
+    }
+  return n;
+}
 
 async function json<T>(f: F, url: string, headers: Record<string, string> = {}): Promise<T> {
   const r = await f(url, {

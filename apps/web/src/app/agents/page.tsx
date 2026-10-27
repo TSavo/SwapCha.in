@@ -161,7 +161,16 @@ export default function Agents() {
         don&apos;t share them (old sequential ones with wallet data no longer resolve).
       </p>
       <pre className="overflow-x-auto rounded-lg bg-black/50 p-3 text-xs">{`curl "${API_URL}/links/swap?fromChain=base&fromToken=ETH&toToken=USDC&amount=0.1&ref=<partnerId>"
-curl "${API_URL}/onchain/money?address=vitalik.eth"`}</pre>
+curl "${API_URL}/onchain/money?address=vitalik.eth"
+curl "${API_URL}/onchain/money?address=vitalik.eth&fresh=1"`}</pre>
+      <p className="mt-3 text-sm text-violet-300">
+        <code>/onchain/money</code> results are cached for 3 minutes. Each result has{" "}
+        <code>asOf</code> (when the scan started; a cached result keeps that time),{" "}
+        <code>block</code> (Ethereum block at scan start, EVM addresses only) and{" "}
+        <code>cached</code>. Add <code>fresh=1</code> to re-scan now: once per 20 seconds per
+        address; when limited you get the cached result with{" "}
+        <code>freshRefused: &quot;rate-limited&quot;</code> and <code>retryAfterSeconds</code>.
+      </p>
       <p className="mt-3 text-sm text-violet-300">
         Auth: open with fair rate limits today. For higher limits, ask for a key and send it as{" "}
         <code>x-api-key: &lt;key&gt;</code> (or <code>Authorization: Bearer &lt;key&gt;</code>) to
