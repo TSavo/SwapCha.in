@@ -28,6 +28,7 @@ import { ensDeeds } from "./ensdeed.js";
 import { ETH_FORKS, type EthFork, ethForkScan, forkSweep } from "./ethforks.js";
 import { exitDeadline, minOut, NO_QUOTE_NOTE, PRIVATE_SUBMISSION_NOTE } from "./exitguard.js";
 import { evmSweep, extraEvmScan } from "./extraevm.js";
+import { clientIpOf, moneyWithFreshness } from "./fresh.js";
 import { stakedLp, sushiChef } from "./gauges.js";
 import { EVM_ROUTERS } from "./guard/allowlist.js";
 import { recoveryGuide } from "./keyrecovery.js";
@@ -5181,10 +5182,15 @@ export async function findMoney(
   env: NodeJS.ProcessEnv,
   db: DatabaseSync | null,
   input: string,
+  opts: { fresh?: boolean; client?: string } = {},
 ) {
   const { address, name } = await resolveAddr(f, env, input);
   const STAGE_HARD_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000) + 6_000;
-  return cached(`money:${address}`, 180_000, () =>
+  const ethBlock = vmOfAddr(address) === "evm" ? () => evmClient(1, env).getBlockNumber() : null;
+  // same shape as cached(): adds fresh=1, asOf/block/cached and the refresh limits
+  const cachedScan = <T extends object>(key: string, ttlMs: number, scan: () => Promise<T>) =>
+    moneyWithFreshness(key, ttlMs, address, !!opts.fresh, ethBlock, scan, opts.client ?? "local");
+  return cachedScan(`money:${address}`, 180_000, () =>
     scanGate.run(() =>
       withScanScope(STAGE_HARD_MS, async () => {
         const t0scan = Date.now();
@@ -6054,7 +6060,12 @@ export function intelRoutes(
     run(c, async () => playbook(c.req.query("workflow"), c.req.query("full") === "true")),
   );
   app.get("/money", (c) =>
-    run(c, () => findMoney(f, env, linksDb, need(c.req.query("address"), "address"))),
+    run(c, () =>
+      findMoney(f, env, linksDb, need(c.req.query("address"), "address"), {
+        fresh: ["1", "true"].includes(c.req.query("fresh") ?? ""),
+        client: clientIpOf((n) => c.req.header(n)),
+      }),
+    ),
   );
   return app;
 }

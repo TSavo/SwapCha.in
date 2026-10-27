@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { API_URL } from "@/lib/api";
+import { asOfLine, type Freshness } from "@/lib/asOf";
 import type { TxCall } from "@/lib/callSummary";
 import { TxCallBox } from "./TxCallBox";
 
@@ -26,7 +27,7 @@ type Item = {
   action?: string;
   steps?: Step[];
 };
-type Result = {
+type Result = Freshness & {
   totalEstUsd?: number;
   atRiskUsd?: number;
   items: Item[];
@@ -51,7 +52,7 @@ export function FindMoneyTool() {
   const [err, setErr] = useState<string | null>(null);
   const started = useRef(false);
 
-  async function scan(input = text) {
+  async function scan(input = text, fresh = false) {
     const n = (input.match(ADDR) ?? []).length;
     if (!n) return setErr("Paste at least one wallet address or ENS name.");
     setBusy(true);
@@ -60,7 +61,9 @@ export function FindMoneyTool() {
     try {
       if (n === 1 && !input.trim().includes("\n")) {
         const a = (input.match(ADDR) ?? [])[0]!;
-        const r = await fetch(`${API_URL}/onchain/money?address=${encodeURIComponent(a)}`);
+        const r = await fetch(
+          `${API_URL}/onchain/money?address=${encodeURIComponent(a)}${fresh ? "&fresh=1" : ""}`,
+        );
         const j = await r.json();
         if (!r.ok) throw new Error(j.error ?? r.statusText);
         setRes(j);
@@ -132,6 +135,19 @@ export function FindMoneyTool() {
           {res.progress && res.status !== "done" && (
             <p className="text-sm">
               Scanned {res.progress.done}/{res.progress.total} wallets…
+            </p>
+          )}
+          {asOfLine(res) && (
+            <p className="text-xs text-violet-300" data-testid="find-money-asof">
+              {asOfLine(res)}{" "}
+              <button
+                type="button"
+                onClick={() => void scan(text, true)}
+                disabled={busy}
+                className="underline disabled:opacity-50"
+              >
+                Refresh
+              </button>
             </p>
           )}
           <p className="text-lg font-black">

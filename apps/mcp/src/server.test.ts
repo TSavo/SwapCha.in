@@ -152,6 +152,31 @@ describe("swapchan mcp over streamable http", () => {
     await c.close();
   });
 
+  it("find_money exposes an optional boolean fresh and documents asOf/cached", async () => {
+    const c = await connect();
+    const t = (await c.listTools()).tools.find((x) => x.name === "find_money")!;
+    const props = (t.inputSchema as { properties: Record<string, { type?: string }> }).properties;
+    expect(props.fresh?.type).toBe("boolean");
+    expect((t.inputSchema as { required?: string[] }).required ?? []).not.toContain("fresh");
+    expect(t.description).toContain("freshRefused");
+    expect(t.description).toContain("asOf");
+    await c.close();
+  });
+
+  it("SwapChanApi.findMoney sends fresh=1 only when asked, with the 90s timeout", async () => {
+    const urls: string[] = [];
+    const api = new SwapChanApi("http://x.test", {
+      fetch: (async (u: string | URL) => {
+        urls.push(String(u));
+        return new Response("{}", { headers: { "content-type": "application/json" } });
+      }) as typeof fetch,
+    });
+    await api.findMoney("0xabc");
+    await api.findMoney("0xabc", true);
+    expect(urls[0]).not.toContain("fresh");
+    expect(urls[1]).toContain("fresh=1");
+  });
+
   it("find_money, build_swap_link and market_context end in a swap link", async () => {
     const c = await connect();
     const m = data(await c.callTool({ name: "find_money", arguments: { address: "vitalik.eth" } }));
