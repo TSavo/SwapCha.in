@@ -11,7 +11,9 @@ describe("safeReason", () => {
     expect(r).toBe("RPC request failed");
     expect(r).not.toMatch(/https?:|alchemy|SECRET|Reques/);
     // the truncated form seen live
-    expect(safeReason("HTTP request failed. URL: https://x.example/rpc Reques")).toBe("RPC request failed");
+    expect(safeReason("HTTP request failed. URL: https://x.example/rpc Reques")).toBe(
+      "RPC request failed",
+    );
   });
   it("marks timeouts as incomplete", () => {
     expect(safeReason(new Error("timed out after 12s"))).toBe(
@@ -79,6 +81,8 @@ describe("not claimable now", () => {
     expect(findMoneyHeadline(1, 0, 0)).toBe(
       "Found 1 thing to look at, but none with a dollar value claimable now.",
     );
-    expect(findMoneyHeadline(2, 12.5, 0)).toBe("Found 2 things worth about $12.5 you can act on now.");
+    expect(findMoneyHeadline(2, 12.5, 0)).toBe(
+      "Found 2 things worth about $12.5 you can act on now.",
+    );
   });
 });

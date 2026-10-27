@@ -27,7 +27,12 @@ export function safeReason(e: unknown): string {
 
 /** Strip URLs and key-like query params from free text that will be shown to a user. */
 export function scrubText(s: string): string {
-  return s.replace(URL_RE, "").replace(SECRETISH_RE, "").replace(/\s{2,}/g, " ").replace(/\(\s*\)/g, "").trim();
+  return s
+    .replace(URL_RE, "")
+    .replace(SECRETISH_RE, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\(\s*\)/g, "")
+    .trim();
 }
 
 const NC_RE = /^(.*?):? not checked\b(?:\s*\((.*)\))?(.*)$/i;
@@ -64,7 +69,10 @@ export function tidyNotChecked(lines: readonly string[]): string[] {
     const line = cleanLine(raw);
     const m = NC_RE.exec(line);
     const key = m
-      ? `nc:${m[1]!.trim().toLowerCase()}|${(m[3] ?? "").replace(/\(.*\)/g, "").trim().toLowerCase()}`
+      ? `nc:${m[1]!.trim().toLowerCase()}|${(m[3] ?? "")
+          .replace(/\(.*\)/g, "")
+          .trim()
+          .toLowerCase()}`
       : `x:${line}`;
     const at = idx.get(key);
     if (at === undefined) {

@@ -1,6 +1,6 @@
 /** Keyless balance scans for TON (toncenter/tonapi), Cardano (Koios) and Polkadot (Asset Hub + relay). No tx building. */
-import { safeReason } from "./reasons.js";
 import { btDecodeAccountInfo, btDotStorageKey, btSs58Decode } from "./blocktools.js";
+import { safeReason } from "./reasons.js";
 import type { NewFound } from "./recover.js";
 import { coinPrices } from "./utxochains.js";
 

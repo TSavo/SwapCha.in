@@ -1,4 +1,3 @@
-import { safeReason, scrubText, tidyNotChecked } from "./reasons.js";
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
 import {
@@ -87,6 +86,7 @@ import {
 import { maturedPendle } from "./pendle.js";
 import { perpsBalances } from "./perps.js";
 import { READ_OPS, readChain } from "./readchain.js";
+import { safeReason, scrubText, tidyNotChecked } from "./reasons.js";
 import {
   type Evidence,
   lidoWithdrawals,
@@ -3781,9 +3781,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           (v) => ((timings[n] = Date.now() - t0), v),
           (e) => {
             timings[n] = Date.now() - t0;
-            notChecked.push(
-              `${n}: not checked (${safeReason(e)})`,
-            );
+            notChecked.push(`${n}: not checked (${safeReason(e)})`);
             return empty;
           },
         ),
@@ -6007,9 +6005,7 @@ export function intelRoutes(
         legacyEth(env, address, ethUsd),
         legacyRegistry(env, address, ethUsd).catch((e) => ({
           items: [] as Found[],
-          notChecked: [
-            `LegacyETH registry: not checked (${safeReason(e)})`,
-          ],
+          notChecked: [`LegacyETH registry: not checked (${safeReason(e)})`],
         })),
       ]);
       const items = [...base, ...reg.items].map((i) => ({

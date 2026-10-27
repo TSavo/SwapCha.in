@@ -1,4 +1,3 @@
-import { safeReason } from "./reasons.js";
 import { createHash } from "node:crypto";
 import { base58check, bech32 } from "@scure/base";
 import { crypto as bjsCrypto, Transaction } from "bitcoinjs-lib";
@@ -16,6 +15,7 @@ import {
   btXpubAddresses,
 } from "./blocktools.js";
 import { fetchPrevTxs, type PrevSource } from "./prevtx.js";
+import { safeReason } from "./reasons.js";
 import type { NewFound } from "./recover.js";
 
 type F = typeof fetch;
@@ -1117,9 +1117,7 @@ export async function utxoScan(
         ]);
         items.push(...r);
       } catch (e) {
-        notChecked.push(
-          `${COINS[s.coin].name}: not checked (${safeReason(e)})`,
-        );
+        notChecked.push(`${COINS[s.coin].name}: not checked (${safeReason(e)})`);
       } finally {
         clearTimeout(to);
       }

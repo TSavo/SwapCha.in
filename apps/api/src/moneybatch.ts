@@ -303,8 +303,9 @@ export function view(job: Job) {
       ? `Swap everything to USDC afterwards: ${plan.phase3_swap.map((s) => link(s.url, s.shortUrl)).join(" ; ")}`
       : "",
     ...wallets.flatMap((w) =>
-      ((w as { owedNotClaimableNow?: { protocol: string; owed: string | null; reason: string }[] })
-        .owedNotClaimableNow ?? []
+      (
+        (w as { owedNotClaimableNow?: { protocol: string; owed: string | null; reason: string }[] })
+          .owedNotClaimableNow ?? []
       ).map(
         (l) =>
           `Owed but not claimable now on ${w.address ?? w.input}: ${l.protocol}${l.owed ? ` ${l.owed}` : ""} (${l.reason}). Not counted above.`,

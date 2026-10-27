@@ -6,11 +6,11 @@
  *    (receiver = the owner, simulated first). Open v2 positions are counted and reported as a plain note
  *    (closing needs a keeper-executed order with an execution fee).
  */
-import { safeReason } from "./reasons.js";
 import { formatUnits, getAddress, type Hex, parseAbi } from "viem";
 import { btKeccak256, encodeAbiParameters, encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { evmClient, json, prices, pxOf } from "./onchain.js";
+import { safeReason } from "./reasons.js";
 
 type F = typeof fetch;
 type Out = { items: Found[]; notChecked: string[] };
@@ -290,11 +290,7 @@ export async function perpsBalances(f: F, env: NodeJS.ProcessEnv, owner: string)
     Promise.race([
       p,
       new Promise<T[]>((_, r) => setTimeout(() => r(new Error("timeout")), ms)),
-    ]).catch(
-      (e) => (
-        notChecked.push(`${n}: not checked (${safeReason(e)})`), [] as T[]
-      ),
-    );
+    ]).catch((e) => (notChecked.push(`${n}: not checked (${safeReason(e)})`), [] as T[]));
   const [a, b] = await Promise.all([
     lim("Hyperliquid", hyperliquidBalances(f, owner), 9_000),
     lim("GMX v2", gmxV2(f, env, owner), 10_000),

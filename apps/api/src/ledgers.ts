@@ -1,6 +1,6 @@
-import { safeReason } from "./reasons.js";
 import { createHash } from "node:crypto";
 import { btAddrValid, btDetect } from "./blocktools.js";
+import { safeReason } from "./reasons.js";
 import type { NewFound } from "./recover.js";
 import { coinPrices } from "./utxochains.js";
 
