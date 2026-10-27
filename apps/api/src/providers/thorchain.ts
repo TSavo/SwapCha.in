@@ -116,7 +116,12 @@ interface ThorQuote {
   message?: string;
 }
 
-const TOLERANCE_FLOOR_BPS = 300;
+/** THORChain liquidity_tolerance_bps floor. The limit THORChain writes into the memo is expected_amount_out (already net
+ *  of swap, outbound and affiliate fees) minus this many bps, so 1% is tighter than the old tolerance_bps=300, which was
+ *  measured against the input value and counted fees: measured 2026-10-27, 0.5 LTC->BTC with tolerance_bps 100 and 300
+ *  fails ("emit asset 34166 less than price limit 34970 / 34264") while liquidity_tolerance_bps 50/100/300 quotes with
+ *  memo limits 33960/33789/33107 against expected 34131. */
+const TOLERANCE_FLOOR_BPS = 100;
 
 /** Block-explorer link for a THORChain outbound (thornode ids carry no 0x and may be upper case). */
 export function explorerTx(chain: string, id: string): string | null {
@@ -247,8 +252,9 @@ export function thorchain(
       destination,
       streaming_interval: "1",
       streaming_quantity: "0",
-      // THORChain counts its own liquidity + outbound fees against tolerance; 0.5% rejects most swaps.
-      tolerance_bps: String(Math.max(req.slippageBps, TOLERANCE_FLOOR_BPS)),
+      // liquidity_tolerance_bps (THORChain's preferred price-limit parameter): limit = expected_amount_out minus this
+      // many bps. tolerance_bps ignores fees and refuses small swaps whose fees exceed it.
+      liquidity_tolerance_bps: String(Math.max(req.slippageBps, TOLERANCE_FLOOR_BPS)),
     });
     let refund = opts.refund ?? req.taker;
     if (refund && UTXO_DEST[req.fromChainId]) {
@@ -549,7 +555,7 @@ export function thorchain(
       const memo = r.memo ?? "";
       // THORChain's memo (first attempt or the retry without refund) must pay the requested recipient in the
       // requested asset; anything else is refused, never shown as deposit instructions.
-      const bad = thorMemoMismatch(memo, req.toChainId, toAsset, destination);
+      const bad = thorMemoMismatch(memo, req.toChainId, toAsset, destination, await poolSet());
       if (bad) throw new RouteRefused(`THORChain: ${bad}; not offered`);
       const limit = MEMO_LIMIT[d.bt]!;
       const memoBytes = Buffer.byteLength(memo, "utf8");

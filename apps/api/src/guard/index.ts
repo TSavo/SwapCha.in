@@ -203,6 +203,14 @@ function checkRecipientMemo(c: Acc, memo: string, dest: string | undefined, toCh
   c.part("minOut-bound", "THORChain limit is in 1e8 units; checked > 0 only");
 }
 
+/** The only Available pool asset on `chain` with `symbol` (upper case), or null when none or several. */
+function soleSymbolPool(pools: Iterable<string> | undefined, chain: string, symbol: string) {
+  if (!pools) return null;
+  const hit = [...pools]
+    .map((p) => p.toUpperCase())
+    .filter((p) => p.startsWith(`${chain}.${symbol}-`));
+  return hit.length === 1 ? hit[0]! : null;
+}
 /** THORChain short asset codes it emits in generated memos (native coins only). */
 const THOR_SHORT: Record<string, string> = {
   "ETH.ETH": "e",
@@ -224,6 +232,8 @@ export function thorMemoMismatch(
   toChainId: number,
   toAsset: string,
   dest: string,
+  /** THORChain's Available pool assets; required to accept the bare short token form (e.g. ETH.USDC). */
+  pools?: Iterable<string>,
 ): string | null {
   const m = parseThorMemo(memo);
   if (!m) return "unparseable THORChain memo";
@@ -241,7 +251,10 @@ export function thorMemoMismatch(
     assetOk =
       a === want ||
       (THOR_SHORT[want] !== undefined && asset === THOR_SHORT[want]) ||
-      (!!wid && !!aid && ap === wp && asym === wsym && wid.endsWith(aid));
+      (!!wid && !!aid && ap === wp && asym === wsym && wid.endsWith(aid)) ||
+      // Bare "CHAIN.SYMBOL" (THORChain drops the contract, measured for ETH.USDC/ETH.USDT): only when exactly one
+      // Available pool has that chain and symbol and it is the requested contract, so another token can't pass.
+      (!!wid && !aid && ap === wp && asym === wsym && soleSymbolPool(pools, wp!, wsym!) === want);
   }
   if (!assetOk) return `memo asset ${asset} is not ${toAsset}`;
   if (isReceiveOnly(toChainId)) {
