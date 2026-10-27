@@ -49,6 +49,7 @@ import {
   REGISTRY,
   REGISTRY_ALLOWLIST,
   REGISTRY_APPROVALS,
+  scanned as registryScanned,
   scanRegistry,
 } from "./legacy/registry.js";
 import { hedgeyPlans, superfluidBalances, teamFinanceLocks, uncxLocks } from "./locks.js";
@@ -341,10 +342,7 @@ export async function simulateSwap(
     expectedOutput: got ?? null,
     guard: {
       routerAllowlisted: ROUTERS_BY_CHAIN(chainId).has(toAddr),
-      claimAllowlisted:
-        chainId === 1 &&
-        verifyClaimTx({ to: toAddr, data: body.data ?? "0x", value: String(body.value ?? "0") })
-          .verified,
+      claimAllowlisted: await simClaimAllowlisted(client, chainId, from, toAddr, body),
       note: "SwapChan's /build already decodes and verifies router, recipient, minOut and approvals before returning a tx; this re-checks the router allowlist on the tx you pass.",
     },
     hint:
@@ -359,6 +357,42 @@ export async function simulateSwap(
     ),
   };
 }
+
+/** guard.claimAllowlisted for /simulate. A LegacyETH approval is only allowlisted up to the sender's token balance,
+ *  so for an approve() to a registry token read balanceOf(from) at the simulated block ("latest") and pass it on.
+ *  Fails closed: if that read fails, the approval is reported as not allowlisted. */
+export async function simClaimAllowlisted(
+  client: { readContract: (a: never) => Promise<unknown> },
+  chainId: number,
+  from: string,
+  toAddr: string,
+  body: { data?: string | undefined; value?: string | number | undefined },
+): Promise<boolean> {
+  if (chainId !== 1) return false;
+  const tx = { to: toAddr, data: body.data ?? "0x", value: String(body.value ?? "0") };
+  if (
+    tx.data.slice(0, 10).toLowerCase() !== "0x095ea7b3" ||
+    !(toAddr.toLowerCase() in REGISTRY_APPROVALS_LC())
+  )
+    return verifyClaimTx(tx).verified;
+  let bal: bigint;
+  try {
+    bal = BigInt(
+      (await client.readContract({
+        address: getAddress(toAddr),
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [getAddress(from)],
+        blockTag: "latest",
+      } as never)) as bigint,
+    );
+  } catch {
+    return false;
+  }
+  return verifyClaimTx(tx, bal).verified;
+}
+const REGISTRY_APPROVALS_LC = () =>
+  Object.fromEntries(Object.entries(REGISTRY_APPROVALS).map(([k, v]) => [k.toLowerCase(), v]));
 
 // ---------- 2. wallet_history + wallet_pnl ----------
 /** Airdrop/phishing spam tokens: URL/claim-bait symbols, or nothing in the leg has a price. */
@@ -1570,6 +1604,23 @@ const claim = (
   return tx;
 };
 
+/** Lowercased addresses of every scanned LegacyETH registry contract (Ethereum mainnet). */
+export const registryAddressSet = () =>
+  new Set(registryScanned().map((e) => e.address.toLowerCase()));
+/** Drop chain-1 items whose claim tx targets a scanned registry contract: the registry scan already reports it,
+ *  so one contract (e.g. an Hourglass clone) can never appear twice or be counted twice. */
+export function dropRegistryDupes<T extends { chainId?: number; claimTx?: unknown }>(
+  items: T[],
+  regAddrs: Set<string>,
+): T[] {
+  return items.filter(
+    (x) =>
+      !(
+        x.chainId === 1 &&
+        regAddrs.has(String((x.claimTx as { to?: string } | undefined)?.to ?? "").toLowerCase())
+      ),
+  );
+}
 /** Fomo3D withdraw() pays only if the contract holds the ETH and the call succeeds. */
 export function fomoClaimable(tot: bigint, held: bigint | null, simOk: boolean) {
   // fail closed: a failed balance read is not proof the contract can pay
@@ -1586,7 +1637,8 @@ export function ironHandsPayNow(
   return half < head[1] ? half : head[1];
 }
 /**
- * LegacyETH registry scan (legacy/registry.ts): every confirmed EtherDelta-style DEX and Fomo3D fork from
+ * LegacyETH registry scan (legacy/registry.ts): every confirmed contract (DEXes, Fomo3D forks, Hourglass clones,
+ * ETH wrappers, refunds, redemptions) from
  * legacyeth.com/contracts, Multicall3-batched and pinned to one block. Unconfirmed entries come back in
  * notChecked, never as a zero.
  */
@@ -3858,7 +3910,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
       sources.push(
-        `LegacyETH registry (${LEGACY_REGISTRY_SIZE} listed legacy contracts; confirmed DEXes, Fomo3D forks, ICO/presale refunds and burn-token redemptions read on-chain, the rest reported as not checked yet)`,
+        `LegacyETH registry (${LEGACY_REGISTRY_SIZE} listed legacy contracts; confirmed DEXes, Fomo3D forks, Hourglass clones, old ETH wrappers, ICO/presale refunds and burn-token redemptions read on-chain, the rest reported as not checked yet)`,
       );
       items.push(
         ...(wn as Found[]),
@@ -3924,9 +3976,11 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       const lpKeys = new Set(
         (lp as Found[]).map((x) => `${x.chainId}:${/#(\d+)/.exec(x.what)?.[1]}`),
       );
+      // a LegacyETH registry contract is reported once, by the registry scan, never again by archaeology
+      const regAddrs = registryAddressSet();
       for (const a of arch)
         items.push(
-          ...a.items.filter(
+          ...dropRegistryDupes(a.items, regAddrs).filter(
             (x) =>
               !(
                 x.protocol === "Uniswap v3 fees" &&

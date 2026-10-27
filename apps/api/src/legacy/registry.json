@@ -2,6 +2,8 @@
   "source": "LegacyETH open dataset (CC0), github.com/LegacyETHcom/legacyeth-open-data @6b21442 + legacyeth.com/contracts detail pages",
   "generated": "2026-10-26",
   "confirmationBlock": 26280060,
+  "confirmationBlockPr2": 26280214,
+  "confirmationBlockPr3": 26280374,
   "entries": [
     {
       "key": "thedao",
@@ -34,9 +36,9 @@
       "family": "burn-token-for-eth",
       "listedEth": 11094.8206,
       "status": "confirmed",
-      "multiStep": true,
       "claim": "burn()",
-      "confirmedAtBlock": 26280214
+      "confirmedAtBlock": 26280214,
+      "multiStep": true
     },
     {
       "key": "ens_old",
@@ -90,7 +92,9 @@
       "address": "0xECF8F87f810EcF450940c9f60066b4a7a501d6A7",
       "family": "weth-wrapper",
       "listedEth": 1513.9326,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280374
     },
     {
       "key": "powh3d",
@@ -152,7 +156,9 @@
       "address": "0x167cB3F2446F829eb327344b66E271D1a7eFeC9A",
       "family": "hourglass",
       "listedEth": 762.2474,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "site-0x0-rewards",
@@ -338,9 +344,9 @@
       "family": "burn-token-for-eth",
       "listedEth": 195.6189,
       "status": "confirmed",
-      "multiStep": true,
       "claim": "redeemTokens(uint256)",
-      "confirmedAtBlock": 26280214
+      "confirmedAtBlock": 26280214,
+      "multiStep": true
     },
     {
       "key": "ahoolee_token_sale",
@@ -360,7 +366,9 @@
       "address": "0x2956356cd2a2bf3202f771f50d3d14a367b48070",
       "family": "weth-wrapper",
       "listedEth": 172.9983,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280374
     },
     {
       "key": "conditional_tokens",
@@ -548,7 +556,9 @@
       "address": "0xd2bfceeab8ffa24cdf94faa2683df63df4bcbdc8",
       "family": "hourglass",
       "listedEth": 102.5884,
-      "status": "not-checked",
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380,
       "eoaOnly": true
     },
     {
@@ -618,7 +628,9 @@
       "address": "0x0b7dc5a43ce121b4eaaa41b0f4f43bba47bb8951",
       "family": "weth-wrapper",
       "listedEth": 90.0514,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280374
     },
     {
       "key": "cryptophunks_market",
@@ -926,7 +938,9 @@
       "address": "0x0a97094c19295e320d5121d72139a150021a2702",
       "family": "hourglass",
       "listedEth": 45.9568,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "confideal",
@@ -960,9 +974,11 @@
       "key": "ethen",
       "name": "ETHEN",
       "address": "0xf4c27b8b002389864ac214cb13bfeef4cc5c4e8d",
-      "family": "etherdelta-dex",
+      "family": "ether-balances",
       "listedEth": 43.5504,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawEther(uint256)",
+      "confirmedAtBlock": 26280374
     },
     {
       "key": "pallycoin",
@@ -1044,7 +1060,9 @@
       "address": "0xabefec93451a2cd5d864ff7b0b1604dfc60e9688",
       "family": "hourglass",
       "listedEth": 34.4163,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "presalepool_50c1",
@@ -1134,7 +1152,9 @@
       "address": "0xe65f525ec48c7e95654b9824ecc358454ea9185e",
       "family": "hourglass",
       "listedEth": 28.6357,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "ethplatinum",
@@ -1142,7 +1162,9 @@
       "address": "0x510f9a9642ac14ded91629a1aad552be4b24b5f0",
       "family": "hourglass",
       "listedEth": 28.4638,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "ageofdinos",
@@ -1174,7 +1196,9 @@
       "address": "0x05215fce25902366480696f38c3093e31dbce69a",
       "family": "hourglass",
       "listedEth": 26.5604,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "x2y2_presale",
@@ -1253,7 +1277,9 @@
       "address": "0xa146240bf2c04005a743032dc0d241ec0bb2ba2b",
       "family": "hourglass",
       "listedEth": 22.0791,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "blocklancer_ico",
@@ -1299,7 +1325,9 @@
       "address": "0x4c29d75cc423e8adaa3839892feb66977e295829",
       "family": "hourglass",
       "listedEth": 20.1363,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "ethpyramid",
@@ -1331,7 +1359,9 @@
       "address": "0xfcd3a0f5f416e407647a7518b90354946d316059",
       "family": "hourglass",
       "listedEth": 19.0925,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "jincor_token_ico",
@@ -1526,7 +1556,9 @@
       "address": "0xc6e5e9c6f4f3d1667df6086e91637cc7c64a13eb",
       "family": "hourglass",
       "listedEth": 13.2134,
-      "status": "not-checked",
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380,
       "eoaOnly": true
     },
     {
@@ -1599,7 +1631,9 @@
       "address": "0xc28e860c9132d55a184f9af53fc85e90aa3a0153",
       "family": "hourglass",
       "listedEth": 10.6877,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "contribution_pool",
@@ -1639,7 +1673,9 @@
       "address": "0xcd2de0bd5347f617f832442ebcc1c23a4d618847",
       "family": "hourglass",
       "listedEth": 9.0965,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "cryptocats_v1",
@@ -1687,7 +1723,9 @@
       "address": "0xecfae6f958f7ab15bdf171eeefa568e41eabf641",
       "family": "hourglass",
       "listedEth": 8.0196,
-      "status": "not-checked",
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380,
       "eoaOnly": true
     },
     {
@@ -1704,7 +1742,9 @@
       "address": "0xbc5cef436eadacadfa8dafb63088f09f21dea7e9",
       "family": "weth-wrapper",
       "listedEth": 7.5933,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280374
     },
     {
       "key": "ed_fork_6_9eth",
@@ -1743,7 +1783,9 @@
       "address": "0x84cc06eddb26575a7f0afd7ec2e3e98d31321397",
       "family": "hourglass",
       "listedEth": 6.4312,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "startmining_stm_sale",
@@ -1759,15 +1801,19 @@
       "address": "0xbedde30d3532165843f07b1b0e3e90fddbb75918",
       "family": "hourglass",
       "listedEth": 5.8471,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "i2presale",
       "name": "I2 Presale",
       "address": "0xa8df33a40fe2e3278e4d94a974f70778043fbd20",
-      "family": "presale-pool",
+      "family": "presale-safe-withdrawal",
       "listedEth": 5.795,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "safeWithdrawal()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "spw",
@@ -1775,7 +1821,9 @@
       "address": "0x586f3d9e3524eb02448691b158fdcf5ffc2c57b0",
       "family": "hourglass",
       "listedEth": 5.6908,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "cxxmain",
@@ -1783,7 +1831,9 @@
       "address": "0xa4dce3845cb88a6fca0291d4eca9e5a96e75e2b4",
       "family": "hourglass",
       "listedEth": 5.5826,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "micro_eth",
@@ -1807,7 +1857,9 @@
       "address": "0xea61319f55b6543962fe1d7bd990ef74849fc54f",
       "family": "hourglass",
       "listedEth": 5.3881,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "irb",
@@ -1836,7 +1888,9 @@
       "address": "0x26e6c899b5a5dc1d4874d828fda515a7eb7baf00",
       "family": "hourglass",
       "listedEth": 4.998,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "winiota",
@@ -1902,7 +1956,9 @@
       "address": "0x8f6015289a64c48ccf258c21a999809fc553c3c4",
       "family": "hourglass",
       "listedEth": 4.3791,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "e25",
@@ -1910,7 +1966,9 @@
       "address": "0xc3ad35d351b33783f27777e2ee1a4b6f96e4ee34",
       "family": "hourglass",
       "listedEth": 4.2186,
-      "status": "not-checked",
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380,
       "eoaOnly": true
     },
     {
@@ -1953,7 +2011,9 @@
       "address": "0x568a693e1094b1e51e8053b2fc642da7161603f5",
       "family": "hourglass",
       "listedEth": 3.7551,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "proofofcommunity",
@@ -1961,7 +2021,9 @@
       "address": "0x1739e311ddbf1efdfbc39b74526fd8b600755ada",
       "family": "hourglass",
       "listedEth": 3.6802,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "ethdiamond",
@@ -1969,7 +2031,9 @@
       "address": "0xca1cc76be1f5e5ee492859d8463653cb231991bc",
       "family": "hourglass",
       "listedEth": 3.6517,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "cam",
@@ -1990,7 +2054,9 @@
       "address": "0x702392282255f8c0993dbbbb148d80d2ef6795b1",
       "family": "hourglass",
       "listedEth": 3.3533,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "bitcratic_v1",
@@ -2008,7 +2074,9 @@
       "address": "0x2c984ec9bb20b33deb84fbeedf20effda481fdc4",
       "family": "hourglass",
       "listedEth": 3.0731,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "masterstar",
@@ -2049,7 +2117,9 @@
       "address": "0x0be5e8f107279cc2d9c3a537ed4ea669b45e443d",
       "family": "hourglass",
       "listedEth": 2.8867,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "hegic_call",
@@ -2079,7 +2149,9 @@
       "address": "0xf72b0b36723f60402cccad7f4358acf2ad474c17",
       "family": "hourglass",
       "listedEth": 2.6994,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "etherdiamond",
@@ -2087,7 +2159,9 @@
       "address": "0x4af078e47490c0e761a3de260952d9eb4a6ad693",
       "family": "hourglass",
       "listedEth": 2.6323,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "monoreto",
@@ -2108,7 +2182,9 @@
       "address": "0x7d2d58d7add0b2d6e06fa85590b60da7741c18c9",
       "family": "hourglass",
       "listedEth": 2.5392,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "presalepool_b990",
@@ -2146,7 +2222,9 @@
       "address": "0xe1c9a03cf690256ff7738cbd508c88cf5238a535",
       "family": "hourglass",
       "listedEth": 2.2904,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "bitox",
@@ -2164,7 +2242,9 @@
       "address": "0x5044ac8da9601edf970dcc91a10c5f41c5c548c0",
       "family": "hourglass",
       "listedEth": 2.245,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "crowdsale_e82056",
@@ -2180,7 +2260,9 @@
       "address": "0xaa4ec8484e89bed69570825688789589d38eea5e",
       "family": "hourglass",
       "listedEth": 2.1415,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "neufund",
@@ -2188,7 +2270,9 @@
       "address": "0xb59a226a2b8a2f2b0512baa35cc348b6b213b671",
       "family": "weth-wrapper",
       "listedEth": 2.0704,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280374
     },
     {
       "key": "crowdsalewatch",
@@ -2212,7 +2296,9 @@
       "address": "0xae384c6e68f5d697d65ed43fd53ef5ea3288f536",
       "family": "hourglass",
       "listedEth": 1.8294,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "omnidex",
@@ -2220,7 +2306,9 @@
       "address": "0x433e631ac0c03e49ca034dbf5543964c80c6b391",
       "family": "hourglass",
       "listedEth": 1.7691,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "bdpmaster",
@@ -2236,7 +2324,9 @@
       "address": "0xb0c4382d4355cdfe94a132fadf92a509b1e25939",
       "family": "hourglass",
       "listedEth": 1.6257,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "ico_refund_79c5",
@@ -2270,7 +2360,9 @@
       "address": "0x77b541f90ecfa09f854209eefeca24c295050e2e",
       "family": "hourglass",
       "listedEth": 1.5218,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "fairexchange",
@@ -2278,7 +2370,9 @@
       "address": "0xde2b11b71ad892ac3e47ce99d107788d65fe764e",
       "family": "hourglass",
       "listedEth": 1.4808,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "lockedin",
@@ -2286,7 +2380,9 @@
       "address": "0xdb4837c9d84315abcde80a865f15178f86db3966",
       "family": "hourglass",
       "listedEth": 1.456,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "gateway_ico_3091d3",
@@ -2306,7 +2402,9 @@
       "address": "0x897d6c6772b85bf25b46c6f6da454133478ea6ab",
       "family": "hourglass",
       "listedEth": 1.3411,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "ethernext",
@@ -2387,7 +2485,9 @@
       "address": "0x7e7e645e9121dddaf87d0434feb9f113d1dbbb41",
       "family": "hourglass",
       "listedEth": 1.1018,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "digitize",
@@ -2471,7 +2571,9 @@
       "address": "0x38e219ee67a5e1536c5a89fec2da0d69c254cac4",
       "family": "hourglass",
       "listedEth": 0.8983,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "lendsbay",
@@ -2520,7 +2622,9 @@
       "address": "0xf5aa54d121dfe0d5eeb37c83aed42238f4f2c5c6",
       "family": "hourglass",
       "listedEth": 0.6386,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "kryptopy",
@@ -2551,7 +2655,9 @@
       "address": "0x7b6c511a94d35b9cf9979b727335c9798edb5c64",
       "family": "hourglass",
       "listedEth": 0.5113,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "tradexone",
@@ -2585,7 +2691,9 @@
       "address": "0x5bedf488d29407bc08e77cd9ee292c2041a61c8c",
       "family": "hourglass",
       "listedEth": 0.262,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "powh_clone2",
@@ -2593,7 +2701,9 @@
       "address": "0x34ba9c7402e1df11709c7983008b5a49d59e963f",
       "family": "hourglass",
       "listedEth": 0.2309,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "spw2",
@@ -2601,7 +2711,9 @@
       "address": "0xd446a13f9b9f8bcbc3ded73764d08735561b1638",
       "family": "hourglass",
       "listedEth": 0.1342,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "enkronos",
@@ -2631,7 +2743,9 @@
       "address": "0x11e165dd03c63771004f929d58b75e4aaf2d1a23",
       "family": "hourglass",
       "listedEth": 0.0398,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280380
     },
     {
       "key": "sawgamespass",
@@ -2668,6 +2782,5 @@
       "status": "not-checked",
       "multiStep": true
     }
-  ],
-  "confirmationBlockPr2": 26280214
+  ]
 }

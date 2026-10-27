@@ -8,6 +8,7 @@ import {
 } from "../intel.js";
 import {
   claimableNow,
+  FAMILY_CLAIM,
   labels,
   REGISTRY,
   REGISTRY_ALLOWLIST,
@@ -27,7 +28,7 @@ describe("LegacyETH registry data", () => {
   it("only confirmed DEX/Fomo3D entries are scanned, each with a claim", () => {
     const s = scanned().filter((e) => ["etherdelta-dex", "fomo3d"].includes(e.family));
     expect(s.length).toBe(43);
-    expect(scanned().length).toBe(79);
+    expect(scanned().length).toBe(135);
     for (const e of s) {
       expect(["etherdelta-dex", "fomo3d"]).toContain(e.family);
       expect(e.claim).toBe(e.family === "fomo3d" ? "withdraw()" : "withdraw(uint256)");
@@ -195,5 +196,120 @@ describe("review fixes", () => {
     expect(r.hits.length).toBe(1);
     expect(r.hits[0]!.tx).toBeUndefined();
     expect(r.notChecked.join(" ")).toContain(`${d.name}: not checked (balance read failed)`);
+  });
+});
+
+describe("PR 3 families", () => {
+  const fam = (f: string) => scanned().filter((e) => e.family === f);
+  it("56 confirmed rows by family, claim pinned, allowlisted with the exact selector", () => {
+    expect(fam("weth-wrapper").length).toBe(5);
+    expect(fam("ether-balances").length).toBe(1);
+    expect(fam("presale-safe-withdrawal").length).toBe(1);
+    expect(fam("hourglass").length).toBe(49);
+    for (const f of ["weth-wrapper", "ether-balances", "presale-safe-withdrawal", "hourglass"])
+      for (const e of fam(f)) {
+        expect(e.claim).toBe(FAMILY_CLAIM[f]);
+        expect(e.confirmedAtBlock).toBeGreaterThanOrEqual(26280374);
+        expect(REGISTRY_ALLOWLIST[e.address.toLowerCase()]).toEqual([btSelector(FAMILY_CLAIM[f]!)]);
+        expect(validEntry({ ...e, claim: "transfer(address,uint256)" })).toBe(false);
+      }
+    expect(REGISTRY.find((e) => e.key === "powh3d")!.status).toBe("covered-elsewhere");
+    expect(registryCollisions()).toEqual([]);
+  });
+  const W = () => fam("weth-wrapper")[0]!;
+  const H = () => fam("hourglass")[0]!;
+  const mk = (o: {
+    owe?: Record<string, bigint>;
+    divs?: bigint;
+    held?: bigint;
+    simOk?: boolean;
+    sim?: "none" | "fail" | "bad";
+  }) => {
+    const reqs: {
+      params: [{ blockStateCalls: [{ calls: { from: string; data: string }[] }] }, string];
+    }[] = [];
+    const c = {
+      multicall: async (a: { contracts: { functionName: string; address: string }[] }) =>
+        a.contracts.map((x) => {
+          const e = REGISTRY.find((r) => r.address.toLowerCase() === x.address.toLowerCase());
+          return { status: "success", result: o.owe?.[e?.key ?? ""] ?? 0n };
+        }),
+      getBalance: async () => o.held ?? 10n ** 24n,
+      call: async () => {
+        if (o.simOk === false) throw new Error("revert");
+        return { data: "0x" };
+      },
+      ...(o.sim === "none"
+        ? {}
+        : {
+            request: async (a: (typeof reqs)[number]) => {
+              reqs.push(a);
+              if (o.sim === "fail") throw new Error("method not found");
+              const calls = a.params[0].blockStateCalls[0].calls;
+              return [
+                {
+                  calls: calls.map((_, i) => ({
+                    status: "0x1",
+                    returnData:
+                      o.sim === "bad"
+                        ? "0x"
+                        : `0x${(i === 0 ? (o.divs ?? 0n) : 0n).toString(16).padStart(64, "0")}`,
+                  })),
+                },
+              ];
+            },
+          }),
+    };
+    return { c: c as never, reqs };
+  };
+  it("weth wrapper: withdraw(balanceOf) only, verified by the allowlist", async () => {
+    const r = await scanRegistry(mk({ owe: { [W().key]: 5n * 10n ** 18n } }).c, OWNER, 7n);
+    const h = r.hits.find((x) => x.entry.key === W().key)!;
+    expect(h.claimable).toBe(true);
+    expect(h.evidence[0]!.call).toBe("balanceOf(address)");
+    expect(h.tx!.data).toBe(
+      btSelector("withdraw(uint256)") + (5n * 10n ** 18n).toString(16).padStart(64, "0"),
+    );
+    expect(verifyClaimTx(h.tx!).verified).toBe(true);
+  });
+  it("underfunded or reverting wrapper builds no tx", async () => {
+    for (const o of [{ held: 1n }, { simOk: false }]) {
+      const r = await scanRegistry(mk({ owe: { [W().key]: 5n }, ...o }).c, OWNER, 7n);
+      const h = r.hits.find((x) => x.entry.key === W().key)!;
+      expect(h.claimable).toBe(false);
+      expect(h.tx).toBeUndefined();
+    }
+  });
+  it("ether-balances and presale-safe-withdrawal build their pinned claims", async () => {
+    const eth = fam("ether-balances")[0]!;
+    const i2 = fam("presale-safe-withdrawal")[0]!;
+    const r = await scanRegistry(mk({ owe: { [eth.key]: 3n, [i2.key]: 2n } }).c, OWNER, 7n);
+    const a = r.hits.find((x) => x.entry.key === eth.key)!;
+    expect(a.evidence[0]!.call).toBe("balances(address)");
+    expect(a.tx!.data).toBe(btSelector("withdrawEther(uint256)") + "3".padStart(64, "0"));
+    const b = r.hits.find((x) => x.entry.key === i2.key)!;
+    expect(b.evidence[0]!.call).toBe("balanceOf(address)");
+    expect(b.tx!.data).toBe(btSelector("safeWithdrawal()"));
+    expect(verifyClaimTx(a.tx!).verified && verifyClaimTx(b.tx!).verified).toBe(true);
+  });
+  it("hourglass: myDividends(true) read as the owner at the pinned block, then withdraw()", async () => {
+    const { c, reqs } = mk({ divs: 4n * 10n ** 17n });
+    const r = await scanRegistry(c, OWNER, 255n);
+    const call0 = reqs[0]!.params[0].blockStateCalls[0].calls[0]!;
+    expect(call0.from).toBe(OWNER);
+    expect(call0.data).toBe(btSelector("myDividends(bool)") + "1".padStart(64, "0"));
+    expect(reqs[0]!.params[1]).toBe("0xff");
+    const h = r.hits.find((x) => x.entry.key === H().key)!;
+    expect(h.owedWei).toBe(4n * 10n ** 17n);
+    expect(h.tx!.data).toBe(btSelector("withdraw()"));
+    expect(h.labels.join(" ")).toMatch(/Dividends only/);
+    expect(verifyClaimTx(h.tx!).verified).toBe(true);
+  });
+  it("hourglass fails closed: no simulateV1, an RPC error or a bad return is not checked", async () => {
+    for (const sim of ["none", "fail", "bad"] as const) {
+      const r = await scanRegistry(mk({ divs: 5n, sim }).c, OWNER, 1n);
+      expect(r.hits.find((x) => x.entry.family === "hourglass")).toBeUndefined();
+      expect(r.notChecked.join(" ")).toContain(H().name);
+    }
   });
 });
