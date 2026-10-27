@@ -236,6 +236,9 @@ export function view(job: Job) {
           totalEstUsd: e.result.totalEstUsd ?? 0,
           atRiskUsd: e.result.atRiskUsd ?? 0,
           opportunities: e.result.items?.length ?? 0,
+          ...(Array.isArray(e.result.owedNotClaimableNow) && e.result.owedNotClaimableNow.length
+            ? { owedNotClaimableNow: e.result.owedNotClaimableNow }
+            : {}),
           ...(e.result.swapAll ? { swapAll: e.result.swapAll } : {}),
         }
       : {}),
@@ -299,6 +302,15 @@ export function view(job: Job) {
     plan.phase3_swap.length
       ? `Swap everything to USDC afterwards: ${plan.phase3_swap.map((s) => link(s.url, s.shortUrl)).join(" ; ")}`
       : "",
+    ...wallets.flatMap((w) =>
+      (
+        (w as { owedNotClaimableNow?: { protocol: string; owed: string | null; reason: string }[] })
+          .owedNotClaimableNow ?? []
+      ).map(
+        (l) =>
+          `Owed but not claimable now on ${w.address ?? w.input}: ${l.protocol}${l.owed ? ` ${l.owed}` : ""} (${l.reason}). Not counted above.`,
+      ),
+    ),
     "Nothing moves without you: I'll verify each transaction and show you exactly what it does before your own wallet signs it. SwapChan never holds keys.",
   ].filter(Boolean);
   return {

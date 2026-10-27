@@ -23,6 +23,7 @@ import { getWithdrawals, publicActionsL1, publicActionsL2 } from "viem/op-stack"
 import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { json, prices, pxOf } from "./onchain.js";
+import { safeReason } from "./reasons.js";
 
 type F = typeof fetch;
 type Out = { items: Found[]; notChecked: string[] };
@@ -362,12 +363,7 @@ export async function bridgeWithdrawals(f: F, env: NodeJS.ProcessEnv, owner: str
     Promise.race([
       p,
       new Promise<never>((_, r) => setTimeout(() => r(new Error("timeout")), ms)),
-    ]).catch(
-      (e) => (
-        notChecked.push(`${n}: not checked (${String((e as Error).message).slice(0, 60)})`),
-        [] as T[]
-      ),
-    );
+    ]).catch((e) => (notChecked.push(`${n}: not checked (${safeReason(e)})`), [] as T[]));
   const [o, a] = await Promise.all([
     lim("Optimism bridge withdrawals", opWithdrawals(f, env, owner), 12_000),
     lim("Arbitrum bridge withdrawals", arbWithdrawals(f, env, owner), 12_000),

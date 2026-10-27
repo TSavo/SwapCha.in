@@ -1,11 +1,12 @@
 /** Keyless balance scans for TON (toncenter/tonapi), Cardano (Koios) and Polkadot (Asset Hub + relay). No tx building. */
 import { btDecodeAccountInfo, btDotStorageKey, btSs58Decode } from "./blocktools.js";
+import { safeReason } from "./reasons.js";
 import type { NewFound } from "./recover.js";
 import { coinPrices } from "./utxochains.js";
 
 type F = typeof fetch;
 type Scan = { items: NewFound[]; notChecked: string[] };
-const err = (e: unknown) => String((e as Error)?.message ?? e).slice(0, 60);
+const err = (e: unknown) => safeReason(e);
 export const fmtUnits = (v: bigint, d: number) => {
   const neg = v < 0n;
   const s = (neg ? -v : v).toString().padStart(d + 1, "0");
