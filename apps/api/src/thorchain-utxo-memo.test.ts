@@ -230,3 +230,88 @@ describe("PSBT path (quote with taker): same retry", () => {
     expect(BigInt(q.toAmount)).toBe(380_000_000_000_000_000n);
   });
 });
+
+describe("deposit: THORChain's memo must pay the requested recipient and asset", () => {
+  const withMemo = (memo: string, mode: Mode = "fits") => {
+    const m = mock(mode);
+    return (async (url: string, init: RequestInit) => {
+      const r = await m.f(url, init);
+      if (!url.includes("/quote/swap") || r.status !== 200) return r;
+      return Response.json({ ...(await r.json()), memo });
+    }) as unknown as typeof fetch;
+  };
+  const ltcEth = reqOf(LITECOIN, 1, ETH_TO);
+  it("refuses a memo paying another recipient (review repro)", async () => {
+    await expect(
+      thorchain(
+        pricer,
+        env,
+        withMemo("=:e:0x000000000000000000000000000000000000dEaD:1/1/0"),
+      ).deposit(ltcEth, undefined, sig()),
+    ).rejects.toThrow(/memo destination .* != 0xeb0e/);
+  });
+  it("refuses the wrong recipient on the retry-without-refund memo too", async () => {
+    await expect(
+      thorchain(
+        pricer,
+        env,
+        withMemo("=:e:0x000000000000000000000000000000000000dEaD:1/1/0", "refund-overflows"),
+      ).deposit(ltcEth, LTC_P2PKH, sig()),
+    ).rejects.toThrow(/memo destination/);
+  });
+  it("refuses a memo naming the wrong asset", async () => {
+    await expect(
+      thorchain(pricer, env, withMemo(`=:b:${ETH_TO}:1/1/0`)).deposit(ltcEth, undefined, sig()),
+    ).rejects.toThrow(/memo asset b is not ETH.ETH/);
+    await expect(
+      thorchain(pricer, env, withMemo(`=:BTC.BTC:${ETH_TO}:1/1/0`)).deposit(
+        ltcEth,
+        undefined,
+        sig(),
+      ),
+    ).rejects.toThrow(/memo asset BTC.BTC/);
+    await expect(
+      thorchain(pricer, env, withMemo(`=:e:${DOGE_TO}:1/1/0`)).deposit(
+        reqOf(LITECOIN, DOGECOIN, DOGE_TO),
+        undefined,
+        sig(),
+      ),
+    ).rejects.toThrow(/memo asset e is not DOGE.DOGE/);
+  });
+  it("refuses an unparseable memo", async () => {
+    for (const bad of ["garbage", "", "=:e"])
+      await expect(
+        thorchain(pricer, env, withMemo(bad)).deposit(ltcEth, undefined, sig()),
+      ).rejects.toThrow(/unparseable THORChain memo/);
+  });
+  it("accepts an EVM recipient differing only in case, and the full asset name", async () => {
+    const d = await thorchain(
+      pricer,
+      env,
+      withMemo(`=:ETH.ETH:${ETH_TO.toUpperCase().replace("0X", "0x")}:1/1/0`),
+    ).deposit(ltcEth, undefined, sig());
+    expect(d.refundInMemo).toBe(false);
+  });
+  it("refuses a UTXO recipient that differs only in case", async () => {
+    const flipped = DOGE_TO.replace("D8Xh", "D8XH");
+    await expect(
+      thorchain(pricer, env, withMemo(`=:d:${flipped}:1/1/0`)).deposit(
+        reqOf(LITECOIN, DOGECOIN, DOGE_TO),
+        undefined,
+        sig(),
+      ),
+    ).rejects.toThrow(/memo destination/);
+    const ok = await thorchain(pricer, env, withMemo(`=:DOGE.DOGE:${DOGE_TO}:1/1/0`)).deposit(
+      reqOf(LITECOIN, DOGECOIN, DOGE_TO),
+      undefined,
+      sig(),
+    );
+    expect(ok.memo).toBe(`=:DOGE.DOGE:${DOGE_TO}:1/1/0`);
+  });
+  it("refuses a deposit with no recipient", async () => {
+    const { recipient: _r, ...noRecipient } = ltcEth;
+    await expect(
+      thorchain(pricer, env, mock("fits").f).deposit(noRecipient as QuoteRequest, undefined, sig()),
+    ).rejects.toThrow(/recipient required/);
+  });
+});

@@ -19,6 +19,7 @@ import {
 import { encodeFunctionData } from "../blocktools.js";
 
 import { buildBtcPsbt, type UtxoSource } from "../btc.js";
+import { thorMemoMismatch } from "../guard/index.js";
 import { type Pricer, ZERO_ADDRESS } from "../pricing.js";
 import { RouteRefused, UTXO_DEST, validateUtxoRecipient } from "../utxodest.js";
 import { buildUtxoSend, MEMO_LIMIT } from "../utxosend.js";
@@ -284,7 +285,7 @@ export function thorchain(
       if (destField.includes("/"))
         throw new Error("THORChain: unexpected refund address in shortened memo");
     }
-    return { r, src, dst, refundDropped };
+    return { r, src, dst, refundDropped, toAsset, destination };
   };
 
   const toTx = async (
@@ -456,6 +457,8 @@ export function thorchain(
         );
       if (!isNative(req.fromChainId, req.fromToken))
         throw new RouteRefused(`${d.name}: only the native coin can be sent`);
+      if (!req.recipient?.trim())
+        throw new RouteRefused("recipient required: the payout address on the destination chain");
       // The refund address is optional: THORChain refuses a refund address in every LTC/DOGE/BCH memo measured so
       // far, and without one it refunds to the address that sent the coins.
       let given = "";
@@ -465,7 +468,7 @@ export function thorchain(
         given = rv.address;
       }
       const { taker: _t, ...noTaker } = req;
-      const [{ r, dst, refundDropped }, ibs] = await Promise.all([
+      const [{ r, dst, refundDropped, toAsset, destination }, ibs] = await Promise.all([
         call(noTaker as QuoteRequest, signal, given ? { refund: given } : {}),
         getJson<
           {
@@ -478,6 +481,10 @@ export function thorchain(
         >(f, `${base}/inbound_addresses`, { signal }),
       ]);
       const memo = r.memo ?? "";
+      // THORChain's memo (first attempt or the retry without refund) must pay the requested recipient in the
+      // requested asset; anything else is refused, never shown as deposit instructions.
+      const bad = thorMemoMismatch(memo, req.toChainId, toAsset, destination);
+      if (bad) throw new RouteRefused(`THORChain: ${bad}; not offered`);
       const limit = MEMO_LIMIT[d.bt]!;
       const memoBytes = Buffer.byteLength(memo, "utf8");
       if (memoBytes > limit)
