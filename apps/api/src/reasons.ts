@@ -4,9 +4,12 @@
  * reach a result: they collapse to a short, fixed reason. Timeouts say plainly that results may be incomplete.
  */
 const URL_RE = /\b(?:https?|wss?):\/\/[^\s)"']*/gi;
-const SECRETISH_RE = /\b(?:api[-_]?key|apikey|key|token|secret|auth)=[^\s&)"']+/gi;
+const SECRETISH_RE = /\b(?:api[-_ ]?key|apikey|key|token|secret|auth)=[^\s&)"']+/gi;
+// bare filesystem paths (POSIX home/system dirs, Windows drive paths) can reveal server layout
+const PATH_RE =
+  /(?:^|[\s("'=])(?:\/(?:home|etc|root|usr|var|opt|tmp|srv|Users|proc|mnt|app)\/|~\/|[A-Za-z]:\\)/;
 const RAW_RE =
-  /https?:\/\/|wss?:\/\/|URL:|Request body|Details:|Version: viem|HTTP request failed|fetch failed|ECONN|ENOTFOUND|EAI_AGAIN|socket|status code|\bstatus \d{3}\b|\bRPC\b|JSON-RPC|Reques\b|api[-_]?key|token=/i;
+  /https?:\/\/|wss?:\/\/|URL:|Request body|Details:|Version: viem|HTTP request failed|fetch failed|ECONN|ENOTFOUND|EAI_AGAIN|socket|status code|\bstatus \d{3}\b|\bRPC\b|JSON-RPC|Reques\b|api[-_ ]?key|apikey|token=|secret|bearer|password/i;
 
 export const INCOMPLETE = "results may be incomplete";
 
@@ -19,6 +22,7 @@ export function safeReason(e: unknown): string {
   if (/scan finished|request cancelled|aborted/i.test(msg)) return "scan finished";
   if (/\b429\b|rate.?limit|too many requests/i.test(msg)) return "rate limited by the data source";
   if (RAW_RE.test(msg)) return "RPC request failed";
+  if (PATH_RE.test(msg)) return "request failed";
   const s = msg.trim();
   // short plain sentences we wrote ourselves pass through; anything else is reduced to a fixed reason
   if (s && s.length <= 60 && /^[\w .,'()\-:/<>=+%#]+$/.test(s)) return s;

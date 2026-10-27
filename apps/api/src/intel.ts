@@ -1668,7 +1668,7 @@ export async function legacyRegistry(
         ? step1
           ? `${eth} ETH redeemable in two steps (approve, then ${h.entry.claim})`
           : `${eth} ETH withdrawable`
-        : `Not claimable: the contract shows ${eth} ETH for you but ${h.entry.claim} would pay nothing (${why})`,
+        : `Shown but not claimable now: the contract shows ${eth} ETH for you but ${h.entry.claim} would pay nothing (${why})`,
       valueUsd: h.claimable && ethPx ? r2(eth * ethPx) : null,
       ...(h.tx ? { claimTx: claim(1, h.tx.to, h.tx.data, h.tx.description, h.tx.approveMax) } : {}),
       action: h.claimable
@@ -1846,7 +1846,7 @@ export async function legacyEth(
         chainId: 1,
         what: payable
           ? `${eth} ETH in win/gen/aff vaults`
-          : `Not claimable: vaults show ${eth} ETH but withdraw() would pay nothing (${!sim ? "withdraw() reverts for you" : held === null ? "contract balance read failed, so payment could not be confirmed" : "contract holds less ETH than the vaults"})`,
+          : `Shown but not claimable now: vaults show ${eth} ETH but withdraw() would pay nothing (${!sim ? "withdraw() reverts for you" : held === null ? "contract balance read failed, so payment could not be confirmed" : "contract holds less ETH than the vaults"})`,
         valueUsd: payable ? usd(eth) : null,
         ...(payable
           ? {
@@ -3721,7 +3721,14 @@ export async function justLend(f: F, owner: string): Promise<Found[]> {
 // ---------- not-claimable-now split ----------
 /** True for findings whose text says they are owed but cannot be claimed right now. */
 export function isNotClaimableNow(what: string | undefined): boolean {
-  return /^\s*Not claimable\b/i.test(what ?? "") || /:\s*Not claimable\b/i.test(what ?? "");
+  return (
+    /^\s*(?:Shown but )?Not claimable\b/i.test(what ?? "") ||
+    /:\s*(?:Shown but )?Not claimable\b/i.test(what ?? "")
+  );
+}
+/** True for "shown but not claimable now" findings: a balance view shows ETH the contract would not pay. */
+export function isShownOnly(what: string | undefined): boolean {
+  return /(?:^|:)\s*Shown but not claimable\b/i.test(what ?? "");
 }
 /** Shape of one "owed but not claimable now" entry: what is owed and why it cannot be claimed now. */
 export function owedLater(i: {
@@ -3733,7 +3740,7 @@ export function owedLater(i: {
   protocolUrl?: string;
 }) {
   const text = i.what ?? i.title?.replace(/^[^:]*:\s*/, "") ?? "";
-  const body = text.replace(/^\s*Not claimable(?: now)?:\s*/i, "");
+  const body = text.replace(/^\s*(?:Shown but )?Not claimable(?: now)?:\s*/i, "");
   const amount = /(\d[\d,]*(?:\.\d+)?)\s*([A-Z][A-Za-z0-9]{1,9})\b/.exec(body);
   const cut = /,\s+|\s+but\s+/.exec(body);
   const reason = cut ? body.slice(cut.index + cut[0].length) : body;
@@ -3748,7 +3755,12 @@ export function owedLater(i: {
 }
 
 /** One honest sentence: what is claimable now, and what is owed but not claimable now. */
-export function findMoneyHeadline(found: number, totalUsd: number, notNow: number): string {
+export function findMoneyHeadline(
+  found: number,
+  totalUsd: number,
+  notNow: number,
+  shownOnly = 0,
+): string {
   const usdS = `$${totalUsd.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
   const head =
     found === 0
@@ -3756,9 +3768,15 @@ export function findMoneyHeadline(found: number, totalUsd: number, notNow: numbe
       : totalUsd > 0
         ? `Found ${found} thing${found === 1 ? "" : "s"} worth about ${usdS} you can act on now.`
         : `Found ${found} thing${found === 1 ? "" : "s"} to look at, but none with a dollar value claimable now.`;
-  return notNow
-    ? `${head} ${notNow} item${notNow === 1 ? " is" : "s are"} owed to you but not claimable now (see owedNotClaimableNow).`
-    : head;
+  // "owed" only for real queue debts; balance views the contract would not pay are "shown", not owed
+  const owed = Math.max(0, notNow - shownOnly);
+  const parts = [
+    owed ? `${owed} item${owed === 1 ? " is" : "s are"} owed to you but not claimable now` : "",
+    shownOnly
+      ? `${shownOnly} item${shownOnly === 1 ? " is" : "s are"} shown but not claimable now`
+      : "",
+  ].filter(Boolean);
+  return parts.length ? `${head} ${parts.join("; ")} (see owedNotClaimableNow).` : head;
 }
 
 // ---------- 6. airdrop_check ----------
@@ -5618,7 +5636,7 @@ export async function findMoney(
             it.category === "Cheaper gas" ||
             it.category === DUST_CATEGORY ||
             it.category === "Idle stablecoins" ||
-            /: Not claimable/.test(it.title)
+            /: (?:Shown but )?Not claimable/i.test(it.title)
           )
             continue;
           Object.assign(it, recoveryFlow(db, shorten, address, it as never));
@@ -5682,7 +5700,12 @@ export async function findMoney(
           address,
           ...(name ? { name } : {}),
           portfolioUsd: bal?.totalUsd ?? null,
-          headline: findMoneyHeadline(items.length, total, later.length),
+          headline: findMoneyHeadline(
+            items.length,
+            total,
+            later.length,
+            later.filter((l) => isShownOnly(l.title)).length,
+          ),
           opportunities: items.length,
           ...(swapAll
             ? {
@@ -5778,7 +5801,9 @@ export function intelRoutes(
     } catch (e) {
       if (e instanceof BusyError) return c.json({ error: e.message }, 503);
       const bad = e instanceof BadRequest || e instanceof z.ZodError;
-      return c.json({ error: (e as Error).message.slice(0, 300) }, bad ? 400 : 502);
+      return bad
+        ? c.json({ error: (e as Error).message.slice(0, 300) }, 400)
+        : c.json({ error: safeReason(e) }, 502);
     }
   };
   const need = (v: string | undefined, n: string) => {
@@ -6101,7 +6126,9 @@ export function linkRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync) {
     } catch (e) {
       if (e instanceof BusyError) return c.json({ error: e.message }, 503);
       const bad = e instanceof BadRequest || e instanceof z.ZodError;
-      return c.json({ error: (e as Error).message.slice(0, 300) }, bad ? 400 : 502);
+      return bad
+        ? c.json({ error: (e as Error).message.slice(0, 300) }, 400)
+        : c.json({ error: safeReason(e) }, 502);
     }
   };
   app.get("/swap", (c) => run(c, () => buildSwapLink(f, env, db, LinkParams.parse(c.req.query()))));

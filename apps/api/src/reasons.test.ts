@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findMoneyHeadline, isNotClaimableNow, owedLater } from "./intel.js";
+import { findMoneyHeadline, isNotClaimableNow, isShownOnly, owedLater } from "./intel.js";
 import { safeReason, scrubText, tidyNotChecked } from "./reasons.js";
 
 describe("safeReason", () => {
@@ -27,6 +27,24 @@ describe("safeReason", () => {
     expect(safeReason(new Error("no indexer for this chain"))).toBe("no indexer for this chain");
     expect(safeReason(new Error("429 Too Many Requests"))).toBe("rate limited by the data source");
     expect(safeReason(new Error("x".repeat(200)))).toBe("request failed");
+  });
+  it("never passes through key-like words or file paths", () => {
+    for (const m of [
+      "invalid api key 123",
+      "Invalid API Key",
+      "bad api_key abc",
+      "apikey missing",
+      "api-key rejected",
+    ])
+      expect(safeReason(new Error(m))).toBe("RPC request failed");
+    for (const m of [
+      "ENOENT open /home/tsavo/x.json",
+      "cannot read /etc/passwd",
+      "missing C:\\Users\\x\\a.txt",
+      "/var/lib/app/db.sqlite locked",
+    ])
+      expect(safeReason(new Error(m))).toBe("request failed");
+    expect(safeReason(new Error("no indexer for this chain"))).toBe("no indexer for this chain");
   });
 });
 
@@ -73,6 +91,21 @@ describe("not claimable now", () => {
     expect(l.protocol).toBe("IronHands (Doublr)");
     expect(l.owed).toBe("172.6 ETH");
     expect(l.reason).toBe("paid only in queue order as new deposits/dividends arrive");
+  });
+  it("headline says shown, not owed, for balances the contract would not pay", () => {
+    expect(findMoneyHeadline(0, 0, 1, 1)).toBe(
+      "Nothing claimable right now. 1 item is shown but not claimable now (see owedNotClaimableNow).",
+    );
+    expect(findMoneyHeadline(0, 0, 3, 2)).toBe(
+      "Nothing claimable right now. 1 item is owed to you but not claimable now; 2 items are shown but not claimable now (see owedNotClaimableNow).",
+    );
+    const w =
+      "Shown but not claimable now: the contract shows 1.5 ETH for you but withdraw() would pay nothing (withdraw() reverts for you)";
+    expect(isNotClaimableNow(w)).toBe(true);
+    expect(isShownOnly(w)).toBe(true);
+    expect(isShownOnly(`Fomo3D Long: ${w}`)).toBe(true);
+    expect(isShownOnly("Not claimable now: 172.6 ETH owed in the IronHands queue")).toBe(false);
+    expect(owedLater({ what: w }).owed).toBe("1.5 ETH");
   });
   it("headline reflects only what is claimable now", () => {
     expect(findMoneyHeadline(0, 0, 1)).toBe(
