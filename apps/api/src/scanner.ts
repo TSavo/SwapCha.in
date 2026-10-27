@@ -68,10 +68,30 @@ export function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Pro
       )
         cache.delete(k);
   cache.set(key, { at: Date.now(), v });
-  v.catch(() => cache.delete(key));
+  // only drop our own entry: a newer scan for the same key may have replaced it meanwhile
+  v.catch(() => {
+    if (cache.get(key)?.v === v) cache.delete(key);
+  });
   return v;
 }
 export const clearScannerCache = () => cache.clear();
+/** True when a live (unexpired) entry exists for key. */
+export const peekCached = (key: string, ttlMs: number) => {
+  const hit = cache.get(key);
+  return !!hit && Date.now() - hit.at < ttlMs;
+};
+/** Drop every entry whose key names this address (money:, bal:, air:, hist:...); other addresses are untouched. */
+export function clearCachedFor(address: string) {
+  const a = address.toLowerCase();
+  if (a.length < 20) return 0;
+  let n = 0;
+  for (const k of cache.keys())
+    if (k.toLowerCase().includes(a)) {
+      cache.delete(k);
+      n++;
+    }
+  return n;
+}
 
 async function json<T>(f: F, url: string, headers: Record<string, string> = {}): Promise<T> {
   const r = await f(url, {

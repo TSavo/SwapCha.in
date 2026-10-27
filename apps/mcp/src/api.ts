@@ -224,8 +224,12 @@ export class SwapChanApi {
   gasHistory(chainId: string): Promise<Rec> {
     return this.rec(`/onchain/gas/history?${qs({ chainId })}`);
   }
-  findMoney(address: string): Promise<Rec> {
-    return this.rec(`/onchain/money?${qs({ address })}`, undefined, 90_000);
+  findMoney(address: string, fresh?: boolean): Promise<Rec> {
+    return this.rec(
+      `/onchain/money?${qs({ address, fresh: fresh ? "1" : undefined })}`,
+      undefined,
+      90_000,
+    );
   }
   readChain(body: Rec): Promise<Rec> {
     return this.rec("/onchain/read-chain", { method: "POST", body: JSON.stringify(body) }, 60_000);

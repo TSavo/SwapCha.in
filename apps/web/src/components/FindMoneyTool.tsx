@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { API_URL } from "@/lib/api";
+import { asOfLine, type Freshness } from "@/lib/asOf";
 import type { TxCall } from "@/lib/callSummary";
 import { TxCallBox } from "./TxCallBox";
 
@@ -26,10 +27,12 @@ type Item = {
   action?: string;
   steps?: Step[];
 };
-type Result = {
+type Result = Freshness & {
   totalEstUsd?: number;
   atRiskUsd?: number;
   items: Item[];
+  headline?: string;
+  owedNotClaimableNow?: { protocol: string; owed: string | null; reason: string; link?: string }[];
   progress?: { done: number; total: number; percent: number };
   status?: string;
   errors?: unknown[];
@@ -49,7 +52,7 @@ export function FindMoneyTool() {
   const [err, setErr] = useState<string | null>(null);
   const started = useRef(false);
 
-  async function scan(input = text) {
+  async function scan(input = text, fresh = false) {
     const n = (input.match(ADDR) ?? []).length;
     if (!n) return setErr("Paste at least one wallet address or ENS name.");
     setBusy(true);
@@ -58,7 +61,9 @@ export function FindMoneyTool() {
     try {
       if (n === 1 && !input.trim().includes("\n")) {
         const a = (input.match(ADDR) ?? [])[0]!;
-        const r = await fetch(`${API_URL}/onchain/money?address=${encodeURIComponent(a)}`);
+        const r = await fetch(
+          `${API_URL}/onchain/money?address=${encodeURIComponent(a)}${fresh ? "&fresh=1" : ""}`,
+        );
         const j = await r.json();
         if (!r.ok) throw new Error(j.error ?? r.statusText);
         setRes(j);
@@ -132,6 +137,19 @@ export function FindMoneyTool() {
               Scanned {res.progress.done}/{res.progress.total} wallets…
             </p>
           )}
+          {asOfLine(res) && (
+            <p className="text-xs text-violet-300" data-testid="find-money-asof">
+              {asOfLine(res)}{" "}
+              <button
+                type="button"
+                onClick={() => void scan(text, true)}
+                disabled={busy}
+                className="underline disabled:opacity-50"
+              >
+                Refresh
+              </button>
+            </p>
+          )}
           <p className="text-lg font-black">
             {usd(exact)} found on-chain
             {(res.totalEstUsd ?? 0) > exact && (
@@ -187,7 +205,26 @@ export function FindMoneyTool() {
               </li>
             ))}
           </ol>
-          {items.length === 0 && res.status !== "running" && <p>Nothing found on these wallets.</p>}
+          {(res.owedNotClaimableNow ?? []).length > 0 && (
+            <div className="mt-4" data-testid="owed-not-claimable">
+              <p className="font-bold">Owed to you but not claimable now (not counted above)</p>
+              <ul className="mt-1 space-y-1 text-sm text-violet-200">
+                {(res.owedNotClaimableNow ?? []).map((l, n) => (
+                  <li key={`${l.protocol}-${n}`}>
+                    <span className="font-bold">{l.protocol}</span>
+                    {l.owed ? `: ${l.owed}` : ""}. {l.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {items.length === 0 && res.status !== "running" && (
+            <p>
+              {(res.owedNotClaimableNow ?? []).length
+                ? "Nothing claimable right now."
+                : "Nothing found on these wallets."}
+            </p>
+          )}
         </div>
       )}
     </section>
