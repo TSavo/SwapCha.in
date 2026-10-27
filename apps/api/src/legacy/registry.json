@@ -4,6 +4,7 @@
   "confirmationBlock": 26280060,
   "confirmationBlockPr2": 26280214,
   "confirmationBlockPr3": 26280374,
+  "confirmationBlockPr4": 26280568,
   "entries": [
     {
       "key": "thedao",
@@ -292,9 +293,13 @@
       "key": "mooncatrescue",
       "name": "MoonCatRescue",
       "address": "0x60cd862c9c687a9de49aecdc3a99b74a4fc54ab6",
-      "family": "burn-token-for-eth",
+      "family": "pull-payment",
       "listedEth": 237.0569,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280568,
+      "view": "pendingWithdrawals(address)",
+      "viewOn": "self"
     },
     {
       "key": "keep_bonding",
@@ -606,9 +611,11 @@
       "key": "bancor_eth",
       "name": "Bancor Old ETH Token",
       "address": "0xD76b5c2A23ef78368d8E34288B5b65D616B746aE",
-      "family": "ico-withdraw (generic)",
+      "family": "weth-wrapper",
       "listedEth": 94.6483,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280568
     },
     {
       "key": "presalepool_f058",
@@ -636,9 +643,13 @@
       "key": "cryptophunks_market",
       "name": "CryptoPhunks Marketplace",
       "address": "0xd6c037be7fa60587e174db7a6710f7635d2971e7",
-      "family": "pull-payment withdraw()",
+      "family": "pull-payment",
       "listedEth": 89.7766,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280568,
+      "view": "pendingWithdrawals(address)",
+      "viewOn": "self"
     },
     {
       "key": "ld3d_official",
@@ -762,9 +773,11 @@
       "key": "celer_ethpool",
       "name": "Celer EthPool",
       "address": "0x44e081cac2406a4efe165178c2a4d77f7a7854d4",
-      "family": "one-off",
+      "family": "weth-wrapper",
       "listedEth": 70.2605,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280568
     },
     {
       "key": "pembicoin_ico_admin_unlock",
@@ -829,9 +842,11 @@
       "key": "veil_ether",
       "name": "Veil Ether",
       "address": "0x53b04999c1ff2d77fcdde98935bb936a67209e4c",
-      "family": "one-off",
+      "family": "weth-wrapper",
       "listedEth": 56.744,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280568
     },
     {
       "key": "bingo4beast_2",
@@ -946,17 +961,25 @@
       "key": "confideal",
       "name": "Confideal",
       "address": "0x22a97c80d7e0a9ae616737e3b8b531248f4ef91d",
-      "family": "ico-withdraw (generic)",
+      "family": "refund-withdraw",
       "listedEth": 45.7188,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawRefund()",
+      "confirmedAtBlock": 26280568,
+      "view": "contributions(address)",
+      "viewOn": "self"
     },
     {
       "key": "cryptocats_market",
       "name": "CryptoCats Marketplace",
       "address": "0x19c320b43744254ebdbcb1f1bd0e2a3dc08e01dc",
-      "family": "pull-payment withdraw()",
+      "family": "pull-payment",
       "listedEth": 45.4893,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280568,
+      "view": "pendingWithdrawals(address)",
+      "viewOn": "self"
     },
     {
       "key": "th_token_sale",
@@ -1600,9 +1623,13 @@
       "key": "dada",
       "name": "DADA Collectible",
       "address": "0x068696a3cf3c4676b65f1c9975dd094260109d02",
-      "family": "pull-payment withdraw()",
+      "family": "pull-payment",
       "listedEth": 11.2146,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280568,
+      "view": "pendingWithdrawals(address)",
+      "viewOn": "self"
     },
     {
       "key": "relayhub_v1",
@@ -1681,9 +1708,13 @@
       "key": "cryptocats_v1",
       "name": "CryptoCats v2",
       "address": "0x9508008227b6b3391959334604677d60169ef540",
-      "family": "pull-payment withdraw()",
+      "family": "pull-payment",
       "listedEth": 9.055,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280568,
+      "view": "pendingWithdrawals(address)",
+      "viewOn": "self"
     },
     {
       "key": "confinale_token",
@@ -1705,9 +1736,13 @@
       "key": "confideal_campaign",
       "name": "Confideal Campaign",
       "address": "0x17681500757628c7aa56d7e6546e119f94dd9479",
-      "family": "ico-withdraw (generic)",
+      "family": "refund-withdraw",
       "listedEth": 8.2,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawRefund()",
+      "confirmedAtBlock": 26280568,
+      "view": "contributions(address)",
+      "viewOn": "self"
     },
     {
       "key": "epik_staking",
@@ -2250,9 +2285,11 @@
       "key": "crowdsale_e82056",
       "name": "Crowdsale (0xe82056)",
       "address": "0xe8205644fef286a2af423b72669e662feec127cd",
-      "family": "ico-withdraw (generic)",
+      "family": "presale-safe-withdrawal",
       "listedEth": 2.21,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "safeWithdrawal()",
+      "confirmedAtBlock": 26280568
     },
     {
       "key": "hourglass_clone7",
@@ -2278,17 +2315,23 @@
       "key": "crowdsalewatch",
       "name": "CrowdsaleWatch",
       "address": "0x6f303642844f734ad4176d0dfe93ef7e0776ef46",
-      "family": "ico-withdraw (generic)",
+      "family": "presale-safe-withdrawal",
       "listedEth": 2.0,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "safeWithdrawal()",
+      "confirmedAtBlock": 26280568
     },
     {
       "key": "reservation2",
       "name": "Reservation2",
       "address": "0xde0b79f5e66fdc8a4ffb2c470756a1629e8ad569",
-      "family": "ico-withdraw (generic)",
+      "family": "presale-withdraw",
       "listedEth": 1.9,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280568,
+      "view": "balanceOf(address)",
+      "viewOn": "self"
     },
     {
       "key": "redchip2",
@@ -2663,9 +2706,11 @@
       "key": "tradexone",
       "name": "TradexOne",
       "address": "0xf61a285edf078536a410a5fbc28013f9660e54a8",
-      "family": "one-off",
+      "family": "etherdelta-dex",
       "listedEth": 0.4712,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256)",
+      "confirmedAtBlock": 26280568
     },
     {
       "key": "afrodex",

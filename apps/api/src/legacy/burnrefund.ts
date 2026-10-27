@@ -6,6 +6,8 @@
  *   refund-crowdsale  refund()        crowdsale holds the ETH itself
  *   presale-pool      withdrawAll()   presale pool contribution withdrawal
  *   presale-withdraw  withdraw()      presale pool contribution withdrawal
+ *   pull-payment      withdraw()      pull-payment market (CryptoPunks-style pendingWithdrawals: sale proceeds, outbid bids)
+ *   refund-withdraw   withdrawRefund() campaign refund of a recorded contribution
  * The amount owed is read on-chain from a per-contract view (only views in REFUND_VIEWS are ever called);
  * for vault crowdsales the view is read on the vault and the crowdsale's vault() must still return that vault.
  *
@@ -23,6 +25,8 @@ export const REFUND_CLAIM: Record<string, string> = {
   "refund-crowdsale": "refund()",
   "presale-pool": "withdrawAll()",
   "presale-withdraw": "withdraw()",
+  "pull-payment": "withdraw()",
+  "refund-withdraw": "withdrawRefund()",
 };
 /** The only per-address views the refund families may read (all `view returns (uint256)`). */
 export const REFUND_VIEWS = new Set([
@@ -36,6 +40,8 @@ export const REFUND_VIEWS = new Set([
   "contributions(address)",
   "getAll(address)",
   "ETHContributed(address)",
+  "pendingWithdrawals(address)",
+  "balanceOf(address)",
 ]);
 
 export interface BurnSpec {

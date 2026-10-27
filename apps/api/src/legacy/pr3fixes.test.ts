@@ -13,7 +13,7 @@ const clone = () => scanned().find((e) => e.family === "hourglass")!;
 describe("find_money: a registry contract is reported once", () => {
   it("drops chain-1 archaeology items whose claimTx.to is a scanned registry address", () => {
     const regs = registryAddressSet();
-    expect(regs.size).toBe(135);
+    expect(regs.size).toBe(149);
     const to = clone().address;
     const items = [
       {

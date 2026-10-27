@@ -99,6 +99,10 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
     l.push("Two steps: approve the exact token amount to the redemption contract, then claim");
   if (held === null)
     l.push("Balance read failed: could not confirm the contract can pay, so no claim is offered");
+  if (e.family === "pull-payment")
+    l.push(
+      "Pull payment: withdraw() pays your whole pending balance in this market (sale proceeds or returned bids)",
+    );
   if (e.family === "hourglass")
     l.push(
       "Dividends only: withdraw() pays your ETH dividends; any clone tokens you still hold are not sold",
