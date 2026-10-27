@@ -5,7 +5,7 @@ import { HubSearch } from "@/components/HubSearch";
 import { CHAIN_FAMILIES, CHAIN_PAGES, chainHref } from "@/lib/chainPages";
 
 const TITLE = `Crypto Address Formats & Validators for ${CHAIN_PAGES.length} Chains | SwapChan`;
-const DESC = `Address format, prefixes, decimals and a validator for ${CHAIN_PAGES.length} blockchains, from Bitcoin and its forks to Ethereum, Solana, Polkadot and Monero. Public data only.`;
+const DESC = `Address format, prefixes, decimals and an address checker for ${CHAIN_PAGES.length} blockchains, from Bitcoin and its forks to Ethereum, Solana, Polkadot and Monero. Address checking only.`;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -47,8 +47,9 @@ export default function ChainsIndex() {
       <h1 className="text-3xl font-black">Address formats for {CHAIN_PAGES.length} chains</h1>
       <p className="mb-6 text-violet-200">
         Pick a chain to see how its addresses are built (version bytes, bech32 prefix, checksum,
-        decimals), check one live, and see which other chains share its format. Public data only: no
-        keys, no seed phrases, nothing stored. Not sure which chain an address is on? Use the{" "}
+        decimals), check one live, and see which other chains share its format. These pages are
+        address checking only: a chain listed here does not mean SwapChan can sign, sweep or recover
+        on it. Public data only: no keys, no seed phrases, nothing stored. Not sure which chain an address is on? Use the{" "}
         <Link href="/tools/validate-address" className="underline hover:text-amber-300">
           chain detector
         </Link>
