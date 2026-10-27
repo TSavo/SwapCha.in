@@ -39,7 +39,7 @@ describe("LegacyETH PR 6", () => {
   it("new labels say what the claim does", () => {
     const g = (k: string) => simLabel(REGISTRY.find((e) => e.key === k)!)!;
     expect(g("singularx_fund")).toMatch(/^Rewards only: withdrawReward\(\)/);
-    expect(g("hodl_ethereum")).toMatch(/^Time-lock release: party\(\)/);
+    expect(g("hodl_ethereum")).toMatch(/^Time-lock release \(lock has ended\): party\(\)/);
     expect(g("hourglassx")).toMatch(/^Dividends only/);
     expect(g("qcotoken_ico")).toMatch(/^Refund: requestRefund\(\)/);
     for (const e of pr6()) expect(labels(e, 1n, 1n).join(" ")).not.toMatch(/fee|free|pric/i);

@@ -1,6 +1,6 @@
 /**
- * LegacyETH registry, PR 5: "sim-claim" family. These contracts pay a fixed no-argument claim (refund,
- * presale-pool withdrawAll, dividend withdraw) but have no public view that returns the ETH owed.
+ * LegacyETH registry, PR 5 and PR 6: "sim-claim" family. These contracts pay a fixed no-argument claim (refund,
+ * presale-pool withdrawAll, dividend withdraw, reward withdraw, ended time-lock release) but have no public view that returns the ETH owed.
  * The amount shown is therefore taken from the claim itself: one eth_simulateV1 of the pinned claim from
  * the owner at the pinned block, with traceTransfers, summing only native ETH sent from that contract to the
  * owner. Evidence keeps the simulated call and its traced payout.
@@ -176,7 +176,7 @@ export function simLabel(e: RegistryEntry): string | undefined {
   if (k === "rewards")
     return `Rewards only: ${SIM_SPECS[e.key]!.claim} pays your accrued ETH rewards; your tokens stay where they are`;
   if (k === "timelock")
-    return `Time-lock release: ${SIM_SPECS[e.key]!.claim} returns your whole locked deposit`;
+    return `Time-lock release (lock has ended): ${SIM_SPECS[e.key]!.claim} returns your whole locked deposit`;
   return undefined;
 }
 
