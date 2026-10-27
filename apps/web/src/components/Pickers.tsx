@@ -26,13 +26,12 @@ export function ChainPicker({
   value,
   onChange,
   label,
-  sending = false,
 }: {
   chains: Chain[];
   value: number;
   onChange: (id: number) => void;
   label: string;
-  /** The sending-chain picker: receive-only chains are shown but can't be picked. */
+  /** The sending-chain picker (LTC/DOGE/BCH are pickable: THORChain only). */
   sending?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -72,15 +71,13 @@ export function ChainPicker({
           const ch = characterForChain(c.id);
           const active = c.id === value;
           const ro = isReceiveOnly(c.id);
-          const off = sending && ro;
           return (
             <button
               key={c.id}
               type="button"
               role="radio"
               aria-checked={active}
-              disabled={off}
-              title={ro ? `${c.name} is receive only: swap into it, not from it (yet)` : undefined}
+              title={ro ? `${c.name} swaps through THORChain only` : undefined}
               onClick={() => {
                 onChange(c.id);
                 setOpen(false);
@@ -101,7 +98,7 @@ export function ChainPicker({
                 {c.name}
                 {ro && (
                   <span className="block text-[9px] font-semibold text-amber-300">
-                    receive only
+                    THORChain only
                   </span>
                 )}
               </span>

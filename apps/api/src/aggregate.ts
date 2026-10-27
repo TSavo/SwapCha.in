@@ -66,7 +66,7 @@ export async function fanOut(
   pricer: Pricer | null = null,
   guard: GuardCtx | null = null,
 ): Promise<QuotesResponse> {
-  // Receive-only UTXO chains (LTC/DOGE/BCH) are THORChain payouts only; no other provider routes them.
+  // THORChain-only UTXO chains (LTC/DOGE/BCH), either side: no other provider (Relay, LI.FI, ...) routes them.
   const utxo = isReceiveOnly(req.fromChainId) || isReceiveOnly(req.toChainId);
   const active = providers.filter(
     (p) => p.enabled() && (!utxo || p.name === "thorchain") && p.supports(req),

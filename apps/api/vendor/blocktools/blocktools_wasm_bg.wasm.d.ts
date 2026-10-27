@@ -65,6 +65,7 @@ export const verifyRecovery: (a: number, b: number, c: number, d: number, e: num
 export const verifyRecoveryRaw: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
 export const verifySweepRaw: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
 export const verifySweepTx: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
+export const verifyThorSend: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number, p: number) => [number, number];
 export const verifyTx: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => [number, number, number, number];
 export const version: () => [number, number];
 export const rustsecp256k1_v0_10_0_context_create: (a: number) => number;

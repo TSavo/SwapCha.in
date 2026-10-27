@@ -82,7 +82,7 @@ export function validateUtxoRecipient(chainId: number, raw: string): UtxoAddr {
 }
 
 /**
- * Route gate for /quotes and /build. Receive-only chains are refused as origin (clear error) and, as a
+ * Route gate for /quotes and /build. LTC/DOGE/BCH (THORChain-only) as origin: native coin only, THORChain only; as a
  * destination, only THORChain quotes them and the recipient must pass validateUtxoRecipient.
  * Returns the request with the recipient in canonical form.
  */
@@ -90,15 +90,18 @@ export function gateUtxoRoute<
   T extends {
     fromChainId: number;
     toChainId: number;
+    fromToken?: string;
     toToken: string;
     recipient?: string | undefined;
   },
 >(req: T): T {
   if (isReceiveOnly(req.fromChainId)) {
+    // Sending LTC/DOGE/BCH: THORChain only (aggregate.ts keeps every other provider off these routes), native coin only.
     const n = UTXO_DEST[req.fromChainId]!.name;
-    throw new RouteRefused(
-      `${n} is receive-only on SwapChan for now: it can be the destination of a swap, not the sending chain`,
-    );
+    if (req.fromToken !== undefined && req.fromToken !== NON_EVM[req.fromChainId]!.native)
+      throw new RouteRefused(`${n}: only the native coin can be sent`);
+    if (req.fromChainId === req.toChainId)
+      throw new RouteRefused(`${n} to ${n} is not a swap; pick another destination`);
   }
   if (!isReceiveOnly(req.toChainId)) return req;
   if (req.toToken !== NON_EVM[req.toChainId]!.native)

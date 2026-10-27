@@ -1,13 +1,13 @@
 "use client";
 
 import {
-  isReceiveOnly,
   isVmAddress,
   NATIVE_TOKEN,
   nativeOf,
   type Quote,
   type QuoteRequest,
   SUPPORTED_CHAINS,
+  sameAddressSpace,
   type Token,
   tokenList,
   type Vm,
@@ -43,6 +43,7 @@ import { ConnectButton } from "./ConnectButton";
 import { ChainPicker, TokenPicker } from "./Pickers";
 import { RouteList, RoutesLoading } from "./RouteList";
 import { StatusTracker, type TrackParams } from "./StatusTracker";
+import { UtxoSend } from "./UtxoSend";
 
 const SLIPPAGES = [10, 50, 100, 300];
 
@@ -141,10 +142,12 @@ export function SwapCard({
         ? sol.address
         : vm === "bvm"
           ? btc.address
-          : tron.address;
+          : vm === "tvm"
+            ? tron.address
+            : undefined; // LTC/DOGE/BCH: no wallet connection; the user pastes an address (UtxoSend)
   const address: string | undefined = addrFor(fromVm);
   const ownOnDest = addrFor(toVm);
-  const needsRecipient = toVm !== fromVm;
+  const needsRecipient = !sameAddressSpace(fromChain, toChain);
   // Load Tron wallet adapters only once the user actually picks Tron.
   const loadTron = tron.load;
   useEffect(() => {
@@ -527,7 +530,6 @@ export function SwapCard({
   };
 
   const flip = () => {
-    if (isReceiveOnly(toChain)) return; // receive-only chains can't be the sending chain
     setFromChain(toChain);
     setToChain(fromChain);
     setFromToken(toToken);
@@ -679,7 +681,6 @@ export function SwapCard({
           hidden={lockTo}
           type="button"
           onClick={flip}
-          disabled={isReceiveOnly(toChain)}
           aria-label="Flip"
           className="rounded-full border-4 border-violet-950 bg-amber-400 px-3 py-1 font-black text-violet-950 hover:rotate-180 transition"
         >
@@ -755,7 +756,16 @@ export function SwapCard({
                 : ""}
         </p>
       )}
-      {!address && fromVm === "evm" ? (
+      {fromVm === "uvm" ? (
+        <UtxoSend
+          request={request}
+          quote={quote}
+          recipient={recipient}
+          recipientInvalid={recipientInvalid}
+          chainName={chainList.find((c) => c.id === fromChain)?.name ?? "this chain"}
+          toChainName={chainList.find((c) => c.id === toChain)?.name ?? "the destination"}
+        />
+      ) : !address && fromVm === "evm" ? (
         <div className="mt-3" data-testid="connect-cta">
           <ConnectButton primary />
         </div>

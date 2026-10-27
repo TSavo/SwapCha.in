@@ -50,7 +50,7 @@ const ethToUsdc = {
 };
 
 describe("swapchan mcp over streamable http", () => {
-  it("lists Litecoin, Dogecoin and Bitcoin Cash as receive-only chains", async () => {
+  it("lists Litecoin, Dogecoin and Bitcoin Cash as THORChain-only chains (receiveOnly flag kept)", async () => {
     const c = await connect();
     const t = text(await c.callTool({ name: "get_supported_chains", arguments: {} }));
     for (const n of ["Litecoin", "Dogecoin", "Bitcoin Cash"]) expect(t).toContain(n);
@@ -58,6 +58,7 @@ describe("swapchan mcp over streamable http", () => {
     const tools = await c.listTools();
     const q = tools.tools.find((x) => x.name === "get_quote");
     expect(JSON.stringify(q?.inputSchema)).toContain("2000000002 Litecoin");
+    expect(JSON.stringify(q?.inputSchema)).toContain("THORChain-only");
   });
   it("builds a limit order with our partner fee and lists orders", async () => {
     const c = await connect();
@@ -106,6 +107,8 @@ describe("swapchan mcp over streamable http", () => {
         "get_route_status",
         "get_supported_chains",
         "get_supported_tokens",
+        "get_utxo_deposit",
+        "track_utxo_swap",
         "scan_movers",
         "scan_new_tokens",
         "scan_trending",

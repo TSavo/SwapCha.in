@@ -48,11 +48,17 @@ export const NON_EVM: Record<number, { vm: Vm; native: string }> = {
   [DOGECOIN]: { vm: "uvm", native: "D596YFweJQuHY1BbjazZYmAbt8jJPbKehC" },
   [BITCOIN_CASH]: { vm: "uvm", native: "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfnhks603" },
 };
-/** Receive-only chains: valid swap destinations, rejected as the sending chain (sending them is step 2). */
+/** THORChain-only chains (LTC, DOGE, BCH): both directions route through THORChain only (no Relay, no LI.FI).
+ *  The name and the API's `receiveOnly` flag are kept for compatibility: sending them is THORChain-only too. */
 export const RECEIVE_ONLY_CHAINS: readonly number[] = [LITECOIN, DOGECOIN, BITCOIN_CASH];
 export const isReceiveOnly = (chainId: number) => RECEIVE_ONLY_CHAINS.includes(chainId);
 export const vmOf = (chainId: number): Vm => NON_EVM[chainId]?.vm ?? "evm";
 export const isEvmChain = (chainId: number) => vmOf(chainId) === "evm";
+export const isThorOnly = isReceiveOnly;
+/** Same address space: the taker's address can receive on the other chain. "uvm" groups LTC, DOGE and BCH, which
+ *  each have their own addresses, so two uvm chains share an address space only when they are the same chain. */
+export const sameAddressSpace = (a: number, b: number) =>
+  vmOf(a) === vmOf(b) && (vmOf(a) !== "uvm" || a === b);
 
 const B58 = "[1-9A-HJ-NP-Za-km-z]";
 const PATTERNS: Record<Exclude<Vm, "evm">, RegExp> = {
@@ -168,11 +174,18 @@ export type TxRequest = z.infer<typeof TxRequest>;
 
 /** Non-EVM transaction payload. svm-base64 = serialized VersionedTransaction (sign + send);
  * svm-instructions = Relay instruction list to compile with the lookup tables.
- * bvm-psbt = base64 or hex PSBT to sign + broadcast; tvm-json = provider-built Tron tx (or call);
+ * bvm-psbt = base64 or hex PSBT to sign + broadcast; uvm-psbt = base64 LTC/DOGE/BCH PSBT ({psbt, summary}); tvm-json = provider-built Tron tx (or call);
  * tvm-deposit = {to, amount (sun), memo}: send TRX with the memo as tx data (THORChain). */
 export const NonEvmTx = z.object({
   vm: z.enum(["svm", "bvm", "tvm", "uvm"]),
-  kind: z.enum(["svm-base64", "svm-instructions", "bvm-psbt", "tvm-json", "tvm-deposit"]),
+  kind: z.enum([
+    "svm-base64",
+    "svm-instructions",
+    "bvm-psbt",
+    "tvm-json",
+    "tvm-deposit",
+    "uvm-psbt",
+  ]),
   data: z.unknown(),
 });
 export type NonEvmTx = z.infer<typeof NonEvmTx>;
@@ -268,6 +281,38 @@ export const StatusResponse = z.object({
   receivingTxHash: z.string().nullable(),
 });
 export type StatusResponse = z.infer<typeof StatusResponse>;
+
+/** Read-only THORChain progress of an inbound txid (GET /utxo/status). Plain states:
+ *  waiting = THORChain has not seen it yet; seen = observed, waiting for confirmations; swapping = swap in progress;
+ *  paid_out = output sent; refunded = sent back to the refund address; failed = THORChain reports an error. */
+export const UtxoTrack = z.object({
+  state: z.enum(["waiting", "seen", "swapping", "paid_out", "refunded", "failed"]),
+  message: z.string(),
+  thorchainUrl: z.string(),
+  payout: z.object({ chain: z.string(), txid: z.string(), url: z.string().nullable() }).nullable(),
+});
+export type UtxoTrack = z.infer<typeof UtxoTrack>;
+
+/** POST /utxo/deposit: everything needed to pay a THORChain vault from any LTC/DOGE/BCH wallet. */
+export const UtxoDeposit = z.object({
+  chain: z.string(),
+  vault: z.string(),
+  /** exact amount to send, in base units and as a decimal string */
+  amount: z.string(),
+  amountDisplay: z.string(),
+  memo: z.string(),
+  memoBytes: z.number(),
+  memoLimit: z.number(),
+  /** THORChain's minimum (dust_threshold), base units and decimal; sends at or below it are lost */
+  minimum: z.string(),
+  minimumDisplay: z.string(),
+  /** unix seconds after which the memo's quote is stale */
+  expiresAt: z.number(),
+  refund: z.string(),
+  expectedOut: z.string(),
+  warnings: z.array(z.string()),
+});
+export type UtxoDeposit = z.infer<typeof UtxoDeposit>;
 
 /** Decimal string -> base units. Exact; no float math. */
 export const toBaseUnits = (amount: string, decimals: number): bigint =>
