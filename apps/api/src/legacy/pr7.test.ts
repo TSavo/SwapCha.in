@@ -84,8 +84,11 @@ describe("LegacyETH PR 7", () => {
   });
   it("labels say what the claim does, neutral wording", () => {
     const g = (k: string) => simLabel(REGISTRY.find((e) => e.key === k)!)!;
-    expect(g("ambassadors_fund")).toMatch(/^Payment split: release\(address\) called with your own address/);
+    expect(g("ambassadors_fund")).toMatch(
+      /^Payment split: release\(address\) called with your own address/,
+    );
     expect(g("personabid")).toMatch(/^Refund: claimAndRefund\(\)/);
-    for (const e of pr7()) expect(labels(e, 1n, 1n).join(" ")).not.toMatch(/fee|free|pric|two steps/i);
+    for (const e of pr7())
+      expect(labels(e, 1n, 1n).join(" ")).not.toMatch(/fee|free|pric|two steps/i);
   });
 });
