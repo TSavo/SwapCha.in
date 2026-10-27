@@ -2057,7 +2057,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
   server.registerTool(
     "read_chain",
     {
-      title: "Read any chain state (strictly read-only)",
+      title: "Read EVM, Solana, Tron or Bitcoin state (strictly read-only)",
       description: `Generic read-only chain reader for every SwapChan chain. EVM: op=balance | nonce | token_balance {token, owner} | call {address, function:"balanceOf(address) view returns (uint256)" or abi, args} with ABI-decoded result | storage {address, slot} | code | logs {address?, event:"Transfer(address indexed from,address indexed to,uint256 value)" or topics, fromBlock, toBlock (max 50k blocks)} decoded | block | tx | receipt; any EVM op accepts blockTag (number, hex, latest, finalized) for historical reads. op=contract = contract_reader safety read. Solana: balance, sol_account (getAccountInfo), sol_program_accounts {address: programId, filters}, sol_token_accounts {owner, token?}, sol_signatures, tx. Tron: tron_account, tron_resources (energy/bandwidth/frozen), tron_call {address, function:"balanceOf(address)", args:[hex params]}, token_balance, tx. Bitcoin: btc_utxos, btc_address, btc_tx. Use it to CONFIRM find_money evidence (re-run each recovery read yourself) and to probe unknown contracts. Cannot sign, send or broadcast. ${DISPLAY}`,
       inputSchema: z.object({
         chainId: chainArg,
@@ -2338,7 +2338,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "chain_params",
     {
       title: "UTXO chain parameters table (dev tool)",
-      description: `Chain parameter table: ${CHAIN_COUNT} chains; Base58 version bytes, bech32 HRP and WIF byte for the ${UTXO_CHAIN_COUNT} Bitcoin-family ones, checksum/SLIP-44/tx format for all. chain=<ticker> for one, omit for all. ${OFFLINE}`,
+      description: `Chain parameter table (reference data only; a listed chain is not a signing or recovery claim): ${CHAIN_COUNT} chains; Base58 version bytes, bech32 HRP and WIF byte for the ${UTXO_CHAIN_COUNT} Bitcoin-family ones, checksum/SLIP-44/tx format for all. chain=<ticker> for one, omit for all. ${OFFLINE}`,
       inputSchema: z.object({ chain: z.string().max(16).optional() }),
       annotations: devAnn,
     },
