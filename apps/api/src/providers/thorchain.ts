@@ -27,6 +27,18 @@ import { type Fetch, getJson, type ProviderAdapter, placeholderFor } from "./typ
 
 /** THORChain's error when memo + refund + affiliate exceed the source chain's memo limit (BTC: 80 bytes). */
 const MEMO_TOO_LONG = /memo too long/i;
+/** THORChain's dust thresholds (inbound_addresses, 8-decimal base units; measured 2026-10-27). Checked before any
+ *  quote call so a too-small send is a clear 400, never THORChain's raw error as a 500. */
+export const UTXO_MIN: Record<number, bigint> = {
+  [LITECOIN]: 100_000n,
+  [DOGECOIN]: 100_000_000n,
+  [BITCOIN_CASH]: 10_000n,
+};
+const DUST = /dust threshold/i;
+const MIN_SWAP = /min(?:imum)? swap amount(?:[^\d]*recommended_min_amount_in:\s*(\d+))?/i;
+const TOO_LOW = /amount (?:is )?(?:too (?:low|small)|less than)/i;
+export const belowMinimum = (min: bigint, sym: string) =>
+  `below minimum: send at least ${fromBaseUnits(min, 8)} ${sym}`;
 const DEFAULT_BASE = "https://gateway.liquify.com/chain/thorchain_api/thorchain";
 /** Our chain id -> THORChain chain prefix. */
 const PREFIX: Record<number, string> = {
@@ -186,6 +198,9 @@ export function thorchain(
     signal: AbortSignal,
     opts: { keepRefund?: boolean; refund?: string } = {},
   ) => {
+    const floor = UTXO_MIN[req.fromChainId];
+    if (floor !== undefined && /^\d+$/.test(req.amount) && BigInt(req.amount) < floor)
+      throw new RouteRefused(belowMinimum(floor, PREFIX[req.fromChainId] ?? ""));
     const [fromAsset, toAsset, src, dst] = await Promise.all([
       assetOf(req.fromChainId, req.fromToken),
       assetOf(req.toChainId, req.toToken),
@@ -235,7 +250,13 @@ export function thorchain(
     const ask = () =>
       getJson<ThorQuote>(f, `${base}/quote/swap?${q}`, { signal }).catch(
         (e: unknown): ThorQuote => {
-          if (e instanceof Error && MEMO_TOO_LONG.test(e.message))
+          if (
+            e instanceof Error &&
+            (MEMO_TOO_LONG.test(e.message) ||
+              DUST.test(e.message) ||
+              MIN_SWAP.test(e.message) ||
+              TOO_LOW.test(e.message))
+          )
             return { error: e.message } as ThorQuote;
           throw e;
         },
@@ -264,6 +285,19 @@ export function thorchain(
     }
     if (r.error || r.message) {
       const e = r.error ?? r.message ?? "";
+      const sym = isNative(req.fromChainId, req.fromToken)
+        ? (PREFIX[req.fromChainId] ?? fromAsset)
+        : fromAsset;
+      const ms = MIN_SWAP.exec(e);
+      if (ms?.[1]) throw new RouteRefused(belowMinimum(BigInt(ms[1]), sym));
+      if (DUST.test(e) || ms || TOO_LOW.test(e)) {
+        const min = UTXO_MIN[req.fromChainId];
+        throw new RouteRefused(
+          min !== undefined
+            ? belowMinimum(min, sym)
+            : `below minimum: the amount is under THORChain's minimum for ${sym}; send more`,
+        );
+      }
       if (MEMO_TOO_LONG.test(e)) {
         const sym = PREFIX[req.fromChainId] ?? "this chain";
         // BCH: THORChain enforces its own limit below the 220-byte OP_RETURN (measured: ~102 bytes refused).
