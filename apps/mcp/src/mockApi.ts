@@ -7,6 +7,7 @@ const appDataHash = (doc: string) => keccak256(toBytes(doc));
 
 import {
   COW_VAULT_RELAYER,
+  isReceiveOnly,
   type LimitOrderParams,
   limitAppData,
   limitOrderTypedData,
@@ -152,7 +153,11 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
       case "/chains":
         return send(
           200,
-          Object.entries(SUPPORTED_CHAINS).map(([id, c]) => ({ id: Number(id), ...c })),
+          Object.entries(SUPPORTED_CHAINS).map(([id, c]) => ({
+            id: Number(id),
+            ...c,
+            ...(isReceiveOnly(Number(id)) ? { receiveOnly: true } : {}),
+          })),
         );
       case "/tokens": {
         const c = q.get("chainId");

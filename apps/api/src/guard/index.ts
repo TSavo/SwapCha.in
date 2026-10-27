@@ -2,6 +2,7 @@ import { base58, bech32, bech32m, hex } from "@scure/base";
 import {
   type BuildResponse,
   isEvmChain,
+  isReceiveOnly,
   NATIVE_TOKEN,
   type NonEvmTx,
   nativeOf,
@@ -14,6 +15,7 @@ import {
 } from "@swapchan/shared";
 import * as bitcoin from "bitcoinjs-lib";
 import type { Hex } from "viem";
+import { UTXO_DEST, validateUtxoRecipient } from "../utxodest.js";
 import {
   COW_SETTLEMENT,
   evmAllowed,
@@ -140,6 +142,15 @@ const THOR_CHAIN: Record<number, string> = {
   43114: "AVAX",
   8253038: "BTC",
   728126428: "TRON",
+  2000000002: "LTC",
+  2000000003: "DOGE",
+  2000000145: "BCH",
+};
+/** THORChain memo asset forms per receive-only chain (full and the short codes THORChain emits). */
+const THOR_DEST_ASSET: Record<number, string[]> = {
+  2000000002: ["LTC.LTC", "l"],
+  2000000003: ["DOGE.DOGE", "d"],
+  2000000145: ["BCH.BCH", "c"],
 };
 
 class Acc {
@@ -161,10 +172,30 @@ class Acc {
   }
 }
 
-function checkRecipientMemo(c: Acc, memo: string, dest: string | undefined) {
+function checkRecipientMemo(c: Acc, memo: string, dest: string | undefined, toChainId?: number) {
   const m = parseThorMemo(memo);
   if (!m) return c.bad("memo", `unparseable THORChain memo`);
-  if (dest) c.test("recipient", lc(m.dest) === lc(dest), `memo destination ${m.dest} != ${dest}`);
+  if (toChainId !== undefined && isReceiveOnly(toChainId)) {
+    // UTXO payout: the memo must name this chain's coin and pay exactly the blocktools-validated address.
+    const asset = memo.split(":")[1] ?? "";
+    c.test(
+      "outToken",
+      THOR_DEST_ASSET[toChainId]!.includes(asset),
+      `memo asset ${asset} is not ${UTXO_DEST[toChainId]!.thor}`,
+    );
+    if (!dest) c.bad("recipient", `${UTXO_DEST[toChainId]!.name} payout needs a recipient`);
+    else {
+      const v = validateUtxoRecipient(toChainId, dest);
+      if (!v.ok) c.bad("recipient", v.reason);
+      else
+        c.test(
+          "recipient",
+          m.dest === v.address,
+          `memo destination ${m.dest} != validated ${v.address}`,
+        );
+    }
+  } else if (dest)
+    c.test("recipient", lc(m.dest) === lc(dest), `memo destination ${m.dest} != ${dest}`);
   c.test("minOut", m.limit > 0n, "memo has no output limit");
   c.part("minOut-bound", "THORChain limit is in 1e8 units; checked > 0 only");
 }
@@ -291,7 +322,7 @@ async function checkEvmTx(c: Acc, p: Payload, tx: TxRequest, ctx: GuardCtx, dest
       `vault ${d.vault} not in THORChain inbound_addresses`,
     );
     if (thor?.halted) c.bad("vault", "THORChain chain halted");
-    return checkRecipientMemo(c, d.memo ?? "", dest);
+    return checkRecipientMemo(c, d.memo ?? "", dest, p.req.toChainId);
   }
   if (provider === "relay" && d.fn.startsWith("deposit")) {
     // Depository deposit: recipient + min out live in the Relay order the deposit id commits to.
@@ -581,7 +612,7 @@ async function checkBtc(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
     c.part("router", `Relay per-request deposit address ${pays[0]}`);
   c.test("router", bad.length === 0, bad.join("; "));
   c.test("value", out <= BigInt(p.req.amount), `sends ${out} sats > amount`);
-  if (memo && p.provider !== "relay") checkRecipientMemo(c, memo, dest);
+  if (memo && p.provider !== "relay") checkRecipientMemo(c, memo, dest, p.req.toChainId);
   else if (p.provider === "relay") {
     c.part("recipient", "Relay deposit: recipient bound off-chain to the request id");
     c.part("minOut", "Relay solver fills off-chain");
@@ -656,7 +687,7 @@ async function checkTron(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: 
       `deposit to ${d.to} is not the THORChain Tron vault`,
     );
     c.test("value", BigInt(d.amount) <= BigInt(p.req.amount), "deposit > amount");
-    return checkRecipientMemo(c, d.memo, dest);
+    return checkRecipientMemo(c, d.memo, dest, p.req.toChainId);
   }
   const d = n.data as { calls?: { parameter: Record<string, any> }[]; raw?: string };
   const calls = d.calls

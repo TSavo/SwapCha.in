@@ -1,4 +1,9 @@
-import type { Quote, QuoteRequest, QuotesResponse } from "@swapchan/shared";
+import {
+  isReceiveOnly,
+  type Quote,
+  type QuoteRequest,
+  type QuotesResponse,
+} from "@swapchan/shared";
 import { failures, type GuardCtx, quotePayload, verifyPayload } from "./guard/index.js";
 import type { Pricer } from "./pricing.js";
 import type { ProviderAdapter } from "./providers/types.js";
@@ -61,7 +66,11 @@ export async function fanOut(
   pricer: Pricer | null = null,
   guard: GuardCtx | null = null,
 ): Promise<QuotesResponse> {
-  const active = providers.filter((p) => p.enabled() && p.supports(req));
+  // Receive-only UTXO chains (LTC/DOGE/BCH) are THORChain payouts only; no other provider routes them.
+  const utxo = isReceiveOnly(req.fromChainId) || isReceiveOnly(req.toChainId);
+  const active = providers.filter(
+    (p) => p.enabled() && (!utxo || p.name === "thorchain") && p.supports(req),
+  );
   const signal = AbortSignal.timeout(timeoutMs);
   const settled = await Promise.allSettled(active.map((p) => p.quote(req, signal)));
   const quotes: Quote[] = [];

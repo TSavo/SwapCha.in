@@ -1,6 +1,10 @@
 import {
   BITCOIN,
+  BITCOIN_CASH,
   type BuildResponse,
+  DOGECOIN,
+  isReceiveOnly,
+  LITECOIN,
   NON_EVM,
   type NonEvmTx,
   Quote,
@@ -13,6 +17,7 @@ import { encodeFunctionData } from "../blocktools.js";
 
 import { buildBtcPsbt, type UtxoSource } from "../btc.js";
 import { type Pricer, ZERO_ADDRESS } from "../pricing.js";
+import { UTXO_DEST, validateUtxoRecipient } from "../utxodest.js";
 import { type Fetch, getJson, type ProviderAdapter, placeholderFor } from "./types.js";
 
 const DEFAULT_BASE = "https://gateway.liquify.com/chain/thorchain_api/thorchain";
@@ -24,6 +29,10 @@ const PREFIX: Record<number, string> = {
   43114: "AVAX",
   [BITCOIN]: "BTC",
   [TRON]: "TRON",
+  // Receive-only (destination) UTXO coins; refused as origin in `supports`.
+  [LITECOIN]: "LTC",
+  [DOGECOIN]: "DOGE",
+  [BITCOIN_CASH]: "BCH",
 };
 const NATIVE: Record<string, string> = {
   ETH: "ETH.ETH",
@@ -32,6 +41,9 @@ const NATIVE: Record<string, string> = {
   AVAX: "AVAX.AVAX",
   BTC: "BTC.BTC",
   TRON: "TRON.TRX",
+  LTC: "LTC.LTC",
+  DOGE: "DOGE.DOGE",
+  BCH: "BCH.BCH",
 };
 const isNative = (chainId: number, a: string) =>
   NON_EVM[chainId]?.native === a ||
@@ -130,8 +142,18 @@ export function thorchain(
     if (!fromAsset || !toAsset) throw new Error("asset not in a THORChain pool");
     if (!src || !dst) throw new Error("unknown token decimals");
     const sameVm = vmOf(req.fromChainId) === vmOf(req.toChainId);
-    const destination =
+    let destination =
       req.recipient ?? (sameVm && req.taker ? req.taker : placeholderFor(req.toChainId));
+    if (UTXO_DEST[req.toChainId]) {
+      // Receive-only UTXO payout: native coin only, recipient blocktools-validated and canonical (BCH prefixless:
+      // memos are colon-separated). Re-checked here so no caller path can put an unvalidated address in a memo.
+      if (!isNative(req.toChainId, req.toToken)) throw new Error("THORChain: only the native coin");
+      if (req.recipient !== undefined) {
+        const v = validateUtxoRecipient(req.toChainId, req.recipient);
+        if (!v.ok) throw new Error(`recipient: ${v.reason}`);
+        destination = v.address;
+      }
+    }
     const q = new URLSearchParams({
       from_asset: fromAsset,
       to_asset: toAsset,
@@ -213,7 +235,10 @@ export function thorchain(
     name: "thorchain",
     enabled: () => true,
     supports: (r) =>
-      r.fromChainId in PREFIX && r.toChainId in PREFIX && r.fromChainId !== r.toChainId,
+      r.fromChainId in PREFIX &&
+      !isReceiveOnly(r.fromChainId) &&
+      r.toChainId in PREFIX &&
+      r.fromChainId !== r.toChainId,
     async quote(req, signal) {
       const { r, dst } = await call(req, signal);
       const out = scale(BigInt(r.expected_amount_out), 8, dst.decimals);

@@ -82,7 +82,7 @@ Returns `id`, a private dashboard `token` and `dashboardUrl`. Sites can embed th
 
 ### Networks
 
-Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea, Scroll — plus Bitcoin, Solana and Tron. Same-chain and cross-chain.
+Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea, Scroll — plus Bitcoin, Solana and Tron. Same-chain and cross-chain. Litecoin, Dogecoin and Bitcoin Cash are receive-only destinations (paid out by THORChain; payout addresses are checked by blocktools). Sending from them is not supported yet.
 
 ### Open by design
 

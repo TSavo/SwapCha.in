@@ -21,18 +21,36 @@ export const SUPPORTED_CHAINS = {
   792703809: { name: "Solana", mascot: "sol-chan" },
   8253038: { name: "Bitcoin", mascot: "btc-chan" },
   728126428: { name: "Tron", mascot: "tron-chan" },
+  2000000002: { name: "Litecoin", mascot: "ltc-chan" },
+  2000000003: { name: "Dogecoin", mascot: "doge-chan" },
+  2000000145: { name: "Bitcoin Cash", mascot: "bch-chan" },
 } as const satisfies Record<number, { name: string; mascot: string }>;
 
-/** Virtual machine family per chain. Non-EVM chain ids follow Relay's numbering. */
-export type Vm = "evm" | "svm" | "bvm" | "tvm";
+/**
+ * Virtual machine family per chain. Solana, Bitcoin and Tron ids follow Relay's numbering. "uvm" = a receive-only
+ * UTXO coin (Litecoin, Dogecoin, Bitcoin Cash) paid out by THORChain: a swap destination, never an origin (yet).
+ * Relay has no ids for these, so SwapChan uses 2_000_000_000 + the coin's SLIP-44 type (LTC 2, DOGE 3, BCH 145),
+ * outside every EVM and Relay id in use.
+ */
+export type Vm = "evm" | "svm" | "bvm" | "tvm" | "uvm";
 export const SOLANA = 792703809;
 export const BITCOIN = 8253038;
 export const TRON = 728126428;
+export const LITECOIN = 2000000002;
+export const DOGECOIN = 2000000003;
+export const BITCOIN_CASH = 2000000145;
+/** Native-coin sentinels for the uvm coins are the coin's zero-hash address (unspendable, blocktools-valid), like BTC's. */
 export const NON_EVM: Record<number, { vm: Vm; native: string }> = {
   [SOLANA]: { vm: "svm", native: "11111111111111111111111111111111" },
   [BITCOIN]: { vm: "bvm", native: "bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8" },
   [TRON]: { vm: "tvm", native: "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb" },
+  [LITECOIN]: { vm: "uvm", native: "ltc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp9ysmq" },
+  [DOGECOIN]: { vm: "uvm", native: "D596YFweJQuHY1BbjazZYmAbt8jJPbKehC" },
+  [BITCOIN_CASH]: { vm: "uvm", native: "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfnhks603" },
 };
+/** Receive-only chains: valid swap destinations, rejected as the sending chain (sending them is step 2). */
+export const RECEIVE_ONLY_CHAINS: readonly number[] = [LITECOIN, DOGECOIN, BITCOIN_CASH];
+export const isReceiveOnly = (chainId: number) => RECEIVE_ONLY_CHAINS.includes(chainId);
 export const vmOf = (chainId: number): Vm => NON_EVM[chainId]?.vm ?? "evm";
 export const isEvmChain = (chainId: number) => vmOf(chainId) === "evm";
 
@@ -41,16 +59,25 @@ const PATTERNS: Record<Exclude<Vm, "evm">, RegExp> = {
   svm: new RegExp(`^${B58}{32,44}$`),
   bvm: /^(bc1[02-9ac-hj-np-z]{11,87}|[13][1-9A-HJ-NP-Za-km-z]{25,34})$/,
   tvm: new RegExp(`^T${B58}{33}$`),
+  // Character-set shape only (UI hint + schema gate); no checksum is computed here. The API accepts a uvm
+  // recipient only after blocktools' addressValidate for that exact chain (apps/api/src/utxodest.ts).
+  uvm: /^(ltc1[02-9ac-hj-np-z]{11,87}|[LMDA9][1-9A-HJ-NP-Za-km-z]{25,34}|(bitcoincash:)?[qp][02-9ac-hj-np-z]{41})$/,
 };
 /** True if `a` is a well-formed address (wallet or token) on a chain of VM `vm`. */
 export const isVmAddress = (a: string, vm: Vm): boolean =>
   vm === "evm" ? isAddress(a, { strict: false }) : PATTERNS[vm].test(a);
 export const isAnyAddress = (a: string) =>
-  (["evm", "svm", "bvm", "tvm"] as const).some((vm) => isVmAddress(a, vm));
+  (["evm", "svm", "bvm", "tvm", "uvm"] as const).some((vm) => isVmAddress(a, vm));
 /** Native token sentinel for any supported chain. */
 export const nativeOf = (chainId: number): string => NON_EVM[chainId]?.native ?? NATIVE_TOKEN;
 
-export const Chain = z.object({ id: ChainId, name: z.string(), mascot: z.string() });
+export const Chain = z.object({
+  id: ChainId,
+  name: z.string(),
+  mascot: z.string(),
+  /** Additive v1: true = destination only (cannot be the sending chain yet). */
+  receiveOnly: z.boolean().optional(),
+});
 export type Chain = z.infer<typeof Chain>;
 
 export const Address = z
@@ -144,7 +171,7 @@ export type TxRequest = z.infer<typeof TxRequest>;
  * bvm-psbt = base64 or hex PSBT to sign + broadcast; tvm-json = provider-built Tron tx (or call);
  * tvm-deposit = {to, amount (sun), memo}: send TRX with the memo as tx data (THORChain). */
 export const NonEvmTx = z.object({
-  vm: z.enum(["svm", "bvm", "tvm"]),
+  vm: z.enum(["svm", "bvm", "tvm", "uvm"]),
   kind: z.enum(["svm-base64", "svm-instructions", "bvm-psbt", "tvm-json", "tvm-deposit"]),
   data: z.unknown(),
 });

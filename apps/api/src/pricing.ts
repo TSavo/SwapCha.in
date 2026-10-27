@@ -27,6 +27,9 @@ const LLAMA_CHAIN: Record<number, string> = {
   792703809: "solana",
   728126428: "tron",
   8253038: "bitcoin",
+  2000000002: "litecoin",
+  2000000003: "dogecoin",
+  2000000145: "bitcoin-cash",
 };
 const NATIVE_GECKO: Record<number, string> = {
   1: "ethereum",
@@ -41,6 +44,9 @@ const NATIVE_GECKO: Record<number, string> = {
   792703809: "solana",
   8253038: "bitcoin",
   728126428: "tron",
+  2000000002: "litecoin",
+  2000000003: "dogecoin",
+  2000000145: "bitcoin-cash",
 };
 const isNative = (a: string, chainId = 1) =>
   NON_EVM[chainId]?.native === a ||
