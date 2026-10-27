@@ -11,6 +11,7 @@
 #   secret/swapchan/analytics   measurement_id              (GA4; unset = no analytics)
 #   secret/swapchan/api         keys                        (SWAPCHAN_API_KEYS; unset = API open)
 #   secret/swapchan/mcp         keys                        (MCP_API_KEYS; unset = MCP open, rate-limited)
+#   secret/swapchan/internal    key                         (SWAPCHAN_INTERNAL_KEY, shared by api+mcp; unset = MCP callers share one API rate bucket)
 set -euo pipefail
 cd "$(dirname "$0")"
 [ "$(docker context show)" = battleaxe ] || { echo "docker context is not battleaxe"; exit 1; }
@@ -46,6 +47,7 @@ export NEXT_PUBLIC_REOWN_PROJECT_ID=$(opt reown project_id)
 export NEXT_PUBLIC_GA_ID=$(opt analytics measurement_id)   # GA4 (property 389907174)
 export SWAPCHAN_API_KEYS=$(opt api keys)
 export MCP_API_KEYS=$(opt mcp keys)
+export SWAPCHAN_INTERNAL_KEY=$(opt internal key)   # proves MCP->API calls so x-swapchan-client-ip is trusted
 if [ -z "$MCP_API_KEYS" ]; then export MCP_ALLOW_ANONYMOUS=1; else export MCP_ALLOW_ANONYMOUS=0; fi
 
 SERVICES=${SERVICES:-api web mcp cloudflared}
