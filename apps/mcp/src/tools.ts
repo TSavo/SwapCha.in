@@ -2563,5 +2563,61 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     safe(async (a: Record<string, unknown>) => api.contractEncode(a)),
   );
 
+  server.registerTool(
+    "contract_approve_call",
+    {
+      title: "Pre-signing check of a contract call (unsigned, nothing sent)",
+      description: `Pre-signing verdict for one EVM contract call: builds the calldata, re-encodes it with the full ABI and exact signature, builds an unsigned tx (placeholder nonce and gas; the wallet sets the real ones), approves the calldata against the ABI (blocktools evmApproveCall: ok, unknown_selector or bad_calldata) and checks the unsigned tx with blocktools verifyTx. Returns verdict pass or fail with reasons, the data, target and value, and verifyTx's CHECK THESE text. Show the verdict before the user signs; do not send on fail. SwapChan never signs, sends or broadcasts. ${POWERED}`,
+      inputSchema: z.object({
+        chainId: evmChainArg,
+        address: contractAddr,
+        function: fnArg,
+        args: argsArg,
+        value: z
+          .string()
+          .regex(/^\d{1,78}$/)
+          .optional()
+          .describe("Wei to send (payable functions only)"),
+        abi: abiArg,
+      }),
+      annotations: cRo,
+    },
+    safe(async (a: Record<string, unknown>) => api.contractApprove(a)),
+  );
+
+  server.registerTool(
+    "contract_build_creation",
+    {
+      title: "Build an unsigned contract creation (nothing sent)",
+      description: `Build an unsigned EVM contract creation from bytecode plus optional constructor ABI and args (blocktools buildEvmTransfer create). Returns the initcode (data, no 'to'), initcode_keccak256, an approval of the initcode against that hash or a createHash you pin (blocktools evmApproveCall), a verifyTx check, and with 'from' the predicted address (deployer's pending nonce, blocktools evmCreateAddress). Value only for a payable constructor. Initcode is capped at 49152 bytes (EIP-3860). Creation is irreversible and the bytecode is not verified by SwapChan; say so. The user's own wallet signs and sends; SwapChan never does. ${POWERED}`,
+      inputSchema: z.object({
+        chainId: evmChainArg,
+        bytecode: z
+          .string()
+          .max(98_400)
+          .describe("Creation bytecode (0x hex), without constructor args"),
+        abi: abiArg,
+        args: argsArg,
+        value: z
+          .string()
+          .regex(/^\d{1,78}$/)
+          .optional()
+          .describe("Wei to send to the new contract (payable constructor only)"),
+        from: z
+          .string()
+          .regex(/^0x[0-9a-fA-F]{40}$/)
+          .optional()
+          .describe("Deployer address, for the predicted contract address"),
+        createHash: z
+          .string()
+          .regex(/^0x[0-9a-fA-F]{64}$/)
+          .optional()
+          .describe("Expected initcode keccak-256 to pin; a mismatch fails the verdict"),
+      }),
+      annotations: cRo,
+    },
+    safe(async (a: Record<string, unknown>) => api.contractCreate(a)),
+  );
+
   return server;
 }

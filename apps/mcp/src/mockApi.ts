@@ -119,6 +119,25 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
           value: b.value ?? "0",
           data: "0x06fdde03",
         });
+      if (op === "approve")
+        return send(200, {
+          ok: true,
+          verdict: "pass",
+          reasons: [],
+          to: b.address,
+          function: b.function,
+          value: b.value ?? "0",
+          data: "0x06fdde03",
+        });
+      if (op === "create")
+        return send(200, {
+          ok: true,
+          verdict: "pass",
+          reasons: [],
+          to: null,
+          data: b.bytecode,
+          initcode_keccak256: `0x${"ab".repeat(32)}`,
+        });
       return send(404, { ok: false, error_code: "unknown" });
     }
     if (req.method === "POST" && u.pathname.startsWith("/tools/")) {

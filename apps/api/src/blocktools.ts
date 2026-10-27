@@ -23,7 +23,13 @@ type Wasm = {
     allowWarnings: boolean,
     /** 8dfbe68: nonzero ETH value beside ERC-20 transfer calldata fails (eth_value_with_token_call) unless true */
     allowValueWithToken?: boolean | null,
+    /** f90a6dd: {abi} / {sigs} to check non-token calldata against, or {createHash} to pin a creation's initcode */
+    callJson?: string | null,
   ): string;
+  /** f90a6dd: unsigned EVM tx (transfer, call `data`, or creation `create`) as JSON */
+  buildEvmTransfer(requestJson: string): string;
+  /** f90a6dd: approve calldata against an ABI ({to,data,abi}) or initcode against a pinned hash ({to:null,data,createHash}) */
+  evmApproveCall(requestJson: string): string;
   convertAddress(addr: string, to: string): string;
   convertAddressFrom(from: string, addr: string, to: string): string;
   addressValidate(chain: string, addr: string): string;

@@ -45,7 +45,7 @@ export const TOOLS = [
   ["get_supported_chains", "Every chain SwapChan routes on."],
   [
     "contract_abi",
-    "A contract's verified ABI (Sourcify, Etherscan), EIP-1967 proxies followed, read and write functions.",
+    "A contract's verified ABI (Sourcify, Etherscan), proxies followed, read and write functions.",
   ],
   [
     "contract_read",
@@ -54,6 +54,14 @@ export const TOOLS = [
   [
     "contract_encode_call",
     "Build unsigned call data for any function, with a decoded view, for your own wallet to send.",
+  ],
+  [
+    "contract_approve_call",
+    "Pre-signing verdict for a contract call: blocktools approves the calldata and checks the unsigned tx.",
+  ],
+  [
+    "contract_build_creation",
+    "Unsigned contract creation from bytecode: initcode, its keccak-256 and the predicted address.",
   ],
   ["get_supported_tokens", "Token list per chain; any ERC-20 by address works too."],
   ["get_quote", "Best route across 0x, CoW, Velora, LI.FI, Across, Relay and Jupiter."],

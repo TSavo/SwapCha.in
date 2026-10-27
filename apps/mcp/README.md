@@ -8,17 +8,19 @@ Swap-chan for AI agents: best-price **same-chain and cross-chain** EVM swap quot
 
 ## Tools
 
-| Tool                   | What it does                                                                                                                           |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_supported_chains` | Chains + their chain-chan mascots                                                                                                      |
-| `contract_abi`         | Contract ABI from Sourcify / Etherscan (or pasted), EIP-1967 proxies followed                                                          |
-| `contract_read`        | eth_call a view function and decode it (failed read = error, never zero)                                                               |
-| `contract_encode_call` | Unsigned call data + decoded view for your own wallet to send                                                                          |
-| `get_supported_tokens` | Token list, optional `chainId` / `search`                                                                                              |
-| `get_quote`            | Single best route (net USD after gas + fees)                                                                                           |
-| `compare_routes`       | All routes ranked; `alsoToChainIds` compares same-chain vs cross-chain destinations                                                    |
-| `build_swap_tx`        | Unsigned tx for best/chosen route + exact-amount ERC-20 approve tx if needed + `eth_call` simulation (when `RPC_URL_<chainId>` is set) |
-| `get_route_status`     | `pending` / `done` / `failed` / `not_found` + destination tx hash                                                                      |
+| Tool                      | What it does                                                                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_supported_chains`    | Chains + their chain-chan mascots                                                                                                      |
+| `contract_abi`            | Contract ABI from Sourcify / Etherscan (or pasted), proxies followed (5 kinds)                                                         |
+| `contract_read`           | eth_call a view function and decode it (failed read = error, never zero)                                                               |
+| `contract_encode_call`    | Unsigned call data + decoded view for your own wallet to send                                                                          |
+| `contract_approve_call`   | Pre-signing verdict (blocktools approve + verifyTx); do not send on fail                                                               |
+| `contract_build_creation` | Unsigned contract creation: initcode, keccak, predicted address                                                                        |
+| `get_supported_tokens`    | Token list, optional `chainId` / `search`                                                                                              |
+| `get_quote`               | Single best route (net USD after gas + fees)                                                                                           |
+| `compare_routes`          | All routes ranked; `alsoToChainIds` compares same-chain vs cross-chain destinations                                                    |
+| `build_swap_tx`           | Unsigned tx for best/chosen route + exact-amount ERC-20 approve tx if needed + `eth_call` simulation (when `RPC_URL_<chainId>` is set) |
+| `get_route_status`        | `pending` / `done` / `failed` / `not_found` + destination tx hash                                                                      |
 
 Amounts: pass `amount` as a decimal **string** (`"1.5"`, converted with token decimals) or `amountBaseUnits` (wei). Slippage is in bps,
 default 50, hard-capped by `MCP_MAX_SLIPPAGE_BPS` (default 300). All failures come back as `isError` tool results with a readable reason.

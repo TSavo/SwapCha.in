@@ -150,6 +150,8 @@ describe("swapchan mcp over streamable http", () => {
         "contract_abi",
         "contract_read",
         "contract_encode_call",
+        "contract_approve_call",
+        "contract_build_creation",
       ].sort(),
     );
     await c.close();
@@ -159,7 +161,13 @@ describe("swapchan mcp over streamable http", () => {
     const c = await connect();
     const { tools } = await c.listTools();
     const A = "0x1111111111111111111111111111111111111111";
-    for (const n of ["contract_abi", "contract_read", "contract_encode_call"]) {
+    for (const n of [
+      "contract_abi",
+      "contract_read",
+      "contract_encode_call",
+      "contract_approve_call",
+      "contract_build_creation",
+    ]) {
       const t = tools.find((x) => x.name === n)!;
       expect(t.annotations?.readOnlyHint).toBe(true);
       expect(t.annotations?.destructiveHint).toBe(false);
@@ -185,6 +193,22 @@ describe("swapchan mcp over streamable http", () => {
         }),
       ),
     ).toContain("0x06fdde03");
+    expect(
+      text(
+        await c.callTool({
+          name: "contract_approve_call",
+          arguments: { chainId: 1, address: A, function: "name()" },
+        }),
+      ),
+    ).toContain('"verdict": "pass"');
+    expect(
+      text(
+        await c.callTool({
+          name: "contract_build_creation",
+          arguments: { chainId: 1, bytecode: "0x6080" },
+        }),
+      ),
+    ).toContain("initcode_keccak256");
     const bad = (await c.callTool({
       name: "contract_read",
       arguments: { chainId: 1, address: "0x12", function: "name" },
