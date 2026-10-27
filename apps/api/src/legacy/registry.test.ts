@@ -75,7 +75,9 @@ describe("gating and labels", () => {
     expect(l).toMatch(/EOA only/);
     expect(l).toMatch(/Owner action/);
     expect(l).toMatch(/Two steps/);
-    expect(l).toMatch(/Shown but not claimable now: the contract shows 0.00000000000000001 ETH for you but holds only 0.000000000000000001 ETH/);
+    expect(l).toMatch(
+      /Shown but not claimable now: the contract shows 0.00000000000000001 ETH for you but holds only 0.000000000000000001 ETH/,
+    );
     expect(l).not.toMatch(/owes you|Underfunded/);
   });
 });
