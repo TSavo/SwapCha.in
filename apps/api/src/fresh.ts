@@ -78,6 +78,8 @@ export async function moneyWithFreshness<T extends object>(
     ]);
     return { ...res, asOf, block: block === null ? null : Number(block) };
   });
+  // the per-address window runs from when the fresh scan finished, not when it was asked for
+  if (fresh && !refused) lastFresh.set(address.toLowerCase(), Date.now());
   return {
     ...r,
     cached: hit,

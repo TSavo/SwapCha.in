@@ -69,6 +69,15 @@ describe("find_money freshness", () => {
     expect(r3.freshRefused).toBeUndefined();
   });
 
+  it("the per-address window starts when the fresh scan finishes", async () => {
+    await call(async () => {
+      vi.setSystemTime(new Date("2026-10-26T18:00:19Z"));
+      return { n: 1 };
+    }, true);
+    const r = await call(async () => ({ n: 2 }), true);
+    expect(r).toMatchObject({ n: 1, freshRefused: "rate-limited", retryAfterSeconds: 20 });
+  });
+
   it("has a global cap across addresses", () => {
     for (let i = 0; i < FRESH_GLOBAL_MAX; i++)
       expect(freshGate(`0x${String(i).padStart(40, "0")}`).ok).toBe(true);
