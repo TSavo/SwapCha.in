@@ -1,5 +1,6 @@
 import { btAddressToScript, btBuildPsbt } from "./blocktools.js";
 import type { Fetch } from "./providers/types.js";
+import { RouteRefused } from "./utxodest.js";
 
 export interface Utxo {
   txid: string;
@@ -33,6 +34,7 @@ export async function buildBtcPsbt(
   const memo = o.memo ? Buffer.from(o.memo, "utf8") : null;
   if (memo && memo.length > 80) throw new Error("memo longer than 80 bytes");
   const all = await utxos(o.from);
+  if (!all.length) throw new RouteRefused("no BTC found at this address");
   const rate = Math.max(1, Math.ceil(o.feeRate));
   try {
     return btBuildPsbt(
@@ -47,6 +49,7 @@ export async function buildBtcPsbt(
   } catch (e) {
     const m = (e as Error).message;
     if (/insufficient/.test(m)) throw new Error("Not enough BTC (including network fee)");
+    if (/no_utxos/.test(m)) throw new RouteRefused("no BTC found at this address");
     throw new Error(`Bitcoin PSBT not built: ${m}`);
   }
 }
