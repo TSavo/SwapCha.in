@@ -6,6 +6,7 @@ import type { Quote } from "@swapchan/shared";
 import { Hono } from "hono";
 import { isAddress } from "viem";
 import { z } from "zod";
+import { socketAddressOf, trustedClientIp } from "./clientip.js";
 
 /**
  * Widget partners: sites that embed the SwapChan widget earn a share of our fee on swaps
@@ -226,7 +227,8 @@ export function partnerRoutes(
   const app = new Hono();
   const allow = throttle();
   app.post("/", async (c) => {
-    const ip = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "local";
+    // Trusted key only: x-forwarded-for / x-real-ip are client-set and never used.
+    const ip = trustedClientIp((n) => c.req.header(n), socketAddressOf(c.env));
     if (!allow(ip)) return c.json({ error: "too many signups, try again later" }, 429);
     const input = PartnerSignup.parse(await c.req.json());
     const r = registerPartner(s, input);

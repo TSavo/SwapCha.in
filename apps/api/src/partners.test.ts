@@ -129,6 +129,27 @@ describe("partners", () => {
     const plain = (await (await u.app.request(qs())).json()) as { quotes: Quote[] };
     expect(plain.quotes.length).toBe(1);
   });
+  it("signup limit ignores spoofed x-forwarded-for / x-real-ip", async () => {
+    const { app } = await setup(); // signup 1 of 5 from the "local" bucket
+    const signup = (i: number, headers: Record<string, string>) =>
+      app.request("/partners", {
+        method: "POST",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify({ name: `P${i}`, siteUrl: "https://p.example", evmAddress: PAYOUT }),
+      });
+    for (let i = 2; i <= 5; i++)
+      expect(
+        (await signup(i, { "x-forwarded-for": `10.0.0.${i}`, "x-real-ip": `10.1.0.${i}` })).status,
+      ).toBe(201);
+    // a fresh spoofed header does not get a fresh bucket
+    expect(
+      (await signup(6, { "x-forwarded-for": "10.9.9.9", "x-real-ip": "10.9.9.8" })).status,
+    ).toBe(429);
+    // the forwarded client-ip header without the internal key is ignored too
+    expect((await signup(7, { "x-swapchan-client-ip": "10.8.8.8" })).status).toBe(429);
+    // cf-connecting-ip (set by Cloudflare) is a separate bucket
+    expect((await signup(8, { "cf-connecting-ip": "203.0.113.7" })).status).toBe(201);
+  });
   it("rejects bad signups", async () => {
     const { app } = await setup();
     const r = await app.request(

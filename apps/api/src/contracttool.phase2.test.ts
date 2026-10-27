@@ -297,6 +297,57 @@ describe("contract creation (buildCreation)", () => {
   });
 });
 
+describe("creation nonce read (predicted address)", () => {
+  it("only eth_getTransactionCount on the validated from address; nothing without from", async () => {
+    const n = net({ nonce: "0x1" });
+    const t = contractTool({ f: sourcify({}).f, env: {}, rpc: n.rpc });
+    await t.buildCreation({
+      chainId: 1,
+      bytecode: INIT,
+      from: ` ${DEPLOYER.toUpperCase().replace("0X", "0x")} `,
+    });
+    expect(n.seen).toEqual([{ method: "eth_getTransactionCount", params: [DEPLOYER, "pending"] }]);
+    const none = net({ nonce: "0x1" });
+    await contractTool({ f: sourcify({}).f, env: {}, rpc: none.rpc }).buildCreation({
+      chainId: 1,
+      bytecode: INIT,
+    });
+    expect(none.seen).toEqual([]);
+    for (const bad of [
+      `${DEPLOYER}00`,
+      DEPLOYER.slice(0, 41),
+      `0x${"g".repeat(40)}`,
+      "vitalik.eth",
+      1,
+    ]) {
+      const b = net({ nonce: "0x1" });
+      await expect(
+        contractTool({ f: sourcify({}).f, env: {}, rpc: b.rpc }).buildCreation({
+          chainId: 1,
+          bytecode: INIT,
+          from: bad,
+        }),
+      ).rejects.toThrow("bad_from");
+      expect(b.seen).toEqual([]);
+    }
+  });
+  it("/create is behind the per-client rate limit", async () => {
+    const app = contractRoutes(
+      { f: sourcify({}).f, env: {}, rpc: net({ nonce: "0x1" }).rpc },
+      { perMinute: 2 },
+    );
+    const req = (h: Record<string, string> = {}) =>
+      app.request("/create", {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify({ chainId: 1, bytecode: INIT, from: DEPLOYER }),
+      });
+    expect((await req()).status).toBe(200);
+    expect((await req({ "x-forwarded-for": "10.0.0.1" })).status).toBe(200);
+    expect((await req({ "x-forwarded-for": "10.0.0.2" })).status).toBe(429);
+  });
+});
+
 describe("routes /approve and /create", () => {
   it("serve JSON, keep the body cap", async () => {
     const app = contractRoutes({
