@@ -8,6 +8,7 @@
  *    via the Etherscan v2 free tier. Unspent, confirmed messages → Outbox.executeTransaction with a NodeInterface proof.
  * Every tx is simulated on Ethereum from the wallet before it is offered.
  */
+import { safeReason } from "./reasons.js";
 import {
   createPublicClient,
   decodeEventLog,
@@ -364,7 +365,7 @@ export async function bridgeWithdrawals(f: F, env: NodeJS.ProcessEnv, owner: str
       new Promise<never>((_, r) => setTimeout(() => r(new Error("timeout")), ms)),
     ]).catch(
       (e) => (
-        notChecked.push(`${n}: not checked (${String((e as Error).message).slice(0, 60)})`),
+        notChecked.push(`${n}: not checked (${safeReason(e)})`),
         [] as T[]
       ),
     );

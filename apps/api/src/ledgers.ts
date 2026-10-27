@@ -1,3 +1,4 @@
+import { safeReason } from "./reasons.js";
 import { createHash } from "node:crypto";
 import { btAddrValid, btDetect } from "./blocktools.js";
 import type { NewFound } from "./recover.js";
@@ -115,7 +116,7 @@ export async function xrpScan(
   } catch (e) {
     return {
       items: [],
-      notChecked: [`XRP Ledger: not checked (${String((e as Error).message).slice(0, 60)})`],
+      notChecked: [`XRP Ledger: not checked (${safeReason(e)})`],
     };
   }
 }
@@ -289,7 +290,7 @@ export async function xlmScan(
   } catch (e) {
     return {
       items: [],
-      notChecked: [`Stellar (Horizon): not checked (${String((e as Error).message).slice(0, 60)})`],
+      notChecked: [`Stellar (Horizon): not checked (${safeReason(e)})`],
     };
   }
 }
@@ -372,7 +373,7 @@ export async function algoScan(
   } catch (e) {
     return {
       items: [],
-      notChecked: [`Algorand (algod): not checked (${String((e as Error).message).slice(0, 60)})`],
+      notChecked: [`Algorand (algod): not checked (${safeReason(e)})`],
     };
   }
 }
@@ -487,7 +488,7 @@ export async function atomScan(
   } catch (e) {
     return {
       items: [],
-      notChecked: [`Cosmos Hub (LCD): not checked (${String((e as Error).message).slice(0, 60)})`],
+      notChecked: [`Cosmos Hub (LCD): not checked (${safeReason(e)})`],
     };
   }
 }

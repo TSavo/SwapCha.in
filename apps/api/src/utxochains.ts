@@ -1,3 +1,4 @@
+import { safeReason } from "./reasons.js";
 import { createHash } from "node:crypto";
 import { base58check, bech32 } from "@scure/base";
 import { crypto as bjsCrypto, Transaction } from "bitcoinjs-lib";
@@ -1117,7 +1118,7 @@ export async function utxoScan(
         items.push(...r);
       } catch (e) {
         notChecked.push(
-          `${COINS[s.coin].name}: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`,
+          `${COINS[s.coin].name}: not checked (${safeReason(e)})`,
         );
       } finally {
         clearTimeout(to);

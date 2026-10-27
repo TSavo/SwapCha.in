@@ -30,6 +30,8 @@ type Result = {
   totalEstUsd?: number;
   atRiskUsd?: number;
   items: Item[];
+  headline?: string;
+  owedNotClaimableNow?: { protocol: string; owed: string | null; reason: string; link?: string }[];
   progress?: { done: number; total: number; percent: number };
   status?: string;
   errors?: unknown[];
@@ -187,7 +189,26 @@ export function FindMoneyTool() {
               </li>
             ))}
           </ol>
-          {items.length === 0 && res.status !== "running" && <p>Nothing found on these wallets.</p>}
+          {(res.owedNotClaimableNow ?? []).length > 0 && (
+            <div className="mt-4" data-testid="owed-not-claimable">
+              <p className="font-bold">Owed to you but not claimable now (not counted above)</p>
+              <ul className="mt-1 space-y-1 text-sm text-violet-200">
+                {(res.owedNotClaimableNow ?? []).map((l, n) => (
+                  <li key={`${l.protocol}-${n}`}>
+                    <span className="font-bold">{l.protocol}</span>
+                    {l.owed ? `: ${l.owed}` : ""}. {l.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {items.length === 0 && res.status !== "running" && (
+            <p>
+              {(res.owedNotClaimableNow ?? []).length
+                ? "Nothing claimable right now."
+                : "Nothing found on these wallets."}
+            </p>
+          )}
         </div>
       )}
     </section>

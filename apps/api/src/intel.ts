@@ -1,3 +1,4 @@
+import { safeReason, scrubText, tidyNotChecked } from "./reasons.js";
 import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
 import {
@@ -3717,6 +3718,49 @@ export async function justLend(f: F, owner: string): Promise<Found[]> {
   return out;
 }
 
+// ---------- not-claimable-now split ----------
+/** True for findings whose text says they are owed but cannot be claimed right now. */
+export function isNotClaimableNow(what: string | undefined): boolean {
+  return /^\s*Not claimable\b/i.test(what ?? "") || /:\s*Not claimable\b/i.test(what ?? "");
+}
+/** Shape of one "owed but not claimable now" entry: what is owed and why it cannot be claimed now. */
+export function owedLater(i: {
+  protocol?: string;
+  what?: string;
+  title?: string;
+  chainId?: number;
+  link?: string;
+  protocolUrl?: string;
+}) {
+  const text = i.what ?? i.title?.replace(/^[^:]*:\s*/, "") ?? "";
+  const body = text.replace(/^\s*Not claimable(?: now)?:\s*/i, "");
+  const amount = /(\d[\d,]*(?:\.\d+)?)\s*([A-Z][A-Za-z0-9]{1,9})\b/.exec(body);
+  const cut = /,\s+|\s+but\s+/.exec(body);
+  const reason = cut ? body.slice(cut.index + cut[0].length) : body;
+  return {
+    protocol: i.protocol ?? i.title?.split(":")[0] ?? "",
+    ...(i.chainId !== undefined ? { chainId: i.chainId } : {}),
+    owed: amount ? `${amount[1]} ${amount[2]}` : null,
+    reason,
+    detail: text,
+    ...(i.protocolUrl || i.link ? { link: i.protocolUrl ?? i.link } : {}),
+  };
+}
+
+/** One honest sentence: what is claimable now, and what is owed but not claimable now. */
+export function findMoneyHeadline(found: number, totalUsd: number, notNow: number): string {
+  const usdS = `$${totalUsd.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  const head =
+    found === 0
+      ? "Nothing claimable right now."
+      : totalUsd > 0
+        ? `Found ${found} thing${found === 1 ? "" : "s"} worth about ${usdS} you can act on now.`
+        : `Found ${found} thing${found === 1 ? "" : "s"} to look at, but none with a dollar value claimable now.`;
+  return notNow
+    ? `${head} ${notNow} item${notNow === 1 ? " is" : "s are"} owed to you but not claimable now (see owedNotClaimableNow).`
+    : head;
+}
+
 // ---------- 6. airdrop_check ----------
 export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) {
   const { address, name } = await resolveAddr(f, env, input);
@@ -3738,7 +3782,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           (e) => {
             timings[n] = Date.now() - t0;
             notChecked.push(
-              `${n}: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`,
+              `${n}: not checked (${safeReason(e)})`,
             );
             return empty;
           },
@@ -4139,16 +4183,21 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     items.sort((a, b) => (b.valueUsd ?? 0) - (a.valueUsd ?? 0));
     if (Object.keys(timings).length)
       console.log(JSON.stringify({ evt: "find_money_timings", ms: timings }));
+    // owed-but-not-claimable-now items (e.g. a doubler queue position) are reported separately, never counted as found
+    const later = items.filter((i) => isNotClaimableNow(i.what));
+    for (const l of later) items.splice(items.indexOf(l), 1);
     const top = items[0];
+    const nc = tidyNotChecked(notChecked);
     return {
       address,
       ...(name ? { name } : {}),
       found: items.length,
       totalUsd: r2(items.reduce((s, i) => s + (i.valueUsd ?? 0), 0)),
       items,
+      ...(later.length ? { owedNotClaimableNow: later.map(owedLater) } : {}),
       sources,
       ...(archaeology ? { archaeology } : {}),
-      ...(notChecked.length ? { notChecked } : {}),
+      ...(nc.length ? { notChecked: nc } : {}),
       ...(Object.keys(timings).length ? { timingsMs: timings } : {}),
       coverage:
         "Covered: Merkl incentive rewards (EVM); legacy Ethereum contracts (PoWH3D, Fomo3D, EtherDelta ETH+ERC-20, IDEX v1, Liquity surplus); contract archaeology over the wallet's full history on Ethereum/Optimism/Scroll/Avalanche (all 8 EVM chains with ETHERSCAN_API_KEY): generic reward views, ERC-4626/Yearn vaults, v2 LPs, Uniswap v3 fees, NFTs held; Tron voting rewards/unfreezes/dividend contracts/JustLend; Solana rent in empty token accounts. NOT covered: one-off project airdrops (Jupiter, ENS, UNI, LayerZero, etc.) because no free unified source exists.",
@@ -5160,7 +5209,7 @@ export async function findMoney(
               }),
             ]);
           } catch (e) {
-            const msg = (e as Error).message.slice(0, 120);
+            const msg = safeReason(e);
             if (msg.startsWith("timed out")) notChecked.push(`${n}: not checked (${msg})`);
             else errors.push(`${n}: ${msg}`);
             return null;
@@ -5546,6 +5595,9 @@ export async function findMoney(
             items.push(dustNote(dust));
           }
         }
+        // owed but not claimable now: never counted as found, never the lead or the next action; listed separately
+        const later = items.filter((i) => isNotClaimableNow(i.title));
+        for (const l of later) items.splice(items.indexOf(l), 1);
         const order = (i: Item) =>
           (i.category.startsWith("At-risk") ? 1e12 : 0) +
           (i.estUsd ?? 0) * (i.estimateKind === "estimate" ? 0.5 : 1);
@@ -5632,6 +5684,7 @@ export async function findMoney(
           address,
           ...(name ? { name } : {}),
           portfolioUsd: bal?.totalUsd ?? null,
+          headline: findMoneyHeadline(items.length, total, later.length),
           opportunities: items.length,
           ...(swapAll
             ? {
@@ -5650,6 +5703,9 @@ export async function findMoney(
           totals:
             "totalEstUsd = claimable/recoverable/estimated savings; atRiskUsd = value exposed to risky approvals or high-risk tokens (protect it, not new money)",
           items,
+          owedNotClaimableNow: later.map((l) =>
+            owedLater({ title: l.title, ...(l.protocolUrl ? { protocolUrl: l.protocolUrl } : {}) }),
+          ),
           // the per-chain scanners' sources (Stellar Horizon, XRPL nodes, explorers...); ledger-only addresses get only these
           sources: airSources,
           checked: ledgerOnly
@@ -5676,15 +5732,20 @@ export async function findMoney(
                 ...airSources,
               ],
           notChecked: [
-            ...notChecked,
+            ...tidyNotChecked(notChecked),
             "Stuck bridge transfers need a tx hash (use bridge_doctor). One-off project airdrops have no free unified source. EVM balances cover SwapChan-listed tokens only.",
           ],
-          errors,
+          errors: errors.map(scrubText),
           disclaimer:
             "Estimates are labeled; yields are variable; nothing is financial advice. Claim/revoke txs are unsigned and only built for allowlisted contracts.",
           next: items[0]
             ? cta(`#1: ${items[0].title}`, items[0].swapUrl)
-            : cta("Nothing found to recover. Swap at the best price on SwapChan", SITE),
+            : cta(
+                later.length
+                  ? "Nothing claimable right now. Swap at the best price on SwapChan"
+                  : "Nothing found to recover. Swap at the best price on SwapChan",
+                SITE,
+              ),
         };
       }),
     ),
@@ -5947,7 +6008,7 @@ export function intelRoutes(
         legacyRegistry(env, address, ethUsd).catch((e) => ({
           items: [] as Found[],
           notChecked: [
-            `LegacyETH registry: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`,
+            `LegacyETH registry: not checked (${safeReason(e)})`,
           ],
         })),
       ]);

@@ -6,6 +6,7 @@
  *  - Superfluid Super Token balances (incoming streams accumulate there) → downgrade / downgradeToETH
  * Every tx is simulated from the owner before it is offered. Each chain/source fails into its own "not checked" line.
  */
+import { safeReason } from "./reasons.js";
 import { formatUnits, getAddress, parseAbi } from "viem";
 import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
@@ -185,7 +186,7 @@ export async function hedgeyPlans(f: F, env: NodeJS.ProcessEnv, owner: string): 
       ]).catch(
         (e) => (
           notChecked.push(
-            `Hedgey on ${chainName(id)}: not checked (${String((e as Error).message).slice(0, 50)})`,
+            `Hedgey on ${chainName(id)}: not checked (${safeReason(e)})`,
           ),
           [] as Found[]
         ),
@@ -586,7 +587,7 @@ export async function superfluidBalances(
         );
       } catch (e) {
         notChecked.push(
-          `Superfluid on ${chainName(chainId)}: not checked (${String((e as Error).message).slice(0, 50)})`,
+          `Superfluid on ${chainName(chainId)}: not checked (${safeReason(e)})`,
         );
         return [] as Found[];
       }

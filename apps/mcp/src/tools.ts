@@ -1540,10 +1540,20 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
             | undefined
         )?.[0];
         const call = top?.steps?.find((s) => s.call?.plain)?.call?.plain;
+        const later = (r.owedNotClaimableNow as { protocol: string; owed: string | null; reason: string }[] | undefined) ?? [];
+        const laterTxt = later.length
+          ? ` Owed but not claimable now: ${later.map((l) => `${l.protocol}${l.owed ? ` ${l.owed}` : ""} (${l.reason})`).join("; ")}.`
+          : "";
+        const head =
+          typeof r.headline === "string"
+            ? r.headline.replace(/\s*\d+ items? (?:is|are) owed to you but not claimable now \(see owedNotClaimableNow\)\./, "")
+            : `Found ${r.opportunities} things worth about ${money(r.totalEstUsd)}.`;
         return {
           says: top
-            ? `Found ${r.opportunities} things worth about ${money(r.totalEstUsd)} (plus ${money(r.atRiskUsd)} to protect). #1: ${top.title}${call ? ` (signing it: ${call})` : ""}`
-            : "I looked everywhere I can see and found nothing to recover. Your wallet is tidy~",
+            ? `${head}${(r.atRiskUsd as number) > 0 ? ` Plus ${money(r.atRiskUsd)} to protect.` : ""} #1: ${top.title}${call ? ` (signing it: ${call})` : ""}${laterTxt}`
+            : later.length
+              ? `Nothing claimable right now.${laterTxt}`
+              : "I looked everywhere I can see and found nothing to recover. Your wallet is tidy~",
           swapUrl: top?.swapUrl ?? SITE,
         };
       },
