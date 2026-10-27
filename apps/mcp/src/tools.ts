@@ -152,14 +152,14 @@ const addr = z
   .string()
   .refine((a) => isAnyAddress(a), "must be an EVM, Solana, Bitcoin or Tron address")
   .describe(
-    `Token address. Native gas token: ${NATIVE_TOKEN} on EVM chains (ETH, POL...), 11111111111111111111111111111111 for SOL, bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8 for BTC, T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb for TRX. SPL mints and TRC-20 addresses work as-is (e.g. Solana USDC EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v, Tron USDT TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t).`,
+    `Token address. Native gas token: ${NATIVE_TOKEN} on EVM chains (ETH, POL...), 11111111111111111111111111111111 for SOL, bc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k8 for BTC, T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb for TRX, ltc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp9ysmq for LTC, D596YFweJQuHY1BbjazZYmAbt8jJPbKehC for DOGE, qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfnhks603 for BCH. SPL mints and TRC-20 addresses work as-is (e.g. Solana USDC EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v, Tron USDT TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t).`,
   );
 const chainId = z
   .number()
   .int()
   .positive()
   .describe(
-    "Chain id: 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon, 56 BNB Chain, 43114 Avalanche, 59144 Linea, 534352 Scroll, 792703809 Solana, 8253038 Bitcoin, 728126428 Tron. Non-EVM chains route via Relay and LI.FI.",
+    "Chain id: 1 Ethereum, 8453 Base, 42161 Arbitrum, 10 Optimism, 137 Polygon, 56 BNB Chain, 43114 Avalanche, 59144 Linea, 534352 Scroll, 792703809 Solana, 8253038 Bitcoin, 728126428 Tron, plus receive-only 2000000002 Litecoin, 2000000003 Dogecoin, 2000000145 Bitcoin Cash (destination only, via THORChain; not accepted as the sending chain). Non-EVM chains route via Relay, LI.FI and THORChain.",
   );
 
 const partnerId = z

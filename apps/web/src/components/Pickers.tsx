@@ -3,6 +3,7 @@
 import {
   type Chain,
   isEvmChain,
+  isReceiveOnly,
   nativeOf,
   SOLANA,
   SUPPORTED_CHAINS,
@@ -25,11 +26,14 @@ export function ChainPicker({
   value,
   onChange,
   label,
+  sending = false,
 }: {
   chains: Chain[];
   value: number;
   onChange: (id: number) => void;
   label: string;
+  /** The sending-chain picker: receive-only chains are shown but can't be picked. */
+  sending?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const cur = chains.find((c) => c.id === value);
@@ -67,12 +71,16 @@ export function ChainPicker({
         {chains.map((c) => {
           const ch = characterForChain(c.id);
           const active = c.id === value;
+          const ro = isReceiveOnly(c.id);
+          const off = sending && ro;
           return (
             <button
               key={c.id}
               type="button"
               role="radio"
               aria-checked={active}
+              disabled={off}
+              title={ro ? `${c.name} is receive only: swap into it, not from it (yet)` : undefined}
               onClick={() => {
                 onChange(c.id);
                 setOpen(false);
@@ -91,6 +99,11 @@ export function ChainPicker({
                 className={`truncate ${active ? "drop-shadow-[0_1px_1px_rgba(0,0,0,.8)]" : ""}`}
               >
                 {c.name}
+                {ro && (
+                  <span className="block text-[9px] font-semibold text-amber-300">
+                    receive only
+                  </span>
+                )}
               </span>
               {active && (
                 <span

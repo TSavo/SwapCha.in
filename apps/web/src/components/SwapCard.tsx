@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  isReceiveOnly,
   isVmAddress,
   NATIVE_TOKEN,
   nativeOf,
@@ -60,7 +61,13 @@ const STATIC_CHAINS = Object.entries(SUPPORTED_CHAINS).map(([id, c]) => ({ id: N
 
 const isNative = (t: Token | undefined) =>
   !!t && t.address.toLowerCase() === nativeOf(t.chainId).toLowerCase();
-const VM_NAME: Record<Vm, string> = { evm: "EVM", svm: "Solana", bvm: "Bitcoin", tvm: "Tron" };
+const VM_NAME: Record<Vm, string> = {
+  evm: "EVM",
+  svm: "Solana",
+  bvm: "Bitcoin",
+  tvm: "Tron",
+  uvm: "UTXO",
+};
 
 function useDebounced<T>(v: T, ms: number): T {
   const [d, setD] = useState(v);
@@ -520,6 +527,7 @@ export function SwapCard({
   };
 
   const flip = () => {
+    if (isReceiveOnly(toChain)) return; // receive-only chains can't be the sending chain
     setFromChain(toChain);
     setToChain(fromChain);
     setFromToken(toToken);
@@ -585,7 +593,10 @@ export function SwapCard({
             : { label: "Connect wallet to swap" };
   else if (needsRecipient && !recipient)
     cta = { label: `Enter your ${VM_NAME[toVm]} address to receive` };
-  else if (recipientInvalid) cta = { label: `That's not a ${VM_NAME[toVm]} address` };
+  else if (recipientInvalid)
+    cta = {
+      label: `That's not a ${toVm === "uvm" ? (chainList.find((c) => c.id === toChain)?.name ?? "valid") : VM_NAME[toVm]} address`,
+    };
   else if (amountInvalid) cta = { label: `Max ${fromToken?.decimals} decimals` };
   else if (amount === null) cta = { label: "Enter an amount" };
   else if (insufficient) cta = { label: `Not enough ${fromToken?.symbol}` };
@@ -622,7 +633,13 @@ export function SwapCard({
         </div>
       )}
       <section className="rounded-2xl border-2 border-violet-700 bg-violet-900 p-3">
-        <ChainPicker chains={chainList} value={fromChain} onChange={setFromChain} label="From" />
+        <ChainPicker
+          chains={chainList}
+          value={fromChain}
+          onChange={setFromChain}
+          label="From"
+          sending
+        />
         <AmountField
           label="You pay"
           ariaLabel="Amount"
@@ -662,6 +679,7 @@ export function SwapCard({
           hidden={lockTo}
           type="button"
           onClick={flip}
+          disabled={isReceiveOnly(toChain)}
           aria-label="Flip"
           className="rounded-full border-4 border-violet-950 bg-amber-400 px-3 py-1 font-black text-violet-950 hover:rotate-180 transition"
         >

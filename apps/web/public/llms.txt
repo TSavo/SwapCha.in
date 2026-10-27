@@ -1,6 +1,6 @@
 # SwapChan
 
-> Best-price token swap aggregator for same-chain and cross-chain swaps (0x, CoW, Velora, LI.FI, Across, Relay, Jupiter) on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea and Scroll, plus Solana, Bitcoin and Tron. Includes a memecoin scanner with risk checks.
+> Best-price token swap aggregator for same-chain and cross-chain swaps (0x, CoW, Velora, LI.FI, Across, Relay, Jupiter) on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Linea and Scroll, plus Solana, Bitcoin and Tron, and Litecoin, Dogecoin and Bitcoin Cash as receive-only swap destinations (via THORChain). Includes a memecoin scanner with risk checks.
 
 ## MCP server
 - URL: https://mcp.swapchan.com/mcp (Streamable HTTP; stdio via `swapchan-mcp --stdio`)

@@ -5,7 +5,7 @@ import type {
   StatusRequest,
   StatusResponse,
 } from "@swapchan/shared";
-import { vmOf } from "@swapchan/shared";
+import { NON_EVM, vmOf } from "@swapchan/shared";
 
 /** Every aggregator/bridge implements this. Add one file per provider + register in index.ts. */
 export interface ProviderAdapter {
@@ -38,4 +38,8 @@ const PLACEHOLDERS: Record<string, string> = {
   tvm: "TULPYGfQ8U44XkhiX3oa3BaXdNPu6M5U3Z",
 };
 export const placeholderFor = (chainId: number): string =>
-  PLACEHOLDERS[vmOf(chainId)] ?? PLACEHOLDER_TAKER;
+  // Receive-only UTXO coins: the chain's unspendable zero-hash sentinel (indicative quotes only; /build needs a
+  // real, validated recipient).
+  vmOf(chainId) === "uvm"
+    ? NON_EVM[chainId]!.native
+    : (PLACEHOLDERS[vmOf(chainId)] ?? PLACEHOLDER_TAKER);

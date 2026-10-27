@@ -3,6 +3,7 @@ import {
   API_VERSION,
   BuildResponse,
   isEvmChain,
+  isReceiveOnly,
   type Quote,
   QuoteRequest,
   StatusRequest,
@@ -60,6 +61,7 @@ import {
   type TokenReader,
   tokenResolver,
 } from "./tokens.js";
+import { gateUtxoRoute, RouteRefused, validateUtxoRecipient } from "./utxodest.js";
 
 export { fanOut, rank } from "./aggregate.js";
 export type { ProviderAdapter } from "./providers/types.js";
@@ -135,7 +137,9 @@ export function createApp(
   app.onError((err, c) =>
     err instanceof z.ZodError
       ? c.json({ error: "invalid request", issues: err.issues }, 400)
-      : c.json({ error: err.message }, 500),
+      : err instanceof RouteRefused
+        ? c.json({ error: err.message }, 400)
+        : c.json({ error: err.message }, 500),
   );
 
   // liveness for the docker healthcheck / watchdog: 503 when scans time out en masse, heap is near the limit or the loop is stalled
@@ -156,6 +160,7 @@ export function createApp(
         id: Number(id),
         ...v,
         vm: vmOf(Number(id)),
+        ...(isReceiveOnly(Number(id)) ? { receiveOnly: true } : {}),
       })),
     ),
   );
@@ -194,7 +199,8 @@ export function createApp(
   if (partners) app.route("/partners", partnerRoutes(partners, cache, quotePartner));
   const quotes = async (query: Record<string, string>) => {
     const { partner, ...rest } = query;
-    const res = await fanOut(providers, QuoteRequest.parse(rest), 8000, undefined, pricer, guard);
+    const req = gateUtxoRoute(QuoteRequest.parse(rest));
+    const res = await fanOut(providers, req, 8000, undefined, pricer, guard);
     const ids = res.quotes.map((q) => q.id);
     for (const q of res.quotes) {
       cache.set(q.id, q);
@@ -285,7 +291,12 @@ export function createApp(
     if (!q || !p) return c.json({ error: "unknown or expired quote" }, 404);
     const pin = payoutFor(q.request, taker, body.recipient, body.allowForeignRecipient === true);
     if ("error" in pin) return c.json({ error: pin.error, verified: false }, 400);
-    const recipient = pin.recipient;
+    let recipient = pin.recipient;
+    if (isReceiveOnly(q.request.toChainId) && recipient) {
+      const v = validateUtxoRecipient(q.request.toChainId, recipient);
+      if (!v.ok) return c.json({ error: `recipient: ${v.reason}`, verified: false }, 400);
+      recipient = v.address;
+    }
     const req = {
       ...q.request,
       taker,

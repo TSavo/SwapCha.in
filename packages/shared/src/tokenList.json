@@ -600,6 +600,30 @@
     "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoin/info/logo.png"
   },
   {
+    "chainId": 2000000002,
+    "symbol": "LTC",
+    "name": "Litecoin",
+    "address": "ltc1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqp9ysmq",
+    "decimals": 8,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/litecoin/info/logo.png"
+  },
+  {
+    "chainId": 2000000003,
+    "symbol": "DOGE",
+    "name": "Dogecoin",
+    "address": "D596YFweJQuHY1BbjazZYmAbt8jJPbKehC",
+    "decimals": 8,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/doge/info/logo.png"
+  },
+  {
+    "chainId": 2000000145,
+    "symbol": "BCH",
+    "name": "Bitcoin Cash",
+    "address": "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfnhks603",
+    "decimals": 8,
+    "logoURI": "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/bitcoincash/info/logo.png"
+  },
+  {
     "chainId": 728126428,
     "symbol": "TRX",
     "name": "TRON",

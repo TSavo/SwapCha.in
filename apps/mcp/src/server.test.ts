@@ -50,6 +50,15 @@ const ethToUsdc = {
 };
 
 describe("swapchan mcp over streamable http", () => {
+  it("lists Litecoin, Dogecoin and Bitcoin Cash as receive-only chains", async () => {
+    const c = await connect();
+    const t = text(await c.callTool({ name: "get_supported_chains", arguments: {} }));
+    for (const n of ["Litecoin", "Dogecoin", "Bitcoin Cash"]) expect(t).toContain(n);
+    expect(t).toMatch(/"receiveOnly": ?true/);
+    const tools = await c.listTools();
+    const q = tools.tools.find((x) => x.name === "get_quote");
+    expect(JSON.stringify(q?.inputSchema)).toContain("2000000002 Litecoin");
+  });
   it("builds a limit order with our partner fee and lists orders", async () => {
     const c = await connect();
     const r = data(
