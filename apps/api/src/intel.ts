@@ -366,11 +366,14 @@ export async function simClaimAllowlisted(
   chainId: number,
   from: string,
   toAddr: string,
-  body: { data?: string; value?: string | number },
+  body: { data?: string | undefined; value?: string | number | undefined },
 ): Promise<boolean> {
   if (chainId !== 1) return false;
   const tx = { to: toAddr, data: body.data ?? "0x", value: String(body.value ?? "0") };
-  if (tx.data.slice(0, 10).toLowerCase() !== "0x095ea7b3" || !(toAddr.toLowerCase() in REGISTRY_APPROVALS_LC()))
+  if (
+    tx.data.slice(0, 10).toLowerCase() !== "0x095ea7b3" ||
+    !(toAddr.toLowerCase() in REGISTRY_APPROVALS_LC())
+  )
     return verifyClaimTx(tx).verified;
   let bal: bigint;
   try {
