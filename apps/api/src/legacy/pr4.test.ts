@@ -19,8 +19,8 @@ describe("LegacyETH PR 4", () => {
       "refund-withdraw": 2,
       "presale-withdraw": 1,
     });
-    expect(scanned().length).toBe(170);
-    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(120);
+    expect(scanned().length).toBe(176);
+    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(114);
     expect(registryCollisions()).toEqual([]);
   });
   it("new refund families are pinned in code; views on the contract itself", () => {

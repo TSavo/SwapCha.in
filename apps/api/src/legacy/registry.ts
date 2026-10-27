@@ -126,7 +126,7 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
     );
   if (held !== null && held < owed)
     l.push(
-      `Underfunded: the contract holds ${formatUnits(held, 18)} ETH but owes you ${formatUnits(owed, 18)} ETH`,
+      `Shown but not claimable now: the contract shows ${formatUnits(owed, 18)} ETH for you but holds only ${formatUnits(held, 18)} ETH`,
     );
   return l;
 }

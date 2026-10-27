@@ -1,6 +1,6 @@
 /**
- * LegacyETH registry, PR 5: "sim-claim" family. These contracts pay a fixed no-argument claim (refund,
- * presale-pool withdrawAll, dividend withdraw) but have no public view that returns the ETH owed.
+ * LegacyETH registry, PR 5 and PR 6: "sim-claim" family. These contracts pay a fixed no-argument claim (refund,
+ * presale-pool withdrawAll, dividend withdraw, reward withdraw, ended time-lock release) but have no public view that returns the ETH owed.
  * The amount shown is therefore taken from the claim itself: one eth_simulateV1 of the pinned claim from
  * the owner at the pinned block, with traceTransfers, summing only native ETH sent from that contract to the
  * owner. Evidence keeps the simulated call and its traced payout.
@@ -14,7 +14,7 @@ import { btSelector } from "../blocktools.js";
 import type { Evidence } from "../recover.js";
 import type { RegistryEntry } from "./registry.js";
 
-export type SimKind = "refund" | "pool" | "dividends";
+export type SimKind = "refund" | "pool" | "dividends" | "rewards" | "timelock";
 export interface SimSpec {
   address: string;
   claim: string;
@@ -118,6 +118,38 @@ export const SIM_SPECS: Record<string, SimSpec> = {
     claim: "withdrawAll()",
     kind: "pool",
   },
+  // PR 6, confirmed at block 26281225 (same test: three real holders paid native ETH, no token left
+  // their address, an unrelated address reverted or got 0; claim read from the verified source).
+  hourglassx: {
+    address: "0x058a144951e062fc14f310057d2fd9ef0cf5095b",
+    claim: "withdraw()",
+    kind: "dividends",
+  },
+  singularx_fund: {
+    address: "0x0286f920f893513c7ec9fe35ba0a4760229a243e",
+    claim: "withdrawReward()",
+    kind: "rewards",
+  },
+  qcotoken_ico: {
+    address: "0x3a8a97123bccd826228e5eb4144b48cce169517b",
+    claim: "requestRefund()",
+    kind: "refund",
+  },
+  crowdsale_4363b5: {
+    address: "0x4363b5d64f228c819dc706889b09a0dc76e22fb0",
+    claim: "releaseEthers()",
+    kind: "refund",
+  },
+  startmining_stm_sale: {
+    address: "0xe8da050c3140183d4f5f01e048ac136e2da5253f",
+    claim: "manualRefund()",
+    kind: "refund",
+  },
+  hodl_ethereum: {
+    address: "0x1bb28e79f2482df6bf60efc7a33365703bcf1536",
+    claim: "party()",
+    kind: "timelock",
+  },
 };
 const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -141,6 +173,10 @@ export function simLabel(e: RegistryEntry): string | undefined {
     return `Refund: ${SIM_SPECS[e.key]!.claim} returns your recorded contribution and cancels it in the contract`;
   if (k === "pool")
     return `Pool withdrawal: ${SIM_SPECS[e.key]!.claim} pays your whole recorded share`;
+  if (k === "rewards")
+    return `Rewards only: ${SIM_SPECS[e.key]!.claim} pays your accrued ETH rewards; your tokens stay where they are`;
+  if (k === "timelock")
+    return `Time-lock release (lock has ended): ${SIM_SPECS[e.key]!.claim} returns your whole locked deposit`;
   return undefined;
 }
 

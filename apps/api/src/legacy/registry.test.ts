@@ -28,7 +28,7 @@ describe("LegacyETH registry data", () => {
   it("only confirmed DEX/Fomo3D entries are scanned, each with a claim", () => {
     const s = scanned().filter((e) => ["etherdelta-dex", "fomo3d"].includes(e.family));
     expect(s.length).toBe(44);
-    expect(scanned().length).toBe(170);
+    expect(scanned().length).toBe(176);
     for (const e of s) {
       expect(["etherdelta-dex", "fomo3d"]).toContain(e.family);
       expect(e.claim).toBe(e.family === "fomo3d" ? "withdraw()" : "withdraw(uint256)");
@@ -75,7 +75,10 @@ describe("gating and labels", () => {
     expect(l).toMatch(/EOA only/);
     expect(l).toMatch(/Owner action/);
     expect(l).toMatch(/Two steps/);
-    expect(l).toMatch(/Underfunded/);
+    expect(l).toMatch(
+      /Shown but not claimable now: the contract shows 0.00000000000000001 ETH for you but holds only 0.000000000000000001 ETH/,
+    );
+    expect(l).not.toMatch(/owes you|Underfunded/);
   });
 });
 

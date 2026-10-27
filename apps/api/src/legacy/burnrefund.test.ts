@@ -44,7 +44,7 @@ describe("PR 2 families: data", () => {
       "presale-withdraw": 1,
       "burn-token-for-eth": 4,
     });
-    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(120);
+    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(114);
     for (const e of pr2()) expect(e.confirmedAtBlock).toBe(26280214);
   });
   it("claim selector and views are pinned in code; mismatches are refused", () => {
@@ -300,6 +300,6 @@ describe("scanBurnRefund (mocked reads)", () => {
     const r = await scanRegistry(client({ owe: { digixdao: 1000n } }).c, OWNER, 5n);
     const h = r.hits.find((x) => x.entry.key === "digixdao")!;
     expect(h.labels.join(" ")).toMatch(/Two steps/);
-    expect(r.notChecked.join(" ")).toMatch(/120 of 296 listed contracts not checked yet/);
+    expect(r.notChecked.join(" ")).toMatch(/114 of 296 listed contracts not checked yet/);
   });
 });

@@ -6,6 +6,7 @@
   "confirmationBlockPr3": 26280374,
   "confirmationBlockPr4": 26280568,
   "confirmationBlockPr5": 26280699,
+  "confirmationBlockPr6": 26281225,
   "entries": [
     {
       "key": "thedao",
@@ -264,9 +265,11 @@
       "key": "singularx_fund",
       "name": "SingularX Fund",
       "address": "0x0286f920F893513C7ec9FE35ba0A4760229a243e",
-      "family": "burn-token-for-eth",
+      "family": "sim-claim",
       "listedEth": 303.9472,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawReward()",
+      "confirmedAtBlock": 26281225
     },
     {
       "key": "foundation_feth",
@@ -1166,9 +1169,11 @@
       "key": "qcotoken_ico",
       "name": "QCOToken ICO (QCO)",
       "address": "0x3A8A97123bcCd826228e5EB4144b48cce169517B",
-      "family": "ico-withdraw (generic)",
+      "family": "sim-claim",
       "listedEth": 31.4974,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "requestRefund()",
+      "confirmedAtBlock": 26281225
     },
     {
       "key": "bee",
@@ -1360,9 +1365,11 @@
       "key": "hodl_ethereum",
       "name": "hodlEthereum",
       "address": "0x1BB28e79f2482df6bf60efc7a33365703bCF1536",
-      "family": "ico-withdraw (generic)",
+      "family": "sim-claim",
       "listedEth": 21.5281,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "party()",
+      "confirmedAtBlock": 26281225
     },
     {
       "key": "ztcrowdsale",
@@ -1765,9 +1772,11 @@
       "key": "crowdsale_4363b5",
       "name": "Crowdsale (0x4363b5)",
       "address": "0x4363b5d64f228c819dc706889b09a0dc76e22fb0",
-      "family": "ico-withdraw (generic)",
+      "family": "sim-claim",
       "listedEth": 8.28,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "releaseEthers()",
+      "confirmedAtBlock": 26281225
     },
     {
       "key": "confideal_campaign",
@@ -1863,9 +1872,11 @@
       "key": "startmining_stm_sale",
       "name": "Start Mining (STM) Token Sale",
       "address": "0xe8da050c3140183d4f5f01e048ac136e2da5253f",
-      "family": "ico-withdraw (generic)",
+      "family": "sim-claim",
       "listedEth": 5.9811,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "manualRefund()",
+      "confirmedAtBlock": 26281225
     },
     {
       "key": "familyonly",
@@ -2012,9 +2023,11 @@
       "key": "hourglassx",
       "name": "HourglassX",
       "address": "0x058a144951e062fc14f310057d2fd9ef0cf5095b",
-      "family": "hourglass",
+      "family": "sim-claim",
       "listedEth": 4.7081,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26281225
     },
     {
       "key": "bigtoken",
