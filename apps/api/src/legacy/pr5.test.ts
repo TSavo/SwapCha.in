@@ -9,7 +9,7 @@ import {
   scanRegistry,
   validEntry,
 } from "./registry.js";
-import { SIM_SPECS, scanSimClaim, tracedPayout, validSimClaim } from "./simclaim.js";
+import { SIM_CONCURRENCY, SIM_SPECS, scanSimClaim, tracedPayout, validSimClaim } from "./simclaim.js";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as const;
 const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
@@ -124,6 +124,37 @@ describe("LegacyETH PR 5", () => {
       expect(h.claimable).toBe(false);
       expect(h.tx).toBeUndefined();
     }
+  });
+  it("isolation: one eth_simulateV1 request per contract, one call each, bounded concurrency", async () => {
+    const es = scanned().filter(validSimClaim);
+    let live = 0;
+    let peak = 0;
+    const seen: number[] = [];
+    const m = {
+      getBalance: async () => 10n ** 24n,
+      request: async (a: { params: [{ blockStateCalls: { calls: { to: string }[] }[] }] }) => {
+        const b = a.params[0].blockStateCalls;
+        seen.push(b.length, b[0]!.calls.length);
+        live++;
+        peak = Math.max(peak, live);
+        await new Promise((r) => setTimeout(r, 1));
+        live--;
+        const to = b[0]!.calls[0]!.to;
+        if (to === es[0]!.address.toLowerCase()) throw new Error("odd");
+        if (to === hong().address.toLowerCase())
+          return [{ calls: [{ status: "0x1", logs: [eth(to, OWNER, 4n)] }] }];
+        return [{ calls: [{ status: "0x0", logs: [] }] }];
+      },
+    };
+    const r = await scanSimClaim(m as never, OWNER, 9n, es);
+    expect(seen.length).toBe(es.length * 2);
+    expect(seen.every((n) => n === 1)).toBe(true);
+    expect(peak).toBeLessThanOrEqual(SIM_CONCURRENCY);
+    if (es[0]!.key !== hong().key) {
+      expect(r.failed).toEqual([es[0]!.name]);
+      expect(r.hits.map((h) => h.owedWei)).toEqual([4n]);
+    }
+    expect(labels(hong(), 4n, null)).toContain("Contract balance not verified, no claim offered");
   });
   it("ethfinex-wrapper: balanceOf then withdraw(amount,0,0,0,0), allowlisted", async () => {
     const e = REGISTRY.find((x) => x.key === "ethfinex")!;

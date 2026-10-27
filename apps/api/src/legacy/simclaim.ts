@@ -168,9 +168,14 @@ export function tracedPayout(
     if (l.address.toLowerCase() === NATIVE) {
       if (from === c && to === o) paid += v;
     } else if (from === o) return null; // a token leaves the owner: not a plain ETH claim
+    // Note: this guard only sees Transfer-topic events (ERC-20/721 Transfer and traced native
+    // transfers); token movements that emit no Transfer log are not detected here.
   }
   return paid;
 }
+
+/** Max simultaneous eth_simulateV1 requests per scan. */
+export const SIM_CONCURRENCY = 5;
 
 export interface SimHit {
   entry: RegistryEntry;
@@ -198,26 +203,36 @@ export async function scanSimClaim(
     to: SIM_SPECS[e.key]!.address,
     data: btSelector(SIM_SPECS[e.key]!.claim),
   }));
-  // one call per blockStateCall: each claim is simulated alone on the pinned state
-  const rs = await (c.request
-    ? (c.request({
-        method: "eth_simulateV1",
-        params: [
-          {
-            blockStateCalls: calls.map((x) => ({ calls: [x] })),
-            traceTransfers: true,
-            validation: false,
-          },
-          `0x${block.toString(16)}`,
-        ],
-      } as never) as Promise<{ calls?: { status?: string; logs?: Log[] }[] }[]>)
-    : Promise.reject(new Error("no eth_simulateV1"))
-  ).catch(() => null);
+  // Each contract's claim is its own eth_simulateV1 request with exactly one blockStateCall,
+  // so every simulation starts from the pinned block state. (blockStateCalls inside one
+  // request are successive blocks: state and timestamp would carry over between claims.)
+  // Bounded concurrency; the caller's per-source time limit still applies. Fail closed:
+  // any RPC error or odd result means "not checked".
+  type SimBlock = { calls?: { status?: string; logs?: Log[] }[] };
+  const simOne = (x: (typeof calls)[number]): Promise<SimBlock[] | null> =>
+    (c.request
+      ? (c.request({
+          method: "eth_simulateV1",
+          params: [
+            { blockStateCalls: [{ calls: [x] }], traceTransfers: true, validation: false },
+            `0x${block.toString(16)}`,
+          ],
+        } as never) as Promise<SimBlock[]>)
+      : Promise.reject(new Error("no eth_simulateV1"))
+    ).catch(() => null);
+  const rs: (SimBlock[] | null)[] = new Array(calls.length).fill(null);
+  for (let i = 0; i < calls.length; i += SIM_CONCURRENCY) {
+    const part = await Promise.all(calls.slice(i, i + SIM_CONCURRENCY).map(simOne));
+    part.forEach((r, j) => {
+      rs[i + j] = r;
+    });
+  }
   const failed: string[] = [];
   const hits: SimHit[] = [];
   const paid: { e: RegistryEntry; amt: bigint }[] = [];
   es.forEach((e, i) => {
-    const r = Array.isArray(rs) && rs.length === es.length ? rs[i]?.calls : undefined;
+    const res = rs[i];
+    const r = Array.isArray(res) && res.length === 1 ? res[0]?.calls : undefined;
     if (!r || r.length !== 1) return void failed.push(e.name);
     const call = r[0]!;
     // a revert simply means nothing is owed to this owner; any other oddity is "not checked"
