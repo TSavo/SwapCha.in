@@ -86,8 +86,10 @@ describe("find_money freshness", () => {
 
   it("has a global cap across addresses", () => {
     for (let i = 0; i < FRESH_GLOBAL_MAX; i++)
-      expect(freshGate(`0x${String(i).padStart(40, "0")}`).ok).toBe(true);
-    const g = freshGate(B);
+      expect(freshGate(`0x${String(i).padStart(40, "0")}`, Date.now(), `10.0.0.${i}`).ok).toBe(
+        true,
+      );
+    const g = freshGate(B, Date.now(), "10.0.1.1");
     expect(g.ok).toBe(false);
   });
 
