@@ -204,6 +204,12 @@ export const Verification = z.object({
 });
 export type Verification = z.infer<typeof Verification>;
 
+/** THORChain's recommended_min_amount_in: its current estimate of the smallest swap it will do (can change). */
+export const PracticalMinimum = z
+  .object({ amount: z.string(), display: z.string(), note: z.string() })
+  .nullable();
+export type PracticalMinimum = z.infer<typeof PracticalMinimum>;
+
 export const Quote = z.object({
   id: z.string(),
   provider: z.string(),
@@ -237,6 +243,8 @@ export const Quote = z.object({
   /** Additive v1: true only when every guard check passed on this payload (needs taker). */
   verified: z.boolean().optional(),
   verification: Verification.optional(),
+  /** THORChain LTC/DOGE/BCH/BTC origins: its current minimum estimate (base units + coin units); null if not given. */
+  practicalMinimum: PracticalMinimum.optional(),
 });
 export type Quote = z.infer<typeof Quote>;
 
@@ -311,7 +319,10 @@ export const UtxoDeposit = z.object({
   memoLimit: z.number(),
   /** THORChain's minimum (dust_threshold), base units and decimal; sends at or below it are lost */
   minimum: z.string(),
+  /** the larger of `minimum` and practicalMinimum, in coin units */
   minimumDisplay: z.string(),
+  /** THORChain's current estimate of its minimum swap (recommended_min_amount_in); null when it gave none */
+  practicalMinimum: PracticalMinimum.optional(),
   /** unix seconds after which the memo's quote is stale */
   expiresAt: z.number(),
   /** refund address the user gave ("" if none); in the memo only when refundInMemo */
