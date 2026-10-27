@@ -28,7 +28,7 @@ describe("LegacyETH registry data", () => {
   it("only confirmed DEX/Fomo3D entries are scanned, each with a claim", () => {
     const s = scanned().filter((e) => ["etherdelta-dex", "fomo3d"].includes(e.family));
     expect(s.length).toBe(44);
-    expect(scanned().length).toBe(149);
+    expect(scanned().length).toBe(170);
     for (const e of s) {
       expect(["etherdelta-dex", "fomo3d"]).toContain(e.family);
       expect(e.claim).toBe(e.family === "fomo3d" ? "withdraw()" : "withdraw(uint256)");

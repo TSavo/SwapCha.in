@@ -36,6 +36,23 @@ export default async function Page({ params }: Props) {
       <script type="application/ld+json">{JSON.stringify(chainLd(c))}</script>
       <h1 className="text-2xl font-black md:text-3xl">{c.h1}</h1>
       <p className="mb-4 text-sm text-violet-200 md:text-base">{c.intro}</p>
+      <p
+        className="mb-4 rounded-xl border border-violet-600 bg-violet-950 p-3 text-sm text-violet-200"
+        data-testid="chain-capability"
+      >
+        <b>What this page does:</b> {c.capability}
+        {c.offlineCli ? (
+          <>
+            {" "}
+            Separately, the open source{" "}
+            <Link href="/blocktools" className="underline hover:text-amber-300">
+              blocktools
+            </Link>{" "}
+            CLI can build and sign {c.ticker} transfers offline on your own machine; its signing is
+            checked against test vectors, and only Bitcoin has been confirmed on mainnet.
+          </>
+        ) : null}
+      </p>
       <DevToolForm
         tool={{
           ...validator,

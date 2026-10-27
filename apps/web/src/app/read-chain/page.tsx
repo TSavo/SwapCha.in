@@ -4,7 +4,7 @@ import { AgentCTAs } from "@/components/AgentCTA";
 import { SpeechBubble } from "@/components/Character";
 
 export const metadata: Metadata = {
-  title: "Read any blockchain state, keyless (EVM, Solana, Tron, Bitcoin) | SwapChan read_chain",
+  title: "Read blockchain state, keyless (EVM, Solana, Tron, Bitcoin) | SwapChan read_chain",
   description:
     "Keyless, strictly read-only chain reader for AI agents: balances, token balances, eth_call with ABI decode, storage slots, event logs, blocks, transactions and receipts at any historical block, Solana accounts, Tron resources and Bitcoin UTXOs.",
   alternates: { canonical: "/read-chain" },
@@ -37,10 +37,11 @@ const OPS: [string, string, string][] = [
 export default function Page() {
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10 text-white">
-      <h1 className="text-4xl font-black">Read any chain, no keys</h1>
+      <h1 className="text-4xl font-black">Read EVM, Solana, Tron and Bitcoin, no keys</h1>
       <SpeechBubble who="swapchan">
         Don&apos;t trust me, check me. read_chain lets your agent re-run every read I used to find
-        your money, on any chain, at any block. It can only look, never touch.
+        your money, on EVM chains, Solana, Tron and Bitcoin, at any block. It can only look, never
+        touch.
       </SpeechBubble>
       <section className="rounded-2xl border-2 border-emerald-400 bg-emerald-950 p-5">
         <b>Strictly read-only:</b> read_chain only sends read RPC methods (eth_call, eth_getLogs,

@@ -60,7 +60,7 @@ export const DEV_TOOLS: DevTool[] = [
     title: `Crypto Address Validator & Chain Detector, ${CHAIN_COUNT} chains | SwapChan`,
     description: "Check an address is valid and which chains it belongs to.",
     h1: "Validate any crypto address",
-    intro: `Paste an address to see which of ${CHAIN_COUNT} supported chains and formats it fits, or check it against one chain.`,
+    intro: `Paste an address to see which of ${CHAIN_COUNT} chains and formats it fits, or check it against one chain. Address checking only: a match does not mean SwapChan can sign or recover on that chain.`,
     body: [
       "Many coins share address formats. A Bitcoin legacy address starting with 1 is byte-for-byte the same shape as addresses on several forks, and some prefixes overlap between chains. Detect mode lists every chain and address kind (P2PKH, P2SH, SegWit, Taproot and so on) that the string decodes as, so you can see when an address is ambiguous instead of guessing.",
       "Validate mode checks the address against one chain you pick and tells you the kind, or why it fails: wrong checksum, wrong version byte, wrong bech32 prefix. Use it before you send funds or paste an address into a sweep.",

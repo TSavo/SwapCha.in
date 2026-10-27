@@ -25,7 +25,7 @@ ELSEWHERE = {"idex", "etherdelta", "ens_old", "fomo3d_long", "powh3d", "thedao"}
 SCANNED = {
     "etherdelta-dex", "fomo3d", "weth-wrapper", "ether-balances", "presale-safe-withdrawal", "hourglass",
     "refund-claim", "refund-crowdsale", "presale-pool", "presale-withdraw", "burn-token-for-eth",
-    "pull-payment", "refund-withdraw",
+    "pull-payment", "refund-withdraw", "sim-claim", "ethfinex-wrapper",
 }
 # per-row fields a confirmation may carry, in output order
 CONF_FIELDS = ("view", "viewOn", "vault")
@@ -101,7 +101,7 @@ def inputs_from(doc):
 
 def main(a):
     if a[:1] == ["--check"]:
-        text = open(a[1]).read()
+        text = open(a[1] if len(a) > 1 else "apps/api/src/legacy/registry.json").read()
         doc = json.loads(text)
         known = set(doc) - {"source", "generated", "entries"} - {k for k in doc if k.startswith("confirmationBlock")}
         R, confs = inputs_from(doc)
@@ -118,6 +118,9 @@ def main(a):
         print("registry.json matches the generator:", len(doc["entries"]),
               sum(e["status"] == "confirmed" for e in doc["entries"]), "confirmed")
         return 0
+    if len(a) < 2:
+        print("usage: gen-legacy-registry.py --check [registry.json] | DRAFT OUT [CONFIRMATIONS...]", file=sys.stderr)
+        return 2
     draft, out, *confs = a
     text = build(json.load(open(draft)), [json.load(open(c)) for c in confs], "2026-10-26")
     open(out, "w").write(text)

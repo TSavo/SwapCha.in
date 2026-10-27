@@ -5,6 +5,7 @@
   "confirmationBlockPr2": 26280214,
   "confirmationBlockPr3": 26280374,
   "confirmationBlockPr4": 26280568,
+  "confirmationBlockPr5": 26280699,
   "entries": [
     {
       "key": "thedao",
@@ -128,9 +129,11 @@
       "key": "ethfinex",
       "name": "Ethfinex Trustless",
       "address": "0xaA7427D8f17D87a28F5e1ba3aDBB270bAdbe1011",
-      "family": "one-off",
+      "family": "ethfinex-wrapper",
       "listedEth": 931.6303,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256,uint8,bytes32,bytes32,uint256)",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "singularx",
@@ -173,9 +176,11 @@
       "key": "hong",
       "name": "HONG",
       "address": "0x9fa8fa61a10ff892e4ebceb7f4e0fc684c2ce0a9",
-      "family": "burn-token-for-eth",
+      "family": "sim-claim",
       "listedEth": 727.9738,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refundMyIcoInvestment()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "tokenstore",
@@ -338,9 +343,11 @@
       "key": "arbitrage_eth_staking",
       "name": "ArbitrageETHStaking",
       "address": "0x5eee354e36ac51e9d3f7283005cab0c55f423b23",
-      "family": "hourglass",
+      "family": "sim-claim",
       "listedEth": 216.3026,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "delphi_redemption",
@@ -579,25 +586,31 @@
       "key": "presalepool_48c1",
       "name": "Presale Pool 0x48c128",
       "address": "0x48c128eafc3b937fb1f97889ad174ac02b4952cb",
-      "family": "presale-pool",
+      "family": "sim-claim",
       "listedEth": 98.4788,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "treasure",
       "name": "Treasure",
       "address": "0x25a06d4e1f804ce62cf11b091180a5c84980d93a",
-      "family": "hourglass",
+      "family": "sim-claim",
       "listedEth": 98.2786,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "digipulse_token_sale",
       "name": "DigiPulse Token Sale (DGT)",
       "address": "0x9AcA6aBFe63A5ae0Dc6258cefB65207eC990Aa4D",
-      "family": "ico-withdraw (generic)",
+      "family": "sim-claim",
       "listedEth": 97.0835,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "refundEther()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "tweetmarket",
@@ -695,9 +708,11 @@
       "key": "ethfinex_v2",
       "name": "Ethfinex Trustless v2",
       "address": "0x50cb61afa3f023d17276dcfb35abf85c710d1cff",
-      "family": "one-off",
+      "family": "ethfinex-wrapper",
       "listedEth": 81.4143,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw(uint256,uint8,bytes32,bytes32,uint256)",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "vlb",
@@ -746,9 +761,11 @@
       "key": "eks",
       "name": "EKS",
       "address": "0xe01e2a3ceafa8233021fc759e5a69863558326b6",
-      "family": "hourglass",
+      "family": "sim-claim",
       "listedEth": 73.185,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "fomojp",
@@ -852,9 +869,11 @@
       "key": "bingo4beast_2",
       "name": "Bingo4Beast Long Official (deploy 2)",
       "address": "0x4fb7d68e0116f35ade131b6535b2db1027bf7650",
-      "family": "pull-payment withdraw()",
+      "family": "sim-claim",
       "listedEth": 56.3935,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "staking_eth_rewards",
@@ -885,9 +904,11 @@
       "key": "presalepool_ff2c",
       "name": "Presale Pool 0xff2c68",
       "address": "0xff2c689cb750f2a7d46e7471521189ced948f965",
-      "family": "presale-pool",
+      "family": "sim-claim",
       "listedEth": 50.0,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "keeperdao",
@@ -1054,9 +1075,11 @@
       "key": "presalepool_d677",
       "name": "Presale Pool 0xd6770a",
       "address": "0xd6770aac65a48f5715889a4cdbf30a4faf73a073",
-      "family": "presale-pool",
+      "family": "sim-claim",
       "listedEth": 36.9188,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "f3dplus",
@@ -1073,9 +1096,11 @@
       "key": "presalepool_796d",
       "name": "Presale Pool 0x796dbc",
       "address": "0x796dbc51b37f2d92b0af1271fd9520c8efd1be61",
-      "family": "presale-pool",
+      "family": "sim-claim",
       "listedEth": 34.9954,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "bluechip",
@@ -1091,9 +1116,11 @@
       "key": "presalepool_50c1",
       "name": "Presale Pool 0x50c19f",
       "address": "0x50c19ffdbda85d1a07c09f01e113a94923801d32",
-      "family": "presale-pool",
+      "family": "sim-claim",
       "listedEth": 34.307,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "site-protorai-(reflexer)",
@@ -1235,9 +1262,11 @@
       "key": "presalepool_6f40",
       "name": "Presale Pool 0x6f40d9",
       "address": "0x6f40d96713b60d5083bc2493251907ca673de1b8",
-      "family": "presale-pool",
+      "family": "sim-claim",
       "listedEth": 25.9117,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "meme_limited_collections",
@@ -1259,9 +1288,11 @@
       "key": "nexgen",
       "name": "Nexgen",
       "address": "0xffd31e68bf7af89df862435a138615bd60abf574",
-      "family": "hourglass",
+      "family": "sim-claim",
       "listedEth": 25.6023,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "circles_refund_vault_admin_unlock",
@@ -1356,9 +1387,11 @@
       "key": "ethpyramid",
       "name": "EthPyramid",
       "address": "0x2fa0ac498d01632f959d3c18e38f4390b005e200",
-      "family": "hourglass",
+      "family": "sim-claim",
       "listedEth": 20.1074,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "tessera_sweep",
@@ -1607,9 +1640,11 @@
       "key": "foreground",
       "name": "ForegroundTokenSale (DEAL)",
       "address": "0x943e99d9efd4b44d808f6c83373a9a2c1e15e0f8",
-      "family": "refund-crowdsale",
+      "family": "sim-claim",
       "listedEth": 12.145,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimRefund()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "unagii",
@@ -1666,9 +1701,11 @@
       "key": "contribution_pool",
       "name": "Contribution Pool",
       "address": "0xa812137eff2b368d0b2880a39b609fb60c426850",
-      "family": "presale-pool",
+      "family": "sim-claim",
       "listedEth": 10.6092,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "genesis_weth_pool",
@@ -1882,9 +1919,11 @@
       "key": "bayesin_bys_crowsale",
       "name": "Bayesin (BYS) CrowSale",
       "address": "0xe8b1b40f2d307bce891833f46eef1f69560e6926",
-      "family": "ico-withdraw (generic)",
+      "family": "sim-claim",
       "listedEth": 5.4279,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "safeWithdrawal()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "proofofcraiggrant",
@@ -2225,9 +2264,11 @@
       "key": "presalepool_b990",
       "name": "Presale Pool 0xb9906c",
       "address": "0xb9906cf500d5e61b9673115151104c990a804dcb",
-      "family": "presale-pool",
+      "family": "sim-claim",
       "listedEth": 2.5,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdrawAll()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "marketplace",
@@ -2726,9 +2767,11 @@
       "key": "p4rty_dao_vault",
       "name": "P4RTY DAO Vault",
       "address": "0x9465A32618a9172b3c14d82cecdCa788dE1ef878",
-      "family": "pull-payment withdraw()",
+      "family": "sim-claim",
       "listedEth": 0.4334,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "withdraw()",
+      "confirmedAtBlock": 26280699
     },
     {
       "key": "unkoin",

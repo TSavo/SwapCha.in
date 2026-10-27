@@ -9,7 +9,7 @@ import { DEV_TOOLS } from "@/lib/devTools";
 export const revalidate = 3600;
 export const metadata = btMeta(
   "/blocktools",
-  "blocktools: all chains, one CLI",
+  "blocktools: one CLI, many chains",
   "blocktools is an open source (MIT) command-line toolkit for blockchains: 42 small Unix tools that read wallets, derive addresses and build, check and sign transactions offline across many chains; see the chain table for what each supports.",
 );
 
@@ -195,14 +195,14 @@ export default async function BlocktoolsHome() {
       {/* Why */}
       <section className="mt-20">
         <H2 id="why" kicker="Why blocktools">
-          A Swiss Army knife for every chain
+          One toolkit, chain by chain
         </H2>
         <div className="grid gap-4 sm:grid-cols-2">
           {[
             [
               "⛓️",
               "One tool, many chains",
-              "Bitcoin and its forks, Ethereum and EVM, Solana, Tron, XRP, Cosmos, Cardano, Polkadot, TON and older Bitcoin forks, each marked in the chain table with what is built.",
+              "Bitcoin and its forks, Ethereum and EVM, Solana, Tron, XRP, Cosmos, Cardano, Polkadot, TON and older Bitcoin forks, each marked in the chain table with what is built: some chains are address checking only, others can also be signed.",
             ],
             [
               "💻",

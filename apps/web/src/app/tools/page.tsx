@@ -71,7 +71,8 @@ export default async function ToolsHub() {
           .
         </p>
         <p className="mt-4 text-sm text-violet-200">
-          These tools run on blocktools, an open source (MIT) command-line toolkit for all chains:{" "}
+          These tools run on blocktools, an open source (MIT) command-line toolkit for many chains
+          (the chain table lists what each one supports):{" "}
           <Link href="/blocktools" className="underline hover:text-amber-300">
             install it and see every command
           </Link>
