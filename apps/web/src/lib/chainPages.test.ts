@@ -31,6 +31,14 @@ describe("/chains pages", () => {
     expect(text).not.toMatch(/\bsweep|\bwe sign|build(s)? (a |an )?(unsigned )?transaction/i);
     expect(text).not.toMatch(/(paste|enter|type) (your )?(private key|seed)/i);
   });
+  it("every page states its tier: address checking only, offline CLI only where chainTable says buildable", () => {
+    for (const c of CHAIN_PAGES) {
+      expect(c.capability).toMatch(/^Address checking only/);
+      expect(c.intro).toMatch(/^Address checking only/);
+    }
+    expect(chainPage("bitcoin")?.offlineCli).toBe(true);
+    expect(chainPage("ethereum")?.offlineCli).toBe(false);
+  });
   it("look-alikes share the version byte and link to existing pages", () => {
     const doge = chainPage("dogecoin")!;
     expect(doge.lookAlikes.map((l) => l.slug).sort()).toEqual(["digibyte", "pivx"]);
