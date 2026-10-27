@@ -34,8 +34,8 @@ describe("LegacyETH PR 5", () => {
     const n: Record<string, number> = {};
     for (const e of pr5()) n[e.family] = (n[e.family] ?? 0) + 1;
     expect(n).toEqual({ "sim-claim": 19, "ethfinex-wrapper": 2 });
-    expect(scanned().length).toBe(176);
-    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(114);
+    expect(scanned().length).toBe(178);
+    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(112);
     expect(registryCollisions()).toEqual([]);
   });
   it("sim-claim rows are pinned in code: key, address and selector", () => {
@@ -47,7 +47,7 @@ describe("LegacyETH PR 5", () => {
       expect(validSimClaim({ ...e, address: OWNER })).toBe(false);
       expect(validSimClaim({ ...e, key: "nope" })).toBe(false);
     }
-    expect(Object.keys(SIM_SPECS).length).toBe(25);
+    expect(Object.keys(SIM_SPECS).length).toBe(27);
   });
   it("tracedPayout: only native ETH contract -> owner; a token leaving the owner fails closed", () => {
     const c = hong().address;

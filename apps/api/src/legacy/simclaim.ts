@@ -1,6 +1,9 @@
 /**
- * LegacyETH registry, PR 5 and PR 6: "sim-claim" family. These contracts pay a fixed no-argument claim (refund,
+ * LegacyETH registry, PR 5 to PR 7: "sim-claim" family. These contracts pay a fixed no-argument claim (refund,
  * presale-pool withdrawAll, dividend withdraw, reward withdraw, ended time-lock release) but have no public view that returns the ETH owed.
+ * PR 7 adds one fixed-argument shape: `arg: "caller"`, where the only argument is the caller's own address
+ * (payment-splitter release(address) that requires msg.sender == account). The calldata is then exactly the
+ * pinned selector plus the owner's address, nothing else.
  * The amount shown is therefore taken from the claim itself: one eth_simulateV1 of the pinned claim from
  * the owner at the pinned block, with traceTransfers, summing only native ETH sent from that contract to the
  * owner. Evidence keeps the simulated call and its traced payout.
@@ -14,11 +17,13 @@ import { btSelector } from "../blocktools.js";
 import type { Evidence } from "../recover.js";
 import type { RegistryEntry } from "./registry.js";
 
-export type SimKind = "refund" | "pool" | "dividends" | "rewards" | "timelock";
+export type SimKind = "refund" | "pool" | "dividends" | "rewards" | "timelock" | "split";
 export interface SimSpec {
   address: string;
   claim: string;
   kind: SimKind;
+  /** "caller": the claim's single argument is the caller's own address (contract requires msg.sender == it) */
+  arg?: "caller";
 }
 /** Confirmed at block 26280699 (one real holder each: the simulated claim paid that holder ETH and moved no
  *  tokens out of their address; an unrelated address got 0 or a revert). Pinned per registry key. */
@@ -150,7 +155,27 @@ export const SIM_SPECS: Record<string, SimSpec> = {
     claim: "party()",
     kind: "timelock",
   },
+  // PR 7, confirmed at block 26281424 (three real holders each paid exactly the amount the contract's own
+  // view gives, no token left their address, an unrelated address reverted; claim read from verified source).
+  personabid: {
+    address: "0xde5d4949f445650325c7c8739610c3a979c7a6db",
+    claim: "claimAndRefund()",
+    kind: "refund",
+  },
+  ambassadors_fund: {
+    address: "0xe9426198aec621203ba1fe07cf292b3796ba6248",
+    claim: "release(address)",
+    kind: "split",
+    arg: "caller",
+  },
 };
+/** Exact claim calldata for this owner: the pinned selector, plus the owner's address when arg is "caller". */
+export function simClaimData(s: SimSpec, owner: string): `0x${string}` {
+  const sel = btSelector(s.claim);
+  if (s.arg !== "caller") return sel as `0x${string}`;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(owner)) throw new Error("bad owner address");
+  return `${sel}${owner.slice(2).toLowerCase().padStart(64, "0")}` as `0x${string}`;
+}
 const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
@@ -177,6 +202,8 @@ export function simLabel(e: RegistryEntry): string | undefined {
     return `Rewards only: ${SIM_SPECS[e.key]!.claim} pays your accrued ETH rewards; your tokens stay where they are`;
   if (k === "timelock")
     return `Time-lock release (lock has ended): ${SIM_SPECS[e.key]!.claim} returns your whole locked deposit`;
+  if (k === "split")
+    return `Payment split: ${SIM_SPECS[e.key]!.claim} called with your own address pays your share of the ETH the contract received; it only works for yourself`;
   return undefined;
 }
 
@@ -237,7 +264,7 @@ export async function scanSimClaim(
   const calls = es.map((e) => ({
     from: owner,
     to: SIM_SPECS[e.key]!.address,
-    data: btSelector(SIM_SPECS[e.key]!.claim),
+    data: simClaimData(SIM_SPECS[e.key]!, owner),
   }));
   // Each contract's claim is its own eth_simulateV1 request with exactly one blockStateCall,
   // so every simulation starts from the pinned block state. (blockStateCalls inside one
@@ -283,7 +310,7 @@ export async function scanSimClaim(
       .getBalance({ address: s.address as `0x${string}`, blockNumber: block })
       .catch(() => null);
     const ok = held !== null && held >= amt;
-    const data = btSelector(s.claim) as `0x${string}`;
+    const data = simClaimData(s, owner);
     const h: SimHit = {
       entry: e,
       owedWei: amt,
