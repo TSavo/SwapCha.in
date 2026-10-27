@@ -22,8 +22,8 @@ describe("LegacyETH PR 6", () => {
         .sort(),
     ).toEqual(Object.keys(CLAIMS).sort());
     expect(pr6().every((e) => e.family === "sim-claim")).toBe(true);
-    expect(scanned().length).toBe(176);
-    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(114);
+    expect(scanned().length).toBe(178);
+    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(112);
     expect(registryCollisions()).toEqual([]);
   });
   it("each row is pinned in code: address, exact claim selector, value-0 allowlist", () => {

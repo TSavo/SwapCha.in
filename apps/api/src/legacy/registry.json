@@ -7,6 +7,7 @@
   "confirmationBlockPr4": 26280568,
   "confirmationBlockPr5": 26280699,
   "confirmationBlockPr6": 26281225,
+  "confirmationBlockPr7": 26281424,
   "entries": [
     {
       "key": "thedao",
@@ -1469,18 +1470,21 @@
       "key": "personabid",
       "name": "PersonaBid",
       "address": "0xDe5D4949F445650325c7C8739610c3A979C7a6db",
-      "family": "one-off",
+      "family": "sim-claim",
       "listedEth": 17.6238,
-      "status": "not-checked"
+      "status": "confirmed",
+      "claim": "claimAndRefund()",
+      "confirmedAtBlock": 26281424
     },
     {
       "key": "ambassadors_fund",
       "name": "Ambassadors Fund",
       "address": "0xe9426198aec621203ba1fe07cf292b3796ba6248",
-      "family": "one-off (multi-step)",
+      "family": "sim-claim",
       "listedEth": 17.5382,
-      "status": "not-checked",
-      "multiStep": true
+      "status": "confirmed",
+      "claim": "release(address)",
+      "confirmedAtBlock": 26281424
     },
     {
       "key": "coinchangex",
