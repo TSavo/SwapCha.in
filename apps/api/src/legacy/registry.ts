@@ -106,7 +106,14 @@ export interface RegistryHit {
   /** two-step flows: 1 = the approval is next, 2 = the claim is next */
   step?: 1 | 2 | undefined;
   labels: string[];
-  tx?: { chainId: 1; to: string; data: `0x${string}`; value: "0"; description: string };
+  tx?: {
+    chainId: 1;
+    to: string;
+    data: `0x${string}`;
+    value: "0";
+    description: string;
+    approveMax?: bigint;
+  };
   evidence: Evidence[];
 }
 

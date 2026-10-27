@@ -135,18 +135,27 @@ export function burnApprovals(ents: RegistryEntry[]): Record<string, string> {
   }
   return o;
 }
-/** Approval check: exact token, exact spender, 0 < amount < unlimited, zero value. */
+/**
+ * Approval check: exact token, exact spender (a clean 20-byte address word), 0 < amount <= the owner's
+ * on-chain token balance at the pinned block (never more than they hold, so never unlimited), zero value.
+ * Fails closed when the balance is not known.
+ */
 export function verifyApproval(
   approvals: Record<string, string>,
   tx: { to: string; data: string; value: string },
+  balance: bigint | null | undefined,
 ): boolean {
+  if (typeof balance !== "bigint" || balance <= 0n) return false;
   const d = tx.data.toLowerCase();
   if (!d.startsWith(btSelector(BURN_APPROVE)) || d.length !== 10 + 128) return false;
+  // the spender word must be a plain address: top 12 bytes zero
+  if (d.slice(10, 34) !== "0".repeat(24)) return false;
   const spender = `0x${d.slice(10 + 24, 10 + 64)}`;
   const amt = BigInt(`0x${d.slice(10 + 64)}`);
   return (
     approvals[tx.to.toLowerCase()] === spender &&
     amt > 0n &&
+    amt <= balance &&
     amt < maxUint256 / 2n &&
     BigInt(tx.value) === 0n
   );
@@ -179,7 +188,15 @@ export interface BRHit {
   claimable: boolean;
   /** 1 = approval is the next step, 2 = the claim (single-step claims are 2 of 2 implicitly) */
   step?: 1 | 2 | undefined;
-  tx?: { chainId: 1; to: string; data: `0x${string}`; value: "0"; description: string };
+  tx?: {
+    chainId: 1;
+    to: string;
+    data: `0x${string}`;
+    value: "0";
+    description: string;
+    /** step 1 only: the owner's token balanceOf at the pinned block; the approval may not exceed it */
+    approveMax?: bigint;
+  };
   evidence: Evidence[];
 }
 type Res = { status: string; result?: unknown };
@@ -309,6 +326,7 @@ export async function scanBurnRefund(
     to: string;
     data: `0x${string}`;
     step?: 1 | 2 | undefined;
+    approveMax?: bigint | undefined;
     twoStepSim?: { to: string; data: string }[] | undefined;
     desc: string;
     evidence: Evidence[];
@@ -368,6 +386,7 @@ export async function scanBurnRefund(
       to: needApprove ? s.token : s.claimTo,
       data: needApprove ? approveData! : claimData,
       step: s.approve ? (needApprove ? 1 : 2) : undefined,
+      approveMax: needApprove ? bal : undefined,
       twoStepSim: needApprove
         ? [
             { to: s.token, data: approveData! },
@@ -401,7 +420,15 @@ export async function scanBurnRefund(
         step: t.step,
         evidence: t.evidence,
       };
-      if (ok) h.tx = { chainId: 1, to: t.to, data: t.data, value: "0", description: t.desc };
+      if (ok)
+        h.tx = {
+          chainId: 1,
+          to: t.to,
+          data: t.data,
+          value: "0",
+          description: t.desc,
+          ...(t.approveMax !== undefined ? { approveMax: t.approveMax } : {}),
+        };
       return h;
     }),
   );
