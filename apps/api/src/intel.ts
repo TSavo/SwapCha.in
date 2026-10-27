@@ -3910,7 +3910,7 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push("Merkl API (incentive rewards on 9 EVM chains)");
       sources.push("legacy contract reads (PoWH3D, Fomo3D, EtherDelta, Liquity surplus)");
       sources.push(
-        `LegacyETH registry (${LEGACY_REGISTRY_SIZE} listed legacy contracts; confirmed DEXes, Fomo3D forks, Hourglass clones, old ETH wrappers, ICO/presale refunds, NFT-market pull payments and burn-token redemptions read on-chain, the rest reported as not checked yet)`,
+        `LegacyETH registry (${LEGACY_REGISTRY_SIZE} listed legacy contracts; confirmed DEXes, Fomo3D forks, Hourglass clones, old ETH wrappers, ICO/presale refunds, NFT-market pull payments, burn-token redemptions, Ethfinex wrappers and simulated-claim refunds/pools read on-chain, the rest reported as not checked yet)`,
       );
       items.push(
         ...(wn as Found[]),

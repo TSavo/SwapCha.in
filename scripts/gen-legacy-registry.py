@@ -25,7 +25,7 @@ ELSEWHERE = {"idex", "etherdelta", "ens_old", "fomo3d_long", "powh3d", "thedao"}
 SCANNED = {
     "etherdelta-dex", "fomo3d", "weth-wrapper", "ether-balances", "presale-safe-withdrawal", "hourglass",
     "refund-claim", "refund-crowdsale", "presale-pool", "presale-withdraw", "burn-token-for-eth",
-    "pull-payment", "refund-withdraw",
+    "pull-payment", "refund-withdraw", "sim-claim", "ethfinex-wrapper",
 }
 # per-row fields a confirmation may carry, in output order
 CONF_FIELDS = ("view", "viewOn", "vault")
