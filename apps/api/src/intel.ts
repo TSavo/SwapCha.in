@@ -119,6 +119,7 @@ import {
   broadcastLimiter,
   routeBroadcast,
 } from "./broadcastmore.js";
+import { burnAddressResult, isBurnAddress } from "./burnAddresses.js";
 import { btcXpubScan, logPromoteCandidate, stuckMoneyRegistry } from "./stuck.js";
 import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 
@@ -2820,6 +2821,8 @@ export async function evmArchaeology(
   const c = evmClient(chainId, env);
   const items: Found[] = [];
   const stats: Record<string, number | string> = {};
+  let explorerFallbacks = 0;
+  let failedBatches = 0;
   const tArch = Date.now();
   // 1. discovery
   let called: string[] = [];
@@ -2846,6 +2849,7 @@ export async function evmArchaeology(
             await new Promise((ok) => setTimeout(ok, 1500 * (a + 1)));
             continue;
           }
+          explorerFallbacks++;
           return [];
         }
       };
@@ -2876,6 +2880,7 @@ export async function evmArchaeology(
       break;
     } catch {}
   }
+  if (explorerFallbacks) stats.explorerFallbacks = explorerFallbacks;
   stats.contractsCalled = called.length;
   stats.tokensSeen = tokens.length;
   stats.discoverMs = Date.now() - tArch;
@@ -2890,7 +2895,11 @@ export async function evmArchaeology(
     for (let i = 0; i < calls.length; i += 300) {
       const r = await c
         .multicall({ allowFailure: true, contracts: calls.slice(i, i + 300) as never })
-        .catch(() => calls.slice(i, i + 300).map(() => ({ status: "failure" as const })));
+        .catch(() => {
+          failedBatches++;
+          stats.failedBatches = failedBatches;
+          return calls.slice(i, i + 300).map(() => ({ status: "failure" as const }));
+        });
       for (const x of r as { status: string; result?: unknown }[])
         out.push(x.status === "success" ? (x.result as T) : null);
     }
@@ -3761,6 +3770,13 @@ export function owedLater(i: {
   };
 }
 
+/** A notChecked line that means the scan's totals may be missing something (a timeout or a dropped read). */
+export const INCOMPLETE_RE = /timed out|results may be incomplete/i;
+export const incompleteCount = (notChecked: readonly string[]) =>
+  notChecked.filter((n) => INCOMPLETE_RE.test(n)).length;
+export const partialPrefix = (n: number) =>
+  `Partial scan: ${n} source${n === 1 ? "" : "s"} timed out; totals are a lower bound.`;
+
 /** One honest sentence: what is claimable now, and what is owed but not claimable now. */
 export function findMoneyHeadline(
   found: number,
@@ -3784,6 +3800,51 @@ export function findMoneyHeadline(
       : "",
   ].filter(Boolean);
   return parts.length ? `${head} ${parts.join("; ")} (see owedNotClaimableNow).` : head;
+}
+
+/** Archaeology reads that were silently dropped (explorer gave no list, a multicall batch failed) become notChecked lines. */
+export function archaeologyDropLines(
+  per: readonly (readonly [string, Record<string, number | string> | undefined])[],
+): string[] {
+  const out: string[] = [];
+  for (const [chain, s] of per) {
+    const ex = Number(s?.explorerFallbacks ?? 0);
+    const mb = Number(s?.failedBatches ?? 0);
+    if (ex)
+      out.push(
+        `history ${chain}: not checked (explorer history list unavailable for ${ex} quer${ex === 1 ? "y" : "ies"}; results may be incomplete)`,
+      );
+    if (mb)
+      out.push(
+        `history ${chain}: not checked (${mb} contract read batch${mb === 1 ? "" : "es"} failed; results may be incomplete)`,
+      );
+  }
+  return out;
+}
+
+/** find_money tail deadline: a timeout or a failure becomes a notChecked line, never a silent empty. */
+export function makeCap(notChecked: string[], fmMs: Record<string, number>) {
+  return async <T>(n: string, p: Promise<T>, empty: T, ms: number): Promise<T> => {
+    const t0 = Date.now();
+    let to: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        p,
+        new Promise<T>((res) => {
+          to = setTimeout(() => {
+            notChecked.push(`${n}: not checked (timed out after ${ms / 1000}s)`);
+            res(empty);
+          }, ms);
+        }),
+      ]);
+    } catch (e) {
+      notChecked.push(`${n}: not checked (${safeReason(e)}; results may be incomplete)`);
+      return empty;
+    } finally {
+      clearTimeout(to);
+      fmMs[n] = Date.now() - t0;
+    }
+  };
 }
 
 // ---------- 6. airdrop_check ----------
@@ -4062,6 +4123,9 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
           ),
         );
       archaeology = Object.fromEntries(arch.map((a, i) => [chainName(archChains[i]!), a.stats]));
+      notChecked.push(
+        ...archaeologyDropLines(arch.map((a, i) => [chainName(archChains[i]!), a.stats])),
+      );
       sources.push(
         "contract archaeology: full explorer history → every contract called/token received, probed with balanceOf/earned/dividendsOf/claimable/pendingRewards, ERC-4626 & Yearn vault shares, Uniswap-v2 LP shares, Uniswap v3 positions + simulated collect() fees, EtherDelta/IDEX ERC-20 balances, NFTs still held",
       );
@@ -4211,9 +4275,13 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
     for (const l of later) items.splice(items.indexOf(l), 1);
     const top = items[0];
     const nc = tidyNotChecked(notChecked);
+    const incomplete = incompleteCount(nc);
     return {
       address,
       ...(name ? { name } : {}),
+      // set when a source timed out or was dropped: cached only briefly (see PARTIAL_TTL_MS)
+      partial: incomplete > 0,
+      ...(incomplete ? { incompleteSources: incomplete } : {}),
       found: items.length,
       totalUsd: r2(items.reduce((s, i) => s + (i.valueUsd ?? 0), 0)),
       items,
@@ -5191,6 +5259,8 @@ export async function findMoney(
   opts: { fresh?: boolean; client?: string } = {},
 ) {
   const { address, name } = await resolveAddr(f, env, input);
+  // known burn/dead address: nothing there is recoverable, so skip the scan
+  if (isBurnAddress(address)) return burnAddressResult(address, name);
   const STAGE_HARD_MS = Number(env.FIND_STAGE_TIMEOUT_MS ?? 17_000) + 6_000;
   const ethBlock = vmOfAddr(address) === "evm" ? () => evmClient(1, env).getBlockNumber() : null;
   // same shape as cached(): adds fresh=1, asOf/block/cached and the refresh limits
@@ -5255,26 +5325,7 @@ export async function findMoney(
           ? Promise.resolve(null)
           : run("balances", () => walletBalances(f, env, address));
         // tail work gets its own deadline too, so the total is the slowest stage, not stage + tail
-        const cap = async <T>(n: string, p: Promise<T>, empty: T, ms: number): Promise<T> => {
-          const t0 = Date.now();
-          let to: ReturnType<typeof setTimeout> | undefined;
-          try {
-            return await Promise.race([
-              p,
-              new Promise<T>((res) => {
-                to = setTimeout(() => {
-                  notChecked.push(`${n}: not checked (timed out after ${ms / 1000}s)`);
-                  res(empty);
-                }, ms);
-              }),
-            ]);
-          } catch {
-            return empty;
-          } finally {
-            clearTimeout(to);
-            fmMs[n] = Date.now() - t0;
-          }
-        };
+        const cap = makeCap(notChecked, fmMs);
         const riskOf = (
           H: {
             chainId: number;
@@ -5708,16 +5759,23 @@ export async function findMoney(
             .filter((i) => i.estimateKind === "protected")
             .reduce((s, i) => s + (i.estUsd ?? 0), 0),
         );
+        const ncTidy = tidyNotChecked(notChecked);
+        const incompleteSources = incompleteCount(ncTidy);
+        const partial = incompleteSources > 0;
+        const head = findMoneyHeadline(
+          items.length,
+          total,
+          later.length,
+          later.filter((l) => isShownOnly(l.title)).length,
+        );
         return {
           address,
           ...(name ? { name } : {}),
           portfolioUsd: bal?.totalUsd ?? null,
-          headline: findMoneyHeadline(
-            items.length,
-            total,
-            later.length,
-            later.filter((l) => isShownOnly(l.title)).length,
-          ),
+          headline: partial ? `${partialPrefix(incompleteSources)} ${head}` : head,
+          // true when any source timed out or was dropped: totals are a lower bound, cached ~20 s instead of 3 min
+          partial,
+          incompleteSources,
           opportunities: items.length,
           ...(swapAll
             ? {
@@ -5765,7 +5823,7 @@ export async function findMoney(
                 ...airSources,
               ],
           notChecked: [
-            ...tidyNotChecked(notChecked),
+            ...ncTidy,
             "Stuck bridge transfers need a tx hash (use bridge_doctor). One-off project airdrops have no free unified source. EVM balances cover SwapChan-listed tokens only.",
           ],
           errors: errors.map(scrubText),
