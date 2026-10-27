@@ -38,6 +38,8 @@ export function burnAddressResult(address: string, name?: string | null) {
     address,
     ...(name ? { name } : {}),
     burnAddress: true as const,
+    partial: false,
+    incompleteSources: 0,
     portfolioUsd: null,
     headline: BURN_HEADLINE,
     opportunities: 0,
