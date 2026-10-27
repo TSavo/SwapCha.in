@@ -5,6 +5,11 @@
  * confirmed by a real holder's view read > 0 plus an eth_call of the claim from that holder (and, for DEXes,
  * an overdraw that reverts). Everything else is reported as "not checked yet", never as a silent zero.
  *
+ * PR 3 families: weth-wrapper (balanceOf(owner) + withdraw(uint256), old ETH wrappers that pay native ETH),
+ * ether-balances (balances(owner) + withdrawEther(uint256)), presale-safe-withdrawal (balanceOf(owner) +
+ * safeWithdrawal()) and hourglass P3D clones (myDividends(true) read as the owner + withdraw(); dividends
+ * only, the clone tokens are left alone). PoWH3D itself stays on its dedicated code in intel.ts.
+ *
  * Reads are batched through Multicall3 and pinned to one block; every read is kept as evidence. A claim is
  * offered only if the contract holds what is owed and an eth_call of the claim from the owner succeeds.
  * SwapChan only builds the unsigned transaction; the owner's wallet signs it.
@@ -43,7 +48,20 @@ export const REGISTRY = (REG as { entries: RegistryEntry[] }).entries;
 export const FAMILY_CLAIM: Record<string, string> = {
   "etherdelta-dex": "withdraw(uint256)",
   fomo3d: "withdraw()",
+  "weth-wrapper": "withdraw(uint256)",
+  "ether-balances": "withdrawEther(uint256)",
+  "presale-safe-withdrawal": "safeWithdrawal()",
+  hourglass: "withdraw()",
 };
+/** Single-read families: the per-address view (on the contract itself) that returns the ETH owed. */
+export const FAMILY_VIEW: Record<string, { fn: string; sig: string; zeroFirst?: boolean }> = {
+  "etherdelta-dex": { fn: "tokens", sig: "tokens(address,address)", zeroFirst: true },
+  "weth-wrapper": { fn: "balanceOf", sig: "balanceOf(address)" },
+  "ether-balances": { fn: "balances", sig: "balances(address)" },
+  "presale-safe-withdrawal": { fn: "balanceOf", sig: "balanceOf(address)" },
+};
+/** Claims that take the owed amount as their single uint256 argument. */
+const AMOUNT_ARG = new Set(["withdraw(uint256)", "withdrawEther(uint256)"]);
 export const SCANNED_FAMILIES = new Set<Family>(Object.keys(FAMILY_CLAIM));
 /** Confirmed rows whose claim matches the family's pinned selector; any mismatch is refused (not scanned). */
 const validPr1 = (e: RegistryEntry) =>
@@ -81,6 +99,10 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
     l.push("Two steps: approve the exact token amount to the redemption contract, then claim");
   if (held === null)
     l.push("Balance read failed: could not confirm the contract can pay, so no claim is offered");
+  if (e.family === "hourglass")
+    l.push(
+      "Dividends only: withdraw() pays your ETH dividends; any clone tokens you still hold are not sold",
+    );
   if (held !== null && held < owed)
     l.push(
       `Underfunded: the contract holds ${formatUnits(held, 18)} ETH but owes you ${formatUnits(owed, 18)} ETH`,
@@ -90,6 +112,10 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
 
 const A = {
   tokens: parseAbiItem("function tokens(address,address) view returns (uint256)"),
+  balanceOf: parseAbiItem("function balanceOf(address) view returns (uint256)"),
+  balances: parseAbiItem("function balances(address) view returns (uint256)"),
+  withdrawEther: parseAbiItem("function withdrawEther(uint256)"),
+  safeWithdrawal: parseAbiItem("function safeWithdrawal()"),
   pid: parseAbiItem("function pIDxAddr_(address) view returns (uint256)"),
   vaults: parseAbiItem("function getPlayerVaults(uint256) view returns (uint256,uint256,uint256)"),
   withdraw0: parseAbiItem("function withdraw()"),
@@ -135,8 +161,13 @@ export async function scanRegistry(
     };
   const at = { blockNumber: block };
   const ents = scanned().filter(validPr1);
-  const dex = ents.filter((e) => e.family === "etherdelta-dex");
+  // single-view families, EtherDelta-style DEXes first
+  const dex = [
+    ...ents.filter((e) => e.family === "etherdelta-dex"),
+    ...ents.filter((e) => e.family !== "etherdelta-dex" && FAMILY_VIEW[e.family]),
+  ];
   const fomo = ents.filter((e) => e.family === "fomo3d");
+  const hg = ents.filter((e) => e.family === "hourglass");
   const ev = (
     e: RegistryEntry,
     call: string,
@@ -157,12 +188,15 @@ export async function scanRegistry(
     allowFailure: true,
     ...at,
     contracts: [
-      ...dex.map((e) => ({
-        address: e.address as `0x${string}`,
-        abi: [A.tokens],
-        functionName: "tokens",
-        args: [ZERO, owner],
-      })),
+      ...dex.map((e) => {
+        const v = FAMILY_VIEW[e.family]!;
+        return {
+          address: e.address as `0x${string}`,
+          abi: [A[v.fn as "tokens" | "balanceOf" | "balances"]],
+          functionName: v.fn,
+          args: v.zeroFirst ? [ZERO, owner] : [owner],
+        };
+      }),
       ...fomo.map((e) => ({
         address: e.address as `0x${string}`,
         abi: [A.pid],
@@ -175,21 +209,61 @@ export async function scanRegistry(
   const owed = new Map<RegistryEntry, { amt: bigint; evidence: Evidence[] }>();
   dex.forEach((e, i) => {
     const r = first[i] as { status: string; result?: bigint };
-    if (r.status !== "success") return void failed.push(e.name);
-    if ((r.result ?? 0n) > 0n)
+    if (r.status !== "success" || typeof r.result !== "bigint") return void failed.push(e.name);
+    const v = FAMILY_VIEW[e.family]!;
+    if (r.result > 0n)
       owed.set(e, {
-        amt: r.result!,
+        amt: r.result,
         evidence: [
           ev(
             e,
-            "tokens(address,address)",
-            "function tokens(address,address) view returns (uint256)",
-            [ZERO, owner],
+            v.sig,
+            `function ${v.sig} view returns (uint256)`,
+            v.zeroFirst ? [ZERO, owner] : [owner],
             r.result,
           ),
         ],
       });
   });
+  // Hourglass clones: myDividends(true) reads msg.sender, so it is read as the owner in one eth_simulateV1
+  // batch at the pinned block. No simulateV1, a failed call or an odd return: that clone is not checked.
+  if (hg.length) {
+    const data = btSelector("myDividends(bool)") + "1".padStart(64, "0");
+    const rs = await (c.request
+      ? (c.request({
+          method: "eth_simulateV1",
+          params: [
+            {
+              blockStateCalls: [{ calls: hg.map((e) => ({ from: owner, to: e.address, data })) }],
+              validation: false,
+            },
+            `0x${block.toString(16)}`,
+          ],
+        } as never) as Promise<{ calls?: { status?: string; returnData?: string }[] }[]>)
+      : Promise.reject(new Error("no eth_simulateV1"))
+    )
+      .then((r) => r?.[0]?.calls ?? [])
+      .catch(() => [] as { status?: string; returnData?: string }[]);
+    hg.forEach((e, i) => {
+      const r = rs.length === hg.length ? rs[i] : undefined;
+      const raw = r?.returnData ?? "";
+      if (r?.status !== "0x1" || !/^0x[0-9a-fA-F]{64}$/.test(raw)) return void failed.push(e.name);
+      const amt = BigInt(raw);
+      if (amt > 0n)
+        owed.set(e, {
+          amt,
+          evidence: [
+            ev(
+              e,
+              "myDividends(bool)",
+              "function myDividends(bool) view returns (uint256) (read as the owner)",
+              ["true"],
+              amt,
+            ),
+          ],
+        });
+    });
+  }
   const pids: { e: RegistryEntry; pid: bigint }[] = [];
   fomo.forEach((e, j) => {
     const r = first[dex.length + j] as { status: string; result?: bigint };
@@ -235,10 +309,20 @@ export async function scanRegistry(
   }
   const hits = await Promise.all(
     [...owed].map(async ([e, { amt, evidence }]) => {
-      const data =
-        e.claim === "withdraw()"
+      const sig = FAMILY_CLAIM[e.family]!;
+      const data = (
+        sig === "withdraw()"
           ? encodeFunctionData({ abi: [A.withdraw0], functionName: "withdraw" })
-          : encodeFunctionData({ abi: [A.withdraw1], functionName: "withdraw", args: [amt] });
+          : sig === "safeWithdrawal()"
+            ? encodeFunctionData({ abi: [A.safeWithdrawal], functionName: "safeWithdrawal" })
+            : sig === "withdrawEther(uint256)"
+              ? encodeFunctionData({
+                  abi: [A.withdrawEther],
+                  functionName: "withdrawEther",
+                  args: [amt],
+                })
+              : encodeFunctionData({ abi: [A.withdraw1], functionName: "withdraw", args: [amt] })
+      ) as `0x${string}`;
       const [held, simOk] = await Promise.all([
         c.getBalance({ address: e.address as `0x${string}`, ...at }).catch(() => null),
         c
@@ -262,7 +346,7 @@ export async function scanRegistry(
           to: e.address,
           data,
           value: "0",
-          description: `${e.claim === "withdraw()" ? "withdraw()" : `withdraw(${amt})`}: withdraw ${formatUnits(amt, 18)} ETH from ${e.name}`,
+          description: `${AMOUNT_ARG.has(sig) ? `${sig.split("(")[0]}(${amt})` : sig}: withdraw ${formatUnits(amt, 18)} ETH from ${e.name}`,
         };
       return h;
     }),

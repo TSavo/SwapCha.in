@@ -20,7 +20,15 @@ import {
 } from "./registry.js";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as const;
-const pr2 = () => scanned().filter((e) => !["etherdelta-dex", "fomo3d"].includes(e.family));
+const PR1_3 = [
+  "etherdelta-dex",
+  "fomo3d",
+  "weth-wrapper",
+  "ether-balances",
+  "presale-safe-withdrawal",
+  "hourglass",
+];
+const pr2 = () => scanned().filter((e) => !PR1_3.includes(e.family));
 const by = (k: string) => REGISTRY.find((e) => e.key === k)!;
 const APPROVE = parseAbiItem("function approve(address,uint256) returns (bool)");
 
@@ -35,7 +43,7 @@ describe("PR 2 families: data", () => {
       "presale-withdraw": 1,
       "burn-token-for-eth": 4,
     });
-    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(211);
+    expect(REGISTRY.filter((e) => e.status === "not-checked").length).toBe(155);
     for (const e of pr2()) expect(e.confirmedAtBlock).toBe(26280214);
   });
   it("claim selector and views are pinned in code; mismatches are refused", () => {
@@ -291,6 +299,6 @@ describe("scanBurnRefund (mocked reads)", () => {
     const r = await scanRegistry(client({ owe: { digixdao: 1000n } }).c, OWNER, 5n);
     const h = r.hits.find((x) => x.entry.key === "digixdao")!;
     expect(h.labels.join(" ")).toMatch(/Two steps/);
-    expect(r.notChecked.join(" ")).toMatch(/211 of 296 listed contracts not checked yet/);
+    expect(r.notChecked.join(" ")).toMatch(/155 of 296 listed contracts not checked yet/);
   });
 });
