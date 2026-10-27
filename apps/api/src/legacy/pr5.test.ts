@@ -9,7 +9,13 @@ import {
   scanRegistry,
   validEntry,
 } from "./registry.js";
-import { SIM_CONCURRENCY, SIM_SPECS, scanSimClaim, tracedPayout, validSimClaim } from "./simclaim.js";
+import {
+  SIM_CONCURRENCY,
+  SIM_SPECS,
+  scanSimClaim,
+  tracedPayout,
+  validSimClaim,
+} from "./simclaim.js";
 
 const OWNER = "0x1111111111111111111111111111111111111111" as const;
 const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";

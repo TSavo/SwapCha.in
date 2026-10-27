@@ -107,8 +107,7 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
   if (e.ownerGated) l.push("Owner action required: the contract owner must unlock claims first");
   if (e.multiStep)
     l.push("Two steps: approve the exact token amount to the redemption contract, then claim");
-  if (held === null && simLabel(e))
-    l.push("Contract balance not verified, no claim offered");
+  if (held === null && simLabel(e)) l.push("Contract balance not verified, no claim offered");
   else if (held === null)
     l.push("Balance read failed: could not confirm the contract can pay, so no claim is offered");
   if (e.family === "pull-payment")
