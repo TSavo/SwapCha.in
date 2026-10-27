@@ -359,7 +359,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     {
       title: "LTC/DOGE/BCH deposit address (THORChain)",
       description:
-        "Send Litecoin, Dogecoin or Bitcoin Cash through THORChain from any wallet that can add an OP_RETURN memo. Returns THORChain's vault, the exact amount, the REQUIRED memo (with the refund address in it), the minimum, the expiry and warnings. Tell the user: the memo is mandatory, never send from an exchange (exchanges cannot add the memo), send exactly this amount once before expiry. Nothing is sent by this call. For an unsigned PSBT instead, use get_quote then build with the sender as taker.",
+        "Send Litecoin, Dogecoin or Bitcoin Cash through THORChain from any wallet that can add an OP_RETURN memo. Returns THORChain's vault, the exact amount, the REQUIRED memo with its byte count, the minimum, the expiry and warnings. THORChain usually cannot fit a refund address in these memos: when refundInMemo is false (refundTo: sender), a failed swap is refunded to the address that sent the coins, so tell the user plainly to send only from a wallet address they control, never from an exchange. Always: the memo is mandatory, send exactly this amount once before expiry, and show every warning. Nothing is sent by this call. For an unsigned PSBT instead, use get_quote then build with the sender as taker.",
       inputSchema: z.object({
         fromChainId: z
           .number()
@@ -370,15 +370,25 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
         toToken: z.string(),
         amount: z.string().regex(/^\d+$/).describe("Base units (1e8 per coin)"),
         recipient: z.string().describe("Payout address on toChainId"),
-        refund: z.string().describe("The user's own address on the sending chain, for refunds"),
+        refund: z
+          .string()
+          .optional()
+          .describe(
+            "Optional: the user's own address on the sending chain. Put in the memo only if THORChain fits it (see refundInMemo); otherwise refunds go to the sending address",
+          ),
         slippageBps: z.number().int().min(1).max(5000).default(100),
       }),
       annotations: ro,
     },
     safe(
-      async ({ refund, ...r }: Record<string, unknown> & { refund: string }) =>
-        api.utxoDeposit(r as unknown as QuoteRequest, refund),
-      () => ({ says: "Exact amount, exact memo, before expiry~ and never from an exchange!" }),
+      async ({ refund, ...r }: Record<string, unknown>) =>
+        api.utxoDeposit(
+          r as unknown as QuoteRequest,
+          typeof refund === "string" ? refund : undefined,
+        ),
+      () => ({
+        says: "Exact amount, exact memo, before expiry~ Send from your own wallet, never an exchange: refunds go back to the sender!",
+      }),
     ),
   );
 

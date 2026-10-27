@@ -337,15 +337,24 @@ describe("API: /chains, /tokens, /quotes, /build", () => {
     guard: guardCtx,
     simulator: null,
   });
-  it("/chains marks the three as receive-only uvm chains", async () => {
+  it("/chains marks the three as THORChain-only uvm chains that send and receive", async () => {
     const cs = (await (await app.request("/chains")).json()) as {
       id: number;
       vm: string;
       receiveOnly?: boolean;
+      thorchainOnly?: boolean;
     }[];
+    // they send and receive now (THORChain only); receiveOnly stays present as false for old consumers
     for (const id of RECEIVE_ONLY_CHAINS)
-      expect(cs.find((c) => c.id === id)).toMatchObject({ vm: "uvm", receiveOnly: true });
+      expect(cs.find((c) => c.id === id)).toMatchObject({
+        vm: "uvm",
+        receiveOnly: false,
+        thorchainOnly: true,
+        canSend: true,
+        canReceive: true,
+      });
     expect(cs.find((c) => c.id === 1)?.receiveOnly).toBeUndefined();
+    expect(cs.find((c) => c.id === 1)?.thorchainOnly).toBeUndefined();
   });
   it("/tokens returns the native coin with 8 decimals", async () => {
     const t = await (await app.request(`/tokens?chainId=${DOGECOIN}`)).json();

@@ -203,6 +203,56 @@ function checkRecipientMemo(c: Acc, memo: string, dest: string | undefined, toCh
   c.part("minOut-bound", "THORChain limit is in 1e8 units; checked > 0 only");
 }
 
+/** THORChain short asset codes it emits in generated memos (native coins only). */
+const THOR_SHORT: Record<string, string> = {
+  "ETH.ETH": "e",
+  "BTC.BTC": "b",
+  "LTC.LTC": "l",
+  "DOGE.DOGE": "d",
+  "BCH.BCH": "c",
+  "AVAX.AVAX": "a",
+  "BSC.BNB": "s",
+};
+/**
+ * Why THORChain's memo does not pay what was asked, or null when it does. Asset (field 1): for LTC/DOGE/BCH the
+ * THOR_DEST_ASSET forms; otherwise the requested pool asset, its short code, or THORChain's fuzzy token form
+ * (same chain and symbol, "-<suffix>" of the requested contract). Payout (field 2 before "/"): for LTC/DOGE/BCH the
+ * blocktools-validated canonical address exactly; EVM case-insensitive; other chains exactly.
+ */
+export function thorMemoMismatch(
+  memo: string,
+  toChainId: number,
+  toAsset: string,
+  dest: string,
+): string | null {
+  const m = parseThorMemo(memo);
+  if (!m) return "unparseable THORChain memo";
+  const asset = memo.split(":")[1] ?? "";
+  const want = toAsset.toUpperCase();
+  const forms = THOR_DEST_ASSET[toChainId];
+  let assetOk: boolean;
+  if (forms) assetOk = forms.includes(asset);
+  else {
+    const a = asset.toUpperCase();
+    const [wp, wr = ""] = want.split(".");
+    const [ap, ar = ""] = a.split(".");
+    const [wsym, wid = ""] = wr.split("-");
+    const [asym, aid = ""] = ar.split("-");
+    assetOk =
+      a === want ||
+      (THOR_SHORT[want] !== undefined && asset === THOR_SHORT[want]) ||
+      (!!wid && !!aid && ap === wp && asym === wsym && wid.endsWith(aid));
+  }
+  if (!assetOk) return `memo asset ${asset} is not ${toAsset}`;
+  if (isReceiveOnly(toChainId)) {
+    const v = validateUtxoRecipient(toChainId, dest);
+    if (!v.ok) return v.reason;
+    if (m.dest !== v.address) return `memo destination ${m.dest} != validated ${v.address}`;
+  } else if (isEvmChain(toChainId) ? lc(m.dest) !== lc(dest) : m.dest !== dest)
+    return `memo destination ${m.dest} != ${dest}`;
+  return null;
+}
+
 /**
  * The memo SwapChan expects on a THORChain-only send, built by SwapChan itself rather than trusted from the payload:
  * THORChain's limit/streaming/affiliate fields are kept, but the asset must be one SwapChan accepts for the requested

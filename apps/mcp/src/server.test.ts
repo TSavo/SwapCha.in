@@ -50,11 +50,13 @@ const ethToUsdc = {
 };
 
 describe("swapchan mcp over streamable http", () => {
-  it("lists Litecoin, Dogecoin and Bitcoin Cash as THORChain-only chains (receiveOnly flag kept)", async () => {
+  it("lists Litecoin, Dogecoin and Bitcoin Cash as THORChain-only chains (send and receive)", async () => {
     const c = await connect();
     const t = text(await c.callTool({ name: "get_supported_chains", arguments: {} }));
     for (const n of ["Litecoin", "Dogecoin", "Bitcoin Cash"]) expect(t).toContain(n);
-    expect(t).toMatch(/"receiveOnly": ?true/);
+    expect(t).toMatch(/"thorchainOnly": ?true/);
+    expect(t).toMatch(/"canSend": ?true/);
+    expect(t).not.toMatch(/"receiveOnly": ?true/);
     const tools = await c.listTools();
     const q = tools.tools.find((x) => x.name === "get_quote");
     expect(JSON.stringify(q?.inputSchema)).toContain("2000000002 Litecoin");

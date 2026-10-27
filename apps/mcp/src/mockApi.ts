@@ -156,7 +156,9 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
           Object.entries(SUPPORTED_CHAINS).map(([id, c]) => ({
             id: Number(id),
             ...c,
-            ...(isReceiveOnly(Number(id)) ? { receiveOnly: true } : {}),
+            ...(isReceiveOnly(Number(id))
+              ? { receiveOnly: false, thorchainOnly: true, canSend: true, canReceive: true }
+              : {}),
           })),
         );
       case "/tokens": {

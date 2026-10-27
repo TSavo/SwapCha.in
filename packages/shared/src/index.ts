@@ -49,7 +49,8 @@ export const NON_EVM: Record<number, { vm: Vm; native: string }> = {
   [BITCOIN_CASH]: { vm: "uvm", native: "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqfnhks603" },
 };
 /** THORChain-only chains (LTC, DOGE, BCH): both directions route through THORChain only (no Relay, no LI.FI).
- *  The name and the API's `receiveOnly` flag are kept for compatibility: sending them is THORChain-only too. */
+ *  The name is kept for compatibility; the API's /chains now reports them as `thorchainOnly: true`, `canSend: true`,
+ *  `canReceive: true` and `receiveOnly: false` (they were destination-only before deposits and PSBT sends). */
 export const RECEIVE_ONLY_CHAINS: readonly number[] = [LITECOIN, DOGECOIN, BITCOIN_CASH];
 export const isReceiveOnly = (chainId: number) => RECEIVE_ONLY_CHAINS.includes(chainId);
 export const vmOf = (chainId: number): Vm => NON_EVM[chainId]?.vm ?? "evm";
@@ -81,8 +82,13 @@ export const Chain = z.object({
   id: ChainId,
   name: z.string(),
   mascot: z.string(),
-  /** Additive v1: true = destination only (cannot be the sending chain yet). */
+  /** Additive v1, deprecated: was true while LTC/DOGE/BCH were destination only. Now false for them (they send too). */
   receiveOnly: z.boolean().optional(),
+  /** true = both directions route through THORChain only (LTC, DOGE, BCH). */
+  thorchainOnly: z.boolean().optional(),
+  /** directions this chain supports; absent = both */
+  canSend: z.boolean().optional(),
+  canReceive: z.boolean().optional(),
 });
 export type Chain = z.infer<typeof Chain>;
 
@@ -308,7 +314,11 @@ export const UtxoDeposit = z.object({
   minimumDisplay: z.string(),
   /** unix seconds after which the memo's quote is stale */
   expiresAt: z.number(),
+  /** refund address the user gave ("" if none); in the memo only when refundInMemo */
   refund: z.string(),
+  /** true: THORChain refunds to `refund` (named in the memo). false: refunds go to the address that sent the coins. */
+  refundInMemo: z.boolean().default(true),
+  refundTo: z.enum(["memo", "sender"]).default("memo"),
   expectedOut: z.string(),
   warnings: z.array(z.string()),
 });

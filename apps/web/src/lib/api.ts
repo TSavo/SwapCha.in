@@ -93,11 +93,11 @@ export const api = {
       ? Promise.resolve(mockStatus(req.txHash))
       : call(`/status?${toQuery({ ...req })}`, StatusResponseSchema),
   /** LTC/DOGE/BCH deposit-address flow (THORChain only). */
-  utxoDeposit: (req: QuoteRequest, refund: string): Promise<UtxoDeposit> =>
+  utxoDeposit: (req: QuoteRequest, refund?: string): Promise<UtxoDeposit> =>
     call("/utxo/deposit", UtxoDeposit, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...req, refund }),
+      body: JSON.stringify(refund ? { ...req, refund } : req),
     }),
   /** Read-only THORChain progress of an inbound txid. */
   utxoStatus: (txid: string): Promise<UtxoTrack> =>
