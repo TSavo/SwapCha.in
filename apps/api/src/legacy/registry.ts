@@ -24,6 +24,7 @@ import {
   validBurnRefund,
 } from "./burnrefund.js";
 import REG from "./registry.json" with { type: "json" };
+import { scanSimClaim, simClaimAllowlist, simLabel, validSimClaim } from "./simclaim.js";
 
 export type Family = "etherdelta-dex" | "fomo3d" | string;
 export interface RegistryEntry {
@@ -52,6 +53,8 @@ export const FAMILY_CLAIM: Record<string, string> = {
   "ether-balances": "withdrawEther(uint256)",
   "presale-safe-withdrawal": "safeWithdrawal()",
   hourglass: "withdraw()",
+  // Ethfinex WrapperLockEth: after the deposit lock expired the signature fields are unused (passed as zero)
+  "ethfinex-wrapper": "withdraw(uint256,uint8,bytes32,bytes32,uint256)",
 };
 /** Single-read families: the per-address view (on the contract itself) that returns the ETH owed. */
 export const FAMILY_VIEW: Record<string, { fn: string; sig: string; zeroFirst?: boolean }> = {
@@ -59,14 +62,20 @@ export const FAMILY_VIEW: Record<string, { fn: string; sig: string; zeroFirst?: 
   "weth-wrapper": { fn: "balanceOf", sig: "balanceOf(address)" },
   "ether-balances": { fn: "balances", sig: "balances(address)" },
   "presale-safe-withdrawal": { fn: "balanceOf", sig: "balanceOf(address)" },
+  "ethfinex-wrapper": { fn: "balanceOf", sig: "balanceOf(address)" },
 };
 /** Claims that take the owed amount as their single uint256 argument. */
-const AMOUNT_ARG = new Set(["withdraw(uint256)", "withdrawEther(uint256)"]);
+const AMOUNT_ARG = new Set([
+  "withdraw(uint256)",
+  "withdrawEther(uint256)",
+  "withdraw(uint256,uint8,bytes32,bytes32,uint256)",
+]);
 export const SCANNED_FAMILIES = new Set<Family>(Object.keys(FAMILY_CLAIM));
 /** Confirmed rows whose claim matches the family's pinned selector; any mismatch is refused (not scanned). */
 const validPr1 = (e: RegistryEntry) =>
   e.status === "confirmed" && SCANNED_FAMILIES.has(e.family) && e.claim === FAMILY_CLAIM[e.family];
-export const validEntry = (e: RegistryEntry) => validPr1(e) || validBurnRefund(e);
+export const validEntry = (e: RegistryEntry) =>
+  validPr1(e) || validBurnRefund(e) || validSimClaim(e);
 export const scanned = () => REGISTRY.filter(validEntry);
 export const refused = () => REGISTRY.filter((e) => e.status === "confirmed" && !validEntry(e));
 
@@ -77,7 +86,8 @@ export const REGISTRY_ALLOWLIST: Record<string, string[]> = {
       .filter(validPr1)
       .map((e) => [e.address.toLowerCase(), [btSelector(FAMILY_CLAIM[e.family]!)]]),
   ),
-  ...burnRefundAllowlist(scanned().filter((e) => !validPr1(e))),
+  ...burnRefundAllowlist(scanned().filter((e) => !validPr1(e) && !validSimClaim(e))),
+  ...simClaimAllowlist(scanned()),
 };
 /** token -> the only spender a two-step approval may name (exact amount, never unlimited). */
 export const REGISTRY_APPROVALS: Record<string, string> = burnApprovals(scanned());
@@ -97,7 +107,8 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
   if (e.ownerGated) l.push("Owner action required: the contract owner must unlock claims first");
   if (e.multiStep)
     l.push("Two steps: approve the exact token amount to the redemption contract, then claim");
-  if (held === null)
+  if (held === null && simLabel(e)) l.push("Contract balance not verified, no claim offered");
+  else if (held === null)
     l.push("Balance read failed: could not confirm the contract can pay, so no claim is offered");
   if (e.family === "pull-payment")
     l.push(
@@ -106,6 +117,12 @@ export function labels(e: RegistryEntry, owed: bigint, held: bigint | null): str
   if (e.family === "hourglass")
     l.push(
       "Dividends only: withdraw() pays your ETH dividends; any clone tokens you still hold are not sold",
+    );
+  const sl = simLabel(e);
+  if (sl) l.push(sl);
+  if (e.family === "ethfinex-wrapper")
+    l.push(
+      "Ethfinex wrapper: burns your ETHW wrapper tokens 1:1 for ETH (deposit lock long expired)",
     );
   if (held !== null && held < owed)
     l.push(
@@ -124,6 +141,7 @@ const A = {
   vaults: parseAbiItem("function getPlayerVaults(uint256) view returns (uint256,uint256,uint256)"),
   withdraw0: parseAbiItem("function withdraw()"),
   withdraw1: parseAbiItem("function withdraw(uint256)"),
+  withdrawLock: parseAbiItem("function withdraw(uint256,uint8,bytes32,bytes32,uint256)"),
 };
 const ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -327,7 +345,13 @@ export async function scanRegistry(
                   functionName: "withdrawEther",
                   args: [amt],
                 })
-              : encodeFunctionData({ abi: [A.withdraw1], functionName: "withdraw", args: [amt] })
+              : sig === "withdraw(uint256,uint8,bytes32,bytes32,uint256)"
+                ? encodeFunctionData({
+                    abi: [A.withdrawLock],
+                    functionName: "withdraw",
+                    args: [amt, 0, `0x${"0".repeat(64)}`, `0x${"0".repeat(64)}`, 0n],
+                  })
+                : encodeFunctionData({ abi: [A.withdraw1], functionName: "withdraw", args: [amt] })
       ) as `0x${string}`;
       const [held, simOk] = await Promise.all([
         c.getBalance({ address: e.address as `0x${string}`, ...at }).catch(() => null),
@@ -361,13 +385,21 @@ export async function scanRegistry(
     c as never,
     owner,
     block,
-    scanned().filter((e) => !validPr1(e)),
+    scanned().filter((e) => !validPr1(e) && !validSimClaim(e)),
   ).catch(() => ({
     hits: [],
     failed: scanned()
-      .filter((e) => !validPr1(e))
+      .filter((e) => !validPr1(e) && !validSimClaim(e))
       .map((e) => e.name),
   }));
+  const sc = await scanSimClaim(c as never, owner, block, scanned()).catch(() => ({
+    hits: [],
+    failed: scanned()
+      .filter(validSimClaim)
+      .map((e) => e.name),
+  }));
+  failed.push(...sc.failed);
+  for (const b of sc.hits) hits.push({ ...b, labels: labels(b.entry, b.owedWei, b.heldWei) });
   failed.push(...br.failed);
   for (const b of br.hits) hits.push({ ...b, labels: labels(b.entry, b.owedWei, b.heldWei) });
   const notChecked: string[] = [];

@@ -3,7 +3,7 @@
  * from CHAIN_PAGE_ROWS (blocktools chainParams()); nothing here claims signing, sweeping or balances. Unverified rows
  * (addressValidate refuses them) get no page.
  */
-import { CHAIN_PAGE_ROWS, type ChainPageRow } from "@swapchan/shared";
+import { CHAIN_PAGE_ROWS, CHAIN_TABLE, type ChainPageRow } from "@swapchan/shared";
 
 export type ChainPage = ChainPageRow & {
   h1: string;
@@ -16,7 +16,14 @@ export type ChainPage = ChainPageRow & {
   /** other verified chains whose legacy addresses use the same version byte (look-alikes) */
   lookAlikes: { slug: string; title: string }[];
   related: string[];
+  /** What SwapChan does for this chain: always address checking only (it never signs or holds keys). */
+  capability: string;
+  /** chainTable `buildable`: the offline CLI builds and signs transfers for this chain (a UTXO sweep builder exists). */
+  offlineCli: boolean;
 };
+
+const CAPABILITY =
+  "Address checking only: SwapChan validates the format and tells you which address type it is. It does not hold funds, sign transactions or recover wallets for this chain.";
 
 const SITE = "https://swapchan.com";
 const SAFE =
@@ -258,13 +265,15 @@ function build(r: ChainPageRow, all: readonly ChainPageRow[]): ChainPage {
     ...r,
     h1: `${name} (${r.ticker}) address validator`,
     pageTitle: `${name} Address Validator & Format (${r.ticker}) | SwapChan`,
-    description: `Check a ${name} (${r.ticker}) address: ${formatShort}, ${r.decimals} decimals. Public data only, no keys.`,
-    intro: `Paste a ${name} address to check its checksum and format and see which address type it is. Below: how ${r.ticker} addresses are built, an example, and the chains it can be confused with.`,
+    description: `Check a ${name} (${r.ticker}) address format: ${formatShort}. Address checking only, no keys.`,
+    intro: `Address checking only. Paste a ${name} address to check its checksum and format and see which address type it is. Below: how ${r.ticker} addresses are built, an example, and the chains it can be confused with.`,
     formats,
     notes,
     faq,
     lookAlikes,
     related,
+    capability: CAPABILITY,
+    offlineCli: CHAIN_TABLE.find((t) => t.name === r.name)?.buildable === true,
   };
 }
 
