@@ -99,7 +99,7 @@ export const TOOLS: ToolInfo[] = [
     mcp: "contract_read",
     emoji: "📜",
     blurb:
-      "Load a verified ABI (Sourcify, Etherscan), query read functions and build write calls your own wallet signs.",
+      "Load a verified ABI (Sourcify, Etherscan), query read functions, check write calls before signing and build contract creations your own wallet signs.",
     prompt: "What does balanceOf(0x…) return on the USDC contract on Base?",
   },
   {

@@ -59,9 +59,11 @@ Returns `id`, a private dashboard `token` and `dashboardUrl`. Sites can embed th
 | Tool                                                | What it does                                                                                                         |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `get_supported_chains`                              | Networks SwapChan routes across (each with its own chan)                                                             |
-| `contract_abi`                                      | Contract ABI from Sourcify / Etherscan (or pasted), EIP-1967 proxies followed                                        |
+| `contract_abi`                                      | Contract ABI from Sourcify / Etherscan (or pasted), proxies followed (5 kinds)                                       |
 | `contract_read`                                     | eth_call a view function and decode it (failed read = error, never zero)                                             |
 | `contract_encode_call`                              | Unsigned call data + decoded view for your own wallet to send                                                        |
+| `contract_approve_call`                             | Pre-signing verdict (blocktools approve + verifyTx); do not send on fail                                             |
+| `contract_build_creation`                           | Unsigned contract creation: initcode, keccak, predicted address                                                      |
 | `get_supported_tokens`                              | Tokens available per chain                                                                                           |
 | `get_quote`                                         | Best single route for a swap                                                                                         |
 | `compare_routes`                                    | Every provider ranked by net USD after gas + fees                                                                    |

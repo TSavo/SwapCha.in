@@ -185,6 +185,20 @@ export class SwapChanApi {
       30_000,
     );
   }
+  contractApprove(b: Record<string, unknown>): Promise<Rec> {
+    return this.rec(
+      "/contract-tool/approve",
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) },
+      30_000,
+    );
+  }
+  contractCreate(b: Record<string, unknown>): Promise<Rec> {
+    return this.rec(
+      "/contract-tool/create",
+      { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) },
+      30_000,
+    );
+  }
   private rec(path: string, init?: RequestInit, timeoutMs?: number): Promise<Rec> {
     return this.req(z.record(z.string(), z.unknown()), path, init, timeoutMs);
   }
