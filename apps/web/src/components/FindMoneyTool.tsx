@@ -32,6 +32,8 @@ type Result = Freshness & {
   atRiskUsd?: number;
   items: Item[];
   headline?: string;
+  partial?: boolean;
+  incompleteSources?: number;
   owedNotClaimableNow?: { protocol: string; owed: string | null; reason: string; link?: string }[];
   progress?: { done: number; total: number; percent: number };
   status?: string;
@@ -149,6 +151,25 @@ export function FindMoneyTool() {
                 Refresh
               </button>
             </p>
+          )}
+          {res.partial && (
+            <div
+              role="alert"
+              className="mb-2 rounded-xl border border-amber-400 bg-amber-950/40 p-3 text-sm text-amber-200"
+              data-testid="find-money-partial"
+            >
+              Partial scan: {res.incompleteSources ?? "some"} source
+              {res.incompleteSources === 1 ? "" : "s"} timed out or could not be fully read, so
+              these totals are a lower bound.{" "}
+              <button
+                type="button"
+                onClick={() => void scan(text, true)}
+                disabled={busy}
+                className="underline disabled:opacity-50"
+              >
+                Refresh
+              </button>
+            </div>
           )}
           <p className="text-lg font-black">
             {usd(exact)} found on-chain

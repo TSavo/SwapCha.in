@@ -69,11 +69,29 @@ export function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Pro
         cache.delete(k);
   cache.set(key, { at: Date.now(), v });
   // only drop our own entry: a newer scan for the same key may have replaced it meanwhile
-  v.catch(() => {
-    if (cache.get(key)?.v === v) cache.delete(key);
-  });
+  // a partial result (some source timed out) stays cached only briefly, so it is not served as complete
+  v.then(
+    (r) => {
+      if (
+        r &&
+        typeof r === "object" &&
+        (r as { partial?: unknown }).partial === true &&
+        ttlMs > PARTIAL_TTL_MS
+      ) {
+        const t = setTimeout(() => {
+          if (cache.get(key)?.v === v) cache.delete(key);
+        }, PARTIAL_TTL_MS);
+        (t as { unref?: () => void }).unref?.();
+      }
+    },
+    () => {
+      if (cache.get(key)?.v === v) cache.delete(key);
+    },
+  );
   return v;
 }
+/** How long a partial (timed-out) find_money / airdrop_check result stays cached. */
+export const PARTIAL_TTL_MS = 20_000;
 export const clearScannerCache = () => cache.clear();
 /** True when a live (unexpired) entry exists for key. */
 export const peekCached = (key: string, ttlMs: number) => {
