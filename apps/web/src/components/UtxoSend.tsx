@@ -164,7 +164,12 @@ function DepositView({ d }: { d: UtxoDeposit }) {
         Memo (required, {d.memoBytes}/{d.memoLimit} bytes):{" "}
         <span className="break-all font-mono">{d.memo}</span> <CopyButton value={d.memo} />
       </p>
-      <p>Minimum: {d.minimumDisplay}</p>
+      <p data-testid="utxo-minimum">
+        Minimum: {d.minimumDisplay} {d.chain}
+        {d.practicalMinimum
+          ? " (THORChain's current estimate of its minimum swap; it can change)"
+          : " (THORChain's dust threshold)"}
+      </p>
       <p>Expires: {new Date(d.expiresAt * 1000).toLocaleString()}</p>
       {d.refundInMemo ? (
         <p>

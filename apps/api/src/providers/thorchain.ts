@@ -37,6 +37,21 @@ export const UTXO_MIN: Record<number, bigint> = {
 const DUST = /dust threshold/i;
 const MIN_SWAP = /min(?:imum)? swap amount(?:[^\d]*recommended_min_amount_in:\s*(\d+))?/i;
 const TOO_LOW = /amount (?:is )?(?:too (?:low|small)|less than)/i;
+/** THORChain's zero-output refusal ("emit asset 0 less than price limit"): the amount is below what it can swap.
+ *  A non-zero emit under the price limit is a slippage refusal and stays unmapped. */
+const PRICE_LIMIT = /emit asset 0 less than price limit/i;
+/** "fail swap, invalid amount": e.g. 10^30 base units. */
+const INVALID_AMOUNT = /\binvalid amount\b/i;
+export const AMOUNT_INVALID = "amount invalid or too large";
+/** THORChain's practical minimum (recommended_min_amount_in, 1e8 units) as shown to users; null when absent. */
+export const practicalOf = (raw: string | undefined) =>
+  raw && /^\d+$/.test(raw) && BigInt(raw) > 0n
+    ? {
+        amount: raw,
+        display: fromBaseUnits(BigInt(raw), 8),
+        note: "THORChain's current estimate of its minimum; it changes with fees and can be higher when you send",
+      }
+    : null;
 export const belowMinimum = (min: bigint, sym: string) =>
   `below minimum: send at least ${fromBaseUnits(min, 8)} ${sym}`;
 const DEFAULT_BASE = "https://gateway.liquify.com/chain/thorchain_api/thorchain";
@@ -154,6 +169,8 @@ export function thorchain(
   utxos?: UtxoSource,
 ): ThorAdapter {
   const base = env.THORNODE_URL || DEFAULT_BASE;
+  /** Last recommended_min_amount_in seen per source asset (1e8 units), for replies that carry no number. */
+  const lastPractical = new Map<string, bigint>();
   const affiliate = env.THORCHAIN_AFFILIATE || "swapchan";
   // Only send the affiliate once the THORName exists (THORChain rejects unknown names).
   let named: { at: number; v: Promise<boolean> } | undefined;
@@ -255,7 +272,9 @@ export function thorchain(
             (MEMO_TOO_LONG.test(e.message) ||
               DUST.test(e.message) ||
               MIN_SWAP.test(e.message) ||
-              TOO_LOW.test(e.message))
+              TOO_LOW.test(e.message) ||
+              PRICE_LIMIT.test(e.message) ||
+              INVALID_AMOUNT.test(e.message))
           )
             return { error: e.message } as ThorQuote;
           throw e;
@@ -288,10 +307,18 @@ export function thorchain(
       const sym = isNative(req.fromChainId, req.fromToken)
         ? (PREFIX[req.fromChainId] ?? fromAsset)
         : fromAsset;
+      if (INVALID_AMOUNT.test(e)) throw new RouteRefused(AMOUNT_INVALID);
       const ms = MIN_SWAP.exec(e);
-      if (ms?.[1]) throw new RouteRefused(belowMinimum(BigInt(ms[1]), sym));
-      if (DUST.test(e) || ms || TOO_LOW.test(e)) {
-        const min = UTXO_MIN[req.fromChainId];
+      if (ms?.[1]) {
+        lastPractical.set(fromAsset, BigInt(ms[1]));
+        throw new RouteRefused(belowMinimum(BigInt(ms[1]), sym));
+      }
+      if (DUST.test(e) || ms || TOO_LOW.test(e) || PRICE_LIMIT.test(e)) {
+        // Price-limit replies carry no number: use THORChain's last recommended minimum for this asset when
+        // one was seen, else our floor (or a plain "send more").
+        const floor = UTXO_MIN[req.fromChainId];
+        const seen = lastPractical.get(fromAsset);
+        const min = seen !== undefined && (floor === undefined || seen > floor) ? seen : floor;
         throw new RouteRefused(
           min !== undefined
             ? belowMinimum(min, sym)
@@ -319,6 +346,8 @@ export function thorchain(
       if (destField.includes("/"))
         throw new Error("THORChain: unexpected refund address in shortened memo");
     }
+    if (r.recommended_min_amount_in && /^\d+$/.test(r.recommended_min_amount_in))
+      lastPractical.set(fromAsset, BigInt(r.recommended_min_amount_in));
     return { r, src, dst, refundDropped, toAsset, destination };
   };
 
@@ -452,6 +481,9 @@ export function thorchain(
         ourFeeUsd: ourFeeUsd ?? 0,
         ourFeeVerified: affRaw > 0n,
         ...(x?.nonEvmTx ? { execution: "nonevm" as const, nonEvmTx: x.nonEvmTx } : {}),
+        ...(UTXO_DEST[req.fromChainId] || vmOf(req.fromChainId) === "bvm"
+          ? { practicalMinimum: practicalOf(r.recommended_min_amount_in) }
+          : {}),
       });
     },
     async build(req, signal): Promise<BuildResponse> {
@@ -547,6 +579,8 @@ export function thorchain(
           `amount must be above THORChain's ${d.sym} minimum of ${fromBaseUnits(dust, 8)} ${d.sym}; smaller sends are lost`,
         );
       const out = scale(BigInt(r.expected_amount_out), 8, dst.decimals);
+      const practical = practicalOf(r.recommended_min_amount_in);
+      const shown = practical && BigInt(practical.amount) > dust ? BigInt(practical.amount) : dust;
       return {
         chain: d.sym,
         vault: r.inbound_address,
@@ -556,7 +590,8 @@ export function thorchain(
         memoBytes,
         memoLimit: limit,
         minimum: dust.toString(),
-        minimumDisplay: fromBaseUnits(dust, 8),
+        minimumDisplay: fromBaseUnits(shown, 8),
+        practicalMinimum: practical,
         expiresAt: r.expiry,
         refund: given,
         refundInMemo,
