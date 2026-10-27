@@ -10,6 +10,7 @@ import { formatUnits, getAddress, parseAbi } from "viem";
 import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { chainName, evmClient, json, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
+import { safeReason } from "./reasons.js";
 
 type F = typeof fetch;
 type Out = { items: Found[]; notChecked: string[] };
@@ -184,9 +185,7 @@ export async function hedgeyPlans(f: F, env: NodeJS.ProcessEnv, owner: string): 
         new Promise<never>((_, rej) => setTimeout(() => rej(new Error("timeout")), 9_000)),
       ]).catch(
         (e) => (
-          notChecked.push(
-            `Hedgey on ${chainName(id)}: not checked (${String((e as Error).message).slice(0, 50)})`,
-          ),
+          notChecked.push(`Hedgey on ${chainName(id)}: not checked (${safeReason(e)})`),
           [] as Found[]
         ),
       ),
@@ -585,9 +584,7 @@ export async function superfluidBalances(
           }),
         );
       } catch (e) {
-        notChecked.push(
-          `Superfluid on ${chainName(chainId)}: not checked (${String((e as Error).message).slice(0, 50)})`,
-        );
+        notChecked.push(`Superfluid on ${chainName(chainId)}: not checked (${safeReason(e)})`);
         return [] as Found[];
       }
     }),

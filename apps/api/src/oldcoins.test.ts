@@ -60,7 +60,7 @@ describe("old coins: data-driven rows", () => {
     expect(r.notChecked).toEqual(
       expect.arrayContaining([
         "Namecoin: no working public explorer (not checked)",
-        "Dash: not checked (timed out after 0.2s)",
+        "Dash: not checked (timed out after 0.2s, results may be incomplete)",
       ]),
     );
   }, 30_000);

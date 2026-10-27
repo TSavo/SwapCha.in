@@ -15,6 +15,7 @@ import {
   btXpubAddresses,
 } from "./blocktools.js";
 import { fetchPrevTxs, type PrevSource } from "./prevtx.js";
+import { safeReason } from "./reasons.js";
 import type { NewFound } from "./recover.js";
 
 type F = typeof fetch;
@@ -1116,9 +1117,7 @@ export async function utxoScan(
         ]);
         items.push(...r);
       } catch (e) {
-        notChecked.push(
-          `${COINS[s.coin].name}: not checked (${String((e as Error)?.message ?? e).slice(0, 60)})`,
-        );
+        notChecked.push(`${COINS[s.coin].name}: not checked (${safeReason(e)})`);
       } finally {
         clearTimeout(to);
       }
