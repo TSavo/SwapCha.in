@@ -20,6 +20,8 @@ import { type Pricer, ZERO_ADDRESS } from "../pricing.js";
 import { UTXO_DEST, validateUtxoRecipient } from "../utxodest.js";
 import { type Fetch, getJson, type ProviderAdapter, placeholderFor } from "./types.js";
 
+/** THORChain's error when memo + refund + affiliate exceed the source chain's memo limit (BTC: 80 bytes). */
+const MEMO_TOO_LONG = /memo too long/i;
 const DEFAULT_BASE = "https://gateway.liquify.com/chain/thorchain_api/thorchain";
 /** Our chain id -> THORChain chain prefix. */
 const PREFIX: Record<number, string> = {
@@ -169,9 +171,47 @@ export function thorchain(
       q.set("affiliate", affiliate);
       q.set("affiliate_bps", String(feeBps));
     }
-    const r = await getJson<ThorQuote>(f, `${base}/quote/swap?${q}`, { signal });
-    if (r.error || r.message) throw new Error(r.error ?? r.message);
-    return { r, src, dst };
+    // THORChain answers an over-long memo with HTTP 400, which getJson throws; read it as an error body.
+    const ask = () =>
+      getJson<ThorQuote>(f, `${base}/quote/swap?${q}`, { signal }).catch(
+        (e: unknown): ThorQuote => {
+          if (e instanceof Error && MEMO_TOO_LONG.test(e.message))
+            return { error: e.message } as ThorQuote;
+          throw e;
+        },
+      );
+    let r = await ask();
+    let refundDropped = false;
+    const err = r.error ?? r.message;
+    if (
+      err &&
+      MEMO_TOO_LONG.test(err) &&
+      q.has("refund_address") &&
+      vmOf(req.fromChainId) === "bvm"
+    ) {
+      // Bitcoin memos ride in an 80-byte OP_RETURN. "=:e:<42-char 0x addr>:LIM/1/0" is already ~52 bytes, so
+      // "/<refund>" overflows for every BTC address type. THORChain refunds to the sending address when the memo
+      // names none, and our PSBT spends only the taker's UTXOs, so a refund still goes to req.taker.
+      // The affiliate is never dropped: if it is what overflows, the retry fails and we refuse below.
+      q.delete("refund_address");
+      r = await ask();
+      refundDropped = true;
+    }
+    if (r.error || r.message) {
+      const e = r.error ?? r.message ?? "";
+      throw new Error(
+        MEMO_TOO_LONG.test(e)
+          ? "THORChain: memo does not fit Bitcoin's 80-byte OP_RETURN for this destination; refusing rather than dropping SwapChan's fee"
+          : e,
+      );
+    }
+    if (refundDropped) {
+      // Trust THORChain's own memo: its destination field must name no refund address.
+      const destField = (r.memo ?? "").split(":")[2] ?? "";
+      if (destField.includes("/"))
+        throw new Error("THORChain: unexpected refund address in shortened memo");
+    }
+    return { r, src, dst, refundDropped };
   };
 
   const toTx = async (
