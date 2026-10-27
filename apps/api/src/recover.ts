@@ -696,14 +696,14 @@ export async function solanaStake(
               ],
             },
           },
-          description: `StakeProgram.Withdraw(${sol.toFixed(4)} SOL) from ${a.pubkey.slice(0, 8)}…`,
+          description: `StakeProgram.Withdraw(${sol.toFixed(4)} SOL) from ${a.pubkey}`,
         }
       : undefined;
     return {
       kind: "claimable" as const,
       protocol: "Solana stake account",
       chainId: SOLANA,
-      what: `${a.pubkey.slice(0, 6)}…: ${sol.toFixed(4)} SOL ${free ? "deactivated, withdrawable now" : de < 1e15 ? "deactivating" : "still delegated"}`,
+      what: `${a.pubkey}: ${sol.toFixed(4)} SOL ${free ? "deactivated, withdrawable now" : de < 1e15 ? "deactivating" : "still delegated"}`,
       valueUsd: p ? r2(sol * p) : null,
       ...(withdrawIx ? { claimTx: withdrawIx } : {}),
       action: free

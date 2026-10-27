@@ -12,6 +12,7 @@
  * logged or echoed (errors carry a host and status only). Failed reads return an error, never a zero.
  */
 import { Hono } from "hono";
+import { fullAddress } from "./addrDisplay.js";
 import { blocktools } from "./blocktools.js";
 import { socketAddressOf } from "./clientip.js";
 import { clientOf } from "./devtools.js";
@@ -428,6 +429,14 @@ export function contractTool(d: Deps) {
           "No verified ABI found on Sourcify or Etherscan. Paste the ABI to use this contract.",
         );
     }
+    // Display form: EIP-55 checksummed, never lowercase (lookups above keep the raw form).
+    if (proxy)
+      proxy = {
+        ...proxy,
+        implementation: fullAddress(proxy.implementation),
+        ...(proxy.beacon ? { beacon: fullAddress(proxy.beacon) } : {}),
+      };
+    if (abiOf && abiOf !== address) abiOf = fullAddress(abiOf);
     if (proxy) warnings.push(proxyWarning(proxy));
     return {
       chainId,

@@ -7,6 +7,7 @@
  * Every tx is simulated from the owner before it is offered. Each chain/source fails into its own "not checked" line.
  */
 import { formatUnits, getAddress, parseAbi } from "viem";
+import { fullAddress } from "./addrDisplay.js";
 import { encodeFunctionData } from "./blocktools.js";
 import type { Found } from "./intel.js";
 import { chainName, evmClient, json, prices, pxOf, swapUrl, usdcOf } from "./onchain.js";
@@ -367,7 +368,7 @@ export async function uncxLocks(f: F, env: NodeJS.ProcessEnv, owner: string): Pr
             kind: "lead",
             protocol: "UNCX LP lock",
             chainId: 1,
-            what: `lock ${lockID}: ${n.toPrecision(6)} ${m.symbol} LP (${lp.slice(0, 10)}…) locked until ${new Date(Number(l[3]) * 1000).toISOString().slice(0, 10)}`,
+            what: `lock ${lockID}: ${n.toPrecision(6)} ${m.symbol} LP ${fullAddress(lp)} locked until ${new Date(Number(l[3]) * 1000).toISOString().slice(0, 10)}`,
             valueUsd: null,
             action: "Still locked; no tx until the unlock date",
             evidence: ev,
@@ -409,7 +410,7 @@ export async function uncxLocks(f: F, env: NodeJS.ProcessEnv, owner: string): Pr
           kind: "claimable",
           protocol: "UNCX LP lock",
           chainId: 1,
-          what: `lock ${lockID}: ${n.toPrecision(6)} ${m.symbol} LP (${lp.slice(0, 10)}…) unlocked since ${new Date(Number(l[3]) * 1000).toISOString().slice(0, 10)}`,
+          what: `lock ${lockID}: ${n.toPrecision(6)} ${m.symbol} LP ${fullAddress(lp)} unlocked since ${new Date(Number(l[3]) * 1000).toISOString().slice(0, 10)}`,
           valueUsd: null,
           ...(ok
             ? {
