@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FRESH_GLOBAL_MAX, freshGate, moneyWithFreshness, resetFreshLimits } from "./fresh.js";
+import {
+  FRESH_GLOBAL_MAX,
+  FRESH_PER_IP_MAX,
+  freshGate,
+  moneyWithFreshness,
+  resetFreshLimits,
+} from "./fresh.js";
 import { cached, clearCachedFor, clearScannerCache, peekCached } from "./scanner.js";
 
 const A = "0x000000000000000000000000000000000000dEaD";
@@ -100,5 +106,64 @@ describe("find_money freshness", () => {
       async () => ({}),
     );
     expect(r2.block).toBeNull();
+  });
+
+  it("limits fresh scans per client IP (3/min), other IPs unaffected", () => {
+    const t = Date.now();
+    for (let i = 0; i < FRESH_PER_IP_MAX; i++)
+      expect(freshGate(`0x${String(i).padStart(40, "a")}`, t, "1.2.3.4").ok).toBe(true);
+    const g = freshGate(B, t, "1.2.3.4");
+    expect(g).toEqual({ ok: false, retryAfterSeconds: 60 });
+    expect(freshGate(B, t, "5.6.7.8").ok).toBe(true);
+    expect(freshGate(A, t + 60_001, "1.2.3.4").ok).toBe(true);
+  });
+
+  it("a second fresh=1 during an in-flight fresh scan does not clear or replace it", async () => {
+    let release!: () => void;
+    let n = 0;
+    const slow = () =>
+      new Promise<{ n: number }>((res) => {
+        n++;
+        release = () => res({ n });
+      });
+    const p1 = call(slow, true);
+    // even past the per-address window, the running scan keeps the slot
+    vi.setSystemTime(new Date("2026-10-26T18:00:30Z"));
+    const p2 = call(async () => ({ n: 99 }), true);
+    release();
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(n).toBe(1);
+    expect(r1).toMatchObject({ n: 1 });
+    expect(r2).toMatchObject({ n: 1, freshRefused: "rate-limited" });
+    // stamped at finish: refused right after, allowed once the window passes
+    expect((await call(async () => ({ n: 2 }), true)).freshRefused).toBe("rate-limited");
+    vi.setSystemTime(new Date("2026-10-26T18:00:51Z"));
+    expect(await call(async () => ({ n: 3 }), true)).toMatchObject({ n: 3 });
+  });
+
+  it("a failed scan only removes its own cache entry", async () => {
+    let fail!: (e: Error) => void;
+    const p = cached("k", 60_000, () => new Promise<number>((_, rej) => (fail = rej)));
+    clearScannerCache();
+    const newer = cached("k", 60_000, async () => 2);
+    fail(new Error("x"));
+    await expect(p).rejects.toThrow("x");
+    expect(peekCached("k", 60_000)).toBe(true);
+    expect(await newer).toBe(2);
+  });
+
+  it("block read times out to null after 3 s", async () => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const p = moneyWithFreshness(
+      `money:${A}`,
+      180_000,
+      A,
+      false,
+      () => new Promise<bigint>(() => {}),
+      async () => ({ n: 1 }),
+    );
+    await vi.advanceTimersByTimeAsync(3_001);
+    expect((await p).block).toBeNull();
   });
 });

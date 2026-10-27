@@ -68,7 +68,10 @@ export function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Pro
       )
         cache.delete(k);
   cache.set(key, { at: Date.now(), v });
-  v.catch(() => cache.delete(key));
+  // only drop our own entry: a newer scan for the same key may have replaced it meanwhile
+  v.catch(() => {
+    if (cache.get(key)?.v === v) cache.delete(key);
+  });
   return v;
 }
 export const clearScannerCache = () => cache.clear();
