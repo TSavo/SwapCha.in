@@ -8,6 +8,7 @@ import { encodeFunctionData } from "./blocktools.js";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { BITCOIN, NATIVE_TOKEN } from "@swapchan/shared";
 import { formatUnits, getAddress, parseAbiItem, toHex } from "viem";
+import { fullAddress } from "./addrDisplay.js";
 import { exitDeadline, minOut } from "./exitguard.js";
 import { evmClient, json, prices, pxOf, SITE, swapUrl, usdcOf } from "./onchain.js";
 import type { Evidence } from "./recover.js";
@@ -944,7 +945,7 @@ export async function multichainCeler(
           kind: "legacy",
           protocol: "Multichain (Anyswap) — likely unrecoverable",
           chainId,
-          what: `Wallet interacted with Multichain router ${addr.slice(0, 8)}… (tx ${hit.hash.slice(0, 10)}…). Protocol collapsed; funds may be lost.`,
+          what: `Wallet interacted with Multichain router ${fullAddress(addr)} (tx ${hit.hash.slice(0, 10)}…). Protocol collapsed; funds may be lost.`,
           valueUsd: null,
           confidence: "low",
           action:
@@ -1053,7 +1054,7 @@ export async function uniV2RemoveLiquidityTx(
       args: [token0, token1, liquidity, minOut(quoted[0]), minOut(quoted[1]), owner, deadline],
     }),
     value: "0",
-    description: `removeLiquidity: burn LP ${pair.slice(0, 8)}… (approve router first)`,
+    description: `removeLiquidity: burn LP ${fullAddress(pair)} (approve router first)`,
   };
 }
 

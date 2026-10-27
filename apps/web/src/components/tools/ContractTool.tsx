@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
 import { PoweredBy } from "@/components/devtools/PoweredBy";
+import { FullAddress } from "@/components/FullAddress";
 import { API_URL } from "@/lib/agents";
 import { initcodeStartsWith } from "@/lib/creationCheck";
 
@@ -267,7 +268,7 @@ function FnCard(p: { fn: Fn; info: Info; abi?: string }) {
         {enc && (
           <div className="space-y-1 rounded-lg border border-violet-400 p-2 text-xs">
             <p>
-              To <span className="font-mono">{enc.to}</span> on {enc.chain} ({enc.chainId})
+              To <FullAddress address={enc.to} /> on {enc.chain} ({enc.chainId})
             </p>
             <p>Value: {enc.value} wei</p>
             <p className="font-mono">{enc.decoded.signature}</p>
@@ -421,8 +422,8 @@ function DeployCard(p: { chainId: number }) {
           <p>
             Predicted address:{" "}
             {c.predicted ? (
-              <span className="font-mono">
-                {c.predicted.address} (nonce {c.predicted.nonce})
+              <span>
+                <FullAddress address={c.predicted.address} /> (nonce {c.predicted.nonce})
               </span>
             ) : me ? (
               "unavailable"

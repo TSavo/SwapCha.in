@@ -14,6 +14,7 @@ import {
   recoverTransactionAddress,
   type TransactionSerialized,
 } from "viem";
+import { fullAddress } from "./addrDisplay.js";
 import { type BtSolTx, blocktools, btKeccak256, btSolDecodeTx } from "./blocktools.js";
 import { recoveryGuide, type Situation } from "./keyrecovery.js";
 import { BadRequest, chainName, EXPLORER, evmClient, json, SITE, solRpc } from "./onchain.js";
@@ -61,7 +62,8 @@ const PERMIT2 = "0x000000000022d473030f116ddee9f6b43ac78ba3";
 const ZOS_IMPL = "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3";
 const EIP1967_IMPL = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 const lc = (s?: string) => (s ?? "").toLowerCase();
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+/** Full address (EIP-55 for EVM), never shortened: lookalike addresses copy the ends. */
+const short = fullAddress;
 /** Address poisoning: same first 4 and last 4 chars, different address. */
 export const lookalike = (a: string, b: string) =>
   lc(a) !== lc(b) && lc(a).slice(2, 6) === lc(b).slice(2, 6) && lc(a).slice(-4) === lc(b).slice(-4);

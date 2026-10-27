@@ -17,6 +17,8 @@ export interface GuardCtx {
   relay(chainId: number): Promise<{ contracts: string[]; solvers: string[] }>;
   /** Relay Protocol v2 chain names, VM types and canonical depositories (GET /chains). */
   relayProtocol?(): Promise<RelayProtocol>;
+  /** Override of RELAY_DEPOSITORY_PINS (tests only). */
+  relayPins?: Readonly<Record<number, string>>;
   /** Current + previous 0x Settler (taker-submitted, feature 2) from the 0x Deployer registry. */
   zeroxSettlers(chainId: number): Promise<string[]>;
 }

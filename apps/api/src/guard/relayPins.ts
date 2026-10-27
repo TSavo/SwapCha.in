@@ -8,7 +8,8 @@
  *     (contracts.prod.depository), commit b2f3e0e5fba9381293f030ef340ffb4872687fcf
  * Chains where the sources disagreed or only one listed the chain are deliberately unpinned:
  * xlayer 196, lisk 1135, hyperliquid 1337, xrp 537724, lighter 3586256, robinhood-lighter
- * 548123634, bitcoin 8253038 (sources differ), ton 224235520. Those still use /chains as before.
+ * 548123634, bitcoin 8253038 (sources differ), ton 224235520. Deposits FROM those chains are refused
+ * (RELAY_CHAIN_NOT_PINNED) until a pin is confirmed in both sources: /chains is never a fallback.
  * EVM addresses lowercase; others exact.
  */
 export const RELAY_DEPOSITORY_PINS: Readonly<Record<number, string>> = {

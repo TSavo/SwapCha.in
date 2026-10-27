@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AgentCTASection } from "@/components/AgentCTASection";
 import { SwapTabs } from "@/components/SwapTabs";
+import { displayAddress } from "@/lib/address";
 import { CHAIN_NAME } from "@/lib/intel";
 
 export const metadata: Metadata = {
@@ -23,7 +24,8 @@ function decode(s: string | undefined): Row[] {
     return [];
   }
 }
-const short = (a: string) => (a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a);
+/** Token addresses in full (EIP-55 for EVM), never shortened. */
+const short = displayAddress;
 
 export default async function Batch({ searchParams }: Props) {
   const sp = await searchParams;
@@ -73,7 +75,7 @@ export default async function Batch({ searchParams }: Props) {
             <li key={`${r[0]}-${r[1]}-${i}`}>
               <Link
                 href={href(i)}
-                className={`flex items-center justify-between rounded-xl border-2 px-3 py-2 text-sm ${i === step ? "border-amber-300 bg-violet-900" : "border-violet-700 bg-violet-950 hover:border-amber-300"}`}
+                className={`flex items-center justify-between rounded-xl border-2 px-3 py-2 text-sm break-all ${i === step ? "border-amber-300 bg-violet-900" : "border-violet-700 bg-violet-950 hover:border-amber-300"}`}
               >
                 <span>
                   <b>#{i + 1}</b> {r[4] || ""} {short(r[1])} on {CHAIN_NAME[r[0]] ?? r[0]} →{" "}

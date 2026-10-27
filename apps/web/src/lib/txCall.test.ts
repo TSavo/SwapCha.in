@@ -1,5 +1,6 @@
 import { encodeFunctionData, parseAbi } from "viem";
 import { describe, expect, it } from "vitest";
+import { displayAddress } from "./address";
 import { callArgs, explorerAddressUrl, type TxCall, txCallLines } from "./callSummary";
 
 const ME = "0x1111111111111111111111111111111111111111";
@@ -39,7 +40,8 @@ describe("claim call display (contract, function, selector, args, explorer)", ()
   it("txCallLines states function + selector, contract and each arg", () => {
     expect(txCallLines(call)).toEqual([
       "Calls withdraw(uint256) [0x2e1a7d4d]",
-      `on contract ${C} (Ethereum)`,
+      // shown EIP-55 checksummed (the fixture C is not validly cased)
+      `on contract ${displayAddress(C)} (Ethereum)`,
       "arg1 (uint256) = 5",
     ]);
     expect(txCallLines({ ...call, function: null, signature: null, args: [] })[0]).toBe(

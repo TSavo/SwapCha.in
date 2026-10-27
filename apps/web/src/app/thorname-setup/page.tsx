@@ -147,9 +147,7 @@ export default function ThornameSetup() {
         onClick={connect}
         className="mt-3 rounded-full bg-fuchsia-500 px-5 py-2 font-bold text-white"
       >
-        {addr
-          ? `${addr.slice(0, 10)}…  ${bal !== null ? `${rune(bal)} RUNE` : ""}`
-          : "Connect Ctrl / Vultisig"}
+        {addr ? `${addr}  ${bal !== null ? `${rune(bal)} RUNE` : ""}` : "Connect Ctrl / Vultisig"}
       </button>
       <ol className="mt-4 space-y-3">
         {steps.map((s, i) => {

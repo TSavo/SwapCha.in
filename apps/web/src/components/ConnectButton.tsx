@@ -3,6 +3,7 @@
 import { useAppKit } from "@reown/appkit/react";
 import { useState } from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { displayAddress } from "@/lib/address";
 import { pickableConnectors, safeIcon } from "@/lib/injectedWallets";
 import { hasAppKit } from "@/lib/wagmi";
 
@@ -15,6 +16,7 @@ function ConnectLabel({ full }: { full: boolean }) {
   );
 }
 
+/** Decorative label for YOUR connected wallet only; the full checksummed address is on hover and in the wallet modal. Never used for an address you send to. */
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const big =
   "block w-full cursor-pointer rounded-2xl border-2 border-violet-950 bg-amber-400 py-4 text-xl font-black text-violet-950 shadow-[0_4px_0_#2e1065] transition hover:bg-amber-300 active:translate-y-0.5";
@@ -25,7 +27,12 @@ function AppKitButton({ cls }: { cls: string }) {
   const { open } = useAppKit();
   const { address } = useAccount();
   return (
-    <button type="button" className={cls} onClick={() => open()}>
+    <button
+      type="button"
+      className={cls}
+      onClick={() => open()}
+      title={address ? displayAddress(address) : undefined}
+    >
       {address ? short(address) : <ConnectLabel full={cls === big} />}
     </button>
   );
@@ -39,7 +46,12 @@ function InjectedButton({ cls }: { cls: string }) {
   const wallets = pickableConnectors(connectors);
   if (address)
     return (
-      <button type="button" className={cls} onClick={() => disconnect()}>
+      <button
+        type="button"
+        className={cls}
+        onClick={() => disconnect()}
+        title={displayAddress(address)}
+      >
         {short(address)}
       </button>
     );

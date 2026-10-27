@@ -35,6 +35,8 @@
 - Scanner page: https://swapchan.com/scanner
 - Example: GET https://api.swapchan.com/quotes?fromChainId=1&toChainId=8453&fromToken=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48&toToken=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&amount=100000000&slippageBps=50
 - Auth: optional `x-api-key` header for higher limits.
+- Relay routes are offered only from chains with a confirmed, pinned Relay depository. A Relay order from any other chain is refused with `RELAY_CHAIN_NOT_PINNED` (shown in the quote's provider errors as "rejected by payload verification"); SwapChan never falls back to Relay's /chains list for a depository.
+- Addresses: every contract or recipient address SwapChan shows or returns in text is the full address (EIP-55 checksummed for EVM, exact for Bitcoin/Solana/Tron etc.), never shortened.
 
 ## Read & Write Contract (https://swapchan.com/tools/contract)
 - MCP tools contract_abi, contract_read, contract_encode_call, contract_approve_call, contract_build_creation (read-only). REST: GET/POST https://api.swapchan.com/contract-tool/abi, POST /contract-tool/read, POST /contract-tool/encode, POST /contract-tool/approve, POST /contract-tool/create.

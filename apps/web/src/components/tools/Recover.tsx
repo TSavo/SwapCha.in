@@ -5,6 +5,7 @@ import { decodeFunctionData, formatEther, parseAbi } from "viem";
 import { useAccount, useSendTransaction, useSwitchChain } from "wagmi";
 import { SpeechBubble } from "@/components/Character";
 import { ConnectButton } from "@/components/ConnectButton";
+import { FullAddress } from "@/components/FullAddress";
 import { describeCall, explorerAddressUrl } from "@/lib/callSummary";
 import { localCallPaysOwner } from "@/lib/recoverCheck";
 import { RelatedTools } from "./RelatedTools";
@@ -98,8 +99,8 @@ export function Recover(p: {
             {CHAINS[p.chain] ?? p.chain} ({p.chain})
           </dd>
           <dt className="text-violet-400">to</dt>
-          <dd data-testid="to">
-            {p.to}
+          <dd>
+            <FullAddress address={p.to} testId="to" />
             {explorerAddressUrl(Number(p.chain), p.to) && (
               <>
                 {" "}
@@ -158,8 +159,8 @@ export function Recover(p: {
             data-testid="sign-prompt"
           >
             You are about to sign <b>{sig.fn ?? remote?.call ?? sig.selector}</b> on contract{" "}
-            <b>{p.to}</b> ({CHAINS[p.chain] ?? p.chain}). Check your wallet shows the same contract
-            and function.
+            <FullAddress address={p.to} /> ({CHAINS[p.chain] ?? p.chain}). Check your wallet shows
+            the same contract and function.
           </p>
         )}
         <div className="mt-3 flex flex-wrap gap-2">
