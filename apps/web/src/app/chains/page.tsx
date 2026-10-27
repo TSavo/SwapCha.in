@@ -49,7 +49,8 @@ export default function ChainsIndex() {
         Pick a chain to see how its addresses are built (version bytes, bech32 prefix, checksum,
         decimals), check one live, and see which other chains share its format. These pages are
         address checking only: a chain listed here does not mean SwapChan can sign, sweep or recover
-        on it. Public data only: no keys, no seed phrases, nothing stored. Not sure which chain an address is on? Use the{" "}
+        on it. Public data only: no keys, no seed phrases, nothing stored. Not sure which chain an
+        address is on? Use the{" "}
         <Link href="/tools/validate-address" className="underline hover:text-amber-300">
           chain detector
         </Link>

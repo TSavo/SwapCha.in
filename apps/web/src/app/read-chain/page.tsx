@@ -40,7 +40,8 @@ export default function Page() {
       <h1 className="text-4xl font-black">Read EVM, Solana, Tron and Bitcoin, no keys</h1>
       <SpeechBubble who="swapchan">
         Don&apos;t trust me, check me. read_chain lets your agent re-run every read I used to find
-        your money, on EVM chains, Solana, Tron and Bitcoin, at any block. It can only look, never touch.
+        your money, on EVM chains, Solana, Tron and Bitcoin, at any block. It can only look, never
+        touch.
       </SpeechBubble>
       <section className="rounded-2xl border-2 border-emerald-400 bg-emerald-950 p-5">
         <b>Strictly read-only:</b> read_chain only sends read RPC methods (eth_call, eth_getLogs,
