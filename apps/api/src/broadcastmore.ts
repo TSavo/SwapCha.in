@@ -8,7 +8,7 @@
 import { BROADCAST_CHAINS, BROADCAST_EXTRA, type BroadcastChain } from "@swapchan/shared";
 import { parseTransaction, recoverTransactionAddress, type TransactionSerialized } from "viem";
 import { btKeccak256 } from "./blocktools.js";
-import { forwardedClientIp } from "./clientip.js";
+import { trustedClientIp } from "./clientip.js";
 import { BadRequest } from "./onchain.js";
 
 type F = typeof fetch;
@@ -374,12 +374,7 @@ export function broadcastClientKey(
   header: (name: string) => string | undefined,
   remoteAddress?: string,
 ): string {
-  return (
-    forwardedClientIp(header) ||
-    header("cf-connecting-ip")?.trim() ||
-    remoteAddress?.trim() ||
-    "local"
-  );
+  return trustedClientIp(header, remoteAddress);
 }
 
 /**

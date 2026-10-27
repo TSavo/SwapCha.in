@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BURN_HEADLINE, burnAddressResult, isBurnAddress } from "./burnAddresses.js";
+import { tronAddr } from "./onchain.js";
 
 describe("burn addresses", () => {
   it("matches EVM burn addresses case-insensitively", () => {
@@ -33,5 +34,19 @@ describe("burn addresses", () => {
     expect(r.items).toEqual([]);
     expect(r.partial).toBe(false);
     expect(r.headline).toBe(BURN_HEADLINE);
+  });
+});
+
+describe("Tron black hole hex form", () => {
+  const HEX = "410000000000000000000000000000000000000000";
+  it("hex and base58 are the same address", () => {
+    expect(tronAddr(HEX)).toBe("T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb");
+  });
+  it("both forms are burn addresses; other 41-hex addresses are not", () => {
+    expect(isBurnAddress(HEX)).toBe(true);
+    expect(isBurnAddress(`0x${HEX}`)).toBe(true);
+    expect(isBurnAddress("T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb")).toBe(true);
+    expect(isBurnAddress("410000000000000000000000000000000000000001")).toBe(false);
+    expect(isBurnAddress("41a614f803b6fd780986a42c78ec9c7f77e6ded13c")).toBe(false);
   });
 });

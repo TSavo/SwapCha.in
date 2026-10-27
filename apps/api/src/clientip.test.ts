@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { broadcastClientKey, broadcastLimiter } from "./broadcastmore.js";
-import { forwardedClientIp } from "./clientip.js";
+import { forwardedClientIp, socketAddressOf, trustedClientIp } from "./clientip.js";
+import { clientOf } from "./devtools.js";
 import { clientIpOf } from "./fresh.js";
 
 const SECRET = "test-internal-secret";
@@ -64,5 +65,28 @@ describe("forwarded client IP from the MCP server", () => {
     expect(
       clientIpOf(hdr({ "cf-connecting-ip": "192.0.2.7", "x-swapchan-client-ip": "10.9.9.9" })),
     ).toBe("192.0.2.7");
+  });
+});
+
+describe("shared trusted client IP (fresh + devtools limiters)", () => {
+  it("never honors a caller-supplied x-forwarded-for / x-real-ip", () => {
+    const spoof = hdr({ "x-forwarded-for": "9.9.9.9", "x-real-ip": "8.8.8.8" });
+    for (const fn of [clientIpOf, clientOf]) {
+      expect(fn(spoof)).toBe("local");
+      expect(fn(spoof, "10.0.0.5")).toBe("10.0.0.5");
+      expect(
+        fn(hdr({ "cf-connecting-ip": "1.1.1.1", "x-forwarded-for": "9.9.9.9" }), "10.0.0.5"),
+      ).toBe("1.1.1.1");
+    }
+  });
+  it("same key as the broadcast limiter", () => {
+    const h = hdr({ "x-forwarded-for": "9.9.9.9" });
+    expect(trustedClientIp(h, "10.0.0.7", "")).toBe(broadcastClientKey(h, "10.0.0.7"));
+  });
+  it("reads the socket address from a node-server env", () => {
+    expect(socketAddressOf({ incoming: { socket: { remoteAddress: "10.1.1.1" } } })).toBe(
+      "10.1.1.1",
+    );
+    expect(socketAddressOf(undefined)).toBeUndefined();
   });
 });

@@ -25,7 +25,10 @@ import {
   incompleteCount,
   makeCap,
   partialPrefix,
+  recordStageFailure,
+  timeoutCount,
 } from "./intel.js";
+import { tidyNotChecked } from "./reasons.js";
 import { cached, clearScannerCache, PARTIAL_TTL_MS, peekCached } from "./scanner.js";
 
 const A = "0x000000000000000000000000000000000000dEaD";
@@ -156,5 +159,66 @@ describe("silent drops become notChecked lines", () => {
       expect(l).not.toMatch(/https?:|secret/);
     }
     expect(archaeologyDropLines([["Base", { probed: 3 }]])).toEqual([]);
+  });
+});
+
+describe("partial headline wording and non-timeout failures", () => {
+  it("says timed out only for real timeouts", () => {
+    expect(partialPrefix(3, 0)).toBe(
+      "Partial scan: 3 sources could not be checked; totals are a lower bound.",
+    );
+    expect(partialPrefix(1, 0)).toBe(
+      "Partial scan: 1 source could not be checked; totals are a lower bound.",
+    );
+    expect(partialPrefix(3, 1)).toBe(
+      "Partial scan: 1 source timed out and 2 could not be checked; totals are a lower bound.",
+    );
+    expect(partialPrefix(2, 2)).toBe(
+      "Partial scan: 2 sources timed out; totals are a lower bound.",
+    );
+    const nc = [
+      "Merkl: not checked (timed out after 12s)",
+      "history Ethereum: not checked (2 contract read batches failed; results may be incomplete)",
+      "Monero: not checked (recognised only)",
+    ];
+    expect(timeoutCount(nc)).toBe(1);
+    expect(incompleteCount(nc)).toBe(2);
+  });
+
+  it("a failed stage counts toward incompleteSources and stays in errors", () => {
+    const nc: string[] = [];
+    const errors: string[] = [];
+    recordStageFailure(
+      "balances",
+      new Error("HTTP request failed. URL: https://rpc.example/secret-key-123"),
+      nc,
+      errors,
+    );
+    expect(errors).toEqual(["balances: RPC request failed"]);
+    expect(nc).toEqual([
+      "balances: not checked (data source request failed, results may be incomplete)",
+    ]);
+    const tidy = tidyNotChecked(nc);
+    expect(incompleteCount(tidy)).toBe(1);
+    expect(timeoutCount(tidy)).toBe(0);
+    expect(partialPrefix(incompleteCount(tidy), timeoutCount(tidy))).toMatch(
+      /1 source could not be checked/,
+    );
+    expect(nc.join()).not.toMatch(/https?:|secret/);
+  });
+
+  it("a timeout goes to notChecked only; a cancelled stage is not incomplete", () => {
+    const nc: string[] = [];
+    const errors: string[] = [];
+    recordStageFailure("Merkl", new Error("timed out after 17s"), nc, errors);
+    recordStageFailure("approvals", new Error("request cancelled"), nc, errors);
+    expect(errors).toEqual(["approvals: scan finished"]);
+    expect(nc).toEqual(["Merkl: not checked (timed out after 17s, results may be incomplete)"]);
+    expect(timeoutCount(nc)).toBe(1);
+  });
+
+  it("no failures: no notChecked lines, not partial", () => {
+    const nc: string[] = [];
+    expect(incompleteCount(tidyNotChecked(nc))).toBe(0);
   });
 });

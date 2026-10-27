@@ -87,7 +87,7 @@ import {
 import { maturedPendle } from "./pendle.js";
 import { perpsBalances } from "./perps.js";
 import { READ_OPS, readChain } from "./readchain.js";
-import { safeReason, scrubText, tidyNotChecked } from "./reasons.js";
+import { INCOMPLETE, safeReason, scrubText, tidyNotChecked } from "./reasons.js";
 import {
   type Evidence,
   lidoWithdrawals,
@@ -120,6 +120,7 @@ import {
   routeBroadcast,
 } from "./broadcastmore.js";
 import { burnAddressResult, isBurnAddress } from "./burnAddresses.js";
+import { socketAddressOf } from "./clientip.js";
 import { btcXpubScan, logPromoteCandidate, stuckMoneyRegistry } from "./stuck.js";
 import { broadcastTx, signingGuide, txStatus, verifyTx } from "./txtools.js";
 
@@ -3770,12 +3771,41 @@ export function owedLater(i: {
   };
 }
 
+/**
+ * A find_money stage threw. Timeouts become a notChecked line; other failures go to errors AND (unless the stage was
+ * only cancelled because the scan already finished) to notChecked as "results may be incomplete", so they count
+ * toward partial / incompleteSources.
+ */
+export function recordStageFailure(n: string, e: unknown, notChecked: string[], errors: string[]) {
+  const msg = safeReason(e);
+  if (msg.startsWith("timed out")) {
+    notChecked.push(`${n}: not checked (${msg})`);
+    return;
+  }
+  errors.push(`${n}: ${msg}`);
+  // tidyNotChecked collapses reasons that look raw (e.g. the word RPC), which would drop the INCOMPLETE marker
+  const why = /\bRPC\b/.test(msg) ? "data source request failed" : msg;
+  if (msg !== "scan finished") notChecked.push(`${n}: not checked (${why}, ${INCOMPLETE})`);
+}
+
 /** A notChecked line that means the scan's totals may be missing something (a timeout or a dropped read). */
 export const INCOMPLETE_RE = /timed out|results may be incomplete/i;
 export const incompleteCount = (notChecked: readonly string[]) =>
   notChecked.filter((n) => INCOMPLETE_RE.test(n)).length;
-export const partialPrefix = (n: number) =>
-  `Partial scan: ${n} source${n === 1 ? "" : "s"} timed out; totals are a lower bound.`;
+/** How many incomplete notChecked lines are real timeouts (the rest are failed reads / errors). */
+export const timeoutCount = (notChecked: readonly string[]) =>
+  notChecked.filter((n) => INCOMPLETE_RE.test(n) && /timed out/i.test(n)).length;
+/** n = all incomplete sources; timedOut = how many of them actually timed out (defaults to all, for old callers). */
+export const partialPrefix = (n: number, timedOut = n) => {
+  const t = Math.max(0, Math.min(n, timedOut));
+  const other = n - t;
+  const src = (k: number) => `${k} source${k === 1 ? "" : "s"}`;
+  const parts = [
+    t ? `${src(t)} timed out` : "",
+    other ? (t ? `${other} could not be checked` : `${src(other)} could not be checked`) : "",
+  ].filter(Boolean);
+  return `Partial scan: ${parts.join(" and ")}; totals are a lower bound.`;
+};
 
 /** One honest sentence: what is claimable now, and what is owed but not claimable now. */
 export function findMoneyHeadline(
@@ -5307,9 +5337,7 @@ export async function findMoney(
               }),
             ]);
           } catch (e) {
-            const msg = safeReason(e);
-            if (msg.startsWith("timed out")) notChecked.push(`${n}: not checked (${msg})`);
-            else errors.push(`${n}: ${msg}`);
+            recordStageFailure(n, e, notChecked, errors);
             return null;
           } finally {
             clearTimeout(to);
@@ -5772,7 +5800,9 @@ export async function findMoney(
           address,
           ...(name ? { name } : {}),
           portfolioUsd: bal?.totalUsd ?? null,
-          headline: partial ? `${partialPrefix(incompleteSources)} ${head}` : head,
+          headline: partial
+            ? `${partialPrefix(incompleteSources, timeoutCount(ncTidy))} ${head}`
+            : head,
           // true when any source timed out or was dropped: totals are a lower bound, cached ~20 s instead of 3 min
           partial,
           incompleteSources,
@@ -6140,7 +6170,7 @@ export function intelRoutes(
     run(c, () =>
       findMoney(f, env, linksDb, need(c.req.query("address"), "address"), {
         fresh: ["1", "true"].includes(c.req.query("fresh") ?? ""),
-        client: clientIpOf((n) => c.req.header(n)),
+        client: clientIpOf((n) => c.req.header(n), socketAddressOf(c.env)),
       }),
     ),
   );

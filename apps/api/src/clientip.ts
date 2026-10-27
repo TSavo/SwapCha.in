@@ -26,3 +26,26 @@ export function forwardedClientIp(
   const ip = header(FORWARDED_CLIENT_IP_HEADER)?.trim();
   return ip && ip.length <= 64 ? ip : undefined;
 }
+
+/**
+ * Trusted rate-limit key: the MCP-forwarded IP (only with the internal key), else cf-connecting-ip (set by Cloudflare),
+ * else the socket address, else "local". x-forwarded-for / x-real-ip are never used: a client can set them to anything
+ * and pick its own bucket.
+ */
+export function trustedClientIp(
+  header: (name: string) => string | undefined,
+  remoteAddress?: string,
+  secret: string | undefined = process.env.SWAPCHAN_INTERNAL_KEY,
+): string {
+  return (
+    forwardedClientIp(header, secret) ||
+    header("cf-connecting-ip")?.trim() ||
+    remoteAddress?.trim() ||
+    "local"
+  );
+}
+
+/** Socket address of a Hono node-server request, if any. */
+export const socketAddressOf = (env: unknown): string | undefined =>
+  (env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined)?.incoming?.socket
+    ?.remoteAddress;
