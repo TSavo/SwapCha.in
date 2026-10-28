@@ -127,9 +127,16 @@ export async function runTurn(
 
   // Server-side guard: the model's self-asserted verdict/recipient are NOT trusted. For a
   // sign_and_send, run the real on-chain guard (decode + simulate, keyed to the connected wallet)
-  // and REPLACE the model's `verify` with the server's. Fail closed: no guard, a guard error or a
-  // danger verdict means nothing is proposed. The shown recipient is decoded from the calldata.
+  // and REPLACE the model's `verify` with the server's. Fail closed on a MISSING guard or a guard
+  // ERROR (nothing proposed) — but a `danger` verdict is still PROPOSED, with the real verdict shown,
+  // because the user is the final authority and legitimate operations read as danger to a
+  // self-receives heuristic (an ERC-4626 vault deposit "loses" USDC and the shares mint elsewhere;
+  // a cross-chain send delivers to the bridge). Blocking those outright left real txs impossible.
+  // The user still signs every tx in their own wallet; danger never auto-sends and the UI requires
+  // an explicit acknowledgment before the manual Sign button enables. The shown recipient is decoded
+  // from the calldata.
   let outAction: ModelAction = action;
+  let shownMessage = message;
   if (action.type === "sign_and_send") {
     let v: GuardVerdict;
     try {
@@ -142,16 +149,14 @@ export async function runTurn(
     }
     let verdict = normVerdict(v.verdict);
     const note = scrub(v.note ?? "");
-    if (verdict === "danger") {
-      // Only guard-derived text: the model's message may have called this safe.
-      say(
-        `I'm not proposing this transaction: SwapChan's on-chain check rated it high risk.${note ? ` ${note}` : ""}`,
-      );
-      return;
-    }
     const recipient = decodedRecipient(action.tx);
     // Paying or empowering anyone but the user is at least a warning, with the real address shown.
     if (verdict === "ok" && recipient.toLowerCase() !== address.toLowerCase()) verdict = "warn";
+    if (verdict === "danger") {
+      // Override the model's message (it may have called this safe) with guard-derived text so the
+      // only risk claim the user reads is the server's, then propose it for the user to decide.
+      shownMessage = `⚠️ SwapChan's on-chain check rated this HIGH RISK.${note ? ` ${note}` : ""} I'm showing it so you can decide — read the warning, and sign in your wallet only if you understand and accept the risk.`;
+    }
     outAction = {
       ...action,
       verify: {
@@ -163,7 +168,7 @@ export async function runTurn(
     };
   }
 
-  appendEvent(store, bus, { address, kind: "agent_message", data: { text: message } });
+  appendEvent(store, bus, { address, kind: "agent_message", data: { text: shownMessage } });
   if (isActionable(outAction)) {
     // The SERVER assigns the actionId — the sign-gate key. The model decides what; we own identity.
     const proposed: ProposedAction = { ...outAction, actionId: randomUUID() };

@@ -142,32 +142,35 @@ describe("real guard path: safe proposals are NOT refused", () => {
   });
 });
 
-describe("real guard path: attacks are still refused", () => {
-  it("approve(attacker, MAX) -> refused", async () => {
+// Warn, don't refuse: a dangerous tx is PROPOSED with the real "danger" verdict (shown to the user,
+// ack-gated in the UI, never auto-sent) rather than silently dropped — the user is the final
+// authority. The invariant is that it is never shown as "ok" and the model's text can't claim safety.
+describe("real guard path: dangerous txs are proposed as danger, never ok", () => {
+  it("approve(attacker, MAX) -> proposed danger, HIGH RISK text", async () => {
     const r = await turn({
       to: USDC,
       data: encodeFunctionData({ abi, functionName: "approve", args: [ATTACKER, maxUint256] }),
     });
-    expect(r.action).toBeNull();
-    expect(r.texts[0]).toMatch(/not proposing this transaction/);
+    expect(r.action?.verify.verdict).toBe("danger");
+    expect(r.texts[0]).toMatch(/HIGH RISK/);
   });
-  it("USDC transfer to attacker -> refused", async () => {
+  it("USDC transfer to attacker -> proposed danger", async () => {
     rpc.logs = [xfer(USDC, OWNER, ATTACKER, 10n ** 6n)];
     const r = await turn({
       to: USDC,
       data: encodeFunctionData({ abi, functionName: "transfer", args: [ATTACKER, 10n ** 6n] }),
     });
-    expect(r.action).toBeNull();
+    expect(r.action?.verify.verdict).toBe("danger");
   });
-  it("native ETH to attacker -> never ok (refused: nothing reaches the wallet)", async () => {
+  it("native ETH to attacker -> never ok (nothing reaches the wallet)", async () => {
     rpc.logs = [xfer(NATIVE_LOG, OWNER, ATTACKER, 10n ** 15n)];
     const r = await turn({ to: ATTACKER, value: "1000000000000000" });
     expect(r.action?.verify.verdict ?? "refused").not.toBe("ok");
   });
-  it("a reverting simulation -> refused", async () => {
+  it("a reverting simulation -> proposed danger, never ok", async () => {
     rpc.status = "0x0";
     const r = await turn({ to: OWNER, value: "1" });
-    expect(r.action).toBeNull();
+    expect(r.action?.verify.verdict ?? "refused").not.toBe("ok");
   });
   it("WETH event topics are the real keccak hashes", async () => {
     const src = await import("node:fs").then((fs) =>

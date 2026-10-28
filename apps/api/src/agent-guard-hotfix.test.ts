@@ -73,7 +73,11 @@ async function turn(
   return { es, action, texts };
 }
 
-describe("danger is refused, never proposed", () => {
+// Warn, don't refuse: a danger verdict is PROPOSED (the user is the final authority and signs in
+// their own wallet), but shown with the real "danger" verdict — never silently dropped, and the
+// model's "Totally safe" lie is replaced by guard-derived HIGH RISK text. The UI requires an explicit
+// acknowledgment before the Sign button enables, and auto-send never fires a danger action.
+describe("danger is proposed as danger, with guard-authored HIGH RISK text", () => {
   it.each([
     ["approve(attacker, MAX)", { to: TOKEN, data: enc("approve", [ATTACKER, maxUint256]) }],
     [
@@ -85,11 +89,11 @@ describe("danger is refused, never proposed", () => {
       { to: TOKEN, data: enc("permit", [OWNER, ATTACKER, maxUint256, 0n, 27, ZERO32, ZERO32]) },
     ],
     ["token transfer to attacker", { to: TOKEN, data: enc("transfer", [ATTACKER, 10n ** 6n]) }],
-  ])("%s -> refusal, no action, no model text", async (_n, tx) => {
+  ])("%s -> proposed with verdict danger, HIGH RISK text, not the model's lie", async (_n, tx) => {
     const r = await turn(tx);
-    expect(r.action).toBeNull();
+    expect(r.action?.verify.verdict).toBe("danger");
     expect(r.texts).toHaveLength(1);
-    expect(r.texts[0]).toMatch(/not proposing this transaction.*high risk/);
+    expect(r.texts[0]).toMatch(/HIGH RISK/);
     expect(r.texts[0]).not.toContain("Totally safe");
   });
 });
@@ -121,11 +125,11 @@ describe("warn is proposed as warn with the decoded recipient", () => {
     expect(r.action?.verify.verdict).toBe("ok");
     expect(r.action?.verify.recipient).toBe(OWNER);
   });
-  it("guard 'caution' is shown as warn; an unknown verdict is refused", async () => {
+  it("guard 'caution' is shown as warn; an unknown verdict is treated as danger (proposed)", async () => {
     const c = await turn({ to: OWNER }, async () => ({ verdict: "caution", note: "x" }));
     expect(c.action?.verify.verdict).toBe("warn");
     const u = await turn({ to: OWNER }, async () => ({ verdict: "weird", note: "x" }));
-    expect(u.action).toBeNull();
+    expect(u.action?.verify.verdict).toBe("danger");
   });
 });
 
