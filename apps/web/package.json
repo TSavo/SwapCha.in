@@ -34,6 +34,7 @@
     "@x402/svm": "2.28.0",
     "bitcoinjs-lib": "^7.0.4",
     "buffer": "6.0.3",
+    "dompurify": "^3.4.17",
     "marked": "^18.1.2",
     "next": "16.4.2",
     "react": "19.3.1",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
+    "@types/dompurify": "^3.2.0",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

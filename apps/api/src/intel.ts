@@ -468,6 +468,63 @@ function explorerApi(chainId: number, env: NodeJS.ProcessEnv) {
   if (rs[chainId]) out.push({ name: "Routescan", url: (q) => `${rs[chainId]}?${q}` });
   return out;
 }
+
+/** Alchemy network slugs for alchemy_getAssetTransfers (the one keyed source that covers Base/Arbitrum). */
+const ALCHEMY_NET: Record<number, string> = {
+  1: "eth-mainnet",
+  10: "opt-mainnet",
+  137: "polygon-mainnet",
+  42161: "arb-mainnet",
+  8453: "base-mainnet",
+  43114: "avax-mainnet",
+  59144: "linea-mainnet",
+  534352: "scroll-mainnet",
+};
+
+/**
+ * Interaction-native discovery via Alchemy getAssetTransfers: the token contracts the wallet
+ * received/sent (every LP mint, staked-receipt, vault share lands here) plus the contracts it sent
+ * native value to (staking deposits that mint no token). This is the only free-tier source that
+ * serves Base/Arbitrum history, so archaeology works there instead of going blind. Returns null when
+ * no key / unsupported chain.
+ */
+async function alchemyDiscover(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  chainId: number,
+  owner: string,
+): Promise<{ tokens: string[]; called: string[] } | null> {
+  const net = ALCHEMY_NET[chainId];
+  const key = env.ALCHEMY_API_KEY;
+  if (!net || !key) return null;
+  const url = `https://${net}.g.alchemy.com/v2/${key}`;
+  const call = async (params: Record<string, unknown>) => {
+    const res = await f(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    const j = (await res.json()) as {
+      result?: { transfers?: { rawContract?: { address?: string }; to?: string }[] };
+    };
+    return j.result?.transfers ?? [];
+  };
+  const base = { fromBlock: "0x0", toBlock: "latest", maxCount: "0x3e8" };
+  const [recv, sent, ext] = await Promise.all([
+    call({ ...base, toAddress: owner, category: ["erc20"] }).catch(() => []),
+    call({ ...base, fromAddress: owner, category: ["erc20"] }).catch(() => []),
+    call({ ...base, fromAddress: owner, category: ["external"] }).catch(() => []),
+  ]);
+  const tokens = new Set<string>();
+  for (const t of [...recv, ...sent]) {
+    const a = t.rawContract?.address;
+    if (a) tokens.add(a.toLowerCase());
+  }
+  const called = new Set<string>();
+  for (const t of ext) if (t.to) called.add(t.to.toLowerCase());
+  return { tokens: [...tokens], called: [...called] };
+}
 type ExRow = {
   blockNumber: string;
   hash: string;
@@ -2911,8 +2968,22 @@ export async function evmArchaeology(
   stats.contractsCalled = called.length;
   stats.tokensSeen = tokens.length;
   stats.discoverMs = Date.now() - tArch;
-  if (!stats.explorer)
-    return { items, stats: { ...stats, note: "no keyless explorer for this chain" } };
+  if (!stats.explorer) {
+    // No keyless explorer (Base, Arbitrum): discover via Alchemy getAssetTransfers — the interaction
+    // trail (tokens received/sent + contracts called). A position the user just created is found here.
+    const alch = await alchemyDiscover(f, env, chainId, owner).catch(() => null);
+    if (!alch || (alch.tokens.length === 0 && alch.called.length === 0))
+      return {
+        items,
+        stats: { ...stats, note: alch ? "no activity found" : "no keyless explorer for this chain" },
+      };
+    tokens = alch.tokens;
+    called = alch.called;
+    stats.explorer = "alchemy getAssetTransfers";
+    stats.alchemy = 1;
+    stats.contractsCalled = called.length;
+    stats.tokensSeen = tokens.length;
+  }
   const cands = [...new Set([...called, ...tokens])].slice(0, 400) as `0x${string}`[];
   stats.probed = cands.length;
   const mc = async <T>(
@@ -3991,9 +4062,18 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
         Number(env.FIND_LEGACY_REGISTRY_TIMEOUT_MS ?? 12_000),
       );
       // keyless explorers: Ethereum, Optimism, Scroll, Avalanche, Linea; the free Etherscan key adds Arbitrum and Polygon
-      const archChains = env.ETHERSCAN_API_KEY
-        ? [1, 42161, 10, 137, 43114, 534352, 59144]
-        : [1, 10, 534352, 43114, 59144];
+      // Base (8453) / Arbitrum (42161) have no free explorer, but Alchemy getAssetTransfers covers
+      // them — so with an Alchemy key, archaeology's interaction-native scan runs there too.
+      const archSet = new Set([1, 10, 534352, 43114, 59144]);
+      if (env.ETHERSCAN_API_KEY) {
+        archSet.add(42161);
+        archSet.add(137);
+      }
+      if (env.ALCHEMY_API_KEY) {
+        archSet.add(8453);
+        archSet.add(42161);
+      }
+      const archChains = [...archSet];
       const noArch = {
         items: [] as Found[],
         stats: { error: "not checked (timeout)" } as Record<string, number | string>,
@@ -4273,9 +4353,10 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       (/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,62}$/.test(address) && !!decodeAny(address)) ||
       /^bc1p[02-9ac-hj-np-z]{58}$/.test(address) // taproot (bech32m): decodeAny only knows witness v0
     ) {
-      const [bx, fork] = await Promise.all([
+      const isXpub = /^(xpub|ypub|zpub|xprv)/i.test(address);
+      const [bx, fork, cp] = await Promise.all([
         btcXpubScan(f, address).catch(() => []),
-        /^(xpub|ypub|zpub|xprv)/i.test(address)
+        isXpub
           ? {
               items: [] as unknown[],
               notChecked: [
@@ -4289,13 +4370,16 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
                 u.sources.map((s) => timed(s.name, s.run(), [] as unknown[], s.ms)),
               ).then((rs) => ({ items: rs.flat(), notChecked: u.notChecked }));
             })(),
+        // Counterparty assets (XCP + tokens) via the xchain.io indexer — invisible to BTC explorers.
+        isXpub ? Promise.resolve([] as Found[]) : timed("Counterparty (xchain.io)", counterpartyScan(f, address), [] as Found[], 12_000),
       ]);
-      items.push(...(bx as Found[]), ...(fork.items as Found[]));
+      items.push(...(bx as Found[]), ...(fork.items as Found[]), ...(cp as Found[]));
       notChecked.push(...fork.notChecked);
       sources.push("Bitcoin xpub/address UTXO scan (blockchain.info multiaddr + mempool.space)");
       sources.push(
         "same key on fork coins (BCH, BTG, BSV) and old Bitcoin-family coins (LTC, DOGE, DASH, DGB, RVN, ZEC, QTUM, MONA, PPC, RDD, VTC, VIA, TRC, XPM, AUR, ...) via public explorers, each its own timed source",
       );
+      sources.push("Counterparty indexer (xchain.io): XCP + token/asset balances on the Bitcoin address");
     } else if (vm === "svm") {
       // Tron base58 also matches the Solana pattern, so Tron is tested first.
       // every Solana source in parallel, each under its own deadline (was serial: rent -> stake -> archaeology)
@@ -5305,6 +5389,44 @@ export function dustNote(dust: DustLike[]) {
     action: "",
     swapUrl: SITE,
   };
+}
+
+/**
+ * Counterparty assets (XCP + tokens) on a Bitcoin address. Counterparty is a metadata protocol on
+ * Bitcoin: assets live inside BTC txs and are tracked by the Counterparty indexer (xchain.io),
+ * invisible to the Bitcoin explorers that report the BTC balance. A single address can hold valuable
+ * XCP or rare tokens (e.g. Rare Pepes). This is the data source find_money was missing for Counterparty.
+ */
+async function counterpartyScan(f: F, address: string): Promise<Found[]> {
+  if (!/^(1|3|bc1q)/.test(address)) return []; // taproot (bc1p) isn't used by Counterparty
+  const r = await json<{
+    data?: {
+      asset: string;
+      asset_longname?: string | null;
+      quantity?: number;
+      quantity_normalized?: string;
+      estimated_value?: { usd?: string | number | null };
+    }[];
+  }>(f, `https://tokenscan.io/api/balances/${address}`, undefined, 12_000).catch(() => null);
+  const out: Found[] = [];
+  for (const b of r?.data ?? []) {
+    const qty = b.quantity_normalized ?? (b.quantity != null ? String(b.quantity) : "");
+    if (!qty || Number(qty) <= 0) continue;
+    const name = b.asset_longname || b.asset;
+    const usd = Number(b.estimated_value?.usd ?? 0) || null;
+    out.push({
+      kind: "balance",
+      protocol: "Counterparty",
+      chainId: 8253038, // Bitcoin (Counterparty rides on it)
+      what: `${qty} ${name} — Counterparty asset on ${short(address)}; not shown by Bitcoin explorers`,
+      valueUsd: usd,
+      action:
+        "Access with a Counterparty wallet (FreeWallet / Counterwallet). XCP and rare tokens can be valuable.",
+      link: `https://tokenscan.io/address/${address}`,
+      confidence: "high",
+    });
+  }
+  return out;
 }
 
 export async function findMoney(

@@ -11,6 +11,7 @@ type Item = {
   icon: ReactNode;
   sec?: string;
   match?: (p: string) => boolean;
+  badge?: string;
 };
 
 const Face = () => (
@@ -28,6 +29,7 @@ const MAIN: Item[] = [
   { href: "/find-money", label: "Find money", icon: <Face />, sec: "find" },
   // Label only: the route stays /dashboard.
   { href: "/dashboard", label: "My wallet", icon: "👛", sec: "wallet" },
+  { href: "/smartwallet", label: "Smart Wallet", icon: "💬", badge: "BETA" },
   { href: "/recover", label: "Recover", icon: "🔑", sec: "recover" },
 ];
 const EXPLORE: Item[] = [
@@ -82,6 +84,17 @@ function NavItem({
       >
         <span className="flex w-[22px] justify-center">{it.icon}</span>
         {it.label}
+        {it.badge && (
+          <span
+            className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-black tracking-wide ${
+              active
+                ? "bg-violet-950/20 text-violet-950"
+                : "bg-gradient-to-r from-pink-500 to-violet-500 text-white"
+            }`}
+          >
+            {it.badge}
+          </span>
+        )}
       </Link>
       {subs.length > 0 && (
         <ul

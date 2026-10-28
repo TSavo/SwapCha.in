@@ -28,6 +28,13 @@ import {
   verifyPayload,
 } from "./guard/index.js";
 import { intelRoutes, linkRoutes, migrateStrayLinks } from "./intel.js";
+import { AgentOrchestrator, type Respond } from "./agent-runner.js";
+import { makeSdkRespond } from "./agent-sdk.js";
+import { ChainWatcher, type Track } from "./chain-watcher.js";
+import { chatRoutes } from "./chat.js";
+import { authRoutes } from "./siwe.js";
+import { SessionBus } from "./session-bus.js";
+import { openSessionStore } from "./sessions.js";
 import { limitRoutes } from "./limit.js";
 import { type BestOut, onchainRoutes, openWatchDb } from "./onchain.js";
 import {
@@ -115,6 +122,14 @@ export interface AppOptions {
   guard?: GuardCtx;
   /** SEO trending-token store; null disables /seo. Default: $SWAPCHAN_DATA_DIR/seo.db + 30-min job. */
   seo?: import("node:sqlite").DatabaseSync | null;
+  /**
+   * Smart-wallet agent brain (injectable for tests). Default: the Agent SDK adapter when
+   * ANTHROPIC_API_KEY is set; null (or no key) mounts /chat + SSE but runs no agent. The /chat
+   * routes always mount so the channel works; only the orchestrator depends on the model.
+   */
+  agentRespond?: Respond | null;
+  /** Settlement tracker for the chain watcher (injectable for tests). Default: provider.status polling. */
+  agentTrack?: Track | null;
 }
 
 export function createApp(
@@ -133,7 +148,11 @@ export function createApp(
     opts.solanaReader ?? jupiterTokenReader(env),
   );
   const app = new Hono();
-  app.use("*", cors());
+  // Reflect the request origin and allow credentials, so the SmartWallet's session cookie flows
+  // same-site (swapchan.com ↔ api.swapchan.com). A wildcard origin cannot be combined with
+  // credentials; echoing the origin is safe because the cookie is httpOnly + SameSite=Lax (never
+  // sent on a genuinely cross-site request).
+  app.use("*", cors({ origin: (o) => o ?? "*", credentials: true }));
   app.use("*", apiKeyAuth(parseKeys(env.SWAPCHAN_API_KEYS)));
   app.onError((err, c) =>
     err instanceof z.ZodError
@@ -429,6 +448,64 @@ export function createApp(
     if (!p?.status) return c.json({ error: "status unsupported for provider" }, 400);
     return c.json(await p.status(req, AbortSignal.timeout(8000)));
   });
+
+  // Smart wallet (swapchan.com/smartwallet): one append-only event log per connected address IS
+  // the state, the agent's context, and the SSE source. The channel (POST in + SSE out) always
+  // mounts; the agent brain runs only with a model. Pipeline per address:
+  //   web SSE -> web server (/chat) -> agent -> SwapChan MCP (build) -> response -> web SSE -> wallet
+  {
+    const store = openSessionStore(
+      env.SWAPCHAN_DATA_DIR ? `${env.SWAPCHAN_DATA_DIR}/sessions.db` : ":memory:",
+    );
+    const bus = new SessionBus();
+    // Sign-to-view auth lives at its own prefix (never behind the chat gate) so the nonce/verify
+    // calls are reachable without a cookie.
+    app.route("/wallet-auth", authRoutes(env));
+    app.route("/chat", chatRoutes(store, bus, env));
+
+    const respond =
+      opts.agentRespond !== undefined
+        ? opts.agentRespond
+        : env.ANTHROPIC_API_KEY || env.CLAUDE_CODE_OAUTH_TOKEN
+          ? makeSdkRespond({
+              mcpUrl: env.SWAPCHAN_MCP_URL ?? "http://mcp:8788/mcp",
+              store,
+              ...(env.SWAPCHAN_AGENT_MODEL ? { model: env.SWAPCHAN_AGENT_MODEL } : {}),
+            })
+          : null;
+    if (respond) new AgentOrchestrator(store, bus, respond).start();
+
+    // Third writer: on a broadcast, poll settlement and append a `settled` event (re-wakes the
+    // agent for the next step). Default tracker uses the signed route's provider.status; the browser
+    // carries provider + chains on the wallet_result from the /build it signed.
+    const track: Track =
+      opts.agentTrack !== undefined
+        ? (opts.agentTrack ?? (async () => null))
+        : async (req) => {
+            if (!req.provider || req.fromChainId === undefined || req.toChainId === undefined)
+              return null; // not enough route context yet → keep polling
+            const p = providers.find((x) => x.name === req.provider);
+            if (!p?.status) return null;
+            try {
+              const r = await p.status(
+                {
+                  provider: req.provider,
+                  txHash: req.hash,
+                  fromChainId: req.fromChainId,
+                  toChainId: req.toChainId,
+                },
+                AbortSignal.timeout(8000),
+              );
+              if (r.status === "done") return { status: "done", receivingTxHash: r.receivingTxHash };
+              if (r.status === "failed") return { status: "failed" };
+              return null; // pending / not_found → keep polling
+            } catch {
+              return null;
+            }
+          };
+    if (opts.agentTrack !== null) new ChainWatcher(store, bus, track).start();
+  }
+
   return app;
 }
 
