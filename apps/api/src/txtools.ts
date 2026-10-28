@@ -308,6 +308,24 @@ async function verifiedSource(f: F, env: NodeJS.ProcessEnv, chainId: number, add
 }
 
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+// WETH9 Deposit(address indexed dst, uint256 wad) / Withdrawal(address indexed src, uint256 wad).
+const WETH_DEPOSIT = "0xe1fffcc4923d04b559f4d29a8bfc6cda04eb5b0d3c460751c2402c5c5cc9109c";
+const WETH_WITHDRAWAL = "0x7fcf532c15f0a6db0bd6d0e038bea71d30d808c7d98cb3bf7268a95bf5081b65";
+/**
+ * Canonical wrapped-native contract per chain: Deposit/Withdrawal are only read from THIS emitter
+ * (anyone can emit a fake Deposit(you) from a junk contract). Source: Uniswap sdk-core WETH9 map
+ * (src/entities/weth9.ts). Chains not listed (e.g. Linea, Scroll) are unsupported: a wrap there is
+ * judged on Transfer logs alone.
+ */
+export const WRAPPED_NATIVE: Record<number, string> = {
+  1: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+  10: "0x4200000000000000000000000000000000000006",
+  8453: "0x4200000000000000000000000000000000000006",
+  42161: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+  56: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c",
+  137: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+  43114: "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+};
 export async function verifyEvm(
   f: F,
   env: NodeJS.ProcessEnv,
@@ -391,9 +409,21 @@ export async function verifyEvm(
         (!!exp.outToken && lc(tok) === lc(exp.outToken)) ||
         known.has(lc(tok));
       for (const l of cl.logs)
-        if (l.topics[0] === TRANSFER && l.topics.length === 3) {
-          const fr = `0x${l.topics[1]!.slice(26)}`;
-          const to = `0x${l.topics[2]!.slice(26)}`;
+        if (
+          (l.topics[0] === TRANSFER && l.topics.length === 3) ||
+          ((l.topics[0] === WETH_DEPOSIT || l.topics[0] === WETH_WITHDRAWAL) &&
+            l.topics.length === 2 &&
+            lc(l.address) === WRAPPED_NATIVE[chainId])
+        ) {
+          // WETH9 deposit/withdraw emit Deposit(dst)/Withdrawal(src), not Transfer: read them as a
+          // mint to dst / burn from src so a wrap is not mistaken for "you lose assets".
+          const ZERO = "0x0000000000000000000000000000000000000000";
+          const [fr, to] =
+            l.topics[0] === TRANSFER
+              ? [`0x${l.topics[1]!.slice(26)}`, `0x${l.topics[2]!.slice(26)}`]
+              : l.topics[0] === WETH_DEPOSIT
+                ? [ZERO, `0x${l.topics[1]!.slice(26)}`]
+                : [`0x${l.topics[1]!.slice(26)}`, ZERO];
           const amt = BigInt(l.data === "0x" ? 0 : l.data);
           const tok =
             lc(l.address) === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
@@ -401,7 +431,8 @@ export async function verifyEvm(
               : l.address;
           if (fr === me) changes.set(tok, (changes.get(tok) ?? 0n) - amt);
           if (to === me) changes.set(tok, (changes.get(tok) ?? 0n) + amt);
-          if (to === rcpt && fr !== rcpt && counts(tok))
+          // A send to yourself is a receipt when you are the expected recipient (self-send).
+          if (to === rcpt && (fr !== rcpt || rcpt === me) && counts(tok))
             received.set(lc(tok), (received.get(lc(tok)) ?? 0n) + amt);
         }
       simulated = cl.status === "0x1";

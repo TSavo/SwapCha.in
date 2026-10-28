@@ -13,6 +13,7 @@ import {
   signInWallet,
   streamSession,
 } from "@/lib/liveStream";
+import { SANITIZE_CONFIG } from "@/lib/sanitize";
 
 /** Mirrors the server wallet_respond contract (apps/api/src/wallet-action.ts). */
 interface EvmTx {
@@ -43,7 +44,8 @@ interface Line {
 }
 
 const isActionable = (a: ProposedAction) =>
-  a.type === "sign_and_send" || a.type === "sign_message" || a.type === "switch_chain";
+  // sign_message is no longer offered by the agent (an old stored one is shown but not actionable).
+  a.type === "sign_and_send" || a.type === "switch_chain";
 
 export default function SmartWalletPage() {
   const config = useConfig();
@@ -66,6 +68,7 @@ export default function SmartWalletPage() {
   const [status, setStatus] = useState<StreamStatus>("connecting");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [ackFor, setAckFor] = useState<string | null>(null); // actionId whose warning was acknowledged
   const [autoSend, setAutoSend] = useState(false); // on → fire proposed actions straight to the wallet
   const [confirmAutoSend, setConfirmAutoSend] = useState(false); // "are you sure?" modal before enabling
   const [needsAuth, setNeedsAuth] = useState(false); // server returned 401: must sign to view history
@@ -198,7 +201,8 @@ export default function SmartWalletPage() {
     if (!autoSend || !pending || busy) return;
     if (!synced.current) return; // never auto-fire during a reload's catch-up replay
     if (resolvedRef.current.has(pending.actionId)) return; // already broadcast/handled
-    if (pending.type === "sign_and_send" && pending.verify.verdict === "danger") return;
+    // Only a guard-verified "ok" auto-sends; warn needs an explicit click, danger is never sent.
+    if (pending.type === "sign_and_send" && pending.verify.verdict !== "ok") return;
     if (autoFired.current === pending.actionId) return;
     autoFired.current = pending.actionId;
     void doAction(pending);
@@ -622,11 +626,25 @@ export default function SmartWalletPage() {
                 Switch your wallet to chain {pending.chainId}.
               </div>
             )}
+            {pending.type === "sign_and_send" && pending.verify.verdict === "warn" && (
+              <label className="mb-2 flex items-center gap-2 text-xs text-amber-200">
+                <input
+                  type="checkbox"
+                  checked={ackFor === pending.actionId}
+                  onChange={(e) => setAckFor(e.target.checked ? pending.actionId : null)}
+                />
+                I read the warning above and want to send this anyway.
+              </label>
+            )}
             <div className="flex gap-2">
               <button
                 type="button"
                 disabled={
-                  busy || (pending.type === "sign_and_send" && pending.verify.verdict === "danger")
+                  busy ||
+                  (pending.type === "sign_and_send" &&
+                    (pending.verify.verdict === "warn"
+                      ? ackFor !== pending.actionId
+                      : pending.verify.verdict !== "ok"))
                 }
                 onClick={() => void doAction(pending)}
                 className="rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 disabled:opacity-50"
@@ -722,7 +740,7 @@ function renderMd(text: string): string {
   // DOMPurify needs a DOM; on the server we emit nothing rather than any unsanitized HTML (the
   // messages are client-rendered, and the client re-renders sanitized after hydration).
   if (typeof window === "undefined") return "";
-  return DOMPurify.sanitize(html);
+  return DOMPurify.sanitize(html, SANITIZE_CONFIG);
 }
 
 /**

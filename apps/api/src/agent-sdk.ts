@@ -76,7 +76,6 @@ tool exactly once. That tool call IS your response; do not answer in plain assis
     • sign_and_send — the goal. { type:"sign_and_send", chainId:<number>,
         tx:{ to, data?, value?, chainId?, gas? },               // EIP-1193, ready for the wallet
         verify:{ recipient:<connected address>, minOut?, verdict:"ok"|"warn"|"danger", note? } }
-    • sign_message  — { type:"sign_message", message:<string to sign> }
     • switch_chain  — { type:"switch_chain", chainId:<number> }
     • need_info     — { type:"need_info" }        // you must ask the user something first
     • none          — { type:"none" }             // a reply/redirect with nothing for the wallet to do
@@ -206,6 +205,7 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
           mcpServers: { swapchan: { type: "http", url: cfg.mcpUrl }, walletbridge },
           // Whitelist: the agent's entire surface is the SwapChan MCP (all tools) + wallet_respond.
           allowedTools: [SWAPCHAN_SERVER, WALLET_RESPOND],
+          tools: [], // no built-in Claude Code tools at all (Bash/Read/Write/WebFetch/...)
           settingSources: [], // no CLAUDE.md / filesystem settings — a pure, scoped agent
           // Defense in depth: deny anything outside SwapChan + wallet_respond (no Bash/Read/Write ever).
           canUseTool: async (toolName: string) =>

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { decodeFunctionData, type Hex, parseAbi } from "viem";
 import { appendEvent, type SessionBus } from "./session-bus.js";
 import { normalizeAddress, type SessionEvent, type SessionStore } from "./sessions.js";
 import {
@@ -17,7 +18,13 @@ import {
  * independent verdict. `danger` means the tx is not safe to present for signing (unlimited /
  * unknown-spender approvals, funds not reaching the owner, etc.).
  */
-export type GuardVerdict = { verdict: "ok" | "warn" | "danger"; recipient: string; note: string };
+export type GuardVerdict = {
+  /** verify_tx's verdict ("ok" | "caution" | "danger"); "caution" is shown as warn, anything unknown as danger. */
+  verdict: string;
+  note: string;
+  /** Ignored: the shown recipient is always decoded from the calldata here, never supplied. */
+  recipient?: string;
+};
 export type Guard = (chainId: number, tx: EvmTx, owner: string) => Promise<GuardVerdict>;
 
 /**
@@ -34,6 +41,38 @@ export interface AgentContext {
   events: SessionEvent[];
 }
 export type Respond = (ctx: AgentContext, onDelta?: (text: string) => void) => Promise<unknown>;
+
+/** Fixed, user-facing refusals. Raw error text is never put in events (it can carry RPC URLs/keys). */
+export const REFUSE_UNVERIFIED =
+  "I couldn't verify this transaction on-chain, so I'm not proposing it. Please try again in a moment.";
+export const REFUSE_SIGN_MESSAGE =
+  "I can't ask you to sign a message from this chat. Signing arbitrary messages can authorize transfers, so it isn't offered here.";
+const RESPOND_FAILED = "Something went wrong on my side. Please try again.";
+
+const RECIPIENT_ABI = parseAbi([
+  "function transfer(address to, uint256 amount)",
+  "function transferFrom(address from, address to, uint256 amount)",
+  "function approve(address spender, uint256 amount)",
+]);
+/**
+ * Who the tx actually pays or empowers, from the calldata: transfer `to`, transferFrom `to`, approve
+ * `spender`, or the native `to` of a plain transfer. Anything else is "unknown" — never the user's address.
+ */
+export function decodedRecipient(tx: EvmTx): string {
+  const data = (tx.data ?? "0x").toLowerCase();
+  if (data === "0x" || data === "") return tx.to;
+  try {
+    const d = decodeFunctionData({ abi: RECIPIENT_ABI, data: data as Hex });
+    const a = d.args as readonly unknown[];
+    return String(d.functionName === "transferFrom" ? a[1] : a[0]);
+  } catch {
+    return "unknown";
+  }
+}
+const normVerdict = (v: unknown): "ok" | "warn" | "danger" =>
+  v === "ok" ? "ok" : v === "warn" || v === "caution" ? "warn" : "danger";
+/** Strip URLs from guard text before it reaches the user (an RPC URL can carry an API key). */
+const scrub = (s: string) => s.replace(/[a-z][a-z0-9+.-]*:\/\/\S+/gi, "[url]").slice(0, 600);
 
 // Only these events start a turn. The agent's OWN output (agent_message/action_proposed) must not
 // re-trigger it, or it would loop; wallet_result is informational and folds into the next turn.
@@ -55,10 +94,11 @@ export async function runTurn(
       bus.publishDelta(address, text),
     );
   } catch (e) {
+    console.error("[agent] respond failed", e); // detail server-side only
     appendEvent(store, bus, {
       address,
       kind: "agent_message",
-      data: { text: "Something went wrong on my side. Please try again.", error: String(e) },
+      data: { text: RESPOND_FAILED },
     });
     return;
   }
@@ -75,36 +115,49 @@ export async function runTurn(
 
   const { message, action } = parsed.data;
 
+  const say = (text: string) =>
+    appendEvent(store, bus, { address, kind: "agent_message", data: { text } });
+
+  // sign_message is not offered: a model-proposed arbitrary message (permit, login to another
+  // site, ...) is refused. SwapChan's own sign-to-view login does not go through the agent.
+  if (action.type === "sign_message") {
+    say(REFUSE_SIGN_MESSAGE);
+    return;
+  }
+
   // Server-side guard: the model's self-asserted verdict/recipient are NOT trusted. For a
   // sign_and_send, run the real on-chain guard (decode + simulate, keyed to the connected wallet)
-  // and REPLACE the model's `verify` with the server's. We never block — the user is the final
-  // authority and signs in their own wallet — so the point is to show the TRUE verdict and recipient
-  // (a prompt-injected agent cannot fake "ok"), not to refuse a legitimate transaction. A high-risk
-  // decode is surfaced as a strong warning, with the real severity in the note, but still goes
-  // through for the user to decide.
+  // and REPLACE the model's `verify` with the server's. Fail closed: no guard, a guard error or a
+  // danger verdict means nothing is proposed. The shown recipient is decoded from the calldata.
   let outAction: ModelAction = action;
   if (action.type === "sign_and_send") {
     let v: GuardVerdict;
     try {
-      v = guard
-        ? await guard(action.chainId, action.tx, address)
-        : { verdict: "warn", recipient: address, note: "unverified (server guard not configured)" };
+      if (!guard) throw new Error("server guard not configured");
+      v = await guard(action.chainId, action.tx, address);
     } catch (e) {
-      v = {
-        verdict: "warn",
-        recipient: address,
-        note: `could not verify on-chain (${String(e).slice(0, 120)})`,
-      };
+      console.error("[agent] guard failed", e); // detail server-side only
+      say(REFUSE_UNVERIFIED);
+      return;
     }
-    const note = v.verdict === "danger" ? `⚠ High risk — ${v.note}` : v.note;
+    let verdict = normVerdict(v.verdict);
+    const note = scrub(v.note ?? "");
+    if (verdict === "danger") {
+      // Only guard-derived text: the model's message may have called this safe.
+      say(
+        `I'm not proposing this transaction: SwapChan's on-chain check rated it high risk.${note ? ` ${note}` : ""}`,
+      );
+      return;
+    }
+    const recipient = decodedRecipient(action.tx);
+    // Paying or empowering anyone but the user is at least a warning, with the real address shown.
+    if (verdict === "ok" && recipient.toLowerCase() !== address.toLowerCase()) verdict = "warn";
     outAction = {
       ...action,
       verify: {
-        recipient: v.recipient,
-        minOut: action.verify.minOut,
-        // Capped at "warn" so a legitimate-but-risky tx is never hard-blocked; the note carries the
-        // real severity. The user confirms (or declines) in their own wallet.
-        verdict: v.verdict === "danger" ? "warn" : v.verdict,
+        recipient,
+        ...(action.verify.minOut ? { minOut: action.verify.minOut } : {}),
+        verdict,
         note,
       },
     };

@@ -24,7 +24,7 @@ describe("runTurn", () => {
         verify: { recipient: A, minOut: "311 USDC", verdict: "ok" },
       },
     }));
-    await runTurn(store, bus, A, respond);
+    await runTurn(store, bus, A, respond, async () => ({ verdict: "ok", note: "" }));
     expect(kinds(store.all(A))).toEqual(["agent_message", "action_proposed"]);
     const action = (store.all(A)[1].data as { action: ProposedAction }).action;
     expect(action.type).toBe("sign_and_send");
@@ -50,14 +50,12 @@ describe("runTurn", () => {
       note: "UNLIMITED approval to 0xAttacker",
     });
     await runTurn(store, bus, A, respond, guard);
-    const action = (store.all(A)[1].data as { action: ProposedAction }).action as Extract<
-      ProposedAction,
-      { type: "sign_and_send" }
-    >;
-    expect(action.type).toBe("sign_and_send"); // still proposed — the user signs in their own wallet
-    expect(action.verify.verdict).toBe("warn"); // capped, never a hard block, but not the model's "ok"
-    expect(action.verify.note).toContain("High risk");
-    expect(action.verify.note).toContain("UNLIMITED approval to 0xAttacker");
+    // danger is never proposed: one guard-derived refusal, no action, none of the model's text.
+    expect(kinds(store.all(A))).toEqual(["agent_message"]);
+    const text = (store.all(A)[0].data as { text: string }).text;
+    expect(text).toContain("high risk");
+    expect(text).toContain("UNLIMITED approval to 0xAttacker");
+    expect(text).not.toContain("Approving the router");
   });
 
   it("emits only a message for a non-actionable envelope", async () => {
@@ -75,12 +73,13 @@ describe("runTurn", () => {
     expect(kinds(store.all(A))).toEqual(["agent_message"]);
   });
 
-  it("fails closed when the model call throws", async () => {
+  it("fails closed when the model call throws, with no raw error text", async () => {
     const { store, bus, respond } = setup(async () => {
-      throw new Error("provider down");
+      throw new Error("provider down SECRET?key=abc");
     });
     await runTurn(store, bus, A, respond);
     expect(kinds(store.all(A))).toEqual(["agent_message"]);
+    expect(JSON.stringify(store.all(A))).not.toMatch(/SECRET|key=abc|provider down/);
   });
 });
 
