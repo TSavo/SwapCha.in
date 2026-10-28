@@ -327,14 +327,68 @@ export interface Holding {
   listed: boolean;
 }
 type RawHolding = Omit<Holding, "priceUsd" | "valueUsd">;
+// Alchemy network slugs for alchemy_getTokenBalances — how we discover UNLISTED ERC-20s the wallet
+// holds (the listed set alone misses them). This is what Alchemy was wired for.
+const ALCHEMY_BAL_NET: Record<number, string> = {
+  1: "eth-mainnet",
+  10: "opt-mainnet",
+  56: "bnb-mainnet",
+  137: "polygon-mainnet",
+  42161: "arb-mainnet",
+  8453: "base-mainnet",
+  43114: "avax-mainnet",
+  59144: "linea-mainnet",
+  534352: "scroll-mainnet",
+};
+/** Contract addresses of every ERC-20 the owner holds a non-zero balance of, via Alchemy
+ *  alchemy_getTokenBalances. Empty when there is no Alchemy key or the chain is unsupported. */
+async function alchemyTokenContracts(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  chainId: number,
+  owner: string,
+): Promise<string[]> {
+  const net = ALCHEMY_BAL_NET[chainId];
+  const key = env.ALCHEMY_API_KEY;
+  if (!net || !key) return [];
+  try {
+    const r = await f(`https://${net}.g.alchemy.com/v2/${key}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: 1,
+        jsonrpc: "2.0",
+        method: "alchemy_getTokenBalances",
+        params: [owner, "erc20"],
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const j = (await r.json()) as {
+      result?: { tokenBalances?: { contractAddress: string; tokenBalance: string | null }[] };
+    };
+    return (j.result?.tokenBalances ?? [])
+      .filter((b) => {
+        try {
+          return b.tokenBalance != null && BigInt(b.tokenBalance) > 0n;
+        } catch {
+          return false;
+        }
+      })
+      .map((b) => b.contractAddress.toLowerCase());
+  } catch {
+    return [];
+  }
+}
+
 async function evmHoldings(
+  f: F,
   env: NodeJS.ProcessEnv,
   chainId: number,
   owner: `0x${string}`,
 ): Promise<RawHolding[]> {
   const c = evmClient(chainId, env);
   const toks = listed(chainId).filter((t) => !isNativeAddr(chainId, t.address));
-  const [native, res] = await Promise.all([
+  const [native, res, discovered] = await Promise.all([
     c.getBalance({ address: owner }),
     c.multicall({
       allowFailure: true,
@@ -345,6 +399,7 @@ async function evmHoldings(
         args: [owner] as const,
       })),
     }),
+    alchemyTokenContracts(f, env, chainId, owner),
   ]);
   const out: RawHolding[] = [];
   if (native > 0n)
@@ -369,6 +424,42 @@ async function evmHoldings(
         listed: true,
       });
   });
+  // UNLISTED ERC-20s the wallet holds (Base/BNB/etc.): read balance + decimals + symbol for each
+  // contract Alchemy reported but the listed set does not cover, and add it (listed: false). Pricing
+  // (defillama by contract) and the spam/dust filter in walletBalances handle them from here.
+  const known = new Set(toks.map((t) => t.address.toLowerCase()));
+  const extra = discovered.filter((a) => !known.has(a) && !isNativeAddr(chainId, a));
+  if (extra.length) {
+    const meta = await c.multicall({
+      allowFailure: true,
+      contracts: extra.flatMap((addr) => [
+        {
+          address: addr as `0x${string}`,
+          abi: erc20Abi,
+          functionName: "balanceOf" as const,
+          args: [owner] as const,
+        },
+        { address: addr as `0x${string}`, abi: erc20Abi, functionName: "decimals" as const },
+        { address: addr as `0x${string}`, abi: erc20Abi, functionName: "symbol" as const },
+      ]),
+    });
+    extra.forEach((addr, i) => {
+      const bal = meta[i * 3];
+      const dec = meta[i * 3 + 1];
+      const sym = meta[i * 3 + 2];
+      if (bal?.status === "success" && (bal.result as bigint) > 0n) {
+        const decimals = dec?.status === "success" ? Number(dec.result) : 18;
+        out.push({
+          chainId,
+          chain: chainName(chainId),
+          address: addr,
+          symbol: sym?.status === "success" ? String(sym.result) : "?",
+          balance: formatUnits(bal.result as bigint, decimals),
+          listed: false,
+        });
+      }
+    });
+  }
   return out;
 }
 const SPL = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
@@ -499,7 +590,7 @@ export async function walletBalances(
       try {
         return await cached(`bal:${id}:${address}`, 30_000, () =>
           vm === "evm"
-            ? evmHoldings(env, id, getAddress(address))
+            ? evmHoldings(f, env, id, getAddress(address))
             : vm === "svm"
               ? solHoldings(f, env, address)
               : vm === "bvm"
@@ -602,7 +693,7 @@ export async function walletBalances(
     errors,
     coverage:
       vm === "evm"
-        ? "EVM: native + SwapChan's listed tokens on each chain (multicall on public RPCs). Unlisted ERC-20s are not discovered."
+        ? `EVM: native + SwapChan's listed tokens on each chain (multicall on public RPCs)${env.ALCHEMY_API_KEY ? ", plus every unlisted ERC-20 the wallet holds (Alchemy getTokenBalances; unpriced ones hidden as spam/dust)" : ". Unlisted ERC-20s are not discovered (no Alchemy key)"}.`
         : vm === "svm"
           ? "Solana: SOL + every SPL / Token-2022 account (unpriced unknown tokens hidden)."
           : vm === "bvm"
