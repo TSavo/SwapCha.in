@@ -50,12 +50,18 @@ describe("runTurn", () => {
       note: "UNLIMITED approval to 0xAttacker",
     });
     await runTurn(store, bus, A, respond, guard);
-    // danger is never proposed: one guard-derived refusal, no action, none of the model's text.
-    expect(kinds(store.all(A))).toEqual(["agent_message"]);
+    // Warn, don't refuse: danger is PROPOSED with the server's "danger" verdict (the user is the
+    // final authority and the UI ack-gates it), but the model's self-asserted "ok"/"safe" text is
+    // replaced by guard-derived HIGH RISK text carrying the guard's note.
+    expect(kinds(store.all(A))).toEqual(["agent_message", "action_proposed"]);
     const text = (store.all(A)[0].data as { text: string }).text;
-    expect(text).toContain("high risk");
+    expect(text).toMatch(/HIGH RISK/);
     expect(text).toContain("UNLIMITED approval to 0xAttacker");
     expect(text).not.toContain("Approving the router");
+    const act = store.all(A).find((e) => e.kind === "action_proposed")!;
+    expect((act.data as { action: { verify: { verdict: string } } }).action.verify.verdict).toBe(
+      "danger",
+    );
   });
 
   it("emits only a message for a non-actionable envelope", async () => {

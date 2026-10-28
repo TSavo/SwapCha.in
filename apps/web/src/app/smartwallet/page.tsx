@@ -631,25 +631,33 @@ export default function SmartWalletPage() {
                 Switch your wallet to chain {pending.chainId}.
               </div>
             )}
-            {pending.type === "sign_and_send" && pending.verify.verdict === "warn" && (
-              <label className="mb-2 flex items-center gap-2 text-xs text-amber-200">
-                <input
-                  type="checkbox"
-                  checked={ackFor === pending.actionId}
-                  onChange={(e) => setAckFor(e.target.checked ? pending.actionId : null)}
-                />
-                I read the warning above and want to send this anyway.
-              </label>
-            )}
+            {pending.type === "sign_and_send" &&
+              (pending.verify.verdict === "warn" || pending.verify.verdict === "danger") && (
+                <label
+                  className={`mb-2 flex items-center gap-2 text-xs ${
+                    pending.verify.verdict === "danger"
+                      ? "font-semibold text-red-300"
+                      : "text-amber-200"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={ackFor === pending.actionId}
+                    onChange={(e) => setAckFor(e.target.checked ? pending.actionId : null)}
+                  />
+                  {pending.verify.verdict === "danger"
+                    ? "This was flagged HIGH RISK. I understand and want to sign it anyway."
+                    : "I read the warning above and want to send this anyway."}
+                </label>
+              )}
             <div className="flex gap-2">
               <button
                 type="button"
                 disabled={
                   busy ||
                   (pending.type === "sign_and_send" &&
-                    (pending.verify.verdict === "warn"
-                      ? ackFor !== pending.actionId
-                      : pending.verify.verdict !== "ok"))
+                    pending.verify.verdict !== "ok" &&
+                    ackFor !== pending.actionId)
                 }
                 onClick={() => void doAction(pending)}
                 className="rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 disabled:opacity-50"
