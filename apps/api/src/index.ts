@@ -488,8 +488,9 @@ export function createApp(
     const guard: Guard = async (chainId, tx, owner) => {
       const r = (await verifyTx(opts.scannerFetch ?? fetch, env, chainId, tx, {
         recipient: owner,
-      })) as { verdict: "ok" | "warn" | "danger"; summary?: string };
-      return { verdict: r.verdict, recipient: owner, note: r.summary ?? "" };
+      })) as { verdict: string; summary?: string };
+      // No recipient here: the runner decodes it from the calldata (never defaults to the owner).
+      return { verdict: r.verdict, note: r.summary ?? "" };
     };
     if (respond) new AgentOrchestrator(store, bus, respond, guard).start();
 
