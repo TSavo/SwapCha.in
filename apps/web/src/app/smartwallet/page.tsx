@@ -67,6 +67,7 @@ export default function SmartWalletPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [autoSend, setAutoSend] = useState(false); // on → fire proposed actions straight to the wallet
+  const [confirmAutoSend, setConfirmAutoSend] = useState(false); // "are you sure?" modal before enabling
   const [needsAuth, setNeedsAuth] = useState(false); // server returned 401: must sign to view history
   const [signingIn, setSigningIn] = useState(false);
   const [authErr, setAuthErr] = useState<string | null>(null);
@@ -401,6 +402,54 @@ export default function SmartWalletPage() {
         .sw-md img { max-height: 2.25rem; display: inline-block; vertical-align: middle; border-radius: 6px; margin: 0 0.25rem 0.1rem 0; }
         .sw-md h1, .sw-md h2, .sw-md h3 { font-weight: 700; margin: 0.4rem 0 0.2rem; }
       `}</style>
+
+      {confirmAutoSend && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="max-w-sm rounded-2xl border border-red-500/50 bg-violet-950 p-5 text-center shadow-2xl">
+            <div className="text-4xl">⚠️</div>
+            <h2 className="mt-2 text-lg font-black text-red-300">Are you really sure?</h2>
+            <p className="mt-2 text-sm text-amber-100/80">
+              With Auto-send ON, every transaction the AI proposes goes{" "}
+              <span className="font-semibold text-amber-200">straight to your wallet to sign</span>{" "}
+              — there is no button in between. The AI can make mistakes and send your money
+              somewhere you never intended. If that happens,{" "}
+              <span className="font-semibold text-red-300">
+                it’s gone. You will lose it, and no one can get it back.
+              </span>{" "}
+              Only do this with throwaway funds you are willing to lose.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmAutoSend(false)}
+                className="flex-1 rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-violet-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAutoSend(true);
+                  setConfirmAutoSend(false);
+                  try {
+                    localStorage.setItem("sw-autosend", "1");
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-pink-600 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Yes, turn it on
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h1 className="bg-gradient-to-r from-pink-400 to-violet-300 bg-clip-text text-xl font-black text-transparent">
           Smart Wallet
@@ -411,12 +460,17 @@ export default function SmartWalletPage() {
             role="switch"
             aria-checked={autoSend}
             onClick={() => {
-              const next = !autoSend;
-              setAutoSend(next);
-              try {
-                localStorage.setItem("sw-autosend", next ? "1" : "0");
-              } catch {
-                /* ignore */
+              if (autoSend) {
+                // Turning OFF needs no confirmation.
+                setAutoSend(false);
+                try {
+                  localStorage.setItem("sw-autosend", "0");
+                } catch {
+                  /* ignore */
+                }
+              } else {
+                // Turning ON is dangerous — make them confirm in a modal first.
+                setConfirmAutoSend(true);
               }
             }}
             className="flex items-center gap-1.5"
@@ -626,6 +680,25 @@ export default function SmartWalletPage() {
           Send
         </button>
       </form>
+
+      <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-[11px] leading-relaxed text-amber-100/70">
+        <p className="font-bold tracking-wide text-amber-300 uppercase">
+          ⚠️ Beta — not production ready. Do not use with real funds.
+        </p>
+        <p className="mt-1.5">
+          Honestly,{" "}
+          <span className="font-semibold text-amber-200">
+            using AI to manage your money is probably a bad idea.
+          </span>{" "}
+          This is experimental software: use it at your own risk, only with throwaway funds you’re
+          willing to lose. AI makes mistakes, and using SmartWallet means trusting AI with your
+          money — <span className="font-semibold text-amber-200">your funds can disappear.</span>{" "}
+          You sign every transaction yourself, in your own wallet, and we are not responsible for
+          anything you do or any transaction you send. We keep logs of everything you do here,
+          including your conversation and the agent’s reasoning; if you don’t want that stored with
+          us, don’t use this product.
+        </p>
+      </div>
     </div>
   );
 }
