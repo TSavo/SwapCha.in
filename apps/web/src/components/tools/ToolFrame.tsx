@@ -17,6 +17,7 @@ export function ToolFrame({
   form,
   children,
   example,
+  swap = true,
 }: {
   info: ToolInfo;
   h1: string;
@@ -26,8 +27,10 @@ export function ToolFrame({
   form?: React.ReactNode;
   children?: React.ReactNode;
   example?: string;
+  /** false: no swap card or swap CTA; the tool's own form and result take the full width. */
+  swap?: boolean;
 }) {
-  const next = data?.next;
+  const next = swap ? data?.next : undefined;
   const init = initialFrom(next?.swapUrl);
   const ld = [
     {
@@ -83,9 +86,11 @@ export function ToolFrame({
           {children}
           {data && !data.error && !children && <DataView data={data} />}
         </div>
-        <div className="order-1 w-full shrink-0 lg:order-2 lg:w-[26rem]">
-          <SwapTabs {...(init ? { initial: init } : {})} />
-        </div>
+        {swap && (
+          <div className="order-1 w-full shrink-0 lg:order-2 lg:w-[26rem]">
+            <SwapTabs {...(init ? { initial: init } : {})} />
+          </div>
+        )}
       </div>
 
       <section className="mt-10 rounded-3xl border border-fuchsia-400/40 bg-gradient-to-br from-violet-900 to-fuchsia-900/70 p-6">
