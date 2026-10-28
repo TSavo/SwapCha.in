@@ -104,8 +104,23 @@ export type Release = {
   assets: Asset[];
 };
 
-/** Measured 2026-10-26 from api.github.com/repos/TSavo/blocktools/releases (fallback if the API is unreachable). */
+/** Measured 2026-10-28 from api.github.com/repos/TSavo/blocktools/releases (fallback if the API is unreachable). */
 const FALLBACK: Release[] = [
+  {
+    tag: "v0.2.0",
+    name: "v0.2.0",
+    date: "2026-10-28T15:20:54Z",
+    body: "Linux x86_64 binaries. Verify with: sha256sum -c SHA256SUMS",
+    url: `${BT_REPO}/releases/tag/v0.2.0`,
+    assets: [
+      {
+        name: "blocktools-v0.2.0-linux-x86_64.tar.gz",
+        size: 41927348,
+        url: `${BT_REPO}/releases/download/v0.2.0/blocktools-v0.2.0-linux-x86_64.tar.gz`,
+      },
+      { name: "SHA256SUMS", size: 104, url: `${BT_REPO}/releases/download/v0.2.0/SHA256SUMS` },
+    ],
+  },
   {
     tag: "v0.1.1",
     name: "v0.1.1",
