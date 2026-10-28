@@ -15,6 +15,7 @@ import {
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
+import { makeVerifyGuard } from "./agent-guard.js";
 import { AgentOrchestrator, type Guard, type Respond } from "./agent-runner.js";
 import { makeSdkRespond } from "./agent-sdk.js";
 import { fanOut, logGuardFailure } from "./aggregate.js";
@@ -69,7 +70,6 @@ import {
   type TokenReader,
   tokenResolver,
 } from "./tokens.js";
-import { verifyTx } from "./txtools.js";
 import { gateUtxoRoute, RouteRefused, validateUtxoRecipient } from "./utxodest.js";
 
 export { fanOut, rank } from "./aggregate.js";
@@ -482,16 +482,7 @@ export function createApp(
               ...(env.SWAPCHAN_AGENT_MODEL ? { model: env.SWAPCHAN_AGENT_MODEL } : {}),
             })
           : null;
-    // The on-chain guard the orchestrator runs on every proposed sign_and_send: SwapChan's own
-    // verify_tx, keyed to the connected wallet as the expected beneficiary. Its verdict replaces the
-    // model's self-asserted one, so a prompt-injected agent cannot mislabel a malicious tx.
-    const guard: Guard = async (chainId, tx, owner) => {
-      const r = (await verifyTx(opts.scannerFetch ?? fetch, env, chainId, tx, {
-        recipient: owner,
-      })) as { verdict: string; summary?: string };
-      // No recipient here: the runner decodes it from the calldata (never defaults to the owner).
-      return { verdict: r.verdict, note: r.summary ?? "" };
-    };
+    const guard: Guard = makeVerifyGuard(opts.scannerFetch ?? fetch, env);
     if (respond) new AgentOrchestrator(store, bus, respond, guard).start();
 
     // Third writer: on a broadcast, poll settlement and append a `settled` event (re-wakes the
