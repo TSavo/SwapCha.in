@@ -5,9 +5,9 @@ import { BT_ITEMS, type BtItem } from "@/lib/blocktoolsManifest";
 
 /** Vendored from https://github.com/TSavo/blocktools (see content/blocktools/SOURCE). */
 export const BT_REPO = "https://github.com/TSavo/blocktools";
-export const BT_COMMIT = "80e8e7b";
+export const BT_COMMIT = "d98cb51";
 /** The release this site reviewed and links. Newer releases stay listed on /blocktools/releases. */
-export const BT_TAG = "v0.1.1";
+export const BT_TAG = "v0.2.0";
 export const pinnedRelease = <T extends { tag: string }>(rs: T[]): T | undefined =>
   rs.find((r) => r.tag === BT_TAG);
 const ROOT = path.join(process.cwd(), "content", "blocktools");

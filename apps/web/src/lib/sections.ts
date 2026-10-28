@@ -286,6 +286,7 @@ export const SECTIONS: Section[] = [
       { href: "/blocktools/examples", label: "Examples" },
       { href: "/blocktools/binaries", label: "Binaries" },
       { href: "/blocktools/releases", label: "Releases" },
+      { href: "/blocktools/changelog", label: "Changelog" },
     ],
     groups: [
       {
@@ -296,6 +297,7 @@ export const SECTIONS: Section[] = [
           { href: "/blocktools/commands", label: "Commands" },
           { href: "/blocktools/binaries", label: "Binaries" },
           { href: "/blocktools/releases", label: "Releases" },
+          { href: "/blocktools/changelog", label: "Changelog" },
           { href: "/blocktools/mcp", label: "MCP" },
           { href: "/blocktools/faq", label: "FAQ" },
         ],
