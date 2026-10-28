@@ -34,7 +34,14 @@ services:
       SWAPCHAN_FEE_BPS: ${SWAPCHAN_FEE_BPS:-0}
       SWAPCHAN_LIFI_FEE: ${SWAPCHAN_LIFI_FEE:-} # 1 once portal.li.fi has the fee wallet
       SWAPCHAN_API_KEYS: ${SWAPCHAN_API_KEYS:-} # empty = API open (for now)
-      SWAPCHAN_DATA_DIR: /data # widget partners SQLite (partners.db)
+      SWAPCHAN_DATA_DIR: /data # widget partners SQLite (partners.db) + smart-wallet sessions.db
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-} # smart-wallet agent; unset = agent disabled, /chat stream still mounts
+      SWAPCHAN_MCP_URL: ${SWAPCHAN_MCP_URL:-http://mcp:8788/mcp} # the agent's tools (internal MCP)
+      SWAPCHAN_CHAT_RATE_PER_MIN: ${SWAPCHAN_CHAT_RATE_PER_MIN:-2} # smart-wallet messages per minute per address
+      NODE_ENV: production # SmartWallet cookie is Secure + Domain-scoped only in production
+      SWAPCHAN_SESSION_SECRET: ${SWAPCHAN_SESSION_SECRET:-} # HMAC key for the sign-to-view session cookie (required in prod)
+      SWAPCHAN_COOKIE_DOMAIN: ${SWAPCHAN_COOKIE_DOMAIN:-} # e.g. .swapchan.com — spans web + api subdomains
+      ALCHEMY_API_KEY: ${ALCHEMY_API_KEY:-} # getAssetTransfers discovery on Base/Arbitrum; unset = those chains unscanned
       SWAPCHAN_PARTNER_SHARE_BPS: ${SWAPCHAN_PARTNER_SHARE_BPS:-5000} # partner share of our fee (5000 = 50%)
     volumes: ["api-data:/data"]
     ports: ["127.0.0.1:8787:8787"]

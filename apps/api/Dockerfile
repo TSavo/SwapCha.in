@@ -19,6 +19,8 @@ COPY apps/api/scripts ./scripts
 # Widget partner DB (SQLite) lives on the api-data volume.
 RUN mkdir -p /data && chown node:node /data
 ENV SWAPCHAN_DATA_DIR=/data
+# The Agent SDK launches the Claude Code CLI; @anthropic-ai/claude-code ships its `claude` bin here.
+ENV PATH="/app/node_modules/.bin:$PATH"
 USER node
 EXPOSE 8787
 CMD ["node", "dist/server.js"]

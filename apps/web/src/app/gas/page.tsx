@@ -32,7 +32,6 @@ function Bars({ values, labels, title }: { values: number[]; labels?: string[]; 
       >
         {values.map((v, i) => (
           <div
-            // biome-ignore lint/suspicious/noArrayIndexKey: chart bars
             key={i}
             title={`${labels?.[i] ?? ""} ${v} gwei`}
             className={`flex-1 rounded-t ${v === min ? "bg-emerald-400" : "bg-fuchsia-400"}`}

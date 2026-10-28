@@ -71,7 +71,6 @@ function Table({ rows }: { rows: Record<string, unknown>[] }) {
         </thead>
         <tbody>
           {rows.slice(0, 50).map((r, i) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static rows
             <tr key={i} className="border-t border-violet-800 odd:bg-violet-950/60">
               {cols.map((c) => (
                 <td key={c} className="px-3 py-2 align-top break-words">

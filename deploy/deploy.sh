@@ -35,7 +35,6 @@ export ZEROX_API_KEY=$(opt providers zerox)
 export LIFI_API_KEY=$(opt providers lifi)
 export LIFI_INTEGRATOR=$(opt providers lifi_integrator)   # portal.li.fi integrator name (default myswapchan)
 export RELAY_API_KEY=$(opt providers relay)
-export ETHERSCAN_API_KEY=$(opt providers etherscan)
 export CRYPTOID_API_KEY=$(opt providers cryptoid)   # chainz.cryptoid.info (old coins; keyless = 1 call / 10 s)
 export JUPITER_API_KEY=$(opt providers jupiter)   # optional: developers.jup.ag/portal (keyless = 0.5 RPS)
 export SWAPCHAN_FEE_RECIPIENT_SOLANA=$(opt fees solana)   # Jupiter platform fee owner
@@ -43,11 +42,18 @@ export VELORA_API_KEY=$(opt providers velora)
 export ONEINCH_API_KEY=$(opt providers oneinch)   # business.1inch.com (unset = 1inch off)
 export THORCHAIN_AFFILIATE=$(opt fees thorname)   # registered THORName for affiliate fees
 export DEBRIDGE_REFERRAL_CODE=$(opt providers debridge_referral)
+export ETHERSCAN_API_KEY=$(opt providers etherscan)   # full account history (Ethereum/Arbitrum/Polygon/Linea); find_money archaeology, wallet history, PnL
+export ALCHEMY_API_KEY=$(opt providers alchemy)        # getAssetTransfers = interaction-native discovery on Base/Arbitrum (no free explorer)
 export NEXT_PUBLIC_REOWN_PROJECT_ID=$(opt reown project_id)
 export NEXT_PUBLIC_GA_ID=$(opt analytics measurement_id)   # GA4 (property 389907174)
 export SWAPCHAN_API_KEYS=$(opt api keys)
 export MCP_API_KEYS=$(opt mcp keys)
 export SWAPCHAN_INTERNAL_KEY=$(opt internal key)   # proves MCP->API calls so x-swapchan-client-ip is trusted
+export SWAPCHAN_SESSION_SECRET=$(opt smartwallet session_secret)   # HMAC key for the SmartWallet sign-to-view session cookie
+export SWAPCHAN_COOKIE_DOMAIN=$(opt smartwallet cookie_domain)     # e.g. .swapchan.com so the cookie spans swapchan.com + api.swapchan.com
+# SmartWallet agent brain: the OAuth token lives under nefariousplan, not swapchan, so read it directly.
+# Unset = /chat + SSE still mount but no agent runs.
+export CLAUDE_CODE_OAUTH_TOKEN=$(vault kv get -field=token secret/nefariousplan/claude-oauth 2>/dev/null || true)
 if [ -z "$MCP_API_KEYS" ]; then export MCP_ALLOW_ANONYMOUS=1; else export MCP_ALLOW_ANONYMOUS=0; fi
 
 SERVICES=${SERVICES:-api web mcp cloudflared}

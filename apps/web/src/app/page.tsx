@@ -38,7 +38,6 @@ export default function Home() {
     <>
       <script
         type="application/ld+json"
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: static JSON-LD
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
       />
       <div className="mt-0 mb-2 text-center md:mb-3">

@@ -16,8 +16,12 @@ export default async function Releases() {
       title="Releases"
       lead={
         <p>
-          From the GitHub releases API, refreshed hourly. blocktools has no separate changelog file,
-          so this list is the changelog.
+          The downloadable binaries of each tagged release, from the GitHub releases API, refreshed
+          hourly. For the full per-version history of changes, see the{" "}
+          <Link href="/blocktools/changelog" className="underline hover:text-amber-300">
+            Changelog
+          </Link>
+          .
         </p>
       }
       source={`${BT_REPO}/releases`}
