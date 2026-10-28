@@ -201,8 +201,13 @@ export default function SmartWalletPage() {
     if (!autoSend || !pending || busy) return;
     if (!synced.current) return; // never auto-fire during a reload's catch-up replay
     if (resolvedRef.current.has(pending.actionId)) return; // already broadcast/handled
-    // Only a guard-verified "ok" auto-sends; warn needs an explicit click, danger is never sent.
-    if (pending.type === "sign_and_send" && pending.verify.verdict !== "ok") return;
+    // The server guard never proposes a danger action (danger → nothing is proposed), so a pending
+    // sign_and_send is already guard-vetted as ok or warn. Both auto-send: the user opted in through
+    // the Auto-send confirmation and still signs every tx in their own wallet, and "warn" is the
+    // common case for legitimate txs (a payment to a non-self recipient, an unverified-source
+    // contract). Requiring exactly "ok" left Auto-send firing on almost nothing. Only danger (which
+    // shouldn't reach here) is skipped, belt-and-suspenders.
+    if (pending.type === "sign_and_send" && pending.verify.verdict === "danger") return;
     if (autoFired.current === pending.actionId) return;
     autoFired.current = pending.actionId;
     void doAction(pending);
