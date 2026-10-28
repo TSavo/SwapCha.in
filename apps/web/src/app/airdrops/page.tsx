@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LookupForm } from "@/components/tools/LookupForm";
 import { ToolFrame } from "@/components/tools/ToolFrame";
+import { WalletLookup } from "@/components/tools/WalletLookup";
 import { tool } from "@/lib/toolList";
 
 export const metadata: Metadata = {
@@ -15,13 +15,14 @@ export default function Page() {
   return (
     <ToolFrame
       info={tool("airdrop_check")}
+      swap={false}
       path="/airdrops"
       h1={"Airdrop & unclaimed rewards checker"}
       intro={
         "Merkl rewards on 9 EVM chains, legacy Ethereum contracts (PoWH3D, Fomo3D, EtherDelta), Solana and Tron. We say exactly what we cover."
       }
       form={
-        <LookupForm
+        <WalletLookup
           base="/airdrops"
           label="Wallet"
           placeholder="0x…, name.eth, Solana or Tron address"

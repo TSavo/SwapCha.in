@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { LookupForm } from "@/components/tools/LookupForm";
 import { ToolFrame } from "@/components/tools/ToolFrame";
+import { WalletLookup } from "@/components/tools/WalletLookup";
 import { CHAIN_NAME, chainParam, intel } from "@/lib/intel";
 import { tool } from "@/lib/toolList";
 
@@ -25,6 +25,7 @@ export default async function Page({ params }: Props) {
   return (
     <ToolFrame
       info={tool("airdrop_check")}
+      swap={false}
       path={`/airdrops/${p.address}`}
       h1={`Unclaimed airdrops & rewards for ${decodeURIComponent(p.address)}`}
       intro={
@@ -32,11 +33,11 @@ export default async function Page({ params }: Props) {
       }
       data={d}
       form={
-        <LookupForm
+        <WalletLookup
           base="/airdrops"
           label="Wallet"
           placeholder="0x…, name.eth, Solana or Tron address"
-          initial={decodeURIComponent(p.address)}
+          current={decodeURIComponent(p.address)}
         />
       }
     />
