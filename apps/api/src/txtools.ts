@@ -17,7 +17,16 @@ import {
 import { fullAddress } from "./addrDisplay.js";
 import { type BtSolTx, blocktools, btKeccak256, btSolDecodeTx } from "./blocktools.js";
 import { recoveryGuide, type Situation } from "./keyrecovery.js";
-import { BadRequest, chainName, EXPLORER, evmClient, json, SITE, solRpc } from "./onchain.js";
+import {
+  BadRequest,
+  chainName,
+  EXPLORER,
+  evmClient,
+  json,
+  listed,
+  SITE,
+  solRpc,
+} from "./onchain.js";
 import { verifyRecovery } from "./recover.js";
 
 type F = typeof fetch;
@@ -391,6 +400,14 @@ export async function verifyEvm(
       const me = lc(tx.from);
       const rcpt = lc(exp.recipient || tx.from);
       const changes = new Map<string, bigint>();
+      // Anyone can emit Transfer(attacker -> you) from a junk contract. Only receipts of native, the
+      // expected outToken, or a SwapChan-listed token count as value received; an unknown-token
+      // "gain" must not cancel a loss or satisfy expected.recipient.
+      const known = new Set(listed(chainId).map((t) => lc(t.address)));
+      const counts = (tok: string) =>
+        tok === NATIVE_TOKEN ||
+        (!!exp.outToken && lc(tok) === lc(exp.outToken)) ||
+        known.has(lc(tok));
       for (const l of cl.logs)
         if (
           (l.topics[0] === TRANSFER && l.topics.length === 3) ||
@@ -415,7 +432,7 @@ export async function verifyEvm(
           if (fr === me) changes.set(tok, (changes.get(tok) ?? 0n) - amt);
           if (to === me) changes.set(tok, (changes.get(tok) ?? 0n) + amt);
           // A send to yourself is a receipt when you are the expected recipient (self-send).
-          if (to === rcpt && (fr !== rcpt || rcpt === me))
+          if (to === rcpt && (fr !== rcpt || rcpt === me) && counts(tok))
             received.set(lc(tok), (received.get(lc(tok)) ?? 0n) + amt);
         }
       simulated = cl.status === "0x1";
@@ -429,7 +446,7 @@ export async function verifyEvm(
       if (cl.status !== "0x1")
         add("high", "simulation", `Simulation reverts: ${cl.error?.message ?? "unknown"}`);
       const lose = diff.some((d) => BigInt(d.delta) < 0n);
-      const gain = diff.some((d) => BigInt(d.delta) > 0n);
+      const gain = diff.some((d) => BigInt(d.delta) > 0n && counts(d.token));
       if (lose && !gain && !findings.some((x) => x.check === "recipient"))
         add("high", "balance-diff", "You lose assets and receive nothing back in the simulation.");
     } catch {
