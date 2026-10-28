@@ -2,7 +2,12 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { appendEvent, type SessionBus } from "./session-bus.js";
-import { type EventKind, normalizeAddress, type SessionEvent, type SessionStore } from "./sessions.js";
+import {
+  type EventKind,
+  normalizeAddress,
+  type SessionEvent,
+  type SessionStore,
+} from "./sessions.js";
 import { requireWalletAuth } from "./siwe.js";
 
 /**
@@ -72,7 +77,8 @@ export function chatRoutes(
 
   app.post("/", gate, async (c) => {
     const parsed = PostBody.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) return c.json({ error: "bad_request", detail: parsed.error?.message }, 400);
+    if (!parsed.success)
+      return c.json({ error: "bad_request", detail: parsed.error?.message }, 400);
     const { address, kind, data, idempotencyKey } = parsed.data;
     // Rate-limit only new user messages (each starts a paid agent run); never wallet results.
     if (kind === "user_message") {
@@ -140,7 +146,10 @@ export function chatRoutes(
           }
           // Streaming deltas carry no id and are never persisted — they don't move the cursor.
           while (deltas.length) {
-            await stream.writeSSE({ event: "agent_delta", data: JSON.stringify({ text: deltas.shift() }) });
+            await stream.writeSSE({
+              event: "agent_delta",
+              data: JSON.stringify({ text: deltas.shift() }),
+            });
           }
           while (queue.length) await send(queue.shift() as SessionEvent);
         }

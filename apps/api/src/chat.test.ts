@@ -46,9 +46,23 @@ describe("session bus", () => {
     const bus = new SessionBus();
     const got: string[] = [];
     const unsub = bus.subscribe(A, (e) => got.push((e.data as { text: string }).text));
-    bus.publish(A, { id: 1, address: A.toLowerCase(), kind: "user_message", data: { text: "x" }, idempotencyKey: null, createdAt: 0 });
+    bus.publish(A, {
+      id: 1,
+      address: A.toLowerCase(),
+      kind: "user_message",
+      data: { text: "x" },
+      idempotencyKey: null,
+      createdAt: 0,
+    });
     unsub();
-    bus.publish(A, { id: 2, address: A.toLowerCase(), kind: "user_message", data: { text: "y" }, idempotencyKey: null, createdAt: 0 });
+    bus.publish(A, {
+      id: 2,
+      address: A.toLowerCase(),
+      kind: "user_message",
+      data: { text: "y" },
+      idempotencyKey: null,
+      createdAt: 0,
+    });
     expect(got).toEqual(["x"]);
   });
 
@@ -112,14 +126,18 @@ describe("chat route", () => {
     const { store, bus, app } = setup();
     appendEvent(store, bus, { address: A, kind: "user_message", data: { text: "1" } });
     appendEvent(store, bus, { address: A, kind: "agent_message", data: { text: "2" } });
-    const res = await app.request(`/chat/stream?address=${A}&cursor=0`, { headers: { cookie: COOKIE } });
+    const res = await app.request(`/chat/stream?address=${A}&cursor=0`, {
+      headers: { cookie: COOKIE },
+    });
     const frames = await readFrames(res, 2);
     expect(frames.map((e) => e.kind)).toEqual(["user_message", "agent_message"]);
   });
 
   it("GET /stream live-tails events appended after connect", async () => {
     const { store, bus, app } = setup();
-    const res = await app.request(`/chat/stream?address=${A}&cursor=0`, { headers: { cookie: COOKIE } });
+    const res = await app.request(`/chat/stream?address=${A}&cursor=0`, {
+      headers: { cookie: COOKIE },
+    });
     const framesP = readFrames(res, 1);
     // append after the stream is open
     appendEvent(store, bus, { address: A, kind: "agent_message", data: { text: "live" } });

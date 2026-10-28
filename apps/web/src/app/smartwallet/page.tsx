@@ -8,9 +8,9 @@ import { ConnectButton } from "@/components/ConnectButton";
 import {
   type LiveEvent,
   postEvent,
+  type StreamStatus,
   signInWallet,
   streamSession,
-  type StreamStatus,
 } from "@/lib/liveStream";
 
 /** Mirrors the server wallet_respond contract (apps/api/src/wallet-action.ts). */
@@ -122,7 +122,10 @@ export default function SmartWalletPage() {
         setThinking(true); // settlement re-wakes the agent for the next step
         const aid = String(d.action_id ?? "");
         if (aid) resolvedRef.current.add(aid);
-        setLines((ls) => [...ls, { id: e.id, role: "chain", text: String(d.display ?? d.text ?? "settled") }]);
+        setLines((ls) => [
+          ...ls,
+          { id: e.id, role: "chain", text: String(d.display ?? d.text ?? "settled") },
+        ]);
       } else if (e.kind === "action_proposed") {
         const action = d.action as ProposedAction | undefined;
         if (action && isActionable(action)) setPending(action);
@@ -375,7 +378,11 @@ export default function SmartWalletPage() {
   const verdictColor = (v: VerifySummary["verdict"]) =>
     v === "danger" ? "text-red-300" : v === "warn" ? "text-amber-300" : "text-emerald-300";
   const actionLabel = (a: ProposedAction) =>
-    a.type === "sign_and_send" ? "Sign & send" : a.type === "sign_message" ? "Sign message" : "Switch network";
+    a.type === "sign_and_send"
+      ? "Sign & send"
+      : a.type === "sign_message"
+        ? "Sign message"
+        : "Switch network";
 
   return (
     <div className="mx-auto mt-6 flex h-[82vh] w-full max-w-5xl flex-col px-4">
@@ -468,12 +475,12 @@ export default function SmartWalletPage() {
                 transaction, so there’s no gas and no cost.
               </li>
               <li className="flex gap-2">
-                <span className="text-emerald-400">✓</span> Safe — it can’t move your funds or approve
-                any spending. It only proves ownership.
+                <span className="text-emerald-400">✓</span> Safe — it can’t move your funds or
+                approve any spending. It only proves ownership.
               </li>
               <li className="flex gap-2">
-                <span className="text-emerald-400">✓</span> Once — after this we remember you on this
-                device, so you won’t be asked again.
+                <span className="text-emerald-400">✓</span> Once — after this we remember you on
+                this device, so you won’t be asked again.
               </li>
             </ul>
             <button
@@ -486,8 +493,8 @@ export default function SmartWalletPage() {
             </button>
             {authErr && <p className="mt-3 text-xs text-red-300">{authErr}</p>}
             <p className="mt-3 text-[11px] text-violet-300/50">
-              You’ll see a “signature request” pop up in your wallet. Approving it just confirms your
-              address — it never costs anything.
+              You’ll see a “signature request” pop up in your wallet. Approving it just confirms
+              your address — it never costs anything.
             </p>
           </div>
         </div>
@@ -504,7 +511,12 @@ export default function SmartWalletPage() {
           <p className="text-sm text-violet-200/50">Say what you’d like to do with this wallet.</p>
         )}
         {lines.map((l) => (
-          <Bubble key={l.id} role={l.role} text={l.text} typing={l.role === "wallet" && l.id === typeId} />
+          <Bubble
+            key={l.id}
+            role={l.role}
+            text={l.text}
+            typing={l.role === "wallet" && l.id === typeId}
+          />
         ))}
         {echo && (
           <div className="text-right">
@@ -519,7 +531,9 @@ export default function SmartWalletPage() {
         {streamText !== null && (
           <div>
             <span className="sw-md inline-block max-w-[85%] rounded-2xl bg-white/10 px-3 py-2 text-sm text-violet-50">
-              <span dangerouslySetInnerHTML={{ __html: renderMd(safeMarkdownPrefix(streamText)) }} />
+              <span
+                dangerouslySetInnerHTML={{ __html: renderMd(safeMarkdownPrefix(streamText)) }}
+              />
               <span className="ml-0.5 inline-block w-1.5 animate-pulse">▍</span>
             </span>
           </div>
@@ -549,12 +563,16 @@ export default function SmartWalletPage() {
               </div>
             )}
             {pending.type === "switch_chain" && (
-              <div className="mb-2 text-xs text-violet-100">Switch your wallet to chain {pending.chainId}.</div>
+              <div className="mb-2 text-xs text-violet-100">
+                Switch your wallet to chain {pending.chainId}.
+              </div>
             )}
             <div className="flex gap-2">
               <button
                 type="button"
-                disabled={busy || (pending.type === "sign_and_send" && pending.verify.verdict === "danger")}
+                disabled={
+                  busy || (pending.type === "sign_and_send" && pending.verify.verdict === "danger")
+                }
                 onClick={() => void doAction(pending)}
                 className="rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 disabled:opacity-50"
               >
@@ -565,7 +583,9 @@ export default function SmartWalletPage() {
                 disabled={busy}
                 onClick={() => {
                   setThinking(true); // the agent will respond to the dismissal
-                  void report(pending.actionId, { status: "rejected" }).then(() => setPending(null));
+                  void report(pending.actionId, { status: "rejected" }).then(() =>
+                    setPending(null),
+                  );
                 }}
                 className="rounded-xl border border-white/15 px-3 py-1.5 text-sm text-violet-100 disabled:opacity-50"
               >
@@ -579,7 +599,8 @@ export default function SmartWalletPage() {
       {err && <p className="mt-2 text-xs text-red-300">{err}</p>}
       {pending && (
         <p className="mt-2 text-xs text-violet-300/60">
-          One step at a time — finish the action above and I’ll continue. Anything you type is queued.
+          One step at a time — finish the action above and I’ll continue. Anything you type is
+          queued.
         </p>
       )}
 
@@ -633,7 +654,15 @@ export function safeMarkdownPrefix(s: string): string {
   return s;
 }
 
-function Bubble({ role, text, typing }: { role: "you" | "wallet" | "chain"; text: string; typing?: boolean }) {
+function Bubble({
+  role,
+  text,
+  typing,
+}: {
+  role: "you" | "wallet" | "chain";
+  text: string;
+  typing?: boolean;
+}) {
   const [shown, setShown] = useState(typing ? "" : text);
   const done = useRef(!typing);
   useEffect(() => {
@@ -670,7 +699,11 @@ function Bubble({ role, text, typing }: { role: "you" | "wallet" | "chain"; text
         <span className={cls}>{shown}</span>
       ) : (
         <span className={cls}>
-          <span dangerouslySetInnerHTML={{ __html: renderMd(typingNow ? safeMarkdownPrefix(shown) : shown) }} />
+          <span
+            dangerouslySetInnerHTML={{
+              __html: renderMd(typingNow ? safeMarkdownPrefix(shown) : shown),
+            }}
+          />
           {typingNow && <span className="ml-0.5 inline-block w-1.5 animate-pulse">▍</span>}
         </span>
       )}

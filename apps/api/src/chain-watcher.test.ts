@@ -19,10 +19,18 @@ const settledEvent = (store: ReturnType<typeof openSessionStore>) =>
 
 describe("ChainWatcher", () => {
   it("polls to done and appends a settled event with a 'do the next step' prompt", async () => {
-    const track: Track = async () => ({ status: "done", receivingTxHash: "0xdef", note: "got 311 USDC" });
+    const track: Track = async () => ({
+      status: "done",
+      receivingTxHash: "0xdef",
+      note: "got 311 USDC",
+    });
     const { store, bus, watcher } = setup(track);
     watcher.start();
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "a1", status: "sent", hash: HASH } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "a1", status: "sent", hash: HASH },
+    });
     await watcher.idle(A, HASH);
     const s = settledEvent(store);
     expect(s).toBeTruthy();
@@ -38,7 +46,11 @@ describe("ChainWatcher", () => {
     const track: Track = async () => (++n < 3 ? null : ({ status: "done" } as Settlement));
     const { store, bus, watcher } = setup(track);
     watcher.start();
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "a1", status: "sent", hash: HASH } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "a1", status: "sent", hash: HASH },
+    });
     await watcher.idle(A, HASH);
     expect(n).toBe(3);
     expect(settledEvent(store)?.data).toMatchObject({ status: "done" });
@@ -52,7 +64,11 @@ describe("ChainWatcher", () => {
     };
     const { store, bus, watcher } = setup(track);
     watcher.start();
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "a1", status: "rejected" } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "a1", status: "rejected" },
+    });
     await watcher.idle(A, HASH);
     expect(called).toBe(0); // nothing to track for a cancel
     const d = settledEvent(store)!.data as { status: string; display: string; action_id: string };
@@ -69,7 +85,11 @@ describe("ChainWatcher", () => {
     };
     const { store, bus, watcher } = setup(track);
     watcher.start();
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "a2", status: "sent" } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "a2", status: "sent" },
+    });
     await watcher.idle(A, HASH);
     expect(called).toBe(0);
     expect(settledEvent(store)).toBeUndefined();
@@ -78,7 +98,11 @@ describe("ChainWatcher", () => {
   it("settles a hash-less switch_chain as done (re-wakes the agent)", async () => {
     const { store, bus, watcher } = setup(async () => null);
     watcher.start();
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "sw1", status: "switched", chainId: 137 } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "sw1", status: "switched", chainId: 137 },
+    });
     await watcher.idle(A, HASH);
     const d = settledEvent(store)!.data as { status: string; text: string; display: string };
     expect(d.status).toBe("done");
@@ -90,10 +114,18 @@ describe("ChainWatcher", () => {
     const track: Track = async () => ({ status: "done" });
     const { store, bus, watcher } = setup(track);
     watcher.start();
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "a1", status: "sent", hash: HASH } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "a1", status: "sent", hash: HASH },
+    });
     await watcher.idle(A, HASH);
     // Re-deliver the same result (reconnect/at-least-once): watcher sees an existing settlement, skips.
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "a1", status: "sent", hash: HASH } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "a1", status: "sent", hash: HASH },
+    });
     await watcher.idle(A, HASH);
     const settles = store.all(A).filter((e) => e.kind === "settled");
     expect(settles.length).toBe(1);
@@ -103,7 +135,11 @@ describe("ChainWatcher", () => {
     const track: Track = async () => ({ status: "failed", note: "reverted" });
     const { store, bus, watcher } = setup(track);
     watcher.start();
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "a1", status: "sent", hash: HASH } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "a1", status: "sent", hash: HASH },
+    });
     await watcher.idle(A, HASH);
     const d = settledEvent(store)!.data as { status: string; text: string };
     expect(d.status).toBe("failed");
@@ -134,11 +170,22 @@ describe("ChainWatcher", () => {
     const track: Track = async () => null; // never settles
     const store = openSessionStore(":memory:");
     const bus = new SessionBus();
-    const watcher = new ChainWatcher(store, bus, track, { sleep: immediate, intervalMs: 0, maxAttempts: 3 });
+    const watcher = new ChainWatcher(store, bus, track, {
+      sleep: immediate,
+      intervalMs: 0,
+      maxAttempts: 3,
+    });
     watcher.start();
-    appendEvent(store, bus, { address: A, kind: "wallet_result", data: { action_id: "a1", status: "sent", hash: HASH } });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "wallet_result",
+      data: { action_id: "a1", status: "sent", hash: HASH },
+    });
     await watcher.idle(A, HASH);
-    const d = store.all(A).find((e) => e.kind === "settled")!.data as { status: string; text: string };
+    const d = store.all(A).find((e) => e.kind === "settled")!.data as {
+      status: string;
+      text: string;
+    };
     expect(d.status).toBe("failed");
     expect(d.text).toContain("timed out");
   });

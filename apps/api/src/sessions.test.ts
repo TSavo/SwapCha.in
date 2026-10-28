@@ -59,7 +59,12 @@ describe("session event log", () => {
   it("the same idempotencyKey on a different address is a different log", () => {
     const s = openSessionStore(":memory:");
     s.append({ address: A, kind: "settled", data: { hash: "0x1" }, idempotencyKey: "0x1" });
-    const onB = s.append({ address: B, kind: "settled", data: { hash: "0x1" }, idempotencyKey: "0x1" });
+    const onB = s.append({
+      address: B,
+      kind: "settled",
+      data: { hash: "0x1" },
+      idempotencyKey: "0x1",
+    });
     expect(s.all(A).length).toBe(1);
     expect(s.all(B).length).toBe(1);
     expect(onB.address).toBe(B.toLowerCase());

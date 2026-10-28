@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { Hono } from "hono";
 import type { MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { recoverMessageAddress } from "viem";
 import { z } from "zod";
@@ -61,7 +61,11 @@ export function sessionCookieHeader(
 }
 
 /** The address a valid, unexpired cookie is bound to, or null. */
-export function cookieAddress(secret: string, raw: string | undefined, now = Date.now()): string | null {
+export function cookieAddress(
+  secret: string,
+  raw: string | undefined,
+  now = Date.now(),
+): string | null {
   if (!raw) return null;
   const i = raw.lastIndexOf(".");
   if (i < 0) return null;
@@ -108,7 +112,10 @@ export function siweMessage(address: string, nonce: string, issuedAt: string): s
 
 const VerifyBody = z.object({
   address: z.string().trim().regex(EVM_ADDR),
-  signature: z.string().trim().regex(/^0x[0-9a-fA-F]+$/),
+  signature: z
+    .string()
+    .trim()
+    .regex(/^0x[0-9a-fA-F]+$/),
 });
 
 export function authRoutes(env: Record<string, string | undefined>): Hono {
@@ -152,7 +159,12 @@ export function authRoutes(env: Record<string, string | undefined>): Hono {
     if (normalizeAddress(recovered) !== key) return c.json({ error: "signature_mismatch" }, 401);
     nonces.delete(key); // single-use
     const expMs = Date.now() + SESSION_TTL_MS;
-    setCookie(c, COOKIE, makeCookieValue(secret, key, expMs), cookieOpts(env, SESSION_TTL_MS / 1000));
+    setCookie(
+      c,
+      COOKIE,
+      makeCookieValue(secret, key, expMs),
+      cookieOpts(env, SESSION_TTL_MS / 1000),
+    );
     return c.json({ ok: true, address: key, expiresAt: expMs });
   });
 

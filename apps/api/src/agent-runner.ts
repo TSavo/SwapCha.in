@@ -33,7 +33,9 @@ export async function runTurn(
   try {
     // Stream the partial response text to the live channel (transient; not persisted). The final
     // agent_message below is the durable copy the UI replaces the streaming buffer with.
-    raw = await respond({ address, events: store.all(address) }, (text) => bus.publishDelta(address, text));
+    raw = await respond({ address, events: store.all(address) }, (text) =>
+      bus.publishDelta(address, text),
+    );
   } catch (e) {
     appendEvent(store, bus, {
       address,

@@ -502,7 +502,12 @@ async function alchemyDiscover(
     const res = await f(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "alchemy_getAssetTransfers", params: [params] }),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "alchemy_getAssetTransfers",
+        params: [params],
+      }),
       signal: AbortSignal.timeout(20_000),
     });
     const j = (await res.json()) as {
@@ -2975,7 +2980,10 @@ export async function evmArchaeology(
     if (!alch || (alch.tokens.length === 0 && alch.called.length === 0))
       return {
         items,
-        stats: { ...stats, note: alch ? "no activity found" : "no keyless explorer for this chain" },
+        stats: {
+          ...stats,
+          note: alch ? "no activity found" : "no keyless explorer for this chain",
+        },
       };
     tokens = alch.tokens;
     called = alch.called;
@@ -4371,7 +4379,9 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
               ).then((rs) => ({ items: rs.flat(), notChecked: u.notChecked }));
             })(),
         // Counterparty assets (XCP + tokens) via the xchain.io indexer — invisible to BTC explorers.
-        isXpub ? Promise.resolve([] as Found[]) : timed("Counterparty (xchain.io)", counterpartyScan(f, address), [] as Found[], 12_000),
+        isXpub
+          ? Promise.resolve([] as Found[])
+          : timed("Counterparty (xchain.io)", counterpartyScan(f, address), [] as Found[], 12_000),
       ]);
       items.push(...(bx as Found[]), ...(fork.items as Found[]), ...(cp as Found[]));
       notChecked.push(...fork.notChecked);
@@ -4379,7 +4389,9 @@ export async function airdropCheck(f: F, env: NodeJS.ProcessEnv, input: string) 
       sources.push(
         "same key on fork coins (BCH, BTG, BSV) and old Bitcoin-family coins (LTC, DOGE, DASH, DGB, RVN, ZEC, QTUM, MONA, PPC, RDD, VTC, VIA, TRC, XPM, AUR, ...) via public explorers, each its own timed source",
       );
-      sources.push("Counterparty indexer (xchain.io): XCP + token/asset balances on the Bitcoin address");
+      sources.push(
+        "Counterparty indexer (xchain.io): XCP + token/asset balances on the Bitcoin address",
+      );
     } else if (vm === "svm") {
       // Tron base58 also matches the Solana pattern, so Tron is tested first.
       // every Solana source in parallel, each under its own deadline (was serial: rent -> stake -> archaeology)

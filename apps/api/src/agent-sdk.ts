@@ -237,7 +237,11 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
         if (ev.type === "content_block_start" && ev.content_block?.type === "tool_use") {
           capturing = (ev.content_block.name ?? "").includes("wallet_respond");
           if (capturing) argsBuf = "";
-        } else if (ev.type === "content_block_delta" && capturing && ev.delta?.type === "input_json_delta") {
+        } else if (
+          ev.type === "content_block_delta" &&
+          capturing &&
+          ev.delta?.type === "input_json_delta"
+        ) {
           argsBuf += ev.delta.partial_json ?? "";
           const m = extractPartialMessage(argsBuf);
           if (m !== null && m !== lastSent) {

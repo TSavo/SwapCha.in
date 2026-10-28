@@ -118,7 +118,10 @@ export class ChainWatcher {
                 : declined
                   ? "you declined it in your wallet"
                   : "reverted on-chain";
-        this.settle({ address: e.address, actionId, hash }, { status: done ? "done" : "failed", note });
+        this.settle(
+          { address: e.address, actionId, hash },
+          { status: done ? "done" : "failed", note },
+        );
       }
       return;
     }
@@ -162,17 +165,20 @@ export class ChainWatcher {
 
   /** Resolves when the poll for this tx has finished (settled or gave up) — for tests. */
   idle(address: string, hash: string): Promise<void> {
-    return this.inflight.get(`${normalizeAddress(address)}|${hash.toLowerCase()}`) ?? Promise.resolve();
+    return (
+      this.inflight.get(`${normalizeAddress(address)}|${hash.toLowerCase()}`) ?? Promise.resolve()
+    );
   }
 
-  private alreadySettled(address: string, ref: { hash?: string | undefined; actionId: string }): boolean {
+  private alreadySettled(
+    address: string,
+    ref: { hash?: string | undefined; actionId: string },
+  ): boolean {
     const h = ref.hash?.toLowerCase();
     return this.store.all(address).some((e) => {
       if (e.kind !== "settled") return false;
       const dd = e.data as { hash?: string; action_id?: string };
-      return h
-        ? String(dd.hash).toLowerCase() === h
-        : String(dd.action_id) === ref.actionId;
+      return h ? String(dd.hash).toLowerCase() === h : String(dd.action_id) === ref.actionId;
     });
   }
 
@@ -194,7 +200,10 @@ export class ChainWatcher {
     this.settle(req, { status: "failed", note: "tracking timed out; the tx may still settle" });
   }
 
-  private settle(ref: { address: string; actionId: string; hash?: string | undefined }, s: Settlement): void {
+  private settle(
+    ref: { address: string; actionId: string; hash?: string | undefined },
+    s: Settlement,
+  ): void {
     const cleared = s.status === "done";
     const cap = (x: string) => (x ? x.charAt(0).toUpperCase() + x.slice(1) : x);
     const subject = ref.hash ? `Transaction ${ref.hash}` : null;

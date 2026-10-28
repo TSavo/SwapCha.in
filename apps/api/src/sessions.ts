@@ -134,9 +134,7 @@ export function openSessionStore(file: string): SessionStore {
   const selectSince = db.prepare(
     `SELECT * FROM session_events WHERE address = ? AND id > ? ORDER BY id ASC`,
   );
-  const selectAll = db.prepare(
-    `SELECT * FROM session_events WHERE address = ? ORDER BY id ASC`,
-  );
+  const selectAll = db.prepare(`SELECT * FROM session_events WHERE address = ? ORDER BY id ASC`);
   const selectMaxId = db.prepare(
     `SELECT COALESCE(MAX(id), 0) AS cursor FROM session_events WHERE address = ?`,
   );
@@ -164,7 +162,9 @@ export function openSessionStore(file: string): SessionStore {
       return toEvent(existing);
     },
     since(address, cursor) {
-      return (selectSince.all(normalizeAddress(address), cursor) as unknown as EventRow[]).map(toEvent);
+      return (selectSince.all(normalizeAddress(address), cursor) as unknown as EventRow[]).map(
+        toEvent,
+      );
     },
     all(address) {
       return (selectAll.all(normalizeAddress(address)) as unknown as EventRow[]).map(toEvent);

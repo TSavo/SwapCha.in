@@ -15,9 +15,13 @@ import {
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
+import { AgentOrchestrator, type Respond } from "./agent-runner.js";
+import { makeSdkRespond } from "./agent-sdk.js";
 import { fanOut, logGuardFailure } from "./aggregate.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
 import { mempoolUtxos } from "./btc.js";
+import { ChainWatcher, type Track } from "./chain-watcher.js";
+import { chatRoutes } from "./chat.js";
 import { contractRoutes } from "./contracttool.js";
 import { devToolRoutes } from "./devtools.js";
 import {
@@ -28,13 +32,6 @@ import {
   verifyPayload,
 } from "./guard/index.js";
 import { intelRoutes, linkRoutes, migrateStrayLinks } from "./intel.js";
-import { AgentOrchestrator, type Respond } from "./agent-runner.js";
-import { makeSdkRespond } from "./agent-sdk.js";
-import { ChainWatcher, type Track } from "./chain-watcher.js";
-import { chatRoutes } from "./chat.js";
-import { authRoutes } from "./siwe.js";
-import { SessionBus } from "./session-bus.js";
-import { openSessionStore } from "./sessions.js";
 import { limitRoutes } from "./limit.js";
 import { type BestOut, onchainRoutes, openWatchDb } from "./onchain.js";
 import {
@@ -61,7 +58,10 @@ import { scheduleSweep, sweepLinks, sweepPartnerSwaps, sweepWatches } from "./re
 import { health } from "./scanctx.js";
 import { scannerRoutes } from "./scanner.js";
 import { openSeoStore, seoRoutes, startSeoJob } from "./seo.js";
+import { SessionBus } from "./session-bus.js";
+import { openSessionStore } from "./sessions.js";
 import { createSimulator, type Simulator } from "./simulate.js";
+import { authRoutes } from "./siwe.js";
 import {
   jupiterTokenReader,
   onchainReader,
@@ -496,7 +496,8 @@ export function createApp(
                 },
                 AbortSignal.timeout(8000),
               );
-              if (r.status === "done") return { status: "done", receivingTxHash: r.receivingTxHash };
+              if (r.status === "done")
+                return { status: "done", receivingTxHash: r.receivingTxHash };
               if (r.status === "failed") return { status: "failed" };
               return null; // pending / not_found → keep polling
             } catch {

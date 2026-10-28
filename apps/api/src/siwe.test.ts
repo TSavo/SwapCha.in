@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
 import { privateKeyToAccount } from "viem/accounts";
-import { authRoutes, cookieAddress, requireWalletAuth, siweMessage } from "./siwe.js";
+import { describe, expect, it } from "vitest";
 import { chatRoutes } from "./chat.js";
-import { openSessionStore } from "./sessions.js";
 import { SessionBus } from "./session-bus.js";
+import { openSessionStore } from "./sessions.js";
+import { authRoutes, cookieAddress, requireWalletAuth, siweMessage } from "./siwe.js";
 
 const ENV = { SWAPCHAN_SESSION_SECRET: "test-secret-abcdefghijklmnop" };
 // A fixed throwaway key (test only, never funded).

@@ -31,7 +31,12 @@ export type VerifySummary = z.infer<typeof VerifySummary>;
 
 // The action the model proposes (no actionId — the server assigns that).
 export const ModelAction = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("sign_and_send"), chainId: z.number().int(), tx: EvmTx, verify: VerifySummary }),
+  z.object({
+    type: z.literal("sign_and_send"),
+    chainId: z.number().int(),
+    tx: EvmTx,
+    verify: VerifySummary,
+  }),
   z.object({ type: z.literal("sign_message"), message: z.string() }),
   z.object({ type: z.literal("switch_chain"), chainId: z.number().int() }),
   z.object({ type: z.literal("need_info") }),
@@ -49,6 +54,8 @@ export type WalletRespond = z.infer<typeof WalletRespond>;
 export type ProposedAction = ModelAction & { actionId: string };
 
 /** Actions that require the user to do something in their wallet (and thus a sign-gate id). */
-export function isActionable(a: ModelAction): a is Extract<ModelAction, { type: "sign_and_send" | "sign_message" | "switch_chain" }> {
+export function isActionable(
+  a: ModelAction,
+): a is Extract<ModelAction, { type: "sign_and_send" | "sign_message" | "switch_chain" }> {
   return a.type === "sign_and_send" || a.type === "sign_message" || a.type === "switch_chain";
 }

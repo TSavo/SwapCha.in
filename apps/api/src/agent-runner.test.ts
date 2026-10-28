@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AgentOrchestrator, runTurn, type Respond } from "./agent-runner.js";
+import { AgentOrchestrator, type Respond, runTurn } from "./agent-runner.js";
 import { appendEvent, SessionBus } from "./session-bus.js";
 import { openSessionStore, type SessionEvent } from "./sessions.js";
 import type { ProposedAction } from "./wallet-action.js";
@@ -33,7 +33,10 @@ describe("runTurn", () => {
   });
 
   it("emits only a message for a non-actionable envelope", async () => {
-    const { store, bus, respond } = setup(async () => ({ message: "How much?", action: { type: "need_info" } }));
+    const { store, bus, respond } = setup(async () => ({
+      message: "How much?",
+      action: { type: "need_info" },
+    }));
     await runTurn(store, bus, A, respond);
     expect(kinds(store.all(A))).toEqual(["agent_message"]);
   });
@@ -77,7 +80,12 @@ describe("AgentOrchestrator", () => {
     };
     const { store, bus } = setup(respond);
     const orch = new AgentOrchestrator(store, bus, respond).start();
-    appendEvent(store, bus, { address: A, kind: "settled", data: { hash: "0x1" }, idempotencyKey: "0x1" });
+    appendEvent(store, bus, {
+      address: A,
+      kind: "settled",
+      data: { hash: "0x1" },
+      idempotencyKey: "0x1",
+    });
     await orch.idle(A);
     orch.stop();
     expect(calls).toBe(1);
