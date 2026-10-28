@@ -32,6 +32,34 @@ describe("runTurn", () => {
     expect(action.actionId.length).toBeGreaterThan(0);
   });
 
+  it("replaces the model's self-asserted verify with the server guard (never trusts the model)", async () => {
+    const { store, bus, respond } = setup(async () => ({
+      message: "Approving the router.",
+      action: {
+        type: "sign_and_send",
+        chainId: 1,
+        tx: { to: "0xToken", data: "0x095ea7b3", value: "0x0" },
+        // The model LIES: claims it is safe and that the user is the recipient.
+        verify: { recipient: A, verdict: "ok" },
+      },
+    }));
+    // The real on-chain guard decodes a dangerous unlimited approval to an attacker.
+    const guard = async () => ({
+      verdict: "danger" as const,
+      recipient: A,
+      note: "UNLIMITED approval to 0xAttacker",
+    });
+    await runTurn(store, bus, A, respond, guard);
+    const action = (store.all(A)[1].data as { action: ProposedAction }).action as Extract<
+      ProposedAction,
+      { type: "sign_and_send" }
+    >;
+    expect(action.type).toBe("sign_and_send"); // still proposed — the user signs in their own wallet
+    expect(action.verify.verdict).toBe("warn"); // capped, never a hard block, but not the model's "ok"
+    expect(action.verify.note).toContain("High risk");
+    expect(action.verify.note).toContain("UNLIMITED approval to 0xAttacker");
+  });
+
   it("emits only a message for a non-actionable envelope", async () => {
     const { store, bus, respond } = setup(async () => ({
       message: "How much?",

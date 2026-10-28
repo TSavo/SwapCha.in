@@ -1,5 +1,6 @@
 "use client";
 
+import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount, useConfig, useSendTransaction, useSignMessage, useSwitchChain } from "wagmi";
@@ -629,12 +630,26 @@ export default function SmartWalletPage() {
   );
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
+  );
+}
+
 function renderMd(text: string): string {
+  let html: string;
   try {
-    return marked.parse(text, { async: false, breaks: true, gfm: true }) as string;
+    html = marked.parse(text, { async: false, breaks: true, gfm: true }) as string;
   } catch {
-    return text;
+    html = escapeHtml(text);
   }
+  // Sanitize before this is injected via dangerouslySetInnerHTML: agent text can echo attacker-
+  // controlled strings (e.g. a malicious token name), so a <script>/onerror must never survive.
+  // DOMPurify needs a DOM; on the server we emit nothing rather than any unsanitized HTML (the
+  // messages are client-rendered, and the client re-renders sanitized after hydration).
+  if (typeof window === "undefined") return "";
+  return DOMPurify.sanitize(html);
 }
 
 /**

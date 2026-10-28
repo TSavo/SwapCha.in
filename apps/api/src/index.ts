@@ -15,7 +15,7 @@ import {
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
-import { AgentOrchestrator, type Respond } from "./agent-runner.js";
+import { AgentOrchestrator, type Guard, type Respond } from "./agent-runner.js";
 import { makeSdkRespond } from "./agent-sdk.js";
 import { fanOut, logGuardFailure } from "./aggregate.js";
 import { apiKeyAuth, parseKeys } from "./auth.js";
@@ -69,6 +69,7 @@ import {
   type TokenReader,
   tokenResolver,
 } from "./tokens.js";
+import { verifyTx } from "./txtools.js";
 import { gateUtxoRoute, RouteRefused, validateUtxoRecipient } from "./utxodest.js";
 
 export { fanOut, rank } from "./aggregate.js";
@@ -148,19 +149,27 @@ export function createApp(
     opts.solanaReader ?? jupiterTokenReader(env),
   );
   const app = new Hono();
-  // Reflect the request origin and allow credentials, so the SmartWallet's session cookie flows
-  // same-site (swapchan.com ↔ api.swapchan.com). A wildcard origin cannot be combined with
-  // credentials; echoing the origin is safe because the cookie is httpOnly + SameSite=Lax (never
-  // sent on a genuinely cross-site request).
-  app.use("*", cors({ origin: (o) => o ?? "*", credentials: true }));
+  // The public API (quotes, find_money, MCP) stays open to any origin, but WITHOUT credentials, so
+  // no third-party site can make a credentialed (cookie-bearing) request and read the response.
+  // Credentials (the SmartWallet session cookie) are allowed ONLY for our own first-party origins
+  // — swapchan.com and its subdomains, and localhost in dev — so the cookie flows same-site while a
+  // cross-origin attacker gets neither the cookie nor a credentialed response.
+  const CRED_ORIGIN =
+    /^https?:\/\/(?:[a-z0-9-]+\.)*swapchan\.com$|^http:\/\/localhost(?::\d+)?$|^http:\/\/127\.0\.0\.1(?::\d+)?$/i;
+  app.use("*", (c, next) => {
+    const origin = c.req.header("origin");
+    const creds = !!origin && CRED_ORIGIN.test(origin);
+    return cors({ origin: origin ?? "*", credentials: creds })(c, next);
+  });
   app.use("*", apiKeyAuth(parseKeys(env.SWAPCHAN_API_KEYS)));
-  app.onError((err, c) =>
-    err instanceof z.ZodError
-      ? c.json({ error: "invalid request", issues: err.issues }, 400)
-      : err instanceof RouteRefused
-        ? c.json({ error: err.message }, 400)
-        : c.json({ error: err.message }, 500),
-  );
+  app.onError((err, c) => {
+    if (err instanceof z.ZodError)
+      return c.json({ error: "invalid request", issues: err.issues }, 400);
+    if (err instanceof RouteRefused) return c.json({ error: err.message }, 400);
+    // Never leak internal/agent error details to the browser; log the detail server-side only.
+    console.error("unhandled API error:", err);
+    return c.json({ error: "internal error" }, 500);
+  });
 
   // liveness for the docker healthcheck / watchdog: 503 when scans time out en masse, heap is near the limit or the loop is stalled
   app.get("/healthz", (c) => {
@@ -473,7 +482,16 @@ export function createApp(
               ...(env.SWAPCHAN_AGENT_MODEL ? { model: env.SWAPCHAN_AGENT_MODEL } : {}),
             })
           : null;
-    if (respond) new AgentOrchestrator(store, bus, respond).start();
+    // The on-chain guard the orchestrator runs on every proposed sign_and_send: SwapChan's own
+    // verify_tx, keyed to the connected wallet as the expected beneficiary. Its verdict replaces the
+    // model's self-asserted one, so a prompt-injected agent cannot mislabel a malicious tx.
+    const guard: Guard = async (chainId, tx, owner) => {
+      const r = (await verifyTx(opts.scannerFetch ?? fetch, env, chainId, tx, {
+        recipient: owner,
+      })) as { verdict: "ok" | "warn" | "danger"; summary?: string };
+      return { verdict: r.verdict, recipient: owner, note: r.summary ?? "" };
+    };
+    if (respond) new AgentOrchestrator(store, bus, respond, guard).start();
 
     // Third writer: on a broadcast, poll settlement and append a `settled` event (re-wakes the
     // agent for the next step). Default tracker uses the signed route's provider.status; the browser

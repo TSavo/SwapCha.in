@@ -1,7 +1,24 @@
 import { randomUUID } from "node:crypto";
 import { appendEvent, type SessionBus } from "./session-bus.js";
 import { normalizeAddress, type SessionEvent, type SessionStore } from "./sessions.js";
-import { isActionable, type ProposedAction, WalletRespond } from "./wallet-action.js";
+import {
+  type EvmTx,
+  isActionable,
+  type ModelAction,
+  type ProposedAction,
+  WalletRespond,
+} from "./wallet-action.js";
+
+/**
+ * The server-side transaction guard. The model's own `verify` field is NOT trusted — a prompt-
+ * injected agent could label a malicious approval "ok" and show the user's own address as the
+ * recipient. The guard decodes the real calldata and simulates against chain state (SwapChan's
+ * verify_tx), keyed to the connected wallet as the expected beneficiary, and returns an
+ * independent verdict. `danger` means the tx is not safe to present for signing (unlimited /
+ * unknown-spender approvals, funds not reaching the owner, etc.).
+ */
+export type GuardVerdict = { verdict: "ok" | "warn" | "danger"; recipient: string; note: string };
+export type Guard = (chainId: number, tx: EvmTx, owner: string) => Promise<GuardVerdict>;
 
 /**
  * The agent runner: context from the log → a `wallet_respond` envelope → events back on the log.
@@ -28,6 +45,7 @@ export async function runTurn(
   bus: SessionBus,
   address: string,
   respond: Respond,
+  guard?: Guard,
 ): Promise<void> {
   let raw: unknown;
   try {
@@ -56,10 +74,46 @@ export async function runTurn(
   }
 
   const { message, action } = parsed.data;
+
+  // Server-side guard: the model's self-asserted verdict/recipient are NOT trusted. For a
+  // sign_and_send, run the real on-chain guard (decode + simulate, keyed to the connected wallet)
+  // and REPLACE the model's `verify` with the server's. We never block — the user is the final
+  // authority and signs in their own wallet — so the point is to show the TRUE verdict and recipient
+  // (a prompt-injected agent cannot fake "ok"), not to refuse a legitimate transaction. A high-risk
+  // decode is surfaced as a strong warning, with the real severity in the note, but still goes
+  // through for the user to decide.
+  let outAction: ModelAction = action;
+  if (action.type === "sign_and_send") {
+    let v: GuardVerdict;
+    try {
+      v = guard
+        ? await guard(action.chainId, action.tx, address)
+        : { verdict: "warn", recipient: address, note: "unverified (server guard not configured)" };
+    } catch (e) {
+      v = {
+        verdict: "warn",
+        recipient: address,
+        note: `could not verify on-chain (${String(e).slice(0, 120)})`,
+      };
+    }
+    const note = v.verdict === "danger" ? `⚠ High risk — ${v.note}` : v.note;
+    outAction = {
+      ...action,
+      verify: {
+        recipient: v.recipient,
+        minOut: action.verify.minOut,
+        // Capped at "warn" so a legitimate-but-risky tx is never hard-blocked; the note carries the
+        // real severity. The user confirms (or declines) in their own wallet.
+        verdict: v.verdict === "danger" ? "warn" : v.verdict,
+        note,
+      },
+    };
+  }
+
   appendEvent(store, bus, { address, kind: "agent_message", data: { text: message } });
-  if (isActionable(action)) {
+  if (isActionable(outAction)) {
     // The SERVER assigns the actionId — the sign-gate key. The model decides what; we own identity.
-    const proposed: ProposedAction = { ...action, actionId: randomUUID() };
+    const proposed: ProposedAction = { ...outAction, actionId: randomUUID() };
     appendEvent(store, bus, { address, kind: "action_proposed", data: { action: proposed } });
   }
 }
@@ -79,6 +133,7 @@ export class AgentOrchestrator {
     private store: SessionStore,
     private bus: SessionBus,
     private respond: Respond,
+    private guard?: Guard,
   ) {}
 
   start(): this {
@@ -113,7 +168,7 @@ export class AgentOrchestrator {
     try {
       do {
         this.pending.delete(addr);
-        await runTurn(this.store, this.bus, addr, this.respond);
+        await runTurn(this.store, this.bus, addr, this.respond, this.guard);
       } while (this.pending.has(addr));
     } finally {
       this.running.delete(addr);
