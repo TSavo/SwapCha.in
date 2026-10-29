@@ -173,6 +173,7 @@ describe("swapchan mcp over streamable http", () => {
         "build_plan_tx",
         "msg_verify",
         "bolt11_decode",
+        "build_send_tx",
       ].sort(),
     );
     await c.close();

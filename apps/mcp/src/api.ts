@@ -310,6 +310,9 @@ export class SwapChanApi {
   verifyTx(body: Rec): Promise<Rec> {
     return this.rec("/onchain/verify-tx", { method: "POST", body: JSON.stringify(body) }, 60_000);
   }
+  buildSend(body: Rec): Promise<Rec> {
+    return this.rec("/send", { method: "POST", body: JSON.stringify(body) }, 60_000);
+  }
   broadcastTx(body: Rec): Promise<Rec> {
     return this.rec("/onchain/broadcast", { method: "POST", body: JSON.stringify(body) }, 60_000);
   }

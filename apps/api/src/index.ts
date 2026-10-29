@@ -35,6 +35,7 @@ import {
 import { intelRoutes, linkRoutes, migrateStrayLinks } from "./intel.js";
 import { limitRoutes } from "./limit.js";
 import { type BestOut, onchainRoutes, openWatchDb } from "./onchain.js";
+import { buildSend } from "./send.js";
 import { onrampRoutes } from "./onramp.js";
 import {
   getPartner,
@@ -441,6 +442,38 @@ export function createApp(
   app.route("/tools", devToolRoutes());
   // Read/Write Contract (/tools/contract): ABI lookup, eth_call reads, unsigned calldata. Never signs or sends.
   app.route("/contract-tool", contractRoutes({ f: opts.scannerFetch ?? fetch, env }));
+  // Plain send: build an unsigned transfer of a token/native coin to an arbitrary recipient (EVM live;
+  // UTXO/Solana/Tron coming). SwapChan never signs or broadcasts; the user's wallet does. verifyTx-guarded.
+  app.post("/send", async (c) => {
+    let body: {
+      chainId: number;
+      to: string;
+      amount: string;
+      token?: string | undefined;
+      from?: string | undefined;
+    };
+    try {
+      body = z
+        .object({
+          chainId: z.coerce.number().int(),
+          to: z.string().min(1).max(200),
+          amount: z.string().min(1).max(100),
+          token: z.string().max(100).optional(),
+          from: z.string().max(100).optional(),
+        })
+        .parse(await c.req.json());
+    } catch {
+      return c.json({ error: "chainId, to and amount are required", verified: false }, 400);
+    }
+    try {
+      return c.json(await buildSend(opts.scannerFetch ?? fetch, env, body));
+    } catch (e) {
+      return c.json(
+        { error: e instanceof Error ? e.message : "send build failed", verified: false },
+        400,
+      );
+    }
+  });
   // LTC/DOGE/BCH deposit-address flow (THORChain only): vault, exact amount, memo, minimum. refund is optional.
   app.post("/utxo/deposit", async (c) => {
     const body = z
