@@ -4,7 +4,7 @@
 // utxoSweep (send-all) — and re-checks the built transaction with verifyTx against the recipient.
 // Unlike buildUtxoSend (THORChain only: a vault + memo), this pays an arbitrary address with no memo.
 import { fromBaseUnits } from "@swapchan/shared";
-import { blocktools, btAddrValid, btBuildPsbt, btDecode } from "./blocktools.js";
+import { blocktools, btAddrValid, btBuildPsbt, btDecode, btSweep } from "./blocktools.js";
 import { buildBtcPsbt, mempoolUtxos } from "./btc.js";
 import { fetchPrevTxs, type PrevSource } from "./prevtx.js";
 import { COINS, type Coin, type CoinRow, coinUtxos, utxoSweep } from "./utxochains.js";
@@ -70,11 +70,45 @@ async function buildBtcSend(
   const from = o.from.trim();
   const to = o.to.trim();
   if (!btAddrValid("btc", to)) throw new Error(`"${to}" is not a valid Bitcoin address (recipient)`);
-  if (o.amount.trim().toLowerCase() === "max")
-    throw new Error('send-all ("max") for BTC is coming; give a specific amount for now');
+  const rate = await btcFeeRate(f);
+
+  // "max": sweep every UTXO to the recipient (one output, no change). BTC is segwit, so no prev_tx needed.
+  if (o.amount.trim().toLowerCase() === "max") {
+    const utxos = await mempoolUtxos(f)(from);
+    if (!utxos.length) throw new Error(`no BTC found at ${from}`);
+    const s = btSweep(
+      "btc",
+      utxos.map((u) => ({ txid: u.txid, vout: u.vout, amount: u.value, address: from })),
+      to,
+      rate,
+    );
+    if (!s) throw new Error("blocktools is unavailable");
+    const env = JSON.parse(s.envelope ?? "{}") as {
+      psbt?: string;
+      unsigned_tx?: string;
+      vsize?: number;
+    };
+    const txOrPsbt = env.psbt ?? env.unsigned_tx;
+    if (!txOrPsbt) throw new Error("BTC sweep produced no transaction");
+    const maxFee = BigInt(Math.ceil(Number(s.fee) * 1.1) + 1000);
+    const verify = verifyUtxo("btc", txOrPsbt, to, to, maxFee); // sweep has one output to the recipient, no change
+    return {
+      family: "utxo",
+      coin: "btc",
+      recipient: to,
+      from,
+      amount: "max",
+      psbt: env.psbt ?? null,
+      unsignedTx: env.unsigned_tx,
+      fee: String(s.fee),
+      vsize: env.vsize,
+      verify,
+      wallet: "a Bitcoin bc1q wallet (e.g. Sparrow or Electrum)",
+    };
+  }
+
   const amount = toBaseUnits(o.amount, 8);
   if (amount <= 0n) throw new Error("amount must be above zero");
-  const rate = await btcFeeRate(f);
   const psbt = await buildBtcPsbt(mempoolUtxos(f), { from, to, amount, feeRate: rate }); // requires a bc1q sender
   const d = btDecode(psbt, "btc") as unknown as { fee?: string | number; vsize?: number } | null;
   const vsize = d?.vsize ?? 300;
