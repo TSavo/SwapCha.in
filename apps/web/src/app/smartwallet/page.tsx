@@ -180,17 +180,20 @@ export default function SmartWalletPage() {
       synced.current = true;
     }, 1300);
 
-    // On a FRESH session (no history after catch-up), greet immediately: tell the agent to look up
-    // this wallet's balances and give an overview, so the user lands on a live response, not a blank box.
+    // On a FRESH session (no history after catch-up), greet immediately: have the agent check this
+    // wallet's balances AND introduce what it can help with, so the user lands on a live, welcoming
+    // response, not a blank box.
     const greet = setTimeout(() => {
       if (kicked.current || sawUserMsg.current) return;
       kicked.current = true;
-      setEcho("Check my balances and give me a quick overview of this wallet.");
+      const text =
+        "Check my balances, then introduce yourself: give me a quick, friendly rundown of the main things you can help me do with this wallet (swaps and bridges, finding forgotten money, checking token safety and approvals, yields/deposits, and anything else), so I know where to start.";
+      setEcho(text);
       setThinking(true);
       void postEvent({
         address,
         kind: "user_message",
-        data: { text: "Check my balances and give me a quick overview of this wallet.", chainId },
+        data: { text, chainId },
       })
         .then((r) => {
           if (r.status === 401) {
