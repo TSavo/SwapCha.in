@@ -75,6 +75,10 @@ type Wasm = {
   solAnchorDiscriminator(name: string): string;
   solDecodeTx(raw: string): string;
   solVerifyTx(raw: string, expectJson: string): string;
+  /** Unsigned Solana legacy transfer (SOL/SPL). Plan: {from,to,blockhash,lamports?|token?:{mint,amount,decimals}}. No keys. */
+  solBuildTransfer(planJson: string): string;
+  /** Unsigned Tron raw_data (TRX/TRC-20). Plan: {from,to,ref_block_bytes,ref_block_hash,expiration_ms,timestamp_ms,amount?|trc20?}. No keys. */
+  tronBuildTransfer(planJson: string): string;
   cashAddrDecode(addr: string): string;
   cashAddrEncode(prefix: string, kind: string, hashHex: string): string;
   cashAddrToLegacy(addr: string): string;

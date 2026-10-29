@@ -11,6 +11,8 @@
 import { getAddress, isAddress, parseUnits } from "viem";
 import { blocktools } from "./blocktools.js";
 import { EVM_IDS, resolveName } from "./onchain.js";
+import { buildSolSend, type SolSendPlan } from "./sendsol.js";
+import { buildTronSend, type TronSendPlan } from "./sendtron.js";
 import { buildUtxoSend, type UtxoSendPlan } from "./sendutxo.js";
 import { onchainReader, tokenResolver } from "./tokens.js";
 import { COINS } from "./utxochains.js";
@@ -42,15 +44,19 @@ export type SendArgs = {
 };
 
 /** Resolve the `chain` field to a chain family. */
-function resolveChain(chain: string): { evm: number } | { coin: string } {
+function resolveChain(
+  chain: string,
+): { evm: number } | { coin: string } | { svm: true } | { tvm: true } {
   const s = chain.trim().toLowerCase();
   const n = Number(s);
   if (Number.isInteger(n) && EVM_IDS.includes(n)) return { evm: n };
   if (EVM_NAMES[s] !== undefined) return { evm: EVM_NAMES[s]! };
+  if (s === "sol" || s === "solana") return { svm: true };
+  if (s === "tron" || s === "trx") return { tvm: true };
   if (s === "btc" || s === "bitcoin") return { coin: "btc" }; // Bitcoin is handled via btc.ts, not COINS
   if (Object.prototype.hasOwnProperty.call(COINS, s)) return { coin: s };
   throw new Error(
-    `can't send on "${chain}": not a supported EVM chain or UTXO coin. EVM (name or id): ${Object.keys(EVM_NAMES).join(", ")}; UTXO coins: ${Object.keys(COINS).join(", ")}. Solana and Tron sends are coming.`,
+    `can't send on "${chain}": not a supported chain. EVM (name or id): ${Object.keys(EVM_NAMES).join(", ")}; Solana (sol); Tron (tron); UTXO coins: btc, ${Object.keys(COINS).join(", ")}.`,
   );
 }
 
@@ -63,7 +69,7 @@ export async function buildSend(
   f: F,
   env: NodeJS.ProcessEnv,
   a: SendArgs,
-): Promise<SendPlan | UtxoSendPlan> {
+): Promise<SendPlan | UtxoSendPlan | SolSendPlan | TronSendPlan> {
   const r = resolveChain(a.chain);
   if ("evm" in r)
     return buildEvmSend(f, env, {
@@ -73,6 +79,10 @@ export async function buildSend(
       token: a.token,
       from: a.from,
     });
+  if ("svm" in r)
+    return buildSolSend(f, env, { to: a.to, amount: a.amount, token: a.token, from: a.from });
+  if ("tvm" in r)
+    return buildTronSend(f, env, { to: a.to, amount: a.amount, token: a.token, from: a.from });
   return buildUtxoSend(f, env, { coin: r.coin, to: a.to, amount: a.amount, from: a.from });
 }
 
