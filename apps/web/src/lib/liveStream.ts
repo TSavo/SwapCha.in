@@ -26,6 +26,8 @@ export function streamSession(opts: {
   onEvent: (e: LiveEvent) => void;
   /** Transient partial text of the in-flight agent turn (cumulative message so far). */
   onDelta?: (text: string) => void;
+  /** Transient per-step progress line for the in-flight turn ("Getting a quote…"); accumulates. */
+  onProgress?: (text: string) => void;
   onStatus?: (s: StreamStatus) => void;
   /** Called when the server returns 401 (no valid session cookie for this address). The stream
    *  pauses; reopen it (call streamSession again) after the wallet has signed in. */
@@ -53,6 +55,15 @@ export function streamSession(opts: {
       try {
         const { text } = JSON.parse(data) as { text: string };
         opts.onDelta?.(text);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    if (ev === "agent_status") {
+      try {
+        const { text } = JSON.parse(data) as { text: string };
+        opts.onProgress?.(text);
       } catch {
         /* ignore */
       }

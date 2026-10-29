@@ -118,8 +118,16 @@ MORPHO / AAVE / PENDLE TOOLS (third-party MCPs):
 - These services see the addresses you query; only pass the connected wallet address and the
   addresses needed for the action.
 
+TALK AS YOU WORK — before you touch any tool, call status_update with a short, friendly line in your
+own voice acknowledging what the user asked and what you're about to check. Keep calling status_update
+as you go — before a slow step, when you learn something, when you move on — so the user always knows
+what's happening and never stares at a blank wait. These are conversational, in your voice, not robotic
+("Let me check the Aave and Morpho rates for you…", "Rates look better on Morpho — building the deposit
+now…"). status_update does NOT end your turn and is separate from your final answer.
+
 OUTPUT FORMAT — this is mandatory and exact. You MUST end every turn by calling the wallet_respond
-tool exactly once. That tool call IS your response; do not answer in plain assistant text. It takes:
+tool exactly once. That tool call IS your final answer; do not put your final answer in plain assistant
+text (progress goes through status_update; the answer goes through wallet_respond). It takes:
   { message: string, action: <one of the shapes below> }
 - message: the plain-language text shown to the user.
 - action.type must be exactly one of:
@@ -181,14 +189,49 @@ export interface SdkRespondConfig {
 // never shell/files", NOT a hand-picked tool subset that would rot as the MCP grows.
 const SWAPCHAN_SERVER = "mcp__swapchan";
 const WALLET_RESPOND = "mcp__walletbridge__wallet_respond";
+const STATUS_UPDATE = "mcp__walletbridge__status_update";
+
+/** A short, human progress line for a tool the agent is about to call (shown as a status update). */
+const TOOL_STATUS: Record<string, string> = {
+  get_quote: "Getting a quote…",
+  compare_routes: "Comparing routes…",
+  simulate_swap: "Simulating the swap…",
+  build_swap_tx: "Building the transaction…",
+  build_swap_link: "Building a swap link…",
+  verify_tx: "Verifying the transaction…",
+  broadcast_tx: "Broadcasting…",
+  tx_status: "Checking the transaction status…",
+  get_route_status: "Checking the route status…",
+  find_money: "Scanning the wallet for money…",
+  get_wallet_balances: "Reading balances…",
+  wallet_history: "Reading wallet history…",
+  read_chain: "Reading the chain…",
+  check_approvals: "Checking token approvals…",
+  token_risk: "Checking token safety…",
+  get_gas: "Checking gas…",
+  resolve_name: "Resolving the name…",
+};
+export function toolStatus(toolName: string): string {
+  const short = toolName.replace(/^mcp__[a-z0-9_]+__/i, "");
+  if (TOOL_STATUS[short]) return TOOL_STATUS[short];
+  const words = short.replace(/_/g, " ").trim();
+  return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}…` : "Working…";
+}
+
 export const isAllowedTool = (name: string): boolean =>
   name === WALLET_RESPOND ||
+  name === STATUS_UPDATE ||
   name === SWAPCHAN_SERVER ||
   name.startsWith(`${SWAPCHAN_SERVER}__`) ||
   isAllowedThirdPartyTool(name);
 
-/** Names handed to the SDK as allowedTools: SwapChan, wallet_respond, and the three third-party servers by prefix. */
-export const ALLOWED_TOOLS: string[] = [SWAPCHAN_SERVER, WALLET_RESPOND, ...THIRD_PARTY_TOOL_NAMES];
+/** Names handed to the SDK as allowedTools: SwapChan, wallet_respond, status_update, and the three third-party servers by prefix. */
+export const ALLOWED_TOOLS: string[] = [
+  SWAPCHAN_SERVER,
+  WALLET_RESPOND,
+  STATUS_UPDATE,
+  ...THIRD_PARTY_TOOL_NAMES,
+];
 
 /**
  * canUseTool: allow the whitelist and hand back the ORIGINAL input (an empty updatedInput would wipe
@@ -327,7 +370,11 @@ export function extractPartialMessage(partial: string): string | null {
 }
 
 export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
-  return async (ctx: AgentContext, onDelta?: (text: string) => void): Promise<unknown> => {
+  return async (
+    ctx: AgentContext,
+    onDelta?: (text: string) => void,
+    onStatus?: (text: string) => void,
+  ): Promise<unknown> => {
     let captured: unknown = null;
     const morphoLedger = newMorphoLedger();
     const hooks = makeThirdPartyHooks(morphoLedger);
@@ -341,6 +388,15 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
       name: "walletbridge",
       version: "1.0.0",
       tools: [
+        tool(
+          "status_update",
+          "Say something to the user RIGHT NOW, mid-turn, before your final wallet_respond. Use it to acknowledge the request before you touch any tool, and to narrate what you're doing as you go, in your own voice. Call it as many times as you like. It does NOT end your turn.",
+          { text: z.string() },
+          async (args) => {
+            onStatus?.(String((args as { text?: unknown }).text ?? ""));
+            return { content: [{ type: "text", text: "shown to the user" }] };
+          },
+        ),
         tool(
           "wallet_respond",
           "End your turn: deliver a message to the user and optionally propose one wallet action.",
@@ -391,15 +447,19 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
       for await (const msg of run) {
         const sid = (msg as { session_id?: string }).session_id;
         if (sid) sessionId = sid;
-        if (!onDelta || msg.type !== "stream_event") continue;
+        if ((!onDelta && !onStatus) || msg.type !== "stream_event") continue;
         const ev = msg.event as {
           type?: string;
           content_block?: { type?: string; name?: string };
           delta?: { type?: string; partial_json?: string };
         };
         if (ev.type === "content_block_start" && ev.content_block?.type === "tool_use") {
-          capturing = (ev.content_block.name ?? "").includes("wallet_respond");
+          const name = ev.content_block.name ?? "";
+          capturing = name.includes("wallet_respond");
           if (capturing) argsBuf = "";
+          // status_update is her own voice — its handler posts the text; don't also auto-label it.
+          // Every other tool call is an action the user should see as it happens.
+          else if (!name.includes("status_update")) onStatus?.(toolStatus(name));
         } else if (
           ev.type === "content_block_delta" &&
           capturing &&
@@ -409,7 +469,7 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
           const m = extractPartialMessage(argsBuf);
           if (m !== null && m !== lastSent) {
             lastSent = m;
-            onDelta(m);
+            onDelta?.(m);
           }
         } else if (ev.type === "content_block_stop") {
           capturing = false;

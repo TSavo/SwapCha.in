@@ -63,6 +63,7 @@ export default function SmartWalletPage() {
   const [workStart, setWorkStart] = useState<number | null>(null); // for the live "Working Ns" timer
   const [typeId, setTypeId] = useState<number | null>(null); // the wallet line to typewriter in
   const [streamText, setStreamText] = useState<string | null>(null); // live partial agent response
+  const [steps, setSteps] = useState<string[]>([]); // accumulating per-step progress for the in-flight turn
   const streamingRef = useRef(false); // did this turn stream? (don't also typewriter the final)
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<StreamStatus>("connecting");
@@ -98,6 +99,7 @@ export default function SmartWalletPage() {
     setThinking(false);
     setTypeId(null);
     setStreamText(null);
+    setSteps([]);
     streamingRef.current = false;
     autoFired.current = null;
     kicked.current = false;
@@ -116,15 +118,18 @@ export default function SmartWalletPage() {
         setEcho((cur) => (cur === text ? null : cur)); // the real event replaces our optimistic echo
         setEchoQueued(false);
         if (!pendingRef.current) setThinking(true); // held messages don't start a run yet
+        setSteps([]); // a new turn: clear the previous turn's progress
         setLines((ls) => [...ls, { id: e.id, role: "you", text }]);
       } else if (e.kind === "agent_message") {
         setThinking(false);
         setTypeId(streamingRef.current ? null : e.id); // already streamed → show full; else typewriter
         streamingRef.current = false;
         setStreamText(null); // the durable line replaces the streaming buffer
+        setSteps([]); // the turn is done; drop its progress list
         setLines((ls) => [...ls, { id: e.id, role: "wallet", text: String(d.text ?? "") }]);
       } else if (e.kind === "settled") {
         setThinking(true); // settlement re-wakes the agent for the next step
+        setSteps([]); // the re-woken turn starts a fresh progress list
         const aid = String(d.action_id ?? "");
         if (aid) resolvedRef.current.add(aid);
         setLines((ls) => [
@@ -148,10 +153,15 @@ export default function SmartWalletPage() {
       setThinking(false);
       setStreamText(text); // type the response in as the model generates it
     };
+    const onProgress = (text: string) => {
+      setThinking(false); // we have signs of life now
+      setSteps((s) => (s[s.length - 1] === text ? s : [...s, text])); // accumulate, dedup repeats
+    };
     const h = streamSession({
       address,
       onEvent,
       onDelta,
+      onProgress,
       onStatus: setStatus,
       onAuthRequired: () => setNeedsAuth(true),
     });
@@ -250,7 +260,7 @@ export default function SmartWalletPage() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [lines, pending, thinking, echo, streamText]);
+  }, [lines, pending, thinking, echo, streamText, steps]);
 
   const send = useCallback(async () => {
     const text = input.trim();
@@ -590,6 +600,21 @@ export default function SmartWalletPage() {
             <div className="mt-0.5 text-[11px] text-violet-300/60">
               {echoQueued ? "Queued — runs after this step" : "Sending…"}
             </div>
+          </div>
+        )}
+        {steps.length > 0 && (
+          <div className="space-y-1" aria-live="polite">
+            {steps.map((s, i) => (
+              <div
+                key={`${i}-${s}`}
+                className="flex items-center gap-2 text-xs text-violet-300/70"
+              >
+                <span className={i === steps.length - 1 ? "animate-pulse" : "text-violet-400/50"}>
+                  {i === steps.length - 1 && streamText === null ? "⏳" : "✓"}
+                </span>
+                <span>{s}</span>
+              </div>
+            ))}
           </div>
         )}
         {streamText !== null && (

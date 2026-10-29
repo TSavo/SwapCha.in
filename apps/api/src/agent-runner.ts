@@ -40,7 +40,11 @@ export interface AgentContext {
   address: string;
   events: SessionEvent[];
 }
-export type Respond = (ctx: AgentContext, onDelta?: (text: string) => void) => Promise<unknown>;
+export type Respond = (
+  ctx: AgentContext,
+  onDelta?: (text: string) => void,
+  onStatus?: (text: string) => void,
+) => Promise<unknown>;
 
 /** Fixed, user-facing refusals. Raw error text is never put in events (it can carry RPC URLs/keys). */
 export const REFUSE_UNVERIFIED =
@@ -88,10 +92,15 @@ export async function runTurn(
 ): Promise<void> {
   let raw: unknown;
   try {
-    // Stream the partial response text to the live channel (transient; not persisted). The final
+    // The agent opens the turn itself by calling status_update (see the prompt), in its own voice —
+    // so no canned server-side acknowledgement here.
+    // Stream the partial response text (transient delta, replaces the live buffer) and per-step
+    // progress (transient status, accumulates) to the live channel; neither is persisted. The final
     // agent_message below is the durable copy the UI replaces the streaming buffer with.
-    raw = await respond({ address, events: store.all(address) }, (text) =>
-      bus.publishDelta(address, text),
+    raw = await respond(
+      { address, events: store.all(address) },
+      (text) => bus.publishDelta(address, text),
+      (text) => bus.publishStatus(address, text),
     );
   } catch (e) {
     console.error("[agent] respond failed", e); // detail server-side only
