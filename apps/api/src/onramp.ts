@@ -38,25 +38,35 @@ export async function createOnrampOrder(
   const amount = String(args.amountUsd).trim();
   if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) throw new Error("bad amount");
   const tokenLocator = `${t.chain}:${t.address}`;
+  const body = JSON.stringify({
+    lineItems: [{ tokenLocator, executionParameters: { mode: "exact-in", amount } }],
+    payment: { method: "card", receiptEmail: args.email },
+    recipient: { walletAddress: args.walletAddress },
+  });
+  console.log(`[onramp] create order chain=${args.chainId} token=${tokenLocator} amount=${amount}`);
   const r = await f(`${BASE}/orders`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": serverKey },
-    body: JSON.stringify({
-      lineItems: [{ tokenLocator, executionParameters: { mode: "exact-in", amount } }],
-      payment: { method: "card", receiptEmail: args.email },
-      recipient: { walletAddress: args.walletAddress },
-    }),
+    body,
     signal: AbortSignal.timeout(15000),
   });
-  const j = (await r.json().catch(() => null)) as {
+  const text = await r.text();
+  let j: {
     order?: { orderId?: string };
     clientSecret?: string;
     payment?: { status?: string };
     message?: string;
-  } | null;
+  } | null = null;
+  try {
+    j = JSON.parse(text);
+  } catch {
+    /* non-JSON */
+  }
   if (!r.ok || !j?.order?.orderId || !j?.clientSecret) {
+    console.error(`[onramp] crossmint ${r.status}: ${text.slice(0, 400)}`);
     throw new Error(`crossmint order failed (${r.status}): ${j?.message ?? "no order/clientSecret"}`);
   }
+  console.log(`[onramp] order ok ${j.order.orderId} status=${j.payment?.status}`);
   return {
     orderId: j.order.orderId,
     clientSecret: j.clientSecret,
@@ -68,6 +78,7 @@ export async function createOnrampOrder(
 export function onrampRoutes(f: F, env: NodeJS.ProcessEnv) {
   const app = new Hono();
   app.post("/order", async (c) => {
+    console.log(`[onramp] POST /order from origin=${c.req.header("origin") ?? "?"}`);
     const key = env.CROSSMINT_SERVER_KEY;
     if (!key) return c.json({ error: "on-ramp not configured" }, 503);
     let body: { walletAddress?: string; chainId?: number; amountUsd?: string; email?: string };
