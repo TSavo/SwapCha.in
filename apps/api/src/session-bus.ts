@@ -44,7 +44,6 @@ export class SessionBus {
     this.em.on(key, listener);
     return () => this.em.off(key, listener);
   }
-
 }
 
 /**

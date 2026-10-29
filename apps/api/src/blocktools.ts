@@ -7,6 +7,11 @@ import { createRequire } from "node:module";
  */
 type Wasm = {
   version(): string;
+  multisigAddress(threshold: number, pubkeys: string[], network: string): string;
+  taprootMultisigAddress(threshold: number, pubkeys: string[], network: string): string;
+  combinePsbts(psbts: string[]): string;
+  txPlanResolve(planJson: string, contextJson: string): string;
+  msgVerify(address: string, message: string, sig: string, messageIsHex: boolean): string;
   supportedChains(): string;
   unverifiedChains(): string;
   chainParams(): string;
