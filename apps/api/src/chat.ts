@@ -104,27 +104,20 @@ export function chatRoutes(
       // and is replayed (deduped by id) rather than lost in the gap between read and subscribe.
       const queue: SessionEvent[] = [];
       const deltas: string[] = [];
-      const statuses: string[] = [];
       let wake: (() => void) | null = null;
       const unsub = bus.subscribe(address, (e) => {
         queue.push(e);
         wake?.();
       });
       // Transient streaming text for the in-flight turn — relayed as `agent_delta`, never persisted.
+      // (Her mid-turn dialogue and per-tool activity are DURABLE events on the normal queue above.)
       const unsubDelta = bus.subscribeDelta(address, (text) => {
         deltas.push(text);
-        wake?.();
-      });
-      // Per-step progress ("Getting a quote…") — relayed as `agent_status`, accumulated by the UI,
-      // never persisted.
-      const unsubStatus = bus.subscribeStatus(address, (text) => {
-        statuses.push(text);
         wake?.();
       });
       stream.onAbort(() => {
         unsub();
         unsubDelta();
-        unsubStatus();
         wake?.();
       });
 
@@ -140,7 +133,7 @@ export function chatRoutes(
         for (const e of store.since(address, cursor)) await send(e);
         // Live-tail.
         while (!stream.aborted) {
-          if (queue.length === 0 && deltas.length === 0 && statuses.length === 0) {
+          if (queue.length === 0 && deltas.length === 0) {
             await Promise.race([
               new Promise<void>((r) => {
                 wake = r;
@@ -148,21 +141,9 @@ export function chatRoutes(
               stream.sleep(SSE_PING_MS),
             ]);
             wake = null;
-            if (
-              queue.length === 0 &&
-              deltas.length === 0 &&
-              statuses.length === 0 &&
-              !stream.aborted
-            ) {
+            if (queue.length === 0 && deltas.length === 0 && !stream.aborted) {
               await stream.writeSSE({ event: "ping", data: String(last) }); // keepalive + cursor
             }
-          }
-          // Per-step progress lines, in order, before the message delta — carry no id, never persisted.
-          while (statuses.length) {
-            await stream.writeSSE({
-              event: "agent_status",
-              data: JSON.stringify({ text: statuses.shift() }),
-            });
           }
           // Streaming deltas carry no id and are never persisted — they don't move the cursor.
           while (deltas.length) {
@@ -176,7 +157,6 @@ export function chatRoutes(
       } finally {
         unsub();
         unsubDelta();
-        unsubStatus();
       }
     });
   });

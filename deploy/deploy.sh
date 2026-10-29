@@ -54,6 +54,9 @@ export SWAPCHAN_COOKIE_DOMAIN=$(opt smartwallet cookie_domain)     # e.g. .swapc
 # SmartWallet agent brain: the OAuth token lives under nefariousplan, not swapchan, so read it directly.
 # Unset = /chat + SSE still mount but no agent runs.
 export CLAUDE_CODE_OAUTH_TOKEN=$(vault kv get -field=token secret/nefariousplan/claude-oauth 2>/dev/null || true)
+# Smart-wallet agent model: Sonnet is the right tier here (conversational, tool-driven; no heavy
+# reasoning). Override by exporting SWAPCHAN_AGENT_MODEL before the deploy.
+export SWAPCHAN_AGENT_MODEL=${SWAPCHAN_AGENT_MODEL:-claude-sonnet-5-5}
 if [ -z "$MCP_API_KEYS" ]; then export MCP_ALLOW_ANONYMOUS=1; else export MCP_ALLOW_ANONYMOUS=0; fi
 
 SERVICES=${SERVICES:-api web mcp cloudflared}

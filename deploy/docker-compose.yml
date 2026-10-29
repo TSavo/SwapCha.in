@@ -36,6 +36,7 @@ services:
       SWAPCHAN_API_KEYS: ${SWAPCHAN_API_KEYS:-} # empty = API open (for now)
       SWAPCHAN_DATA_DIR: /data # widget partners SQLite (partners.db) + smart-wallet sessions.db
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-} # smart-wallet agent; unset = agent disabled, /chat stream still mounts
+      SWAPCHAN_AGENT_MODEL: ${SWAPCHAN_AGENT_MODEL:-} # smart-wallet agent model; unset = SDK default
       SWAPCHAN_MCP_URL: ${SWAPCHAN_MCP_URL:-http://mcp:8788/mcp} # the agent's tools (internal MCP)
       SWAPCHAN_CHAT_RATE_PER_MIN: ${SWAPCHAN_CHAT_RATE_PER_MIN:-2} # smart-wallet messages per minute per address
       NODE_ENV: production # SmartWallet cookie is Secure + Domain-scoped only in production

@@ -43,7 +43,10 @@ export interface AgentContext {
 export type Respond = (
   ctx: AgentContext,
   onDelta?: (text: string) => void,
-  onStatus?: (text: string) => void,
+  /** The agent speaking mid-turn (status_update) — persisted as dialogue. */
+  onSay?: (text: string) => void,
+  /** A per-tool action line ("Getting a quote…") — persisted, shown muted. */
+  onActivity?: (text: string) => void,
 ) => Promise<unknown>;
 
 /** Fixed, user-facing refusals. Raw error text is never put in events (it can carry RPC URLs/keys). */
@@ -92,15 +95,15 @@ export async function runTurn(
 ): Promise<void> {
   let raw: unknown;
   try {
-    // The agent opens the turn itself by calling status_update (see the prompt), in its own voice —
-    // so no canned server-side acknowledgement here.
-    // Stream the partial response text (transient delta, replaces the live buffer) and per-step
-    // progress (transient status, accumulates) to the live channel; neither is persisted. The final
-    // agent_message below is the durable copy the UI replaces the streaming buffer with.
+    // The agent opens the turn itself by calling status_update (see the prompt), in its own voice.
+    // onDelta streams the FINAL answer's partial text (transient, replaced by the durable agent_message).
+    // onSay (its mid-turn dialogue) and onActivity (per-tool action lines) are appended as DURABLE
+    // events, so they persist in the conversation and survive a reload — they are not transient.
     raw = await respond(
       { address, events: store.all(address) },
       (text) => bus.publishDelta(address, text),
-      (text) => bus.publishStatus(address, text),
+      (text) => appendEvent(store, bus, { address, kind: "agent_say", data: { text } }),
+      (text) => appendEvent(store, bus, { address, kind: "agent_activity", data: { text } }),
     );
   } catch (e) {
     console.error("[agent] respond failed", e); // detail server-side only

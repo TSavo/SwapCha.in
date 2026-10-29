@@ -45,20 +45,6 @@ export class SessionBus {
     return () => this.em.off(key, listener);
   }
 
-  /**
-   * Transient per-step status for an in-flight turn ("Getting a quote…", "Building the transaction…")
-   * — NOT persisted. Unlike a delta (which REPLACES the live buffer with the partial final message),
-   * statuses ACCUMULATE into a progress list the UI shows while the agent works and clears when the
-   * durable agent_message lands. A missed one is harmless (the final message is the source of truth).
-   */
-  publishStatus(address: string, text: string): void {
-    this.em.emit(`status:${normalizeAddress(address)}`, text);
-  }
-  subscribeStatus(address: string, listener: (text: string) => void): () => void {
-    const key = `status:${normalizeAddress(address)}`;
-    this.em.on(key, listener);
-    return () => this.em.off(key, listener);
-  }
 }
 
 /**

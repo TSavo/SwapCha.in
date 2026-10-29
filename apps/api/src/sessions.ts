@@ -30,7 +30,9 @@ export type EventKind =
   | "user_message" // { text }
   | "wallet_result" // { action_id, status: "sent" | "rejected", hash? }
   // agent writer
-  | "agent_message" // { text }
+  | "agent_message" // { text }  — the turn's final answer
+  | "agent_say" // { text }  — an interim line the agent speaks mid-turn (persists as dialogue)
+  | "agent_activity" // { text }  — a per-tool action line ("Getting a quote…"); persists, shown muted
   | "action_proposed" // { action_id, action: WalletAction }
   // blockchain writer
   | "settled"; // { action_id, hash, received?, verdict: "met" | "below_expected" | "reverted" }

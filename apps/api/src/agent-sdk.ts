@@ -288,9 +288,14 @@ export const thirdPartyMcpServers = () =>
  * produces it, before the tool call closes. Paperclip's streaming-JSON trick.
  */
 export function extractPartialMessage(partial: string): string | null {
-  const key = partial.indexOf('"message"');
+  return extractPartialField(partial, "message");
+}
+/** Pull a string field's value out of a partially-streamed JSON object (the tool args as they arrive). */
+export function extractPartialField(partial: string, field: string): string | null {
+  const needle = `"${field}"`;
+  const key = partial.indexOf(needle);
   if (key < 0) return null;
-  const colon = partial.indexOf(":", key + 9);
+  const colon = partial.indexOf(":", key + needle.length);
   if (colon < 0) return null;
   let j = colon + 1;
   while (j < partial.length && /\s/.test(partial[j]!)) j++;
@@ -317,7 +322,8 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
   return async (
     ctx: AgentContext,
     onDelta?: (text: string) => void,
-    onStatus?: (text: string) => void,
+    onSay?: (text: string) => void,
+    onActivity?: (text: string) => void,
   ): Promise<unknown> => {
     let captured: unknown = null;
     const hooks = makeThirdPartyHooks();
@@ -335,10 +341,9 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
           "status_update",
           "Say something to the user RIGHT NOW, mid-turn, before your final wallet_respond. Use it to acknowledge the request before you touch any tool, and to narrate what you're doing as you go, in your own voice. Call it as many times as you like. It does NOT end your turn.",
           { text: z.string() },
-          async (args) => {
-            onStatus?.(String((args as { text?: unknown }).text ?? ""));
-            return { content: [{ type: "text", text: "shown to the user" }] };
-          },
+          // The text is streamed in live and persisted as a durable dialogue line by the drive loop
+          // (as the model types it), so the handler only needs to acknowledge the call.
+          async () => ({ content: [{ type: "text", text: "shown to the user" }] }),
         ),
         tool(
           "wallet_respond",
@@ -385,12 +390,13 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
     // of the partial tool-args JSON as it's generated (Paperclip's trick) so the UI types it in live.
     const drive = async (run: ReturnType<typeof makeRun>) => {
       let argsBuf = "";
-      let capturing = false;
+      let capturing = false; // streaming the final wallet_respond message
+      let capturingSay = false; // streaming a mid-turn status_update line (her voice)
       let lastSent = "";
       for await (const msg of run) {
         const sid = (msg as { session_id?: string }).session_id;
         if (sid) sessionId = sid;
-        if ((!onDelta && !onStatus) || msg.type !== "stream_event") continue;
+        if ((!onDelta && !onSay && !onActivity) || msg.type !== "stream_event") continue;
         const ev = msg.event as {
           type?: string;
           content_block?: { type?: string; name?: string };
@@ -398,24 +404,36 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
         };
         if (ev.type === "content_block_start" && ev.content_block?.type === "tool_use") {
           const name = ev.content_block.name ?? "";
-          capturing = name.includes("wallet_respond");
-          if (capturing) argsBuf = "";
-          // status_update is her own voice — its handler posts the text; don't also auto-label it.
-          // Every other tool call is an action the user should see as it happens.
-          else if (!name.includes("status_update")) onStatus?.(toolStatus(name));
+          capturing = name.includes("wallet_respond"); // the final answer
+          capturingSay = name.includes("status_update"); // a mid-turn line, in her voice
+          if (capturing || capturingSay) {
+            argsBuf = "";
+            lastSent = "";
+          }
+          // Any other tool call is an action the user should see as it happens (persisted, muted).
+          else onActivity?.(toolStatus(name));
         } else if (
           ev.type === "content_block_delta" &&
-          capturing &&
+          (capturing || capturingSay) &&
           ev.delta?.type === "input_json_delta"
         ) {
+          // Stream the bubble in live as the model types it — the final message's `message`, or a
+          // status_update's `text` — both through onDelta (the same typewriter the final answer uses).
           argsBuf += ev.delta.partial_json ?? "";
-          const m = extractPartialMessage(argsBuf);
+          const m = extractPartialField(argsBuf, capturing ? "message" : "text");
           if (m !== null && m !== lastSent) {
             lastSent = m;
             onDelta?.(m);
           }
         } else if (ev.type === "content_block_stop") {
+          // A finished status_update becomes a DURABLE dialogue line (persists, and the live buffer
+          // clears when that event arrives). wallet_respond is captured by its own tool handler.
+          if (capturingSay) {
+            const full = extractPartialField(argsBuf, "text");
+            if (full) onSay?.(full);
+          }
           capturing = false;
+          capturingSay = false;
         }
       }
     };

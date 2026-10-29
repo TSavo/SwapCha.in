@@ -39,7 +39,7 @@ type ProposedAction = ModelAction & { actionId: string };
 
 interface Line {
   id: number;
-  role: "you" | "wallet" | "chain";
+  role: "you" | "wallet" | "chain" | "activity";
   text: string;
 }
 
@@ -63,7 +63,6 @@ export default function SmartWalletPage() {
   const [workStart, setWorkStart] = useState<number | null>(null); // for the live "Working Ns" timer
   const [typeId, setTypeId] = useState<number | null>(null); // the wallet line to typewriter in
   const [streamText, setStreamText] = useState<string | null>(null); // live partial agent response
-  const [steps, setSteps] = useState<string[]>([]); // accumulating per-step progress for the in-flight turn
   const streamingRef = useRef(false); // did this turn stream? (don't also typewriter the final)
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<StreamStatus>("connecting");
@@ -99,7 +98,6 @@ export default function SmartWalletPage() {
     setThinking(false);
     setTypeId(null);
     setStreamText(null);
-    setSteps([]);
     streamingRef.current = false;
     autoFired.current = null;
     kicked.current = false;
@@ -118,18 +116,20 @@ export default function SmartWalletPage() {
         setEcho((cur) => (cur === text ? null : cur)); // the real event replaces our optimistic echo
         setEchoQueued(false);
         if (!pendingRef.current) setThinking(true); // held messages don't start a run yet
-        setSteps([]); // a new turn: clear the previous turn's progress
         setLines((ls) => [...ls, { id: e.id, role: "you", text }]);
-      } else if (e.kind === "agent_message") {
+      } else if (e.kind === "agent_message" || e.kind === "agent_say") {
+        // Her final answer AND each mid-turn line are streamed-then-durable wallet dialogue bubbles,
+        // handled identically: the live buffer (if this one streamed) is replaced by the durable line.
         setThinking(false);
         setTypeId(streamingRef.current ? null : e.id); // already streamed → show full; else typewriter
         streamingRef.current = false;
         setStreamText(null); // the durable line replaces the streaming buffer
-        setSteps([]); // the turn is done; drop its progress list
         setLines((ls) => [...ls, { id: e.id, role: "wallet", text: String(d.text ?? "") }]);
+      } else if (e.kind === "agent_activity") {
+        // A per-tool action line ("Getting a quote…"): a muted, persistent record of what she did.
+        setLines((ls) => [...ls, { id: e.id, role: "activity", text: String(d.text ?? "") }]);
       } else if (e.kind === "settled") {
         setThinking(true); // settlement re-wakes the agent for the next step
-        setSteps([]); // the re-woken turn starts a fresh progress list
         const aid = String(d.action_id ?? "");
         if (aid) resolvedRef.current.add(aid);
         setLines((ls) => [
@@ -153,15 +153,10 @@ export default function SmartWalletPage() {
       setThinking(false);
       setStreamText(text); // type the response in as the model generates it
     };
-    const onProgress = (text: string) => {
-      setThinking(false); // we have signs of life now
-      setSteps((s) => (s[s.length - 1] === text ? s : [...s, text])); // accumulate, dedup repeats
-    };
     const h = streamSession({
       address,
       onEvent,
       onDelta,
-      onProgress,
       onStatus: setStatus,
       onAuthRequired: () => setNeedsAuth(true),
     });
@@ -260,7 +255,7 @@ export default function SmartWalletPage() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [lines, pending, thinking, echo, streamText, steps]);
+  }, [lines, pending, thinking, echo, streamText]);
 
   const send = useCallback(async () => {
     const text = input.trim();
@@ -602,18 +597,6 @@ export default function SmartWalletPage() {
             </div>
           </div>
         )}
-        {steps.length > 0 && (
-          <div className="space-y-1" aria-live="polite">
-            {steps.map((s, i) => (
-              <div key={`${i}-${s}`} className="flex items-center gap-2 text-xs text-violet-300/70">
-                <span className={i === steps.length - 1 ? "animate-pulse" : "text-violet-400/50"}>
-                  {i === steps.length - 1 && streamText === null ? "⏳" : "✓"}
-                </span>
-                <span>{s}</span>
-              </div>
-            ))}
-          </div>
-        )}
         {streamText !== null && (
           <div>
             <span className="sw-md inline-block max-w-[85%] rounded-2xl bg-white/10 px-3 py-2 text-sm text-violet-50">
@@ -800,7 +783,7 @@ function Bubble({
   text,
   typing,
 }: {
-  role: "you" | "wallet" | "chain";
+  role: "you" | "wallet" | "chain" | "activity";
   text: string;
   typing?: boolean;
 }) {
@@ -826,6 +809,15 @@ function Bubble({
     return () => clearInterval(id);
   }, [text]);
 
+  if (role === "activity") {
+    // A per-tool action line — muted, inline, persistent; not a dialogue bubble, no typewriter.
+    return (
+      <div className="flex items-center gap-2 pl-1 text-xs text-violet-300/60">
+        <span className="text-violet-400/50">⚙</span>
+        <span>{text}</span>
+      </div>
+    );
+  }
   const typingNow = !done.current && shown.length < text.length;
   const cls =
     "sw-md inline-block max-w-[85%] rounded-2xl px-3 py-2 text-sm " +
