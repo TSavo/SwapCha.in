@@ -162,6 +162,15 @@ export function createApp(
     const creds = !!origin && CRED_ORIGIN.test(origin);
     return cors({ origin: origin ?? "*", credentials: creds })(c, next);
   });
+  // Access log: one line per request (method, path, status, ms). Skips the health probe and the
+  // long-lived SSE stream to avoid noise. This is what lets us see what actually happened.
+  app.use("*", async (c, next) => {
+    const t0 = Date.now();
+    await next();
+    const p = new URL(c.req.url).pathname;
+    if (p !== "/healthz" && p !== "/health" && !p.startsWith("/chat"))
+      console.log(`[req] ${c.req.method} ${p} ${c.res.status} ${Date.now() - t0}ms`);
+  });
   app.use("*", apiKeyAuth(parseKeys(env.SWAPCHAN_API_KEYS)));
   app.onError((err, c) => {
     if (err instanceof z.ZodError)

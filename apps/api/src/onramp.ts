@@ -8,7 +8,11 @@ type F = typeof fetch;
  * clientSecret to take the card payment and KYC. Crossmint settles USDC straight to the user's own
  * wallet (`recipient.walletAddress`) — so SwapChan stays fully non-custodial.
  */
-const BASE = "https://www.crossmint.com/api/2022-06-09";
+/** Crossmint API base. Staging lets us validate the whole flow before production is enabled. */
+const apiBase = (env: NodeJS.ProcessEnv) =>
+  env.CROSSMINT_ENV === "staging"
+    ? "https://staging.crossmint.com/api/2022-06-09"
+    : "https://www.crossmint.com/api/2022-06-09";
 
 /** SwapChan chainId -> (Crossmint chain name, that chain's production USDC token address). */
 const USDC: Record<number, { chain: string; address: string }> = {
@@ -31,6 +35,7 @@ export interface OnrampOrder {
 export async function createOnrampOrder(
   f: F,
   serverKey: string,
+  base: string,
   args: { walletAddress: string; chainId: number; amountUsd: string; email: string },
 ): Promise<OnrampOrder> {
   const t = USDC[args.chainId];
@@ -43,8 +48,8 @@ export async function createOnrampOrder(
     payment: { method: "card", receiptEmail: args.email },
     recipient: { walletAddress: args.walletAddress },
   });
-  console.log(`[onramp] create order chain=${args.chainId} token=${tokenLocator} amount=${amount}`);
-  const r = await f(`${BASE}/orders`, {
+  console.log(`[onramp] create order chain=${args.chainId} token=${tokenLocator} amount=${amount} base=${base}`);
+  const r = await f(`${base}/orders`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": serverKey },
     body,
@@ -92,10 +97,14 @@ export function onrampRoutes(f: F, env: NodeJS.ProcessEnv) {
       return c.json({ error: "walletAddress, chainId, amountUsd, email are required" }, 400);
     try {
       return c.json(
-        await createOnrampOrder(f, key, { walletAddress, chainId, amountUsd, email }),
+        await createOnrampOrder(f, key, apiBase(env), { walletAddress, chainId, amountUsd, email }),
       );
     } catch (e) {
-      return c.json({ error: e instanceof Error ? e.message : "order failed" }, 502);
+      // Pass Crossmint's real message through (e.g. "Onramp is not yet enabled for production"), so the
+      // agent and the UI say what's actually wrong instead of a generic failure.
+      const msg = e instanceof Error ? e.message : "order failed";
+      console.error(`[onramp] order failed: ${msg}`);
+      return c.json({ error: msg }, 502);
     }
   });
   return app;
