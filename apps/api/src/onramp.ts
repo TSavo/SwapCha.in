@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { createHmac } from "node:crypto";
 
 type F = typeof fetch;
 
@@ -80,8 +81,80 @@ export async function createOnrampOrder(
   };
 }
 
+/**
+ * MoonPay hosted on-ramp. Unlike Crossmint (server creates an order, browser mounts an embedded
+ * checkout), MoonPay is a single hosted widget: the server builds the buy-widget URL with the
+ * PUBLISHABLE key as `apiKey`, then HMAC-SHA256-signs the query string with the SECRET key. Signing
+ * is MANDATORY whenever `walletAddress` is in the URL (unsigned → the widget refuses to load). The
+ * browser opens the signed URL; MoonPay takes the card + KYC and settles crypto straight to the
+ * user's own wallet, so SwapChan stays non-custodial. We never see the card, the funds, or KYC data.
+ *
+ * Dormant until MOONPAY_SECRET_KEY + MOONPAY_PUBLISHABLE_KEY are set (then /onramp/moonpay/sign works);
+ * keys determine the environment — sk_test_/pk_test_ hit the sandbox host, sk_live_/pk_live_ production.
+ */
+/** SwapChan chainId -> MoonPay currencyCode for USDC on that chain. Verify against MoonPay's
+ *  /v3/currencies for the account before going live — these are MoonPay's documented network suffixes. */
+const MOONPAY_USDC: Record<number, string> = {
+  1: "usdc", // Ethereum
+  8453: "usdc_base",
+  42161: "usdc_arbitrum",
+  10: "usdc_optimism",
+  137: "usdc_polygon",
+  792703809: "usdc_sol", // Solana
+};
+
+const moonpayHost = (pubKey: string) =>
+  pubKey.startsWith("pk_live_") ? "https://buy.moonpay.com" : "https://buy-sandbox.moonpay.com";
+
+/** Build and sign a MoonPay buy-widget URL delivering USDC to `walletAddress` on `chainId`. */
+export function signMoonpayUrl(
+  pubKey: string,
+  secretKey: string,
+  args: { walletAddress: string; chainId: number; amountUsd: string },
+): { url: string } {
+  const currencyCode = MOONPAY_USDC[args.chainId];
+  if (!currencyCode) throw new Error(`on-ramp not supported on chain ${args.chainId}`);
+  const amount = String(args.amountUsd).trim();
+  if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) throw new Error("bad amount");
+  // URLSearchParams URL-encodes each VALUE, which is exactly what MoonPay signs over.
+  const params = new URLSearchParams({
+    apiKey: pubKey,
+    currencyCode,
+    walletAddress: args.walletAddress,
+    baseCurrencyCode: "usd",
+    baseCurrencyAmount: amount,
+  });
+  const query = `?${params.toString()}`;
+  const signature = createHmac("sha256", secretKey).update(query).digest("base64");
+  const url = `${moonpayHost(pubKey)}/${query}&signature=${encodeURIComponent(signature)}`;
+  console.log(`[onramp] moonpay sign chain=${args.chainId} currency=${currencyCode} amount=${amount} host=${moonpayHost(pubKey)}`);
+  return { url };
+}
+
 export function onrampRoutes(f: F, env: NodeJS.ProcessEnv) {
   const app = new Hono();
+  app.post("/moonpay/sign", async (c) => {
+    console.log(`[onramp] POST /moonpay/sign from origin=${c.req.header("origin") ?? "?"}`);
+    const pubKey = env.MOONPAY_PUBLISHABLE_KEY;
+    const secretKey = env.MOONPAY_SECRET_KEY;
+    if (!pubKey || !secretKey) return c.json({ error: "on-ramp not configured" }, 503);
+    let body: { walletAddress?: string; chainId?: number; amountUsd?: string };
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "bad JSON body" }, 400);
+    }
+    const { walletAddress, chainId, amountUsd } = body ?? {};
+    if (!walletAddress || !chainId || !amountUsd)
+      return c.json({ error: "walletAddress, chainId, amountUsd are required" }, 400);
+    try {
+      return c.json(signMoonpayUrl(pubKey, secretKey, { walletAddress, chainId, amountUsd }));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "sign failed";
+      console.error(`[onramp] moonpay sign failed: ${msg}`);
+      return c.json({ error: msg }, 502);
+    }
+  });
   app.post("/order", async (c) => {
     console.log(`[onramp] POST /order from origin=${c.req.header("origin") ?? "?"}`);
     const key = env.CROSSMINT_SERVER_KEY;

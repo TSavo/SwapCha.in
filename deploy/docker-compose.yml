@@ -39,6 +39,8 @@ services:
       SWAPCHAN_AGENT_MODEL: ${SWAPCHAN_AGENT_MODEL:-} # smart-wallet agent model; unset = SDK default
       CROSSMINT_SERVER_KEY: ${CROSSMINT_SERVER_KEY:-} # card on-ramp order creation; unset = /onramp 503s
       CROSSMINT_ENV: ${CROSSMINT_ENV:-} # "staging" to validate before production is enabled; else production
+      MOONPAY_PUBLISHABLE_KEY: ${MOONPAY_PUBLISHABLE_KEY:-} # card on-ramp (MoonPay) widget apiKey; unset = /onramp/moonpay/sign 503s
+      MOONPAY_SECRET_KEY: ${MOONPAY_SECRET_KEY:-} # card on-ramp (MoonPay) HMAC signing key; unset = /onramp/moonpay/sign 503s
       SWAPCHAN_MCP_URL: ${SWAPCHAN_MCP_URL:-http://mcp:8788/mcp} # the agent's tools (internal MCP)
       SWAPCHAN_CHAT_RATE_PER_MIN: ${SWAPCHAN_CHAT_RATE_PER_MIN:-2} # smart-wallet messages per minute per address
       NODE_ENV: production # SmartWallet cookie is Secure + Domain-scoped only in production
