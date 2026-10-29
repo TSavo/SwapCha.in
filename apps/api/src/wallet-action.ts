@@ -65,12 +65,14 @@ export function isActionable(
   a: ModelAction,
 ): a is Extract<
   ModelAction,
-  { type: "sign_and_send" | "sign_message" | "switch_chain" | "onramp" }
+  { type: "sign_and_send" | "sign_message" | "switch_chain" }
 > {
+  // onramp (card on-ramp) is intentionally NOT actionable yet — MoonPay signature validation is
+  // unresolved on their side, so we don't surface a card checkout. Re-add "onramp" here (and in the
+  // web page's isActionable) to turn it back on once MoonPay validates. The schema keeps the literal.
   return (
     a.type === "sign_and_send" ||
     a.type === "sign_message" ||
-    a.type === "switch_chain" ||
-    a.type === "onramp"
+    a.type === "switch_chain"
   );
 }

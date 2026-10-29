@@ -65,7 +65,9 @@ function coalesceActivity(lines: Line[]): (Line & { count: number })[] {
 
 const isActionable = (a: ProposedAction) =>
   // sign_message is no longer offered by the agent (an old stored one is shown but not actionable).
-  a.type === "sign_and_send" || a.type === "switch_chain" || a.type === "onramp";
+  // onramp (card on-ramp) is gated off until MoonPay signature validation is resolved on their side —
+  // re-add "|| a.type === 'onramp'" here (and in the api's isActionable) to turn it back on.
+  a.type === "sign_and_send" || a.type === "switch_chain";
 
 export default function SmartWalletPage() {
   const config = useConfig();
