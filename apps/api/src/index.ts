@@ -35,6 +35,7 @@ import {
 import { intelRoutes, linkRoutes, migrateStrayLinks } from "./intel.js";
 import { limitRoutes } from "./limit.js";
 import { type BestOut, onchainRoutes, openWatchDb } from "./onchain.js";
+import { onrampRoutes } from "./onramp.js";
 import {
   getPartner,
   openPartnerStore,
@@ -307,6 +308,8 @@ export function createApp(
     app.route("/links", linkRoutes(opts.scannerFetch ?? fetch, env, linksDb));
     app.route("/onchain", onchainRoutes(opts.scannerFetch ?? fetch, env, watchDb, bestOut));
   }
+  // Card on-ramp (Crossmint): always mounted; the handler 503s when CROSSMINT_SERVER_KEY is unset.
+  app.route("/onramp", onrampRoutes(opts.scannerFetch ?? fetch, env));
   app.post("/build", async (c) => {
     const body = z
       .object({

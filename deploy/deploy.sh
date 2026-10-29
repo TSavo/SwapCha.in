@@ -46,6 +46,8 @@ export ETHERSCAN_API_KEY=$(opt providers etherscan)   # full account history (Et
 export ALCHEMY_API_KEY=$(opt providers alchemy)        # getAssetTransfers = interaction-native discovery on Base/Arbitrum (no free explorer)
 export NEXT_PUBLIC_REOWN_PROJECT_ID=$(opt reown project_id)
 export NEXT_PUBLIC_GA_ID=$(opt analytics measurement_id)   # GA4 (property 389907174)
+export CROSSMINT_SERVER_KEY=$(opt crossmint api_key)             # card on-ramp: server order creation (api)
+export NEXT_PUBLIC_CROSSMINT_CLIENT_KEY=$(opt crossmint client_key)  # card on-ramp: embedded checkout (web, build-time)
 export SWAPCHAN_API_KEYS=$(opt api keys)
 export MCP_API_KEYS=$(opt mcp keys)
 export SWAPCHAN_INTERNAL_KEY=$(opt internal key)   # proves MCP->API calls so x-swapchan-client-ip is trusted

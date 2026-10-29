@@ -2,6 +2,7 @@
 
 import DOMPurify from "dompurify";
 import { marked } from "marked";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAccount, useConfig, useSendTransaction, useSignMessage, useSwitchChain } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -14,6 +15,9 @@ import {
   streamSession,
 } from "@/lib/liveStream";
 import { SANITIZE_CONFIG } from "@/lib/sanitize";
+
+// Client-only (the Crossmint SDK must not run during SSR / the build).
+const FundWithCard = dynamic(() => import("./FundWithCard"), { ssr: false });
 
 /** Mirrors the server wallet_respond contract (apps/api/src/wallet-action.ts). */
 interface EvmTx {
@@ -33,6 +37,7 @@ type ModelAction =
   | { type: "sign_and_send"; chainId: number; tx: EvmTx; verify: VerifySummary }
   | { type: "sign_message"; message: string }
   | { type: "switch_chain"; chainId: number }
+  | { type: "onramp"; chainId?: number; suggestedUsd?: string }
   | { type: "need_info" }
   | { type: "none" };
 type ProposedAction = ModelAction & { actionId: string };
@@ -59,7 +64,7 @@ function coalesceActivity(lines: Line[]): (Line & { count: number })[] {
 
 const isActionable = (a: ProposedAction) =>
   // sign_message is no longer offered by the agent (an old stored one is shown but not actionable).
-  a.type === "sign_and_send" || a.type === "switch_chain";
+  a.type === "sign_and_send" || a.type === "switch_chain" || a.type === "onramp";
 
 export default function SmartWalletPage() {
   const config = useConfig();
@@ -629,6 +634,16 @@ export default function SmartWalletPage() {
 
         {pending && (
           <div className="rounded-2xl border border-violet-400/30 bg-violet-500/10 p-3">
+            {pending.type === "onramp" && (
+              <FundWithCard
+                chainId={pending.chainId ?? chainId ?? 8453}
+                walletAddress={address ?? ""}
+                suggestedUsd={pending.suggestedUsd}
+                onClose={() => {
+                  void report(pending.actionId, { status: "rejected" }).then(() => setPending(null));
+                }}
+              />
+            )}
             {pending.type === "sign_and_send" && (
               <div className="mb-2 space-y-0.5 text-xs text-violet-100">
                 <div>
@@ -673,34 +688,36 @@ export default function SmartWalletPage() {
                     : "I read the warning above and want to send this anyway."}
                 </label>
               )}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={
-                  busy ||
-                  (pending.type === "sign_and_send" &&
-                    pending.verify.verdict !== "ok" &&
-                    ackFor !== pending.actionId)
-                }
-                onClick={() => void doAction(pending)}
-                className="rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 disabled:opacity-50"
-              >
-                {busy ? "Check your wallet…" : actionLabel(pending)}
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  setThinking(true); // the agent will respond to the dismissal
-                  void report(pending.actionId, { status: "rejected" }).then(() =>
-                    setPending(null),
-                  );
-                }}
-                className="rounded-xl border border-white/15 px-3 py-1.5 text-sm text-violet-100 disabled:opacity-50"
-              >
-                Dismiss
-              </button>
-            </div>
+            {pending.type !== "onramp" && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={
+                    busy ||
+                    (pending.type === "sign_and_send" &&
+                      pending.verify.verdict !== "ok" &&
+                      ackFor !== pending.actionId)
+                  }
+                  onClick={() => void doAction(pending)}
+                  className="rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-1.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/40 disabled:opacity-50"
+                >
+                  {busy ? "Check your wallet…" : actionLabel(pending)}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setThinking(true); // the agent will respond to the dismissal
+                    void report(pending.actionId, { status: "rejected" }).then(() =>
+                      setPending(null),
+                    );
+                  }}
+                  className="rounded-xl border border-white/15 px-3 py-1.5 text-sm text-violet-100 disabled:opacity-50"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

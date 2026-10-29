@@ -126,7 +126,10 @@ text (progress goes through status_update; the answer goes through wallet_respon
         tx:{ to, data?, value?, chainId?, gas? },               // EIP-1193, ready for the wallet
         verify:{ recipient:<connected address>, minOut?, verdict:"ok"|"warn"|"danger", note? } }
     • switch_chain  — { type:"switch_chain", chainId:<number> }
-    • need_info     — { type:"need_info" }        // you must ask the user something first
+    • onramp        — { type:"onramp", chainId?:<number>, suggestedUsd?:"50" }
+        // Offer a card on-ramp. Use it when the user has no funds to swap/deposit, or asks to add
+        // money / buy crypto with a card. The UI opens a checkout that delivers USDC to their wallet;
+        // you never see the card or the funds. Put the pitch in your message ("want to add some with a card?").
     • none          — { type:"none" }             // a reply/redirect with nothing for the wallet to do
 
 THE BEST OUTCOME is a ready-to-sign action (sign_and_send) — a real, verified transaction the user

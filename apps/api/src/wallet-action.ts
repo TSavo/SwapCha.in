@@ -39,6 +39,13 @@ export const ModelAction = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("sign_message"), message: z.string() }),
   z.object({ type: z.literal("switch_chain"), chainId: z.number().int() }),
+  // Offer the user a card on-ramp (Crossmint): the UI opens the embedded checkout, which delivers USDC
+  // to the connected wallet. No signing, no custody — SwapChan never touches the card data or funds.
+  z.object({
+    type: z.literal("onramp"),
+    chainId: z.number().int().optional(),
+    suggestedUsd: z.string().optional(),
+  }),
   z.object({ type: z.literal("need_info") }),
   z.object({ type: z.literal("none") }),
 ]);
@@ -56,6 +63,14 @@ export type ProposedAction = ModelAction & { actionId: string };
 /** Actions that require the user to do something in their wallet (and thus a sign-gate id). */
 export function isActionable(
   a: ModelAction,
-): a is Extract<ModelAction, { type: "sign_and_send" | "sign_message" | "switch_chain" }> {
-  return a.type === "sign_and_send" || a.type === "sign_message" || a.type === "switch_chain";
+): a is Extract<
+  ModelAction,
+  { type: "sign_and_send" | "sign_message" | "switch_chain" | "onramp" }
+> {
+  return (
+    a.type === "sign_and_send" ||
+    a.type === "sign_message" ||
+    a.type === "switch_chain" ||
+    a.type === "onramp"
+  );
 }
