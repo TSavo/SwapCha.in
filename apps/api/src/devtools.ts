@@ -20,6 +20,8 @@ export const BIG_BODY: Record<string, number> = {
   "bytecode-inspect": 60_000,
   "typed-data-verify": 16_384,
   "evm-abi": 16_384,
+  "tx-combine": 60_000,
+  "tx-plan-resolve": 32_768,
 };
 export const bodyLimit = (fn: string) => (Object.hasOwn(BIG_BODY, fn) ? BIG_BODY[fn]! : MAX_BODY);
 export const RATE_PER_MIN = 30;
@@ -98,6 +100,17 @@ const args = (i: In): unknown[] => {
   if (!Array.isArray(a) || a.length > 64) return bad("bad_args");
   return a;
 };
+/** Public keys for a multisig: compressed (66 hex) or x-only (64 hex), 1-20 of them, order kept. */
+const pubkeys = (i: In): string[] => {
+  const v = i.pubkeys;
+  if (!Array.isArray(v) || v.length < 1 || v.length > 20) return bad("bad_pubkeys");
+  return v.map((k) =>
+    typeof k === "string" && /^([0-9a-fA-F]{64}|0[23][0-9a-fA-F]{64})$/.test(k.trim())
+      ? k.trim()
+      : bad("bad_pubkeys"),
+  );
+};
+const NETWORK = /^(bitcoin|testnet|signet|regtest)$/;
 const unhex = (s: string) => s.replace(/^0x/, "");
 const json = (s: string) => JSON.parse(s) as unknown;
 
@@ -268,6 +281,48 @@ export const DEV_TOOLS: Record<string, (i: In) => unknown> = {
     if (hash) req.init_code_hash = hash;
     else req.init_code = str(i, "init_code", HEX, 12_000);
     return json(w().evmCreateAddress(JSON.stringify(req)));
+  },
+  // Keyless multisig / PSBT combine / Plan resolve / message verify (blocktools 07a5023).
+  // No signer is exported to the wasm; these take public keys, PSBTs, plans and public signatures only.
+  "multisig-address": (i) =>
+    json(
+      w().multisigAddress(
+        int(i, "threshold", 0, 1, 20),
+        pubkeys(i),
+        optStr(i, "network", NETWORK) ?? "",
+      ),
+    ),
+  "taproot-multisig-address": (i) =>
+    json(
+      w().taprootMultisigAddress(
+        int(i, "threshold", 0, 1, 20),
+        pubkeys(i),
+        optStr(i, "network", NETWORK) ?? "",
+      ),
+    ),
+  "tx-combine": (i) => {
+    const v = i.psbts;
+    if (!Array.isArray(v) || v.length > 16) return bad("bad_psbts");
+    return json(
+      w().combinePsbts(
+        v.map((p) => (typeof p === "string" && p.length <= 20_000 ? p.trim() : bad("bad_psbts"))),
+      ),
+    );
+  },
+  "tx-plan-resolve": (i) =>
+    json(
+      w().txPlanResolve(
+        doc(i, "plan", 30_000),
+        i.context === undefined ? "{}" : doc(i, "context", 2_000),
+      ),
+    ),
+  "msg-verify": (i) => {
+    // the message is used byte-for-byte (not trimmed): it is what was signed
+    const m = i.message;
+    if (typeof m !== "string" || m.length > 2_000) return bad("bad_message");
+    return json(
+      w().msgVerify(str(i, "address"), m, str(i, "sig", undefined, 200), i.message_is_hex === true),
+    );
   },
   "bytecode-inspect": (i) => json(w().evmBytecodeInspect(str(i, "code", HEX, 59_000))),
   "typed-data-verify": (i) => {

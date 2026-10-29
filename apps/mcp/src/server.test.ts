@@ -167,6 +167,11 @@ describe("swapchan mcp over streamable http", () => {
         "contract_encode_call",
         "contract_approve_call",
         "contract_build_creation",
+        "multisig_address",
+        "taproot_multisig_address",
+        "combine_psbts",
+        "build_plan_tx",
+        "msg_verify",
       ].sort(),
     );
     await c.close();

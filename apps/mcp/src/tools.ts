@@ -2484,6 +2484,83 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     dev({ decode: ["tron-tx", "decode"], txid: ["tron-tx", "txid"] }),
   );
 
+  const pubkeyList = z
+    .array(z.string().max(66))
+    .min(1)
+    .max(20)
+    .describe("Public keys in order (order is consensus-significant)");
+  const btcNet = z.enum(["bitcoin", "testnet", "signet", "regtest"]).optional();
+  server.registerTool(
+    "multisig_address",
+    {
+      title: "Bitcoin m-of-n P2WSH multisig address (dev tool)",
+      description: `Bitcoin m-of-n P2WSH multisig (wsh(multi(..)), unsorted) from compressed PUBLIC keys: threshold + pubkeys (hex, order is consensus-significant) + network (bitcoin default, testnet, signet, regtest). Returns address, witness_script and descriptor. ${OFFLINE}`,
+      inputSchema: z.object({
+        threshold: z.number().int().min(1).max(20),
+        pubkeys: pubkeyList,
+        network: btcNet,
+      }),
+      annotations: devAnn,
+    },
+    dev({ "": ["multisig-address"] }),
+  );
+
+  server.registerTool(
+    "taproot_multisig_address",
+    {
+      title: "Bitcoin Taproot m-of-n multisig address (dev tool)",
+      description: `Bitcoin Taproot script-path m-of-n multisig: one CHECKSIGADD leaf under the BIP341 NUMS internal key (no key path), from x-only or compressed PUBLIC keys + threshold + network (bitcoin default, testnet, signet, regtest). Returns address, leaf_script, control_block, merkle_root, internal_key and descriptor. ${OFFLINE}`,
+      inputSchema: z.object({
+        threshold: z.number().int().min(1).max(20),
+        pubkeys: pubkeyList,
+        network: btcNet,
+      }),
+      annotations: devAnn,
+    },
+    dev({ "": ["taproot-multisig-address"] }),
+  );
+
+  server.registerTool(
+    "combine_psbts",
+    {
+      title: "Combine cosigner PSBTs and finalize (dev tool)",
+      description: `Merge cosigners' partially signed PSBTs (base64 or hex) for the same transaction and finalize once the threshold is met. Returns signed_tx (hex of the finalized tx, ready for the user's own broadcast) and psbt (base64 of the combined PSBT). Errors: no_psbts, not_a_psbt, psbts_do_not_combine, not_enough_signatures. Signs nothing and broadcasts nothing. ${OFFLINE}`,
+      inputSchema: z.object({ psbts: z.array(pub(20_000)).max(16) }),
+      annotations: devAnn,
+    },
+    dev({ "": ["tx-combine"] }),
+  );
+
+  server.registerTool(
+    "build_plan_tx",
+    {
+      title: "Resolve a transaction Plan to unsigned bytes (dev tool)",
+      description: `Resolve a declarative blocktools Plan (JSON text) against a Context (JSON text: evm nonce, gas, max_fee_per_gas, priority_fee; utxo fee_rate) to UNSIGNED bytes: evm returns unsigned_tx (EIP-1559 hex), utxo returns a psbt with fee, vsize and outputs. The account family is not built here (family_not_built). Signs nothing; the user's wallet signs. ${OFFLINE}`,
+      inputSchema: z.object({
+        plan: pub(30_000).describe("Plan JSON text"),
+        context: pub(2_000).optional().describe("Context JSON text (default {})"),
+      }),
+      annotations: devAnn,
+    },
+    dev({ "": ["tx-plan-resolve"] }),
+  );
+
+  server.registerTool(
+    "msg_verify",
+    {
+      title: "Verify a signed message (dev tool)",
+      description: `Check a PUBLIC message signature: EIP-191 personal_sign (0x address, 65-byte hex sig) or Bitcoin Core signmessage (P2PKH address, base64 sig). message_is_hex=true when the message is hex bytes. Returns status ok or signer_mismatch, chain, address and the recovered signer. ${OFFLINE}`,
+      inputSchema: z.object({
+        address: z.string().max(100),
+        message: z.string().max(2_000),
+        sig: z.string().max(200),
+        message_is_hex: z.boolean().optional(),
+      }),
+      annotations: devAnn,
+    },
+    dev({ "": ["msg-verify"] }),
+  );
+
   server.registerTool(
     "evm_abi",
     {

@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { CHAIN_COUNT, UTXO_CHAIN_COUNT } from "@swapchan/shared";
+import { parseTransaction, recoverMessageAddress } from "viem";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEV_TOOLS, devToolRoutes, MAX_BODY, refuseSecrets, runDevTool } from "./devtools.js";
 
@@ -219,7 +221,7 @@ describe("dev tools (blocktools, public input only)", () => {
   it("no signing, recovery, raw-tx or secret functionality is exposed", () => {
     // One named exception: typed-data-verify checks a PUBLIC signature over PUBLIC EIP-712 data
     // (digest + signer recovery run in blocktools). It never signs, takes no key, and no tx.
-    const PUBLIC_SIG_CHECK = new Set(["typed-data-verify"]);
+    const PUBLIC_SIG_CHECK = new Set(["typed-data-verify", "msg-verify"]);
     for (const k of Object.keys(DEV_TOOLS).filter((k) => !PUBLIC_SIG_CHECK.has(k)))
       expect(k).not.toMatch(
         /sign|sweep|recover|seed|key(?!$)|keystore|decode-tx|verify|psbt|wif|derive-priv/,
@@ -271,5 +273,128 @@ describe("dev tools (blocktools, public input only)", () => {
     expect((await post(app, "twox128", { text: "a" }, "5.6.7.8")).status).toBe(200);
     t = 60_000;
     expect((await post(app, "twox128", { text: "a" })).status).toBe(200);
+  });
+});
+
+// blocktools 07a5023 keyless exports, real wasm calls on the upstream 3-of-5 vector
+// (crates/tx/tests/data/multisig-3of5.json, recorded from the blocktools CLIs; public keys only).
+describe("multisig / combine / plan resolve / msg verify (blocktools wasm, keyless)", () => {
+  const V = JSON.parse(
+    readFileSync(new URL("./fixtures/bt-multisig-3of5.json", import.meta.url), "utf8"),
+  );
+  const strip = (o: Record<string, unknown>) => {
+    const { status: _s, tool: _t, ...r } = o;
+    return r;
+  };
+
+  it("multisig-address and taproot-multisig-address match the CLI vectors", () => {
+    expect(
+      ok("multisig-address", { threshold: 3, pubkeys: V.pubkeys, network: "bitcoin" }),
+    ).toEqual(strip(V.multisig));
+    expect(ok("multisig-address", { threshold: 3, pubkeys: V.pubkeys }).address).toBe(
+      "bc1q07xqgp3f0dmyr2gxs0zp5k9h5wjx5yp9mvygn2ywguwgnn73qtxsmggkmc",
+    );
+    expect(ok("taproot-multisig-address", { threshold: 3, pubkeys: V.pubkeys })).toEqual(
+      strip(V.taproot_multisig),
+    );
+    expect(
+      ok("multisig-address", { threshold: 3, pubkeys: [...V.pubkeys].reverse() }).address,
+    ).not.toBe(V.multisig.address);
+    expect(runDevTool("multisig-address", { threshold: 6, pubkeys: V.pubkeys })).toMatchObject({
+      ok: false,
+    });
+  });
+
+  it("tx-combine finalizes 3 of 5 partials and passes the blocktools errors through", () => {
+    expect(ok("tx-combine", { psbts: V.partials })).toEqual(strip(V.combine));
+    for (const [psbts, code] of [
+      [V.partials.slice(0, 2), "not_enough_signatures"],
+      [[], "no_psbts"],
+      [["00"], "not_a_psbt"],
+    ] as const)
+      expect(runDevTool("tx-combine", { psbts })).toMatchObject({ ok: false, error_code: code });
+  });
+
+  it("tx-plan-resolve: utxo -> psbt, evm -> unsigned_tx, account -> family_not_built", () => {
+    expect(ok("tx-plan-resolve", { plan: V.plan, context: V.context })).toEqual(strip(V.resolve));
+    const evm = ok("tx-plan-resolve", {
+      plan: {
+        chain: "bsc",
+        chain_id: 56,
+        steps: [
+          {
+            op: "approve",
+            token: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c",
+            spender: "0xb30ec53f98ff5947ede720d32ac2da7e52a5f56b",
+            amount: "500112480000000",
+          },
+        ],
+      },
+      context: { nonce: 13, gas: 60000, max_fee_per_gas: 1000000000, priority_fee: 1000000000 },
+    });
+    expect(evm).toMatchObject({ chain: "bsc", family: "evm", type: "evm-1559" });
+    const tx = parseTransaction(`0x${String(evm.unsigned_tx).replace(/^0x/, "")}`);
+    expect(tx).toMatchObject({ chainId: 56, nonce: 13, gas: 60000n, type: "eip1559" });
+    expect(tx.to?.toLowerCase()).toBe("0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c");
+    expect(tx.data?.slice(0, 10)).toBe("0x095ea7b3");
+    const acct = runDevTool("tx-plan-resolve", { plan: { chain: "atom", steps: [] } });
+    expect(acct).toMatchObject({ ok: false });
+    expect((acct as { error_code: string }).error_code).toMatch(/^family_not_built/);
+    expect(runDevTool("tx-plan-resolve", { plan: "{" })).toMatchObject({
+      ok: false,
+      error_code: "bad_plan",
+    });
+  });
+
+  it("msg-verify: Bitcoin signmessage and EIP-191 vectors (Trust Wallet Core)", async () => {
+    const sig =
+      "ILH5K7JQLaRGaKGXXH5mYM6FIIy9IWyY4JUPI+PHYY4WaupxUbg+zy0bhBCrDuehy9x4WidwjkRR1GSLnWvOXBo=";
+    expect(
+      ok("msg-verify", {
+        address: "19cAJn4Ms8jodBBGtroBNNpCZiHAWGAq7X",
+        message: "test signature",
+        sig,
+      }),
+    ).toEqual({
+      address: "19cAJn4Ms8jodBBGtroBNNpCZiHAWGAq7X",
+      chain: "btc",
+      recovered: "19cAJn4Ms8jodBBGtroBNNpCZiHAWGAq7X",
+      status: "ok",
+    });
+    const h = `H${sig.slice(1)}`;
+    expect(
+      ok("msg-verify", {
+        address: "1E4T9JZ3mq6cdgiRJEWzHqDXb9t322fE6d",
+        message: "test signaturE",
+        sig: h,
+      }).status,
+    ).toBe("signer_mismatch");
+    const esig =
+      "0x21a779d499957e7fd39392d49a079679009e60e492d9654a148829be43d2490736ec72bc4a5644047d979c3cf4ebe2c1c514044cf436b063cb89fc6676be71101b";
+    const e = ok("msg-verify", {
+      address: "0x0000000000000000000000000000000000000001",
+      message: "Foo",
+      sig: esig,
+    });
+    expect(e).toMatchObject({ chain: "eth", status: "signer_mismatch" });
+    const back = ok("msg-verify", {
+      address: e.recovered,
+      message: "466f6f",
+      sig: esig,
+      message_is_hex: true,
+    });
+    expect(back.status).toBe("ok");
+    const viemSigner = await recoverMessageAddress({
+      message: "Foo",
+      signature: esig as `0x${string}`,
+    });
+    expect(String(e.recovered).toLowerCase()).toBe(viemSigner.toLowerCase());
+    expect(
+      runDevTool("msg-verify", {
+        address: "0x0000000000000000000000000000000000000001",
+        message: "x",
+        sig: "0x00",
+      }),
+    ).toMatchObject({ ok: false, error_code: "signature_not_65_bytes" });
   });
 });
