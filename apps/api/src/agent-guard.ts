@@ -6,6 +6,10 @@ import { verifyTx } from "./txtools.js";
  * verify_tx, simulated FROM the connected wallet (without `from` verify_tx cannot simulate, and an
  * unsimulated tx with an expected recipient fails closed as danger) and keyed to that wallet as the
  * expected beneficiary. Its verdict replaces the model's self-asserted one.
+ *
+ * Lending / yield calls (Morpho, Aave v3, Pendle, Merkl) are decoded by verify_tx (lending.ts):
+ * their receiver / onBehalf(Of) must be this owner, so a deposit or borrow for the owner passes and
+ * the same call for anyone else is danger.
  */
 export function makeVerifyGuard(f: typeof fetch, env: NodeJS.ProcessEnv): Guard {
   return async (chainId, tx, owner) => {

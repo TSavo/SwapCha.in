@@ -3,6 +3,7 @@
  * Trustless: SwapChan never holds keys and cannot alter a signed tx. verify_tx reads chain state and simulates;
  * broadcast_tx only relays bytes the user's wallet already signed.
  */
+
 import { BROADCAST_COUNT, broadcastSummary, NATIVE_TOKEN, SOLANA, TRON } from "@swapchan/shared";
 import {
   decodeFunctionData,
@@ -17,6 +18,7 @@ import {
 import { fullAddress } from "./addrDisplay.js";
 import { type BtSolTx, blocktools, btKeccak256, btSolDecodeTx } from "./blocktools.js";
 import { recoveryGuide, type Situation } from "./keyrecovery.js";
+import { allowlistedSpenders, confirmMorphoVault, lendingChecks } from "./lending.js";
 import {
   BadRequest,
   chainName,
@@ -225,6 +227,8 @@ export function outcomeChecks(
   data: Hex,
   simulated: boolean,
   received: Map<string, bigint>,
+  /** The call books a position for the signer (repay, supplyCollateral) instead of paying a token back. */
+  position = false,
 ): Finding[] {
   const out: Finding[] = [];
   if (!exp.recipient && !exp.minOut) return out;
@@ -239,7 +243,7 @@ export function outcomeChecks(
     return out;
   }
   const who = exp.recipient ?? "the sender";
-  if (exp.recipient && received.size === 0) {
+  if (exp.recipient && received.size === 0 && !position) {
     const inData = data.toLowerCase().includes(lc(exp.recipient).slice(2));
     out.push({
       severity: inData ? "warn" : "high",
@@ -343,6 +347,24 @@ export async function verifyEvm(
   );
   const add = (severity: Severity, check: string, message: string) =>
     findings.push({ severity, check, message });
+  // Lending / yield protocols (Morpho, Aave, Pendle, Merkl): beneficiary must be you, target must
+  // be allowlisted or factory-confirmed; see lending.ts.
+  const lend = await lendingChecks(c as never, chainId, { from: tx.from, to: tx.to, data });
+  findings.push(...lend.findings);
+  if (call === "approve" && lc(tx.to) !== PERMIT2) {
+    const i = findings.findIndex((x) => x.check === "approval" && x.severity === "warn");
+    const spender = lc(`0x${data.slice(34, 74)}`);
+    if (
+      i >= 0 &&
+      (allowlistedSpenders(chainId).has(spender) ||
+        (await confirmMorphoVault(c as never, chainId, spender)))
+    )
+      findings[i] = {
+        severity: "info",
+        check: "approval",
+        message: `Exact approval to ${spender}, a known lending contract on this chain. Revoke after use.`,
+      };
+  }
   if (tx.authorizationList?.length)
     add(
       "critical",
@@ -399,6 +421,21 @@ export async function verifyEvm(
       const cl = r[0]!.calls[0]!;
       const me = lc(tx.from);
       const rcpt = lc(exp.recipient || tx.from);
+      // Bundles: a share token you receive counts only if Morpho's factory confirms the vault.
+      if (lend.needsSimulation)
+        for (const t of [
+          ...new Set(
+            cl.logs
+              .filter(
+                (l) =>
+                  l.topics[0] === TRANSFER &&
+                  l.topics.length === 3 &&
+                  lc(`0x${l.topics[2]!.slice(26)}`) === me,
+              )
+              .map((l) => lc(l.address)),
+          ),
+        ].slice(0, 4))
+          if (await confirmMorphoVault(c as never, chainId, t)) lend.credit.add(t);
       const changes = new Map<string, bigint>();
       // Anyone can emit Transfer(attacker -> you) from a junk contract. Only receipts of native, the
       // expected outToken, or a SwapChan-listed token count as value received; an unknown-token
@@ -407,7 +444,8 @@ export async function verifyEvm(
       const counts = (tok: string) =>
         tok === NATIVE_TOKEN ||
         (!!exp.outToken && lc(tok) === lc(exp.outToken)) ||
-        known.has(lc(tok));
+        known.has(lc(tok)) ||
+        lend.credit.has(lc(tok));
       for (const l of cl.logs)
         if (
           (l.topics[0] === TRANSFER && l.topics.length === 3) ||
@@ -447,7 +485,19 @@ export async function verifyEvm(
         add("high", "simulation", `Simulation reverts: ${cl.error?.message ?? "unknown"}`);
       const lose = diff.some((d) => BigInt(d.delta) < 0n);
       const gain = diff.some((d) => BigInt(d.delta) > 0n && counts(d.token));
-      if (lose && !gain && !findings.some((x) => x.check === "recipient"))
+      const stray = lend.spend
+        ? diff.filter(
+            (d) =>
+              BigInt(d.delta) < 0n && d.token !== NATIVE_TOKEN && !lend.spend!.has(lc(d.token)),
+          )
+        : [];
+      if (stray.length)
+        add(
+          "high",
+          "lending-spend",
+          `This ${lend.decoded?.fn ?? "call"} also takes ${stray.map((d) => d.token).join(", ")}, not just the asset it deposits.`,
+        );
+      if (lose && !gain && !lend.position && !findings.some((x) => x.check === "recipient"))
         add("high", "balance-diff", "You lose assets and receive nothing back in the simulation.");
     } catch {
       try {
@@ -467,7 +517,13 @@ export async function verifyEvm(
       }
     }
   } else add("info", "simulation", "Pass `from` to simulate and diff balance changes.");
-  findings.push(...outcomeChecks(exp, call, data, simulated, received));
+  if (lend.needsSimulation && !simulated)
+    add(
+      "high",
+      "lending-bundle",
+      "This bundle could not be simulated, so its steps cannot be checked.",
+    );
+  findings.push(...outcomeChecks(exp, call, data, simulated, received, lend.position));
   const verdict = verdictOf(findings);
   const ex = EXPLORER[chainId];
   const top = findings.filter((x) => x.severity !== "info").map((x) => x.message);
