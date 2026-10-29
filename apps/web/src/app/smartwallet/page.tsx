@@ -17,7 +17,8 @@ import {
 import { SANITIZE_CONFIG } from "@/lib/sanitize";
 
 // Client-only (the Crossmint SDK must not run during SSR / the build).
-const FundWithCard = dynamic(() => import("./FundWithCard"), { ssr: false });
+// MoonPay is the active card on-ramp provider; Crossmint (./FundWithCard) stays dormant pending access.
+const FundWithMoonPay = dynamic(() => import("./FundWithMoonPay"), { ssr: false });
 
 /** Mirrors the server wallet_respond contract (apps/api/src/wallet-action.ts). */
 interface EvmTx {
@@ -635,7 +636,7 @@ export default function SmartWalletPage() {
         {pending && (
           <div className="rounded-2xl border border-violet-400/30 bg-violet-500/10 p-3">
             {pending.type === "onramp" && (
-              <FundWithCard
+              <FundWithMoonPay
                 chainId={pending.chainId ?? chainId ?? 8453}
                 walletAddress={address ?? ""}
                 suggestedUsd={pending.suggestedUsd}

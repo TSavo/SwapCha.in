@@ -92,43 +92,30 @@ export async function createOnrampOrder(
  * Dormant until MOONPAY_SECRET_KEY + MOONPAY_PUBLISHABLE_KEY are set (then /onramp/moonpay/sign works);
  * keys determine the environment — sk_test_/pk_test_ hit the sandbox host, sk_live_/pk_live_ production.
  */
-/** SwapChan chainId -> MoonPay currencyCode for USDC on that chain. Verify against MoonPay's
- *  /v3/currencies for the account before going live — these are MoonPay's documented network suffixes. */
-const MOONPAY_USDC: Record<number, string> = {
-  1: "usdc", // Ethereum
-  8453: "usdc_base",
-  42161: "usdc_arbitrum",
-  10: "usdc_optimism",
-  137: "usdc_polygon",
-  792703809: "usdc_sol", // Solana
-};
+/** MoonPay buy-widget hosts we will sign a URL for (sandbox + production). */
+const MOONPAY_HOSTS = new Set(["buy-sandbox.moonpay.com", "buy.moonpay.com"]);
 
-const moonpayHost = (pubKey: string) =>
-  pubKey.startsWith("pk_live_") ? "https://buy.moonpay.com" : "https://buy-sandbox.moonpay.com";
-
-/** Build and sign a MoonPay buy-widget URL delivering USDC to `walletAddress` on `chainId`. */
-export function signMoonpayUrl(
-  pubKey: string,
-  secretKey: string,
-  args: { walletAddress: string; chainId: number; amountUsd: string },
-): { url: string } {
-  const currencyCode = MOONPAY_USDC[args.chainId];
-  if (!currencyCode) throw new Error(`on-ramp not supported on chain ${args.chainId}`);
-  const amount = String(args.amountUsd).trim();
-  if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) throw new Error("bad amount");
-  // URLSearchParams URL-encodes each VALUE, which is exactly what MoonPay signs over.
-  const params = new URLSearchParams({
-    apiKey: pubKey,
-    currencyCode,
-    walletAddress: args.walletAddress,
-    baseCurrencyCode: "usd",
-    baseCurrencyAmount: amount,
-  });
-  const query = `?${params.toString()}`;
-  const signature = createHmac("sha256", secretKey).update(query).digest("base64");
-  const url = `${moonpayHost(pubKey)}/${query}&signature=${encodeURIComponent(signature)}`;
-  console.log(`[onramp] moonpay sign chain=${args.chainId} currency=${currencyCode} amount=${amount} host=${moonpayHost(pubKey)}`);
-  return { url };
+/**
+ * Sign a MoonPay widget URL produced by the browser SDK's generateUrlForSigning(). We HMAC the URL's
+ * query string EXACTLY as the SDK built it (the canonical form MoonPay validates — mpSdk param and
+ * all), matching MoonPay's own demo signer (`new URL(url).search`). A hand-built URL will not
+ * validate, so this must be the SDK's output. We validate the host and that the URL carries our own
+ * publishable apiKey, so we never sign an arbitrary third party's widget link with our secret.
+ */
+export function signMoonpayUrl(pubKey: string, secretKey: string, rawUrl: string): { signature: string } {
+  let u: URL;
+  try {
+    u = new URL(rawUrl);
+  } catch {
+    throw new Error("bad url");
+  }
+  if (!MOONPAY_HOSTS.has(u.hostname)) throw new Error(`unexpected host ${u.hostname}`);
+  if (u.searchParams.get("apiKey") !== pubKey) throw new Error("apiKey does not match this environment");
+  // Sign the query string including the leading "?", exactly as the SDK/widget sees it. Standard
+  // base64 (not base64url); the SDK URL-encodes it when it appends &signature=.
+  const signature = createHmac("sha256", secretKey).update(u.search).digest("base64");
+  console.log(`[onramp] moonpay sign host=${u.hostname} currency=${u.searchParams.get("currencyCode")} amount=${u.searchParams.get("baseCurrencyAmount")}`);
+  return { signature };
 }
 
 export function onrampRoutes(f: F, env: NodeJS.ProcessEnv) {
@@ -138,17 +125,16 @@ export function onrampRoutes(f: F, env: NodeJS.ProcessEnv) {
     const pubKey = env.MOONPAY_PUBLISHABLE_KEY;
     const secretKey = env.MOONPAY_SECRET_KEY;
     if (!pubKey || !secretKey) return c.json({ error: "on-ramp not configured" }, 503);
-    let body: { walletAddress?: string; chainId?: number; amountUsd?: string };
+    let body: { url?: string };
     try {
       body = await c.req.json();
     } catch {
       return c.json({ error: "bad JSON body" }, 400);
     }
-    const { walletAddress, chainId, amountUsd } = body ?? {};
-    if (!walletAddress || !chainId || !amountUsd)
-      return c.json({ error: "walletAddress, chainId, amountUsd are required" }, 400);
+    const url = body?.url;
+    if (!url) return c.json({ error: "url is required" }, 400);
     try {
-      return c.json(signMoonpayUrl(pubKey, secretKey, { walletAddress, chainId, amountUsd }));
+      return c.json(signMoonpayUrl(pubKey, secretKey, url));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "sign failed";
       console.error(`[onramp] moonpay sign failed: ${msg}`);

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@crossmint/client-sdk-react-ui": "4.12.1",
+    "@moonpay/moonpay-js": "0.7.6",
     "@reown/appkit": "1.8.24",
     "@reown/appkit-adapter-bitcoin": "1.8.24",
     "@reown/appkit-adapter-solana": "1.8.24",

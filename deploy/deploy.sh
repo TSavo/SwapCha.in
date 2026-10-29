@@ -50,6 +50,7 @@ export CROSSMINT_SERVER_KEY=$(opt crossmint api_key)             # card on-ramp:
 export NEXT_PUBLIC_CROSSMINT_CLIENT_KEY=$(opt crossmint client_key)  # card on-ramp: embedded checkout (web, build-time)
 export MOONPAY_PUBLISHABLE_KEY=$(opt moonpay publishable_key)        # card on-ramp: pk_live_/pk_test_ in the signed widget URL (api)
 export MOONPAY_SECRET_KEY=$(opt moonpay secret_key)                  # card on-ramp: sk_live_/sk_test_ HMAC-signs the widget URL (api)
+export NEXT_PUBLIC_MOONPAY_PUBLISHABLE_KEY=$(opt moonpay publishable_key)  # card on-ramp: MoonPay Web SDK apiKey (web, build-time, public)
 export SWAPCHAN_API_KEYS=$(opt api keys)
 export MCP_API_KEYS=$(opt mcp keys)
 export SWAPCHAN_INTERNAL_KEY=$(opt internal key)   # proves MCP->API calls so x-swapchan-client-ip is trusted
