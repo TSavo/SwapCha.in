@@ -4,7 +4,8 @@
 // utxoSweep (send-all) — and re-checks the built transaction with verifyTx against the recipient.
 // Unlike buildUtxoSend (THORChain only: a vault + memo), this pays an arbitrary address with no memo.
 import { fromBaseUnits } from "@swapchan/shared";
-import { blocktools, btAddrValid, btBuildPsbt } from "./blocktools.js";
+import { blocktools, btAddrValid, btBuildPsbt, btDecode } from "./blocktools.js";
+import { buildBtcPsbt, mempoolUtxos } from "./btc.js";
 import { fetchPrevTxs, type PrevSource } from "./prevtx.js";
 import { COINS, type Coin, type CoinRow, coinUtxos, utxoSweep } from "./utxochains.js";
 
@@ -12,6 +13,19 @@ type F = typeof fetch;
 
 /** Most inputs one send spends; past this the user should consolidate first (fee and size grow). */
 const MAX_INPUTS = 50;
+
+/** mempool.space recommended BTC fee (sat/vB); falls back to a modest default. */
+async function btcFeeRate(f: F): Promise<number> {
+  try {
+    const r = await f("https://mempool.space/api/v1/fees/recommended", {
+      signal: AbortSignal.timeout(8000),
+    });
+    const j = (await r.json()) as { halfHourFee?: number; hourFee?: number };
+    return Math.max(1, Math.ceil(j.halfHourFee ?? j.hourFee ?? 5));
+  } catch {
+    return 5;
+  }
+}
 
 export type UtxoSendPlan = {
   family: "utxo";
@@ -45,13 +59,49 @@ function verifyUtxo(coin: string, txOrPsbt: string, recipient: string, change: s
   return { ok: v.ok === true, failures: v.failures ?? [], warnings: v.warnings ?? [] };
 }
 
+/** Bitcoin send: its own module (btc.ts) with keyless mempool.space UTXOs and a native-SegWit sender. */
+async function buildBtcSend(
+  f: F,
+  o: { to: string; amount: string; from?: string | undefined },
+): Promise<UtxoSendPlan> {
+  if (!blocktools())
+    throw new Error("blocktools is unavailable, so SwapChan won't offer an unverified BTC transaction; try again later");
+  if (!o.from) throw new Error("the sending address (from) is required for a BTC send");
+  const from = o.from.trim();
+  const to = o.to.trim();
+  if (!btAddrValid("btc", to)) throw new Error(`"${to}" is not a valid Bitcoin address (recipient)`);
+  if (o.amount.trim().toLowerCase() === "max")
+    throw new Error('send-all ("max") for BTC is coming; give a specific amount for now');
+  const amount = toBaseUnits(o.amount, 8);
+  if (amount <= 0n) throw new Error("amount must be above zero");
+  const rate = await btcFeeRate(f);
+  const psbt = await buildBtcPsbt(mempoolUtxos(f), { from, to, amount, feeRate: rate }); // requires a bc1q sender
+  const d = btDecode(psbt, "btc") as unknown as { fee?: string | number; vsize?: number } | null;
+  const vsize = d?.vsize ?? 300;
+  const maxFee = BigInt(rate) * BigInt(vsize + 10);
+  const verify = verifyUtxo("btc", psbt, to, from, maxFee);
+  return {
+    family: "utxo",
+    coin: "btc",
+    recipient: to,
+    from,
+    amount: o.amount,
+    psbt,
+    fee: d?.fee != null ? String(d.fee) : "",
+    vsize,
+    verify,
+    wallet: "a Bitcoin bc1q wallet (e.g. Sparrow or Electrum)",
+  };
+}
+
 export async function buildUtxoSend(
   f: F,
   env: NodeJS.ProcessEnv,
   o: { coin: string; to: string; amount: string; from?: string | undefined },
 ): Promise<UtxoSendPlan> {
-  const coin = o.coin.toLowerCase() as Coin;
-  const c: CoinRow | undefined = COINS[coin];
+  const coin = o.coin.toLowerCase();
+  if (coin === "btc" || coin === "bitcoin") return buildBtcSend(f, o);
+  const c: CoinRow | undefined = COINS[coin as Coin];
   if (!c) throw new Error(`unknown coin "${o.coin}"`);
   if (!blocktools())
     throw new Error(`blocktools is unavailable, so SwapChan won't offer an unverified ${c.sym} transaction; try again later`);
@@ -64,7 +114,7 @@ export async function buildUtxoSend(
   // "max": sweep everything to the recipient (reuses the fully-tested per-coin sweep: legacy prevtx, pos-ntime, zec, groestl).
   if (o.amount.trim().toLowerCase() === "max") {
     if (!c.sweep) throw new Error(`send-all isn't supported for ${c.sym} yet; give a specific amount`);
-    const s = (await utxoSweep(f, coin, from, to, c.feeRate)) as {
+    const s = (await utxoSweep(f, coin as Coin, from, to, c.feeRate)) as {
       psbt?: string;
       unsigned_tx?: string;
       fee: string | number;
@@ -93,7 +143,7 @@ export async function buildUtxoSend(
   const rate = Math.max(1, Math.ceil(c.feeRate));
   const segwitSender = /^(bc1q|ltc1q|[a-z]+1q)/.test(from.toLowerCase());
 
-  const all = (await coinUtxos(f, coin, from, env))
+  const all = (await coinUtxos(f, coin as Coin, from, env))
     .filter((u) => BigInt(u.value) > 0n)
     .sort((a, b) => (BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0));
   if (!all.length) throw new Error(`no ${c.sym} found on ${from}`);

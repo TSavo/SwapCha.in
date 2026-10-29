@@ -47,6 +47,7 @@ function resolveChain(chain: string): { evm: number } | { coin: string } {
   const n = Number(s);
   if (Number.isInteger(n) && EVM_IDS.includes(n)) return { evm: n };
   if (EVM_NAMES[s] !== undefined) return { evm: EVM_NAMES[s]! };
+  if (s === "btc" || s === "bitcoin") return { coin: "btc" }; // Bitcoin is handled via btc.ts, not COINS
   if (Object.prototype.hasOwnProperty.call(COINS, s)) return { coin: s };
   throw new Error(
     `can't send on "${chain}": not a supported EVM chain or UTXO coin. EVM (name or id): ${Object.keys(EVM_NAMES).join(", ")}; UTXO coins: ${Object.keys(COINS).join(", ")}. Solana and Tron sends are coming.`,
