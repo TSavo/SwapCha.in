@@ -10,15 +10,8 @@ import { z } from "zod";
 import type { AgentContext, Respond } from "./agent-runner.js";
 import {
   asToolOutput,
-  callKey,
-  checkMorphoPrepared,
-  fetchMorphoJwks,
   isAllowedThirdPartyTool,
-  isMorphoPrepare,
-  type Jwks,
-  prepareToolInput,
   responseText,
-  structuredOf,
   THIRD_PARTY_SERVERS,
   THIRD_PARTY_TOOL_NAMES,
   thirdPartyServerOf,
@@ -111,8 +104,6 @@ MORPHO / AAVE / PENDLE TOOLS (third-party MCPs):
   the first; propose the next after the first settles.
 - Prefer an ERC-20 approve transaction over a permit or any typed-data signature. Never propose a
   permit, a typed-data signature, or a signed order — this wallet agent cannot sign messages.
-- Morpho prepared transactions are checked before you see them (proof, simulation, expiry, warnings).
-  If the check fails you get a short reason instead of calls: tell the user, do not propose anything.
 - If one of these services fails or is slow, say it is unavailable right now and carry on with the
   SwapChan tools. Never paste error text, stack traces or raw responses to the user.
 - These services see the addresses you query; only pass the connected wallet address and the
@@ -235,20 +226,12 @@ export const ALLOWED_TOOLS: string[] = [
 
 /**
  * canUseTool: allow the whitelist and hand back the ORIGINAL input (an empty updatedInput would wipe
- * the tool's arguments); Morpho prepare intents are pinned to prefer_signature:false (approve, not
- * permit). Everything else (built-ins, other servers) is denied.
+ * the tool's arguments). Everything else (built-ins, other servers) is denied.
  */
 export const canUseToolForAgent: CanUseTool = async (toolName, input) =>
   isAllowedTool(toolName)
-    ? { behavior: "allow", updatedInput: prepareToolInput(toolName, input) }
+    ? { behavior: "allow", updatedInput: input }
     : { behavior: "deny", message: "tool not permitted for the smart-wallet agent" };
-
-/** Per-turn record of Morpho prepared calls: which passed the checks, which were refused. */
-export interface MorphoLedger {
-  verified: Set<string>;
-  rejected: Set<string>;
-}
-export const newMorphoLedger = (): MorphoLedger => ({ verified: new Set(), rejected: new Set() });
 
 const postToolOutput = (text: string): HookJSONOutput => ({
   hookSpecificOutput: { hookEventName: "PostToolUse", updatedMCPToolOutput: asToolOutput(text) },
@@ -256,13 +239,12 @@ const postToolOutput = (text: string): HookJSONOutput => ({
 
 /**
  * PostToolUse / PostToolUseFailure hooks for third-party tools: cap + wrap every result as untrusted
- * data, run the Morpho prepare checks, and replace failures with a fixed "unavailable" line.
+ * data, and replace failures with a fixed "unavailable" line.
  */
-export function makeThirdPartyHooks(
-  ledger: MorphoLedger,
-  getJwks: () => Promise<Jwks> = () => fetchMorphoJwks(),
-  now: () => number = Date.now,
-): { postToolUse: HookCallback; postToolUseFailure: HookCallback } {
+export function makeThirdPartyHooks(): {
+  postToolUse: HookCallback;
+  postToolUseFailure: HookCallback;
+} {
   const postToolUse: HookCallback = async (input) => {
     if (input.hook_event_name !== "PostToolUse") return {};
     const server = thirdPartyServerOf(input.tool_name);
@@ -270,26 +252,6 @@ export function makeThirdPartyHooks(
     const resp = input.tool_response;
     if (resp && typeof resp === "object" && (resp as { isError?: unknown }).isError === true)
       return postToolOutput(wrapUntrusted(server, unavailableText(server), 1_000));
-    if (isMorphoPrepare(input.tool_name)) {
-      const check = checkMorphoPrepared(structuredOf(resp), await getJwks(), now());
-      if (!check.ok) {
-        for (const k of check.calls) ledger.rejected.add(k);
-        return postToolOutput(
-          wrapUntrusted(
-            server,
-            `REFUSED: this Morpho prepared transaction failed verification (${check.reason}). Do not propose it.`,
-          ),
-        );
-      }
-      for (const k of check.calls) ledger.verified.add(k);
-      const notes = check.notes.length ? `\nMorpho warnings: ${check.notes.join("; ")}` : "";
-      return postToolOutput(
-        wrapUntrusted(
-          server,
-          `VERIFIED (action_proof, simulation, expiry).${notes}\n${responseText(resp)}`,
-        ),
-      );
-    }
     return postToolOutput(wrapUntrusted(server, responseText(resp)));
   };
   const postToolUseFailure: HookCallback = async (input) => {
@@ -304,24 +266,6 @@ export function makeThirdPartyHooks(
     };
   };
   return { postToolUse, postToolUseFailure };
-}
-
-/**
- * Last check on the envelope: a sign_and_send whose tx is a Morpho prepared call that failed (or was
- * not part of a verified result) is turned into a refusal. Other proposals pass through unchanged.
- */
-export function gateMorphoProposal(envelope: unknown, ledger: MorphoLedger): unknown {
-  const env = envelope as { action?: { type?: string; tx?: Record<string, unknown> } } | null;
-  const tx = env?.action?.type === "sign_and_send" ? env.action.tx : undefined;
-  if (!tx) return envelope;
-  const k = callKey(tx);
-  if (ledger.rejected.has(k) && !ledger.verified.has(k))
-    return {
-      message:
-        "I couldn't verify that Morpho transaction (its proof, simulation or expiry check failed), so I'm not proposing it.",
-      action: { type: "none" },
-    };
-  return envelope;
 }
 
 /** The three third-party MCP servers, with short per-call timeouts. No headers: no secrets leave. */
@@ -376,8 +320,7 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
     onStatus?: (text: string) => void,
   ): Promise<unknown> => {
     let captured: unknown = null;
-    const morphoLedger = newMorphoLedger();
-    const hooks = makeThirdPartyHooks(morphoLedger);
+    const hooks = makeThirdPartyHooks();
     // No DB row → first turn, no session id supplied (the SDK mints one). Row → resume it and send
     // only the events the model hasn't seen; the whole log is replayed only on the first turn.
     const prev = cfg.store.getSessionMeta(ctx.address);
@@ -402,7 +345,7 @@ export function makeSdkRespond(cfg: SdkRespondConfig): Respond {
           "End your turn: deliver a message to the user and optionally propose one wallet action.",
           { message: z.string(), action: ModelAction },
           async (args) => {
-            captured = gateMorphoProposal(args, morphoLedger);
+            captured = args;
             return { content: [{ type: "text", text: "delivered to the wallet" }] };
           },
         ),
