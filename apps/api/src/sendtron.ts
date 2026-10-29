@@ -120,7 +120,7 @@ export async function buildTronSend(
     const sun = toUnits(o.amount, 6); // TRX has 6 decimals
     if (sun <= 0n) throw new Error("amount must be above zero");
     wantAmount = sun.toString();
-    plan = { ...base, amount: wantAmount };
+    plan = { ...base, amount_sun: wantAmount };
   }
 
   let rawDataHex: string;
