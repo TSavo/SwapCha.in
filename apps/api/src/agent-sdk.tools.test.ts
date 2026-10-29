@@ -3,13 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   ALLOWED_TOOLS,
   canUseToolForAgent,
-  gateMorphoProposal,
   isAllowedTool,
   makeThirdPartyHooks,
-  newMorphoLedger,
   thirdPartyMcpServers,
 } from "./agent-sdk.js";
-import { callKey } from "./agent-thirdparty.js";
 
 const opts = { signal: new AbortController().signal } as Parameters<typeof canUseToolForAgent>[2];
 
@@ -50,6 +47,7 @@ describe("allow/deny matrix", () => {
     expect(ALLOWED_TOOLS).toEqual([
       "mcp__swapchan",
       "mcp__walletbridge__wallet_respond",
+      "mcp__walletbridge__status_update",
       "mcp__morpho",
       "mcp__aave",
       "mcp__pendle",
@@ -97,7 +95,7 @@ const signal = new AbortController().signal;
 
 describe("PostToolUse hook", () => {
   it("wraps and caps third-party output as untrusted data", async () => {
-    const { postToolUse } = makeThirdPartyHooks(newMorphoLedger(), async () => ({ keys: [] }));
+    const { postToolUse } = makeThirdPartyHooks();
     const out = (await postToolUse(
       {
         ...base,
@@ -114,7 +112,7 @@ describe("PostToolUse hook", () => {
     expect(text.length).toBeLessThan(25_000);
   });
   it("leaves swapchan output untouched", async () => {
-    const { postToolUse } = makeThirdPartyHooks(newMorphoLedger());
+    const { postToolUse } = makeThirdPartyHooks();
     const out = await postToolUse(
       {
         ...base,
@@ -129,7 +127,7 @@ describe("PostToolUse hook", () => {
     expect(out).toEqual({});
   });
   it("hides third-party error text", async () => {
-    const { postToolUse, postToolUseFailure } = makeThirdPartyHooks(newMorphoLedger());
+    const { postToolUse, postToolUseFailure } = makeThirdPartyHooks();
     const out = JSON.stringify(
       await postToolUse(
         {
@@ -163,39 +161,5 @@ describe("PostToolUse hook", () => {
     );
     expect(f).not.toContain("503");
     expect(f).toContain("unavailable");
-  });
-  it("refuses an unverified Morpho prepare result and the gate blocks its call", async () => {
-    const ledger = newMorphoLedger();
-    const { postToolUse } = makeThirdPartyHooks(ledger, async () => ({ keys: [] }));
-    const tx = { to: "0x00000000000000000000000000000000000000aa", data: "0x095ea7b3", value: "0" };
-    const out = JSON.stringify(
-      await postToolUse(
-        {
-          ...base,
-          hook_event_name: "PostToolUse",
-          tool_name: "mcp__morpho__morpho_prepare_deposit",
-          tool_input: {},
-          tool_response: {
-            structuredContent: {
-              data: {
-                calls: [tx],
-                simulation: { status: "success" },
-                expires_at: "2999-01-01T00:00:00Z",
-              },
-              action_proof: "x.y.z",
-            },
-          },
-        } as never,
-        "t",
-        { signal },
-      ),
-    );
-    expect(out).toContain("REFUSED");
-    expect(out).not.toContain("0x095ea7b3");
-    expect(ledger.rejected.has(callKey(tx))).toBe(true);
-    const env = { message: "sign", action: { type: "sign_and_send", tx } };
-    expect(gateMorphoProposal(env, ledger)).toMatchObject({ action: { type: "none" } });
-    const other = { message: "m", action: { type: "sign_and_send", tx: { ...tx, data: "0x" } } };
-    expect(gateMorphoProposal(other, ledger)).toBe(other);
   });
 });

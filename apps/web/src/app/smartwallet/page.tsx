@@ -605,10 +605,7 @@ export default function SmartWalletPage() {
         {steps.length > 0 && (
           <div className="space-y-1" aria-live="polite">
             {steps.map((s, i) => (
-              <div
-                key={`${i}-${s}`}
-                className="flex items-center gap-2 text-xs text-violet-300/70"
-              >
+              <div key={`${i}-${s}`} className="flex items-center gap-2 text-xs text-violet-300/70">
                 <span className={i === steps.length - 1 ? "animate-pulse" : "text-violet-400/50"}>
                   {i === steps.length - 1 && streamText === null ? "⏳" : "✓"}
                 </span>
