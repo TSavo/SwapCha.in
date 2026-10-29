@@ -11,32 +11,77 @@
 import { getAddress, isAddress, parseUnits } from "viem";
 import { blocktools } from "./blocktools.js";
 import { EVM_IDS, resolveName } from "./onchain.js";
+import { buildUtxoSend, type UtxoSendPlan } from "./sendutxo.js";
 import { onchainReader, tokenResolver } from "./tokens.js";
+import { COINS } from "./utxochains.js";
 
 type F = typeof fetch;
 
 /** The connected wallet fills these at sign time; buildEvmTransfer requires them, so they are placeholders. */
 const PLACEHOLDER = { nonce: 0, gas: 21000, gasPrice: "1000000000" };
 
+/** Common EVM chain names/aliases -> chainId (ids from onchain.ts EVM_IDS). Numeric ids also accepted. */
+const EVM_NAMES: Record<string, number> = {
+  ethereum: 1, eth: 1, mainnet: 1,
+  base: 8453,
+  arbitrum: 42161, arb: 42161,
+  optimism: 10, op: 10,
+  polygon: 137, matic: 137,
+  bnb: 56, bsc: 56, "bnb chain": 56,
+  avalanche: 43114, avax: 43114,
+  linea: 59144,
+  scroll: 534352,
+};
+
 export type SendArgs = {
-  chainId: number;
+  chain: string; // an EVM chainId (e.g. "8453"), an EVM name ("base"), or a UTXO coin slug ("btc")
   to: string;
   amount: string;
   token?: string | undefined;
   from?: string | undefined;
 };
 
-/**
- * Build an unsigned send on any supported chain. Dispatches by chain family. EVM is live; UTXO
- * (Bitcoin + forks), Solana and Tron land next — until then they return a clear, non-silent error so
- * the agent never implies a send it can't build.
- */
-export async function buildSend(f: F, env: NodeJS.ProcessEnv, a: SendArgs): Promise<SendPlan> {
-  if (EVM_IDS.includes(a.chainId)) return buildEvmSend(f, env, a);
+/** Resolve the `chain` field to a chain family. */
+function resolveChain(chain: string): { evm: number } | { coin: string } {
+  const s = chain.trim().toLowerCase();
+  const n = Number(s);
+  if (Number.isInteger(n) && EVM_IDS.includes(n)) return { evm: n };
+  if (EVM_NAMES[s] !== undefined) return { evm: EVM_NAMES[s]! };
+  if (Object.prototype.hasOwnProperty.call(COINS, s)) return { coin: s };
   throw new Error(
-    `send on chain ${a.chainId} isn't available yet (EVM chains work today; Bitcoin/UTXO, Solana and Tron are coming). For now, use a swap or send from that chain's own wallet.`,
+    `can't send on "${chain}": not a supported EVM chain or UTXO coin. EVM (name or id): ${Object.keys(EVM_NAMES).join(", ")}; UTXO coins: ${Object.keys(COINS).join(", ")}. Solana and Tron sends are coming.`,
   );
 }
+
+/**
+ * Build an unsigned send on any supported chain, dispatched by chain family. EVM and UTXO (Bitcoin +
+ * forks) are live; Solana and Tron are coming — until then they return a clear, non-silent error so the
+ * agent never implies a send it can't build.
+ */
+export async function buildSend(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  a: SendArgs,
+): Promise<SendPlan | UtxoSendPlan> {
+  const r = resolveChain(a.chain);
+  if ("evm" in r)
+    return buildEvmSend(f, env, {
+      chainId: r.evm,
+      to: a.to,
+      amount: a.amount,
+      token: a.token,
+      from: a.from,
+    });
+  return buildUtxoSend(f, env, { coin: r.coin, to: a.to, amount: a.amount, from: a.from });
+}
+
+type EvmSendArgs = {
+  chainId: number;
+  to: string;
+  amount: string;
+  token?: string | undefined;
+  from?: string | undefined;
+};
 
 export type SendPlan = {
   family: "evm";
@@ -54,7 +99,7 @@ export type SendPlan = {
  * "native"/omitted for the native coin); `amount` is a human decimal. Returns the unsigned tx + a verifyTx
  * verdict that re-reads the recipient out of the built transaction.
  */
-export async function buildEvmSend(f: F, env: NodeJS.ProcessEnv, o: SendArgs): Promise<SendPlan> {
+export async function buildEvmSend(f: F, env: NodeJS.ProcessEnv, o: EvmSendArgs): Promise<SendPlan> {
   if (!EVM_IDS.includes(o.chainId)) throw new Error(`unsupported EVM chain ${o.chainId}`);
   const w = blocktools();
   if (!w) throw new Error("blocktools is unavailable; not offering an unverified transaction");

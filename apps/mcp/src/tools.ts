@@ -2576,30 +2576,33 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     "build_send_tx",
     {
       title: "Build an unsigned send (transfer) for the user's wallet to sign",
-      description: `Build an UNSIGNED transfer of a token or the native coin to any recipient — e.g. "send 50 USDC to alice.eth". Resolves names (ENS/Basenames) and the token's decimals, constructs the transaction with blocktools, and re-checks the recipient with verifyTx so it can't pay the wrong address. EVM chains are live (native coin + any ERC-20); Bitcoin/UTXO, Solana and Tron are coming. Returns the unsigned tx {to,data,value,chainId} plus a verify verdict; show the recipient and amount and get an explicit yes before the user's OWN wallet signs. Trustless: SwapChan never signs or broadcasts. ${DISPLAY}`,
+      description: `Build an UNSIGNED transfer of a token or the native coin to any recipient — e.g. "send 50 USDC to alice.eth" or "send 0.01 BTC to bc1q…". Resolves names (ENS/Basenames) and the token's decimals, constructs the transaction with blocktools, and re-checks the recipient with verifyTx so it can't pay the wrong address. EVM chains (native + any ERC-20) and Bitcoin/UTXO (BTC + forks; amount or "max" to send all) are live; Solana and Tron are coming. For UTXO you must pass the sending address as 'from'. Returns the unsigned tx/PSBT plus a verify verdict; show the recipient and amount and get an explicit yes before the user's OWN wallet signs. Trustless: SwapChan never signs or broadcasts. ${DISPLAY}`,
       inputSchema: z.object({
-        chainId: chainArg,
-        to: z.string().max(200).describe("recipient: a 0x address or a name (ENS/Basenames)"),
-        amount: z.string().max(100).describe("decimal amount in the token's own units"),
+        chain: z
+          .string()
+          .max(40)
+          .describe("EVM chain name or id (base, ethereum, 8453, …) or a UTXO coin slug (btc, ltc, doge, bch, …)"),
+        to: z.string().max(200).describe("recipient: a 0x address, a UTXO address, or a name (ENS/Basenames)"),
+        amount: z.string().max(100).describe('decimal amount in the coin/token units, or "max" (UTXO) to send all'),
         token: z
           .string()
           .max(100)
           .optional()
-          .describe("token contract address; omit (or 'native') for the native coin"),
-        from: z.string().max(100).optional().describe("the sending wallet address"),
+          .describe("EVM only: token contract address; omit (or 'native') for the native coin"),
+        from: z.string().max(100).optional().describe("the sending wallet address (required for UTXO)"),
       }),
       annotations: ro,
     },
     safe(
       async (a: {
-        chainId: number | string;
+        chain: string;
         to: string;
         amount: string;
         token?: string | undefined;
         from?: string | undefined;
       }) =>
         api.buildSend({
-          chainId: cid(a.chainId) ?? a.chainId,
+          chain: a.chain,
           to: a.to,
           amount: a.amount,
           ...(a.token ? { token: a.token } : {}),

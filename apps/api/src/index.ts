@@ -446,7 +446,7 @@ export function createApp(
   // UTXO/Solana/Tron coming). SwapChan never signs or broadcasts; the user's wallet does. verifyTx-guarded.
   app.post("/send", async (c) => {
     let body: {
-      chainId: number;
+      chain: string;
       to: string;
       amount: string;
       token?: string | undefined;
@@ -455,7 +455,7 @@ export function createApp(
     try {
       body = z
         .object({
-          chainId: z.coerce.number().int(),
+          chain: z.coerce.string().min(1).max(40),
           to: z.string().min(1).max(200),
           amount: z.string().min(1).max(100),
           token: z.string().max(100).optional(),
@@ -463,7 +463,7 @@ export function createApp(
         })
         .parse(await c.req.json());
     } catch {
-      return c.json({ error: "chainId, to and amount are required", verified: false }, 400);
+      return c.json({ error: "chain, to and amount are required", verified: false }, 400);
     }
     try {
       return c.json(await buildSend(opts.scannerFetch ?? fetch, env, body));
