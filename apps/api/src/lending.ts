@@ -373,6 +373,10 @@ export function blueMarketId(mp: MarketParams): Hex {
   );
 }
 export const MORPHO_API = "https://api.morpho.org/graphql";
+/** Morpho API time limits: per request, and in total for all requests of one verify call. */
+export const MORPHO_API_LIMITS = { perCallMs: 5000, totalMs: 6000 };
+/** Bundles with more inner steps than this are refused (danger) instead of decoded. */
+export const MAX_BUNDLE_STEPS = 32;
 type Fetch = (u: string, i?: RequestInit) => Promise<Response>;
 /**
  * Verify a Morpho Blue market: (1) on-chain, Morpho Blue idToMarketParams(id) must return exactly
@@ -386,6 +390,7 @@ export async function verifyBlueMarket(
   chainId: number,
   mp: MarketParams,
   f?: Fetch,
+  deadline = Date.now() + MORPHO_API_LIMITS.totalMs,
 ): Promise<"missing" | "unlisted" | "listed"> {
   const blue = PROTOCOLS[chainId]?.morphoBlue;
   if (!blue) return "missing";
@@ -410,14 +415,25 @@ export async function verifyBlueMarket(
   if (!f) return "unlisted";
   try {
     const query = `{ markets(where:{uniqueKey_in:["${id}"], chainId_in:[${chainId}]}) { items { marketId listed lltv irmAddress oracle { address } loanAsset { address } collateralAsset { address } } } }`;
-    const r = await f(MORPHO_API, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ query }),
-      signal: AbortSignal.timeout(5000),
+    const left = Math.min(MORPHO_API_LIMITS.perCallMs, deadline - Date.now());
+    if (left <= 0) return "unlisted"; // overall API budget spent: not verified (fail closed)
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const expired = new Promise<null>((ok) => {
+      timer = setTimeout(() => ok(null), left);
     });
-    if (!r.ok) return "unlisted";
-    const j = (await r.json()) as {
+    const call = (async () => {
+      const r = await f(MORPHO_API, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query }),
+        signal: AbortSignal.timeout(left),
+      });
+      return r.ok ? await r.json() : null;
+    })();
+    call.catch(() => {}); // a late rejection after the race must not go unhandled
+    const raw = await Promise.race([call, expired]).finally(() => clearTimeout(timer));
+    if (!raw) return "unlisted";
+    const j = raw as {
       data?: {
         markets?: {
           items?: {
@@ -508,8 +524,18 @@ export async function lendingChecks(
       `${name} sent to ${tx.to}, which is not the ${what} on this chain (lookalike or unsupported chain).`,
     );
   /** Morpho Blue market gate. Supplying into an unverified market: high; other actions: warn. */
+  // One verification per market id per verify call (promise cache: repeats share one request), and
+  // one shared deadline for every Morpho API request this call makes.
+  const marketCache = new Map<string, ReturnType<typeof verifyBlueMarket>>();
+  const apiDeadline = Date.now() + MORPHO_API_LIMITS.totalMs;
   const marketGate = async (mp: MarketParams, fn: string, supplying: boolean) => {
-    const st = await verifyBlueMarket(c, chainId, mp, f);
+    const id = blueMarketId(mp);
+    let pending = marketCache.get(id);
+    if (!pending) {
+      pending = verifyBlueMarket(c, chainId, mp, f, apiDeadline);
+      marketCache.set(id, pending);
+    }
+    const st = await pending;
     if (st === "listed") return true;
     if (st === "missing") {
       add(
@@ -679,6 +705,15 @@ export async function lendingChecks(
       const max = new Map<string, bigint>();
       const step = (i: number, msg: string) =>
         add("high", "lending-bundle", `Bundle step ${i + 1}: ${msg}`);
+      res.needsSimulation = true;
+      if (calls.length > MAX_BUNDLE_STEPS) {
+        add(
+          "high",
+          "lending-bundle",
+          `too many bundle steps: ${calls.length} inner calls (limit ${MAX_BUNDLE_STEPS}); not decoded.`,
+        );
+        break;
+      }
       for (const [i, x] of calls.entries()) {
         if (!adapters.has(lc(x.to))) {
           step(i, `calls ${x.to}, which is not one of Morpho's adapters.`);

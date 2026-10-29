@@ -8,7 +8,7 @@ import {
   toFunctionSelector,
   toHex,
 } from "viem";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Only the RPC layer is mocked. Factory / vault reads answer like the real contracts would.
 type Log = { address: string; topics: string[]; data: string };
@@ -70,7 +70,13 @@ vi.mock("./onchain.js", async (orig) => {
 });
 
 import { makeVerifyGuard } from "./agent-guard.js";
-import { blueMarketId, decodeLending, LENDING_ABIS as L, type MarketParams } from "./lending.js";
+import {
+  blueMarketId,
+  decodeLending,
+  LENDING_ABIS as L,
+  type MarketParams,
+  MORPHO_API_LIMITS,
+} from "./lending.js";
 import { verifyEvm } from "./txtools.js";
 
 const TRANSFER = keccak256(toHex("Transfer(address,address,uint256)"));
@@ -82,8 +88,11 @@ const xfer = (tok: string, from: string, to: string): Log => ({
 });
 // Network: only Morpho's market API answers (listed markets below); everything else is offline.
 const listed = new Set<string>();
+const api = { hang: false, calls: 0 };
 const nf = (async (url: string, init?: { body?: string }) => {
   if (!String(url).includes("api.morpho.org")) throw new Error("no network");
+  api.calls++;
+  if (api.hang) return new Promise(() => {}); // never answers, ignores the abort signal
   const id = /uniqueKey_in:\["(0x[0-9a-f]+)"/.exec(JSON.parse(init?.body ?? "{}").query)?.[1];
   const mp = [...registered].find((m) => blueMarketId(m) === id);
   const items =
@@ -154,6 +163,8 @@ const NOT_DANGER = ["ok", "caution"];
 beforeEach(() => {
   rpc.logs = [];
   rpc.status = "0x1";
+  api.hang = false;
+  api.calls = 0;
 });
 
 describe("ERC-4626 (Morpho vaults)", () => {
@@ -476,5 +487,85 @@ describe("through the agent guard (owner = beneficiary)", () => {
       ME,
     );
     expect(bad.verdict).toBe("danger");
+  });
+});
+
+describe("Morpho API hang bounds", () => {
+  const GA = L.GENERAL_ADAPTER1;
+  const BUNDLE = "0x6566194141eefa99af43bb5aa71460ca2dc90245";
+  const ADP = "0x4a6c312ec70e8747a587ee860a0353cd42be0ae0";
+  const st = (data: Hex) => ({ to: ADP, data, value: 0n, skipRevert: false, callbackHash: F });
+  const repay = (mp: MarketParams) =>
+    st(enc(GA, "morphoRepay", [mp, 1n, 0n, maxUint256, ME, "0x"]));
+  const saved = { ...MORPHO_API_LIMITS };
+  const timed = async (data: Hex) => {
+    const t0 = Date.now();
+    const r = await v(BUNDLE, data);
+    return { r, ms: Date.now() - t0 };
+  };
+  beforeEach(() => {
+    MORPHO_API_LIMITS.perCallMs = 300;
+    MORPHO_API_LIMITS.totalMs = 450;
+    rpc.logs = [xfer(USDC, ME, ADP), xfer(USDC, ADP, BLUE)];
+  });
+  afterEach(() => Object.assign(MORPHO_API_LIMITS, saved));
+  const pullUsdc = st(enc(GA, "erc20TransferFrom", [USDC, ADP, 10n ** 6n]));
+  for (const n of [4, 32]) {
+    it(`hung API, ${n} same-market steps -> one request, about one timeout, not verified`, async () => {
+      api.hang = true;
+      const steps = [pullUsdc, ...Array.from({ length: n - 1 }, () => repay(MP_EVIL))];
+      const { r, ms } = await timed(enc(L.BUNDLER3, "multicall", [steps]));
+      expect(api.calls).toBe(1);
+      expect(ms).toBeLessThan(1000);
+      expect(r.verdict).toBe("caution");
+      expect(JSON.stringify(r.findings)).toContain("market not verified");
+    });
+  }
+  it("hung API, 200 same-market steps -> refused as too many steps, no API wait", async () => {
+    api.hang = true;
+    const steps = [pullUsdc, ...Array.from({ length: 199 }, () => repay(MP_EVIL))];
+    const { r, ms } = await timed(enc(L.BUNDLER3, "multicall", [steps]));
+    expect(ms).toBeLessThan(1000);
+    expect(r.verdict).toBe("danger");
+    expect(JSON.stringify(r.findings)).toContain("too many bundle steps");
+  });
+  it("hung API, different markets share one overall deadline", async () => {
+    api.hang = true;
+    const mps = Array.from({ length: 10 }, (_, i) => ({ ...MP_EVIL, lltv: BigInt(i + 2) }));
+    for (const m of mps) market(m, false);
+    const steps = [pullUsdc, ...mps.map(repay)];
+    const { r, ms } = await timed(enc(L.BUNDLER3, "multicall", [steps]));
+    expect(ms).toBeLessThan(1000); // 10 x 300ms per-call would be 3s
+    expect(api.calls).toBeLessThanOrEqual(2);
+    expect(r.verdict).toBe("caution");
+  });
+  it("33 steps -> danger 'too many bundle steps'", async () => {
+    const steps = [pullUsdc, ...Array.from({ length: 32 }, () => repay(MP))];
+    const { r } = await timed(enc(L.BUNDLER3, "multicall", [steps]));
+    expect(r.verdict).toBe("danger");
+    expect(JSON.stringify(r.findings)).toContain("too many bundle steps");
+  });
+  it("listed market, API answering -> unchanged (not danger, one request)", async () => {
+    const steps = [pullUsdc, repay(MP), repay(MP)];
+    const { r } = await timed(enc(L.BUNDLER3, "multicall", [steps]));
+    expect(NOT_DANGER).toContain(r.verdict);
+    expect(api.calls).toBe(1);
+  });
+});
+
+describe("guard deadline", () => {
+  it("a guard run past its deadline throws (the runner then refuses with its fixed message)", async () => {
+    api.hang = true;
+    MORPHO_API_LIMITS.perCallMs = 5000;
+    MORPHO_API_LIMITS.totalMs = 6000;
+    const g = makeVerifyGuard(nf, {}, 100);
+    const data = enc(L.MORPHO_BLUE, "supply", [MP_EVIL, 1n, 0n, ME, "0x"]);
+    const t0 = Date.now();
+    await expect(g(1, { to: BLUE, data, value: "0" } as never, ME)).rejects.toThrow(
+      "guard deadline exceeded",
+    );
+    expect(Date.now() - t0).toBeLessThan(1000);
+    MORPHO_API_LIMITS.perCallMs = 5000;
+    MORPHO_API_LIMITS.totalMs = 6000;
   });
 });
