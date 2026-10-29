@@ -10,17 +10,51 @@ export type TronSendPlan = {
   family: "tron";
   recipient: string;
   from: string;
-  token: null; // native TRX for now
+  token: string | null; // TRC-20 contract (T…), or null for native TRX
   amount: string;
   tx: { rawDataHex: string };
   verify: { ok: boolean; failures: string[]; warnings: string[] } | null;
   wallet: string;
 };
 
-function toSun(amount: string): bigint {
+/** TRC-20 fee (energy) cap in sun; must stay under blocktools' DEFAULT_MAX_FEE_LIMIT_SUN (150 TRX). */
+const TRC20_FEE_LIMIT_SUN = 100_000_000; // 100 TRX
+
+function toUnits(amount: string, decimals: number): bigint {
   const [whole, frac = ""] = amount.trim().split(".");
-  if (frac.length > 6) throw new Error("more than 6 decimal places (TRX has 6)");
-  return BigInt(whole || "0") * 1_000_000n + BigInt((frac + "000000").slice(0, 6) || "0");
+  if (frac.length > decimals) throw new Error(`more than ${decimals} decimal places`);
+  return (
+    BigInt(whole || "0") * 10n ** BigInt(decimals) +
+    BigInt((frac + "0".repeat(decimals)).slice(0, decimals) || "0")
+  );
+}
+
+/** Read a TRC-20 contract's decimals via a constant (read-only) call to the Tron node. */
+async function trc20Decimals(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  owner: string,
+  contract: string,
+): Promise<number> {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (env.TRONGRID_API_KEY) headers["TRON-PRO-API-KEY"] = env.TRONGRID_API_KEY;
+  const r = await f("https://api.trongrid.io/wallet/triggerconstantcontract", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      owner_address: owner,
+      contract_address: contract,
+      function_selector: "decimals()",
+      visible: true,
+    }),
+    signal: AbortSignal.timeout(10000),
+  });
+  const j = (await r.json()) as { constant_result?: string[] };
+  const hex = j.constant_result?.[0];
+  if (!hex) throw new Error(`"${contract}" is not a TRC-20 (no decimals())`);
+  const d = Number(BigInt(`0x${hex}`));
+  if (!Number.isInteger(d) || d < 0 || d > 30) throw new Error("bad TRC-20 decimals");
+  return d;
 }
 
 /** Latest block → the ref_block fields a Tron tx must carry (so it can't be replayed on a stale chain tip). */
@@ -58,23 +92,36 @@ export async function buildTronSend(
   const from = o.from.trim();
   const to = o.to.trim();
   if (from === to) throw new Error("the sender and recipient are the same address");
-  if (o.token && o.token.trim().toLowerCase() !== "native" && o.token.trim().toLowerCase() !== "trx")
-    throw new Error("TRC-20 sends (e.g. USDT) are coming; for now this sends native TRX only");
-
-  const sun = toSun(o.amount);
-  if (sun <= 0n) throw new Error("amount must be above zero");
+  const t = o.token?.trim();
+  const isTrc20 = !!t && t.toLowerCase() !== "native" && t.toLowerCase() !== "trx";
 
   const ref = await tronRefBlock(f, env);
   const now = Date.now();
-  const plan = {
+  const base = {
     from,
     to,
     ref_block_bytes: ref.bytes,
     ref_block_hash: ref.hash,
     timestamp_ms: now,
     expiration_ms: now + 60_000,
-    amount: sun.toString(),
   };
+
+  let plan: Record<string, unknown>;
+  let token: string | null = null;
+  let wantAmount: string; // base units we expect the decode to confirm
+  if (isTrc20) {
+    const decimals = await trc20Decimals(f, env, from, t!);
+    const amt = toUnits(o.amount, decimals);
+    if (amt <= 0n) throw new Error("amount must be above zero");
+    token = t!;
+    wantAmount = amt.toString();
+    plan = { ...base, trc20: { contract: t, amount: wantAmount, fee_limit_sun: TRC20_FEE_LIMIT_SUN } };
+  } else {
+    const sun = toUnits(o.amount, 6); // TRX has 6 decimals
+    if (sun <= 0n) throw new Error("amount must be above zero");
+    wantAmount = sun.toString();
+    plan = { ...base, amount: wantAmount };
+  }
 
   let rawDataHex: string;
   try {
@@ -83,18 +130,36 @@ export async function buildTronSend(
     throw new Error(`Tron transaction not built: ${e instanceof Error ? e.message : "bad plan"}`);
   }
 
-  // Guard: decode the built raw_data and confirm it pays `to` the intended `amount`, from `from`.
+  // Guard: decode the built raw_data and confirm it pays `to` the intended `amount` (and token), from `from`.
   const failures: string[] = [];
   try {
     const d = JSON.parse(w.tronDecodeTx(rawDataHex)) as {
-      contracts?: { type?: string; owner?: string; to?: string; amount_sun?: string }[];
+      contracts?: {
+        type?: string;
+        owner?: string;
+        to?: string;
+        amount_sun?: string;
+        contract?: string;
+        trc20_transfer?: { to?: string; amount?: string };
+      }[];
     };
     const ct = d.contracts?.[0];
-    if (!ct || ct.type !== "TransferContract") failures.push("not_a_trx_transfer");
-    else {
-      if (ct.to !== to) failures.push("recipient_mismatch");
-      if (ct.amount_sun !== sun.toString()) failures.push("amount_mismatch");
+    if (!ct) failures.push("no_contract");
+    else if (isTrc20) {
+      if (ct.type !== "TriggerSmartContract" || !ct.trc20_transfer) failures.push("not_a_trc20_transfer");
+      else {
+        if (ct.trc20_transfer.to !== to) failures.push("recipient_mismatch");
+        if (ct.trc20_transfer.amount !== wantAmount) failures.push("amount_mismatch");
+        if (ct.contract !== token) failures.push("wrong_contract");
+      }
       if (ct.owner !== from) failures.push("sender_mismatch");
+    } else {
+      if (ct.type !== "TransferContract") failures.push("not_a_trx_transfer");
+      else {
+        if (ct.to !== to) failures.push("recipient_mismatch");
+        if (ct.amount_sun !== wantAmount) failures.push("amount_mismatch");
+        if (ct.owner !== from) failures.push("sender_mismatch");
+      }
     }
   } catch {
     failures.push("decode_failed");
@@ -104,7 +169,7 @@ export async function buildTronSend(
     family: "tron",
     recipient: to,
     from,
-    token: null,
+    token,
     amount: o.amount,
     tx: { rawDataHex },
     verify: { ok: failures.length === 0, failures, warnings: [] },
