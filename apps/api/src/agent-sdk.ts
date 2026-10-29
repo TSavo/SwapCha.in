@@ -203,9 +203,19 @@ const TOOL_STATUS: Record<string, string> = {
   resolve_name: "Resolving the name…",
 };
 export function toolStatus(toolName: string): string {
+  // Third-party families each get ONE friendly label, so a run of their calls (e.g. reading many
+  // Morpho vaults) collapses to a single "…×N" line instead of a stack of robotic tool names.
+  if (/morpho/i.test(toolName)) return "Checking Morpho vaults…";
+  if (/aave/i.test(toolName)) return "Checking Aave markets…";
+  if (/pendle/i.test(toolName)) return "Checking Pendle markets…";
   const short = toolName.replace(/^mcp__[a-z0-9_]+__/i, "");
   if (TOOL_STATUS[short]) return TOOL_STATUS[short];
-  const words = short.replace(/_/g, " ").trim();
+  // Humanize an unmapped tool name, dropping version tokens ("v1"/"v2") and extra spaces.
+  const words = short
+    .replace(/_/g, " ")
+    .replace(/\bv\d+\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
   return words ? `${words.charAt(0).toUpperCase()}${words.slice(1)}…` : "Working…";
 }
 

@@ -43,6 +43,20 @@ interface Line {
   text: string;
 }
 
+/** Fold a run of consecutive identical activity lines into one, carrying a count (shown as ×N). */
+function coalesceActivity(lines: Line[]): (Line & { count: number })[] {
+  const out: (Line & { count: number })[] = [];
+  for (const l of lines) {
+    const prev = out[out.length - 1];
+    if (l.role === "activity" && prev && prev.role === "activity" && prev.text === l.text) {
+      prev.count += 1; // same action again → bump the count instead of stacking a line
+    } else {
+      out.push({ ...l, count: 1 });
+    }
+  }
+  return out;
+}
+
 const isActionable = (a: ProposedAction) =>
   // sign_message is no longer offered by the agent (an old stored one is shown but not actionable).
   a.type === "sign_and_send" || a.type === "switch_chain";
@@ -579,11 +593,12 @@ export default function SmartWalletPage() {
         {lines.length === 0 && !echo && !needsAuth && (
           <p className="text-sm text-violet-200/50">Say what you’d like to do with this wallet.</p>
         )}
-        {lines.map((l) => (
+        {coalesceActivity(lines).map((l) => (
           <Bubble
             key={l.id}
             role={l.role}
             text={l.text}
+            count={l.count}
             typing={l.role === "wallet" && l.id === typeId}
           />
         ))}
@@ -782,10 +797,12 @@ function Bubble({
   role,
   text,
   typing,
+  count = 1,
 }: {
   role: "you" | "wallet" | "chain" | "activity";
   text: string;
   typing?: boolean;
+  count?: number;
 }) {
   const [shown, setShown] = useState(typing ? "" : text);
   const done = useRef(!typing);
@@ -811,10 +828,12 @@ function Bubble({
 
   if (role === "activity") {
     // A per-tool action line — muted, inline, persistent; not a dialogue bubble, no typewriter.
+    // A repeated action shows a running count (×2, ×3, …) instead of stacking identical lines.
     return (
       <div className="flex items-center gap-2 pl-1 text-xs text-violet-300/60">
         <span className="text-violet-400/50">⚙</span>
         <span>{text}</span>
+        {count > 1 && <span className="text-violet-400/50">×{count}</span>}
       </div>
     );
   }
