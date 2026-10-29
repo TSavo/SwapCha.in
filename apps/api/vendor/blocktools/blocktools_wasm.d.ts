@@ -13,6 +13,14 @@ export function ss58Decode(addr: string): string;
  */
 export function decodeAccountInfo(hex: string): string;
 /**
+ * Decode a BOLT11 Lightning invoice, as `bolt11`: bech32 (BIP173) + tagged fields + the payee pubkey
+ * RECOVERED from the signature. Returns the fields {network, currency, timestamp, recovered_payee,
+ * signature, recovery_id, routing_hints, amount_msat?, amount_raw?, payment_hash?, payment_secret?,
+ * description?, description_hash?, payee_pubkey?, features?, fallback?, expiry?, min_final_cltv_expiry?}.
+ * Public input, no keys, no channel protocol; malformed input throws a stable snake_case code.
+ */
+export function bolt11Decode(invoice: string): string;
+/**
  * `address::validate(chain, addr)`: address kind string; throws on invalid / unverified chain.
  */
 export function addressValidate(chain: string, addr: string): string;
@@ -119,6 +127,12 @@ export function solFindProgramAddress(seeds_json: string, program: string): stri
  * Chains this build knows: JSON array of names.
  */
 export function listChains(): string;
+/**
+ * Re-encode a BOLT11 invoice byte-identically, as `bolt11 --reencode`: parse the 5-bit words, drop the
+ * checksum, re-emit with a fresh one. Returns {reencoded, roundtrip} (roundtrip true when it equals the
+ * lowercased input). Public input, no keys.
+ */
+export function bolt11Reencode(invoice: string): string;
 /**
  * Strict check of EVM calldata or init code before signing, as tx-verify --call/--abi/--create-hash.
  * Request JSON {to: "0x.." | null, data, sigs?: [signature], abi?: JSON ABI (text or array), createHash?}.

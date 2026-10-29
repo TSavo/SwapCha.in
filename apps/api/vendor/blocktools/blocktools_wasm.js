@@ -169,6 +169,36 @@ module.exports.decodeAccountInfo = function(hex) {
 };
 
 /**
+ * Decode a BOLT11 Lightning invoice, as `bolt11`: bech32 (BIP173) + tagged fields + the payee pubkey
+ * RECOVERED from the signature. Returns the fields {network, currency, timestamp, recovered_payee,
+ * signature, recovery_id, routing_hints, amount_msat?, amount_raw?, payment_hash?, payment_secret?,
+ * description?, description_hash?, payee_pubkey?, features?, fallback?, expiry?, min_final_cltv_expiry?}.
+ * Public input, no keys, no channel protocol; malformed input throws a stable snake_case code.
+ * @param {string} invoice
+ * @returns {string}
+ */
+module.exports.bolt11Decode = function(invoice) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(invoice, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.bolt11Decode(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+};
+
+/**
  * `address::validate(chain, addr)`: address kind string; throws on invalid / unverified chain.
  * @param {string} chain
  * @param {string} addr
@@ -867,6 +897,34 @@ module.exports.listChains = function() {
         return getStringFromWasm0(ret[0], ret[1]);
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+};
+
+/**
+ * Re-encode a BOLT11 invoice byte-identically, as `bolt11 --reencode`: parse the 5-bit words, drop the
+ * checksum, re-emit with a fresh one. Returns {reencoded, roundtrip} (roundtrip true when it equals the
+ * lowercased input). Public input, no keys.
+ * @param {string} invoice
+ * @returns {string}
+ */
+module.exports.bolt11Reencode = function(invoice) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passStringToWasm0(invoice, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.bolt11Reencode(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
     }
 };
 

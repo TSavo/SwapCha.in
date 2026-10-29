@@ -7,6 +7,8 @@ export const addressesFromXpub: (a: number, b: number, c: number, d: number, e: 
 export const base58Decode: (a: number, b: number) => [number, number, number, number];
 export const base58Encode: (a: number, b: number) => [number, number, number, number];
 export const blake2b: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+export const bolt11Decode: (a: number, b: number) => [number, number, number, number];
+export const bolt11Reencode: (a: number, b: number) => [number, number, number, number];
 export const buildEvmTransfer: (a: number, b: number) => [number, number, number, number];
 export const buildPsbtWithMemo: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number) => [number, number, number, number];
 export const buildUnsignedSweep: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];

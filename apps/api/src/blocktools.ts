@@ -12,6 +12,7 @@ type Wasm = {
   combinePsbts(psbts: string[]): string;
   txPlanResolve(planJson: string, contextJson: string): string;
   msgVerify(address: string, message: string, sig: string, messageIsHex: boolean): string;
+  bolt11Decode(invoice: string): string;
   supportedChains(): string;
   unverifiedChains(): string;
   chainParams(): string;

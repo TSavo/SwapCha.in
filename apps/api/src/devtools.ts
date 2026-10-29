@@ -324,6 +324,8 @@ export const DEV_TOOLS: Record<string, (i: In) => unknown> = {
       w().msgVerify(str(i, "address"), m, str(i, "sig", undefined, 200), i.message_is_hex === true),
     );
   },
+  // Keyless BOLT11 decode (blocktools tx::bolt11): public invoice string only, no keys, no channel.
+  "bolt11-decode": (i) => json(w().bolt11Decode(str(i, "invoice", undefined, 8_000))),
   "bytecode-inspect": (i) => json(w().evmBytecodeInspect(str(i, "code", HEX, 59_000))),
   "typed-data-verify": (i) => {
     const sig = optStr(i, "signature", /^(0x)?([0-9a-fA-F]{128}|[0-9a-fA-F]{130})$/);

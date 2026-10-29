@@ -397,4 +397,25 @@ describe("multisig / combine / plan resolve / msg verify (blocktools wasm, keyle
       }),
     ).toMatchObject({ ok: false, error_code: "signature_not_65_bytes" });
   });
+
+  it("bolt11-decode: BOLT11 spec vectors (recovers the payee, decodes fields, rejects junk)", () => {
+    const INV =
+      "lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq9qrsgq357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap9us6v52vjjsrvywa6rt52cm9r9zqt8r2t7mlcwspyetp5h2tztugp9lfyql";
+    const d = ok("bolt11-decode", { invoice: INV });
+    expect(d.network).toBe("mainnet");
+    expect(d.recovered_payee).toBe(
+      "03e7156ae33b0a208d0744199163177e909e80176e55d97a2f221ede0f934dd9ad",
+    );
+    expect(d.description).toBe("Please consider supporting this project");
+    expect(
+      ok("bolt11-decode", {
+        invoice:
+          "lnbc2500u1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpu9qrsgquk0rl77nj30yxdy8j9vdx85fkpmdla2087ne0xh8nhedh8w27kyke0lp53ut353s06fv3qfegext0eh0ymjpf39tuven09sam30g4vgpfna3rh",
+      }).amount_msat,
+    ).toBe("250000000");
+    expect(runDevTool("bolt11-decode", { invoice: "bc1qxyz" })).toMatchObject({
+      ok: false,
+      error_code: "not_a_lightning_invoice",
+    });
+  });
 });

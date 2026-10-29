@@ -2562,6 +2562,17 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
   );
 
   server.registerTool(
+    "bolt11_decode",
+    {
+      title: "Decode a BOLT11 Lightning invoice (dev tool)",
+      description: `Decode a PUBLIC BOLT11 Lightning invoice (lnbc…): bech32 (BIP173) + tagged fields + the payee pubkey RECOVERED from the signature. Returns network, currency, timestamp, recovered_payee, amount_msat/amount_raw, payment_hash, description(_hash), payment_secret, payee_pubkey, features, fallback, expiry, min_final_cltv_expiry, routing_hints, signature and recovery_id. Reads only the invoice string — holds no key, verifies no channel, pays nothing. ${OFFLINE}`,
+      inputSchema: z.object({ invoice: pub(8_000) }),
+      annotations: devAnn,
+    },
+    dev({ "": ["bolt11-decode"] }),
+  );
+
+  server.registerTool(
     "evm_abi",
     {
       title: "EVM ABI encode / decode / inspect (dev tool)",
