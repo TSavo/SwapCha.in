@@ -2261,9 +2261,12 @@ export async function priceHistory(f: F, coin: string, at: number, span = 0) {
   const key = raw.includes(":")
     ? raw
     : `coingecko:${SYMBOL_GECKO[raw.toLowerCase()] ?? raw.toLowerCase()}`;
-  const point = await f(`https://coins.llama.fi/prices/historical/${at}/${encodeURIComponent(key)}`, {
-    signal: AbortSignal.timeout(6000),
-  })
+  const point = await f(
+    `https://coins.llama.fi/prices/historical/${at}/${encodeURIComponent(key)}`,
+    {
+      signal: AbortSignal.timeout(6000),
+    },
+  )
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
   const c = (point as { coins?: Record<string, { price?: number; symbol?: string }> } | null)
@@ -2277,8 +2280,11 @@ export async function priceHistory(f: F, coin: string, at: number, span = 0) {
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null);
     series = (
-      (chart as { coins?: Record<string, { prices?: { timestamp: number; price: number }[] }> } | null)
-        ?.coins?.[key]?.prices ?? []
+      (
+        chart as {
+          coins?: Record<string, { prices?: { timestamp: number; price: number }[] }>;
+        } | null
+      )?.coins?.[key]?.prices ?? []
     ).map((p) => ({ t: p.timestamp, price: p.price }));
   }
   return {
