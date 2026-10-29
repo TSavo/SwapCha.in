@@ -349,7 +349,12 @@ export async function verifyEvm(
     findings.push({ severity, check, message });
   // Lending / yield protocols (Morpho, Aave, Pendle, Merkl): beneficiary must be you, target must
   // be allowlisted or factory-confirmed; see lending.ts.
-  const lend = await lendingChecks(c as never, chainId, { from: tx.from, to: tx.to, data });
+  const lend = await lendingChecks(
+    c as never,
+    chainId,
+    { from: tx.from, to: tx.to, data },
+    f as never,
+  );
   findings.push(...lend.findings);
   if (call === "approve" && lc(tx.to) !== PERMIT2) {
     const i = findings.findIndex((x) => x.check === "approval" && x.severity === "warn");
@@ -488,14 +493,18 @@ export async function verifyEvm(
       const stray = lend.spend
         ? diff.filter(
             (d) =>
-              BigInt(d.delta) < 0n && d.token !== NATIVE_TOKEN && !lend.spend!.has(lc(d.token)),
+              BigInt(d.delta) < 0n &&
+              d.token !== NATIVE_TOKEN &&
+              (!lend.spend!.has(lc(d.token)) ||
+                (lend.spendMax?.has(lc(d.token)) &&
+                  -BigInt(d.delta) > (lend.spendMax.get(lc(d.token)) ?? 0n))),
           )
         : [];
       if (stray.length)
         add(
           "high",
           "lending-spend",
-          `This ${lend.decoded?.fn ?? "call"} also takes ${stray.map((d) => d.token).join(", ")}, not just the asset it deposits.`,
+          `This ${lend.decoded?.fn ?? "call"} also takes ${stray.map((d) => d.token).join(", ")}, beyond the tokens and amounts it declares.`,
         );
       if (lose && !gain && !lend.position && !findings.some((x) => x.check === "recipient"))
         add("high", "balance-diff", "You lose assets and receive nothing back in the simulation.");

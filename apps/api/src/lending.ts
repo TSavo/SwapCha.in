@@ -16,9 +16,12 @@
 import {
   decodeFunctionData,
   decodeFunctionResult,
+  encodeAbiParameters,
   encodeFunctionData,
   type Hex,
+  keccak256,
   parseAbi,
+  parseAbiParameters,
 } from "viem";
 
 const lc = (s?: string) => (s ?? "").toLowerCase();
@@ -41,6 +44,26 @@ const MORPHO_BLUE = parseAbi([
 ]);
 const BUNDLER3 = parseAbi([
   "function multicall((address to, bytes data, uint256 value, bool skipRevert, bytes32 callbackHash)[] bundle)",
+]);
+/** morpho-org/bundler3 src/adapters/GeneralAdapter1.sol + CoreAdapter.sol (signatures copied from source). */
+const GENERAL_ADAPTER1 = parseAbi([
+  "function erc4626Mint(address vault, uint256 shares, uint256 maxSharePriceE27, address receiver)",
+  "function erc4626Deposit(address vault, uint256 assets, uint256 maxSharePriceE27, address receiver)",
+  "function erc4626Withdraw(address vault, uint256 assets, uint256 minSharePriceE27, address receiver, address owner)",
+  "function erc4626Redeem(address vault, uint256 shares, uint256 minSharePriceE27, address receiver, address owner)",
+  `function morphoSupply(${MP} marketParams, uint256 assets, uint256 shares, uint256 maxSharePriceE27, address onBehalf, bytes data)`,
+  `function morphoSupplyCollateral(${MP} marketParams, uint256 assets, address onBehalf, bytes data)`,
+  `function morphoBorrow(${MP} marketParams, uint256 assets, uint256 shares, uint256 minSharePriceE27, address receiver)`,
+  `function morphoRepay(${MP} marketParams, uint256 assets, uint256 shares, uint256 maxSharePriceE27, address onBehalf, bytes data)`,
+  `function morphoWithdraw(${MP} marketParams, uint256 assets, uint256 shares, uint256 minSharePriceE27, address receiver)`,
+  `function morphoWithdrawCollateral(${MP} marketParams, uint256 assets, address receiver)`,
+  "function morphoFlashLoan(address token, uint256 assets, bytes data)",
+  "function permit2TransferFrom(address token, address receiver, uint256 amount)",
+  "function erc20TransferFrom(address token, address receiver, uint256 amount)",
+  "function wrapNative(uint256 amount, address receiver)",
+  "function unwrapNative(uint256 amount, address receiver)",
+  "function nativeTransfer(address receiver, uint256 amount)",
+  "function erc20Transfer(address token, address receiver, uint256 amount)",
 ]);
 const MERKL = parseAbi([
   "function claim(address[] users, address[] tokens, uint256[] amounts, bytes32[][] proofs)",
@@ -92,12 +115,16 @@ const READS = parseAbi([
   "function isValidMarket(address market) view returns (bool)",
   "function readTokens() view returns (address SY, address PT, address YT)",
   "function isYT(address token) view returns (bool)",
+  "function PT() view returns (address)",
+  "function SY() view returns (address)",
+  "function idToMarketParams(bytes32 id) view returns (address loanToken, address collateralToken, address oracle, address irm, uint256 lltv)",
   "function getReserveData(address asset) view returns (uint256 configuration, uint128 liquidityIndex, uint128 currentLiquidityRate, uint128 variableBorrowIndex, uint128 currentVariableBorrowRate, uint128 currentStableBorrowRate, uint40 lastUpdateTimestamp, uint16 id, address aTokenAddress, address stableDebtTokenAddress, address variableDebtTokenAddress, address interestRateStrategyAddress, uint128 accruedToTreasury, uint128 unbacked, uint128 isolationModeTotalDebt)",
 ]);
 export const LENDING_ABIS = {
   ERC4626,
   MORPHO_BLUE,
   BUNDLER3,
+  GENERAL_ADAPTER1,
   MERKL,
   AAVE_POOL,
   PENDLE_ROUTER,
@@ -136,7 +163,7 @@ export interface Protocols {
  *  MetaMorpho fac.  MORPHO() == Morpho Blue
  *  Bundler3/adapter GeneralAdapter1.BUNDLER3() == Bundler3
  *  Pendle factories marketFactory.yieldContractFactory() == paired yield factory in the same file
- *  Pendle router    marketFactoryV6 / router code present; Etherscan-verified PendleRouterV4
+ *  Pendle router    Etherscan verified source PendleRouterV4, public tag 'Pendle: Router V4'; Basescan 'Pendle: RouterV4' (proxy)
  *  Merkl            Etherscan tag "Angle Protocol: Distributor"; code present on Base
  */
 export const PROTOCOLS: Record<number, Protocols> = {
@@ -289,6 +316,8 @@ export interface LendingResult {
   credit: Set<string>;
   /** Tokens the signer is expected to spend; losing any other counted token is high. */
   spend?: Set<string>;
+  /** Upper bound on what may leave the signer per spend token (declared amounts), when known. */
+  spendMax?: Map<string, bigint>;
   /** The protocol books a position instead of sending a token back (repay, supplyCollateral, Blue supply). */
   position: boolean;
   /** Bundles: trusted only with a successful simulation. */
@@ -324,6 +353,119 @@ export async function confirmMorphoVault(c: Reader, chainId: number, vault: stri
   return asset ? lc(asset) : null;
 }
 
+export interface MarketParams {
+  loanToken: string;
+  collateralToken: string;
+  oracle: string;
+  irm: string;
+  lltv: bigint;
+}
+/** Morpho Blue market id = keccak256(abi.encode(marketParams)) (morpho-blue src/libraries/MarketParamsLib.sol). */
+export function blueMarketId(mp: MarketParams): Hex {
+  return keccak256(
+    encodeAbiParameters(parseAbiParameters("address, address, address, address, uint256"), [
+      mp.loanToken as Hex,
+      mp.collateralToken as Hex,
+      mp.oracle as Hex,
+      mp.irm as Hex,
+      mp.lltv,
+    ]),
+  );
+}
+export const MORPHO_API = "https://api.morpho.org/graphql";
+type Fetch = (u: string, i?: RequestInit) => Promise<Response>;
+/**
+ * Verify a Morpho Blue market: (1) on-chain, Morpho Blue idToMarketParams(id) must return exactly
+ * these params (the market was created on this Blue); (2) Morpho's API must list the market
+ * (listed: true, Morpho's curated/listed set) with the same loan/collateral/oracle/irm/lltv.
+ * Returns "missing" (no such market), "unlisted" (exists but not listed, or the API is
+ * unreachable: fails closed) or "listed".
+ */
+export async function verifyBlueMarket(
+  c: Reader,
+  chainId: number,
+  mp: MarketParams,
+  f?: Fetch,
+): Promise<"missing" | "unlisted" | "listed"> {
+  const blue = PROTOCOLS[chainId]?.morphoBlue;
+  if (!blue) return "missing";
+  const id = blueMarketId(mp);
+  const on = await read<readonly [string, string, string, string, bigint]>(
+    c,
+    blue,
+    "idToMarketParams",
+    [id],
+  );
+  const same = (a: unknown, b: string) => lc(String(a)) === lc(b);
+  if (
+    !on ||
+    /^0x0{40}$/.test(lc(on[0])) ||
+    !same(on[0], mp.loanToken) ||
+    !same(on[1], mp.collateralToken) ||
+    !same(on[2], mp.oracle) ||
+    !same(on[3], mp.irm) ||
+    BigInt(on[4]) !== BigInt(mp.lltv)
+  )
+    return "missing";
+  if (!f) return "unlisted";
+  try {
+    const query = `{ markets(where:{uniqueKey_in:["${id}"], chainId_in:[${chainId}]}) { items { marketId listed lltv irmAddress oracle { address } loanAsset { address } collateralAsset { address } } } }`;
+    const r = await f(MORPHO_API, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!r.ok) return "unlisted";
+    const j = (await r.json()) as {
+      data?: {
+        markets?: {
+          items?: {
+            marketId: string;
+            listed: boolean;
+            lltv: string;
+            irmAddress: string;
+            oracle?: { address: string } | null;
+            loanAsset?: { address: string } | null;
+            collateralAsset?: { address: string } | null;
+          }[];
+        };
+      };
+    };
+    const m = j.data?.markets?.items?.find((x) => lc(x.marketId) === lc(id));
+    const okApi =
+      !!m &&
+      m.listed === true &&
+      same(m.loanAsset?.address, mp.loanToken) &&
+      same(m.collateralAsset?.address, mp.collateralToken) &&
+      same(m.oracle?.address, mp.oracle) &&
+      same(m.irmAddress, mp.irm) &&
+      BigInt(m.lltv) === BigInt(mp.lltv);
+    return okApi ? "listed" : "unlisted";
+  } catch {
+    return "unlisted";
+  }
+}
+const ZERO_ADDR = /^0x0{40}$/;
+type SwapLeg = {
+  pendleSwap: string;
+  swapData: { swapType: number; extRouter: string };
+};
+/** Pendle TokenInput / TokenOutput must not route through an external aggregator. */
+function pendleExternalRoute(args: readonly unknown[]): string | null {
+  for (const a of args) {
+    if (!a || typeof a !== "object" || !("pendleSwap" in a)) continue;
+    const t = a as SwapLeg;
+    if (
+      !ZERO_ADDR.test(lc(t.pendleSwap)) ||
+      Number(t.swapData?.swapType) !== 0 ||
+      !ZERO_ADDR.test(lc(t.swapData?.extRouter))
+    )
+      return `pendleSwap ${t.pendleSwap}, swapType ${t.swapData?.swapType}, extRouter ${t.swapData?.extRouter}`;
+  }
+  return null;
+}
+
 /**
  * Lending checks for one tx. `from` is the signer (the guard's owner). Pure decode plus a few
  * read-only eth_calls for vault/market confirmation; fails closed (unconfirmed means high).
@@ -332,6 +474,7 @@ export async function lendingChecks(
   c: Reader,
   chainId: number,
   tx: { from?: string | undefined; to: string; data: Hex },
+  f?: Fetch,
 ): Promise<LendingResult> {
   const res: LendingResult = {
     decoded: decodeLending(tx.data),
@@ -364,6 +507,25 @@ export async function lendingChecks(
       "lending-target",
       `${name} sent to ${tx.to}, which is not the ${what} on this chain (lookalike or unsupported chain).`,
     );
+  /** Morpho Blue market gate. Supplying into an unverified market: high; other actions: warn. */
+  const marketGate = async (mp: MarketParams, fn: string, supplying: boolean) => {
+    const st = await verifyBlueMarket(c, chainId, mp, f);
+    if (st === "listed") return true;
+    if (st === "missing") {
+      add(
+        "high",
+        "lending-market",
+        `${fn}: no Morpho Blue market with these parameters exists on this chain (oracle ${mp.oracle}).`,
+      );
+      return false;
+    }
+    add(
+      supplying ? "high" : "warn",
+      "lending-market",
+      `${fn}: market not verified. Market ${blueMarketId(mp)} exists on Morpho Blue but is not listed by Morpho (oracle ${mp.oracle}, collateral ${mp.collateralToken}). Markets are permissionless: an attacker oracle or junk collateral can drain suppliers.`,
+    );
+    return !supplying;
+  };
 
   switch (d.protocol) {
     case "erc4626": {
@@ -394,7 +556,9 @@ export async function lendingChecks(
         break;
       }
       if (!ok) break;
-      const mp = d.args[0] as { loanToken: string; collateralToken: string };
+      const mp = d.args[0] as MarketParams;
+      const supplying = d.fn === "supply" || d.fn === "supplyCollateral";
+      if (!(await marketGate(mp, name, supplying))) break;
       const loan = lc(mp.loanToken);
       const coll = lc(mp.collateralToken);
       if (d.fn === "borrow" || d.fn === "withdraw") res.credit.add(loan);
@@ -428,11 +592,7 @@ export async function lendingChecks(
     }
     case "merkl": {
       if (!p.merklDistributor || to !== p.merklDistributor) {
-        add(
-          "warn",
-          "lending-target",
-          `claim() on ${tx.to}, which is not Merkl's Distributor: judged by the simulation only.`,
-        );
+        unknownTarget("Merkl Distributor");
         break;
       }
       if (!ok) break;
@@ -447,7 +607,26 @@ export async function lendingChecks(
       }
       if (!ok) break;
       const second = lc(String(d.args[1]));
+      const route = pendleExternalRoute(d.args);
+      if (route)
+        add(
+          "high",
+          "lending-route",
+          `${name} routes through an external swap aggregator (${route}); not verified, could hand your input to any contract. Use a no-aggregator route (swapType NONE).`,
+        );
+      const tin = d.args.find(
+        (a): a is { tokenIn: string; netTokenIn: bigint } =>
+          !!a && typeof a === "object" && "tokenIn" in a,
+      );
+      const spend = new Set<string>();
+      res.spendMax = new Map();
+      if (tin && !ZERO_ADDR.test(lc(tin.tokenIn))) {
+        spend.add(lc(tin.tokenIn));
+        res.spendMax.set(lc(tin.tokenIn), BigInt(tin.netTokenIn));
+      }
+      res.spend = spend;
       if (d.fn === "redeemSyToToken") {
+        spend.add(second);
         add("warn", "lending", "Pendle SY redeem: the SY contract cannot be confirmed on-chain.");
         break;
       }
@@ -460,6 +639,11 @@ export async function lendingChecks(
           );
           break;
         }
+        spend.add(second);
+        const pt = await read<string>(c, second, "PT");
+        const sy = await read<string>(c, second, "SY");
+        if (pt) spend.add(lc(pt));
+        if (sy) spend.add(lc(sy));
         add("info", "lending", `${name} via the Pendle router, to your wallet.`);
         break; // payout token (TokenOutput / SY) is judged by the generic checks
       }
@@ -468,8 +652,13 @@ export async function lendingChecks(
         break;
       }
       res.credit.add(second); // LP token is the market itself
+      spend.add(second);
       const t = await read<readonly string[]>(c, second, "readTokens");
-      if (t) for (const x of t) res.credit.add(lc(x)); // SY, PT, YT
+      if (t)
+        for (const x of t) {
+          res.credit.add(lc(x)); // SY, PT, YT
+          spend.add(lc(x)); // the declared SY/PT/YT inputs of the Sy/Pt variants
+        }
       add(
         "info",
         "lending",
@@ -482,20 +671,106 @@ export async function lendingChecks(
         unknownTarget("Morpho Bundler3");
         break;
       }
-      const calls = d.args[0] as readonly { to: string }[];
+      const calls = d.args[0] as readonly { to: string; data: Hex }[];
       const adapters = new Set((p.bundlerAdapters ?? []).map(lc));
-      const stray = calls.filter((x) => !adapters.has(lc(x.to)));
-      if (stray.length)
-        add(
-          "high",
-          "lending-bundle",
-          `Bundle calls contracts outside Morpho's adapters: ${stray.map((x) => x.to).join(", ")}.`,
-        );
+      const toMe = (a: unknown) => !!me && lc(String(a)) === me;
+      const toMeOrAdapter = (a: unknown) => toMe(a) || adapters.has(lc(String(a)));
+      const spend = new Set<string>();
+      const max = new Map<string, bigint>();
+      const step = (i: number, msg: string) =>
+        add("high", "lending-bundle", `Bundle step ${i + 1}: ${msg}`);
+      for (const [i, x] of calls.entries()) {
+        if (!adapters.has(lc(x.to))) {
+          step(i, `calls ${x.to}, which is not one of Morpho's adapters.`);
+          continue;
+        }
+        let s: { functionName: string; args: readonly unknown[] };
+        try {
+          s = decodeFunctionData({ abi: GENERAL_ADAPTER1, data: x.data }) as typeof s;
+        } catch {
+          step(i, "unrecognized adapter call; cannot verify it.");
+          continue;
+        }
+        const a = s.args;
+        const fn = `GeneralAdapter1.${s.functionName}`;
+        switch (s.functionName) {
+          case "erc20TransferFrom":
+          case "permit2TransferFrom": {
+            if (!adapters.has(lc(String(a[1])))) {
+              step(i, `${fn} pulls ${a[0]} from your wallet to ${a[1]}, not to Morpho's adapter.`);
+              break;
+            }
+            const t = lc(String(a[0]));
+            spend.add(t);
+            max.set(t, (max.get(t) ?? 0n) + BigInt(a[2] as bigint));
+            break;
+          }
+          case "erc20Transfer":
+          case "wrapNative":
+          case "unwrapNative": {
+            const r = s.functionName === "erc20Transfer" ? a[1] : a[1];
+            if (!toMeOrAdapter(r)) step(i, `${fn} sends funds to ${r}, not your wallet.`);
+            break;
+          }
+          case "nativeTransfer":
+            if (!toMeOrAdapter(a[0])) step(i, `${fn} sends ETH to ${a[0]}, not your wallet.`);
+            break;
+          case "erc4626Deposit":
+          case "erc4626Mint":
+          case "erc4626Withdraw":
+          case "erc4626Redeem": {
+            const vault = lc(String(a[0]));
+            const asset = await confirmMorphoVault(c, chainId, vault);
+            if (!asset) {
+              step(i, `${vault} is not a vault confirmed by Morpho's on-chain vault factory.`);
+              break;
+            }
+            if (!toMe(a[3])) step(i, `${fn} receiver is ${a[3]}, not your wallet.`);
+            if (a.length > 4 && !toMeOrAdapter(a[4]))
+              step(i, `${fn} owner is ${a[4]}, not your wallet.`);
+            res.credit.add(
+              s.functionName.endsWith("Deposit") || s.functionName.endsWith("Mint") ? vault : asset,
+            );
+            break;
+          }
+          case "morphoSupply":
+          case "morphoSupplyCollateral":
+          case "morphoRepay": {
+            const mp = a[0] as MarketParams;
+            const ob = s.functionName === "morphoSupplyCollateral" ? a[2] : a[4];
+            const cb = s.functionName === "morphoSupplyCollateral" ? a[3] : a[5];
+            if (!toMe(ob)) step(i, `${fn} onBehalf is ${ob}, not your wallet.`);
+            if (cb !== "0x") step(i, `${fn} carries a nested callback bundle that is not decoded.`);
+            await marketGate(mp, fn, s.functionName !== "morphoRepay");
+            res.position = true;
+            break;
+          }
+          case "morphoBorrow":
+          case "morphoWithdraw":
+          case "morphoWithdrawCollateral": {
+            const mp = a[0] as MarketParams;
+            const r = s.functionName === "morphoWithdrawCollateral" ? a[2] : a[4];
+            if (!toMeOrAdapter(r)) step(i, `${fn} receiver is ${r}, not your wallet.`);
+            await marketGate(mp, fn, false);
+            res.credit.add(
+              lc(s.functionName === "morphoWithdrawCollateral" ? mp.collateralToken : mp.loanToken),
+            );
+            break;
+          }
+          default:
+            step(
+              i,
+              `${fn} is not supported by the guard (flash loans / re-entry cannot be verified).`,
+            );
+        }
+      }
+      res.spend = spend;
+      res.spendMax = max;
       res.needsSimulation = true;
       add(
         "warn",
         "lending-bundle",
-        "Morpho Bundler3 batch: inner steps are judged by the simulation (what you lose and what comes back).",
+        "Morpho Bundler3 batch: steps decoded; only the pulled tokens may leave your wallet, and the result is confirmed by simulation.",
       );
       break;
     }

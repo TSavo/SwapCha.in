@@ -1,9 +1,21 @@
-import { encodeFunctionData, type Hex, keccak256, maxUint256, pad, parseAbi, toHex } from "viem";
+import {
+  encodeFunctionData,
+  type Hex,
+  keccak256,
+  maxUint256,
+  pad,
+  parseAbi,
+  toFunctionSelector,
+  toHex,
+} from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Only the RPC layer is mocked. Factory / vault reads answer like the real contracts would.
 type Log = { address: string; topics: string[]; data: string };
 const rpc = { logs: [] as Log[], status: "0x1" };
+// Morpho Blue idToMarketParams(id) answers: id -> abi-encoded params (filled in below).
+const blueMarkets = new Map<string, string>();
+const ID_TO_MP = toFunctionSelector("function idToMarketParams(bytes32)");
 const ME = "0x803b80fc7f3c67f9ace73750239c60dd764b2ce5";
 const ATTACKER = "0x000000000000000000000000000000000000dead";
 const USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
@@ -41,6 +53,8 @@ vi.mock("./onchain.js", async (orig) => {
           const sel = data.slice(0, 10);
           const arg = `0x${data.slice(34, 74)}`;
           const t = to.toLowerCase();
+          if (sel === ID_TO_MP)
+            return { data: `0x${blueMarkets.get(`0x${data.slice(10, 74)}`) ?? "0".repeat(320)}` };
           if (sel === "0x29b5352c") return { data: t === MM_FACTORY && arg === VAULT ? T : F };
           if (sel === "0x38d52e0f") return { data: `0x${w(USDC)}` };
           if (sel === "0x58e6309f") return { data: t === PENDLE_MF_V6 && arg === MARKET ? T : F };
@@ -56,7 +70,7 @@ vi.mock("./onchain.js", async (orig) => {
 });
 
 import { makeVerifyGuard } from "./agent-guard.js";
-import { decodeLending, LENDING_ABIS as L } from "./lending.js";
+import { blueMarketId, decodeLending, LENDING_ABIS as L, type MarketParams } from "./lending.js";
 import { verifyEvm } from "./txtools.js";
 
 const TRANSFER = keccak256(toHex("Transfer(address,address,uint256)"));
@@ -66,9 +80,45 @@ const xfer = (tok: string, from: string, to: string): Log => ({
   topics: [TRANSFER, pad(from as Hex, { size: 32 }), pad(to as Hex, { size: 32 })],
   data: toHex(10n ** 6n, { size: 32 }),
 });
-const nf = (async () => {
-  throw new Error("no network");
+// Network: only Morpho's market API answers (listed markets below); everything else is offline.
+const listed = new Set<string>();
+const nf = (async (url: string, init?: { body?: string }) => {
+  if (!String(url).includes("api.morpho.org")) throw new Error("no network");
+  const id = /uniqueKey_in:\["(0x[0-9a-f]+)"/.exec(JSON.parse(init?.body ?? "{}").query)?.[1];
+  const mp = [...registered].find((m) => blueMarketId(m) === id);
+  const items =
+    mp && id && listed.has(id)
+      ? [
+          {
+            marketId: id,
+            listed: true,
+            lltv: String(mp.lltv),
+            irmAddress: mp.irm,
+            oracle: { address: mp.oracle },
+            loanAsset: { address: mp.loanToken },
+            collateralAsset: { address: mp.collateralToken },
+          },
+        ]
+      : [];
+  return new Response(JSON.stringify({ data: { markets: { items } } }));
 }) as never;
+const registered = new Set<MarketParams>();
+/** Create a market on the mocked Morpho Blue; `list` = Morpho's API lists it. */
+const market = (mp: MarketParams, list: boolean) => {
+  registered.add(mp);
+  const id = blueMarketId(mp);
+  blueMarkets.set(
+    id,
+    [
+      w(mp.loanToken),
+      w(mp.collateralToken),
+      w(mp.oracle),
+      w(mp.irm),
+      toHex(mp.lltv, { size: 32 }).slice(2),
+    ].join(""),
+  );
+  if (list) listed.add(id);
+};
 const v = async (to: string, data: Hex) =>
   (await verifyEvm(nf, {}, 1, { from: ME, to, data, value: "0" }, { recipient: ME })) as {
     verdict: string;
@@ -87,6 +137,10 @@ const MP = {
   irm: ADAPTER,
   lltv: 860000000000000000n,
 };
+market(MP, true);
+const MP_EVIL = { ...MP, oracle: ATTACKER, collateralToken: REWARD };
+market(MP_EVIL, false);
+const MP_GHOST = { ...MP, lltv: 1n }; // never created on Blue
 const ERC20 = parseAbi(["function approve(address spender, uint256 amount)"]);
 const tokenIn = {
   tokenIn: USDC,
@@ -201,11 +255,48 @@ describe("Morpho Blue", () => {
   });
 });
 
+describe("Morpho Blue market verification (G1)", () => {
+  it("supply into an unlisted market with an attacker oracle -> danger, 'market not verified'", async () => {
+    rpc.logs = [xfer(USDC, ME, BLUE)];
+    const r = await v(BLUE, enc(L.MORPHO_BLUE, "supply", [MP_EVIL, 10n ** 6n, 0n, ME, "0x"]));
+    expect(r.verdict).toBe("danger");
+    expect(JSON.stringify(r.findings)).toContain("market not verified");
+  });
+  it("supplyCollateral into an unlisted market -> danger", async () => {
+    rpc.logs = [xfer(REWARD, ME, BLUE)];
+    expect(
+      (await v(BLUE, enc(L.MORPHO_BLUE, "supplyCollateral", [MP_EVIL, 1n, ME, "0x"]))).verdict,
+    ).toBe("danger");
+  });
+  it("market that does not exist on Blue -> danger", async () => {
+    rpc.logs = [xfer(USDC, ME, BLUE)];
+    expect(
+      (await v(BLUE, enc(L.MORPHO_BLUE, "supply", [MP_GHOST, 1n, 0n, ME, "0x"]))).verdict,
+    ).toBe("danger");
+  });
+  it("borrow / repay / withdraw on an unlisted market -> caution with 'market not verified'", async () => {
+    for (const [fn, args, logs] of [
+      ["borrow", [MP_EVIL, 1n, 0n, ME, ME], [xfer(USDC, BLUE, ME)]],
+      ["withdraw", [MP_EVIL, 1n, 0n, ME, ME], [xfer(USDC, BLUE, ME)]],
+      ["repay", [MP_EVIL, 1n, 0n, ME, "0x"], [xfer(USDC, ME, BLUE)]],
+    ] as const) {
+      rpc.logs = [...logs];
+      const r = await v(BLUE, enc(L.MORPHO_BLUE, fn, [...args]));
+      expect(r.verdict).toBe("caution");
+      expect(JSON.stringify(r.findings)).toContain("market not verified");
+    }
+  });
+});
+
 describe("Merkl claim", () => {
   const claim = (u: string) => enc(L.MERKL, "claim", [[u], [REWARD], [1n], [[]]]);
   it("claim for me -> not danger", async () => {
     rpc.logs = [xfer(REWARD, MERKL, ME)];
     expect(NOT_DANGER).toContain((await v(MERKL, claim(ME))).verdict);
+  });
+  it("Merkl claim selector on a non-Distributor contract -> danger (G4)", async () => {
+    rpc.logs = [xfer(REWARD, FAKE_VAULT, ME)];
+    expect((await v(FAKE_VAULT, claim(ME))).verdict).toBe("danger");
   });
   it("claim for an attacker -> danger", async () => {
     rpc.logs = [xfer(REWARD, MERKL, ATTACKER)];
@@ -227,6 +318,40 @@ describe("Pendle router", () => {
   it("market not from Pendle's factory -> danger", async () => {
     rpc.logs = [xfer(USDC, ME, ROUTER), xfer(FAKE_VAULT, FAKE_VAULT, ME)];
     expect((await v(ROUTER, buy(ME, FAKE_VAULT))).verdict).toBe("danger");
+  });
+  it("buy PT that also pulls WETH to an attacker -> danger (G22)", async () => {
+    rpc.logs = [xfer(USDC, ME, ROUTER), xfer(WETH, ME, ATTACKER), xfer(PT, MARKET, ME)];
+    expect((await v(ROUTER, buy(ME))).verdict).toBe("danger");
+  });
+  it("buy PT that pulls more input than declared -> danger (G22)", async () => {
+    rpc.logs = [
+      { ...xfer(USDC, ME, ROUTER), data: toHex(5n * 10n ** 6n, { size: 32 }) },
+      xfer(PT, MARKET, ME),
+    ];
+    expect((await v(ROUTER, buy(ME))).verdict).toBe("danger");
+  });
+  it("TokenInput routed through an attacker pendleSwap / extRouter -> danger (G23)", async () => {
+    rpc.logs = [xfer(USDC, ME, ROUTER), xfer(PT, MARKET, ME)];
+    const evil = {
+      ...tokenIn,
+      pendleSwap: ATTACKER,
+      swapData: { swapType: 1, extRouter: ATTACKER, extCalldata: "0x1234", needScale: false },
+    };
+    const r = await v(
+      ROUTER,
+      enc(L.PENDLE_ROUTER, "swapExactTokenForPtSimple", [ME, MARKET, 1n, evil]),
+    );
+    expect(r.verdict).toBe("danger");
+    expect(r.findings.some((f) => f.check === "lending-route")).toBe(true);
+    const onlyRouter = { ...tokenIn, swapData: { ...tokenIn.swapData, extRouter: ATTACKER } };
+    expect(
+      (
+        await v(
+          ROUTER,
+          enc(L.PENDLE_ROUTER, "swapExactTokenForPtSimple", [ME, MARKET, 1n, onlyRouter]),
+        )
+      ).verdict,
+    ).toBe("danger");
   });
   it("decodes the full swapExactTokenForPt signature", () => {
     const lim = {
@@ -251,21 +376,71 @@ describe("Pendle router", () => {
 });
 
 describe("Morpho Bundler3", () => {
-  const bundle = (to: string) =>
-    enc(L.BUNDLER3, "multicall", [
-      [{ to, data: "0x", value: 0n, skipRevert: false, callbackHash: F }],
-    ]);
-  it("bundle via the adapter, confirmed vault shares to me -> not danger", async () => {
+  const GA = L.GENERAL_ADAPTER1;
+  const step = (data: Hex, to = ADAPTER) => ({
+    to,
+    data,
+    value: 0n,
+    skipRevert: false,
+    callbackHash: F,
+  });
+  const pull = (tok: string, to = ADAPTER, amt = 10n ** 6n) =>
+    enc(GA, "erc20TransferFrom", [tok, to, amt]);
+  const deposit = (receiver = ME) =>
+    enc(GA, "erc4626Deposit", [VAULT, 10n ** 6n, 10n ** 27n, receiver]);
+  const bundle = (...steps: ReturnType<typeof step>[]) => enc(L.BUNDLER3, "multicall", [steps]);
+  const good = () => bundle(step(pull(USDC)), step(deposit()));
+  it("pull USDC + deposit into a confirmed vault for me -> not danger", async () => {
     rpc.logs = [xfer(USDC, ME, ADAPTER), xfer(VAULT, ZERO, ME)];
-    expect(NOT_DANGER).toContain((await v(BUNDLER3, bundle(ADAPTER))).verdict);
+    expect(NOT_DANGER).toContain((await v(BUNDLER3, good())).verdict);
   });
   it("bundle that calls a non-Morpho contract -> danger", async () => {
     rpc.logs = [xfer(USDC, ME, ADAPTER), xfer(VAULT, ZERO, ME)];
-    expect((await v(BUNDLER3, bundle(ATTACKER))).verdict).toBe("danger");
+    expect((await v(BUNDLER3, bundle(step(pull(USDC)), step(deposit(), ATTACKER)))).verdict).toBe(
+      "danger",
+    );
   });
   it("bundle that reverts in simulation -> danger", async () => {
     rpc.status = "0x0";
-    expect((await v(BUNDLER3, bundle(ADAPTER))).verdict).toBe("danger");
+    expect((await v(BUNDLER3, good())).verdict).toBe("danger");
+  });
+  it("real deposit + erc20TransferFrom(WETH -> attacker) -> danger (G2)", async () => {
+    rpc.logs = [xfer(USDC, ME, ADAPTER), xfer(VAULT, ZERO, ME), xfer(WETH, ME, ATTACKER)];
+    const r = await v(
+      BUNDLER3,
+      bundle(step(pull(USDC)), step(deposit()), step(pull(WETH, ATTACKER))),
+    );
+    expect(r.verdict).toBe("danger");
+  });
+  it("WETH leaves the wallet without a declared pull (hidden by share gain) -> danger (G2)", async () => {
+    rpc.logs = [xfer(USDC, ME, ADAPTER), xfer(VAULT, ZERO, ME), xfer(WETH, ME, ATTACKER)];
+    const r = await v(BUNDLER3, good());
+    expect(r.verdict).toBe("danger");
+    expect(r.findings.some((f) => f.check === "lending-spend")).toBe(true);
+  });
+  it("pull WETH to the adapter, then erc20Transfer it to an attacker -> danger (G2)", async () => {
+    rpc.logs = [xfer(USDC, ME, ADAPTER), xfer(WETH, ME, ADAPTER), xfer(VAULT, ZERO, ME)];
+    const r = await v(
+      BUNDLER3,
+      bundle(
+        step(pull(USDC)),
+        step(pull(WETH)),
+        step(enc(GA, "erc20Transfer", [WETH, ATTACKER, 10n ** 6n])),
+        step(deposit()),
+      ),
+    );
+    expect(r.verdict).toBe("danger");
+  });
+  it("deposit with an attacker receiver inside the bundle -> danger", async () => {
+    rpc.logs = [xfer(USDC, ME, ADAPTER), xfer(VAULT, ZERO, ATTACKER)];
+    expect((await v(BUNDLER3, bundle(step(pull(USDC)), step(deposit(ATTACKER))))).verdict).toBe(
+      "danger",
+    );
+  });
+  it("morphoSupply into an unlisted market inside the bundle -> danger", async () => {
+    rpc.logs = [xfer(USDC, ME, ADAPTER), xfer(USDC, ADAPTER, BLUE)];
+    const sup = enc(GA, "morphoSupply", [MP_EVIL, 10n ** 6n, 0n, maxUint256, ME, "0x"]);
+    expect((await v(BUNDLER3, bundle(step(pull(USDC)), step(sup)))).verdict).toBe("danger");
   });
 });
 
