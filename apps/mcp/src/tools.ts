@@ -1398,6 +1398,44 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
     ),
   );
 
+  server.registerTool(
+    "price_history",
+    {
+      title: "Historical coin price",
+      description: `Past USD price of a coin from DefiLlama (keyless, no key): pass a CoinGecko id ("dogecoin") or a common ticker ("DOGE", "BTC", "ETH", "SOL") and a date, and get the spot price on that day. Add \`days\` for a daily trend series from that date forward. This is NOT the live price — use get_quote or token_info for the current price. Use it for questions like "what was DOGE last month". Result includes \`display\` markdown: show it to the user.`,
+      inputSchema: {
+        coin: z
+          .string()
+          .min(2)
+          .max(60)
+          .describe('CoinGecko id or ticker, e.g. "dogecoin" or "DOGE".'),
+        date: z.string().min(8).max(32).describe("The date as YYYY-MM-DD (or an ISO datetime)."),
+        days: z
+          .number()
+          .int()
+          .min(0)
+          .max(365)
+          .optional()
+          .describe("Days of daily trend from the date forward (0 or omit = just that day)."),
+      },
+      annotations: ro,
+    },
+    safe(
+      async (a: { coin: string; date: string; days?: number | undefined }) => {
+        const at = Math.floor(Date.parse(a.date) / 1000);
+        if (!Number.isFinite(at)) throw new Error("bad date — use YYYY-MM-DD");
+        return api.priceHistory(a.coin, at, a.days ?? 0);
+      },
+      (a, r) => ({
+        says:
+          r.priceUsd == null
+            ? `I couldn't find a historical price for ${a.coin} on ${a.date}. Try a CoinGecko id like "dogecoin".`
+            : `On ${String(r.date ?? a.date)}, ${String(r.symbol ?? a.coin)} was about $${Number(r.priceUsd).toPrecision(4)} — that's the price then, not now. Want the current price or a swap?`,
+        swapUrl: SITE,
+      }),
+    ),
+  );
+
   const watchId = z
     .string()
     .regex(/^[A-Za-z0-9_-]{8,64}$/)

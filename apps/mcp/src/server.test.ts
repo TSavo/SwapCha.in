@@ -122,6 +122,7 @@ describe("swapchan mcp over streamable http", () => {
         "get_gas",
         "token_info",
         "resolve_name",
+        "price_history",
         "watch_token",
         "list_watches",
         "check_watches",

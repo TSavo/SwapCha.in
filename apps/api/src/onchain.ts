@@ -2230,6 +2230,69 @@ export async function yields(
   };
 }
 
+/** A few common ticker → CoinGecko-id shortcuts so the agent can pass "DOGE" as well as "dogecoin". */
+const SYMBOL_GECKO: Record<string, string> = {
+  btc: "bitcoin",
+  eth: "ethereum",
+  sol: "solana",
+  doge: "dogecoin",
+  ltc: "litecoin",
+  bch: "bitcoin-cash",
+  bnb: "binancecoin",
+  xrp: "ripple",
+  ada: "cardano",
+  avax: "avalanche-2",
+  matic: "polygon-ecosystem-token",
+  pol: "polygon-ecosystem-token",
+  usdc: "usd-coin",
+  usdt: "tether",
+  dai: "dai",
+  trx: "tron",
+};
+
+/**
+ * Historical USD price of a coin from DefiLlama's keyless coins API (the same source we price
+ * everything with). `coin` is a CoinGecko id ("dogecoin"), a common ticker ("DOGE"), or an explicit
+ * DefiLlama key ("ethereum:0x…"); `at` is a unix-seconds timestamp. With `span` > 0, also returns a
+ * daily series from `at` forward so the agent can describe the trend. NOT live — a point in the past.
+ */
+export async function priceHistory(f: F, coin: string, at: number, span = 0) {
+  const raw = coin.trim();
+  const key = raw.includes(":")
+    ? raw
+    : `coingecko:${SYMBOL_GECKO[raw.toLowerCase()] ?? raw.toLowerCase()}`;
+  const point = await f(`https://coins.llama.fi/prices/historical/${at}/${encodeURIComponent(key)}`, {
+    signal: AbortSignal.timeout(6000),
+  })
+    .then((r) => (r.ok ? r.json() : null))
+    .catch(() => null);
+  const c = (point as { coins?: Record<string, { price?: number; symbol?: string }> } | null)
+    ?.coins?.[key];
+  let series: { t: number; price: number }[] = [];
+  if (span > 0) {
+    const chart = await f(
+      `https://coins.llama.fi/chart/${encodeURIComponent(key)}?start=${at}&span=${Math.min(span, 365)}&period=1d`,
+      { signal: AbortSignal.timeout(6000) },
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+    series = (
+      (chart as { coins?: Record<string, { prices?: { timestamp: number; price: number }[] }> } | null)
+        ?.coins?.[key]?.prices ?? []
+    ).map((p) => ({ t: p.timestamp, price: p.price }));
+  }
+  return {
+    coin: key,
+    symbol: c?.symbol ?? null,
+    at,
+    date: new Date(at * 1000).toISOString().slice(0, 10),
+    priceUsd: c?.price ?? null,
+    series,
+    source: "DefiLlama coins API (coins.llama.fi/prices/historical), spot at that timestamp",
+    note: "Historical spot price, not live. For a full chart use CoinGecko/CoinMarketCap.",
+  };
+}
+
 // ---------- routes ----------
 export function onchainRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync, bestOut: BestOut) {
   const app = new Hono();
@@ -2297,6 +2360,16 @@ export function onchainRoutes(f: F, env: NodeJS.ProcessEnv, db: DatabaseSync, be
         env,
         chainOf(need(c.req.query("chainId"), "chainId")),
         need(c.req.query("address"), "address"),
+      ),
+    ),
+  );
+  app.get("/price-history", (c) =>
+    run(c, () =>
+      priceHistory(
+        f,
+        need(c.req.query("coin"), "coin"),
+        Number(need(c.req.query("at"), "at")),
+        c.req.query("span") ? Number(c.req.query("span")) : 0,
       ),
     ),
   );

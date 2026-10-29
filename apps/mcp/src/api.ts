@@ -225,6 +225,11 @@ export class SwapChanApi {
   resolveName(q: string): Promise<Rec> {
     return this.rec(`/onchain/name?${qs({ q })}`);
   }
+  priceHistory(coin: string, at: number, span?: number): Promise<Rec> {
+    return this.rec(
+      `/onchain/price-history?${qs({ coin, at: String(at), ...(span ? { span: String(span) } : {}) })}`,
+    );
+  }
   yields(p: Record<string, string>): Promise<Rec> {
     return this.rec(`/onchain/yields?${qs(p)}`);
   }
