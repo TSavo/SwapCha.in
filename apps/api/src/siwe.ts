@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { recoverMessageAddress } from "viem";
 import { z } from "zod";
+import { blocktools } from "./blocktools.js";
 import { normalizeAddress } from "./sessions.js";
 
 /**
@@ -110,6 +111,31 @@ export function siweMessage(address: string, nonce: string, issuedAt: string): s
   ].join("\n");
 }
 
+/**
+ * Recover the EIP-191 (personal_sign) signer of `message`. Runs the recovery in the vendored,
+ * keyless blocktools WASM (`msgVerify`), which returns `{ recovered, status, ... }`; the caller
+ * decides equality (recovered must equal the claimed signer), exactly as before. blocktools throws
+ * on a malformed signature (not 65 bytes / bad hex) — the same reject the old viem path produced.
+ * If the WASM fails to load (returns null), we fall back to viem's `recoverMessageAddress` so the
+ * gate never locks out a valid signer on an environment fault; both paths feed the identical
+ * address-equality check, so the accept/reject decision is unchanged.
+ */
+export async function recoverSigner(
+  address: string,
+  message: string,
+  signature: string,
+): Promise<string> {
+  const bt = blocktools();
+  if (bt) {
+    const r = JSON.parse(bt.msgVerify(address, message, signature, false)) as {
+      recovered?: string;
+    };
+    if (typeof r.recovered !== "string" || !r.recovered) throw new Error("no_recovered_signer");
+    return r.recovered;
+  }
+  return recoverMessageAddress({ message, signature: signature as `0x${string}` });
+}
+
 const VerifyBody = z.object({
   address: z.string().trim().regex(EVM_ADDR),
   signature: z
@@ -149,10 +175,7 @@ export function authRoutes(env: Record<string, string | undefined>): Hono {
     if (!pending || pending.exp < Date.now()) return c.json({ error: "no_nonce" }, 400);
     let recovered: string;
     try {
-      recovered = await recoverMessageAddress({
-        message: pending.message,
-        signature: signature as `0x${string}`,
-      });
+      recovered = await recoverSigner(address, pending.message, signature);
     } catch {
       return c.json({ error: "bad_signature" }, 401);
     }

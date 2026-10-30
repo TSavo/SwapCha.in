@@ -1,10 +1,12 @@
 import {
+  encodeAbiParameters,
   encodeFunctionData,
   type Hex,
   keccak256,
   maxUint256,
   pad,
   parseAbi,
+  parseAbiParameters,
   toFunctionSelector,
   toHex,
 } from "viem";
@@ -550,6 +552,32 @@ describe("Morpho API hang bounds", () => {
     const { r } = await timed(enc(L.BUNDLER3, "multicall", [steps]));
     expect(NOT_DANGER).toContain(r.verdict);
     expect(api.calls).toBe(1);
+  });
+});
+
+describe("blueMarketId: blocktools abi.encode + keccak256 is byte-identical to viem", () => {
+  // morpho-blue MarketParamsLib: id = keccak256(abi.encode(marketParams)). blueMarketId now runs
+  // this in the blocktools WASM; prove it equals the viem computation so every market-gate decision
+  // keyed on the id is unchanged. Ground truth is viem's own encodeAbiParameters.
+  const viemMarketId = (mp: MarketParams): Hex =>
+    keccak256(
+      encodeAbiParameters(parseAbiParameters("address, address, address, address, uint256"), [
+        mp.loanToken as Hex,
+        mp.collateralToken as Hex,
+        mp.oracle as Hex,
+        mp.irm as Hex,
+        mp.lltv,
+      ]),
+    );
+  it("matches viem across varied market params", () => {
+    const cases: MarketParams[] = [
+      MP,
+      MP_EVIL,
+      MP_GHOST,
+      { loanToken: WETH, collateralToken: USDC, oracle: ME, irm: ATTACKER, lltv: 0n },
+      { loanToken: ZERO, collateralToken: ZERO, oracle: ZERO, irm: ZERO, lltv: maxUint256 },
+    ];
+    for (const mp of cases) expect(blueMarketId(mp)).toBe(viemMarketId(mp));
   });
 });
 
