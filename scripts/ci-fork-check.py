@@ -10,7 +10,7 @@ Usage: python3 scripts/ci-fork-check.py [workflow-dir]"""
 import glob, json, os, re, sys
 import yaml
 
-REPO = "TSavo/SwapCha.in"
+REPO = "TSavo/swapchan"
 HOSTED = {"ubuntu-latest", "macos-latest", "windows-latest"}
 
 def tokens(s):
@@ -84,7 +84,7 @@ def evaluate(val, ctx):
 
 def ctx(fork, labels):
     repo = REPO
-    ev = {"pull_request": {"head": {"repo": {"full_name": "mallory/SwapCha.in" if fork else repo}}}}
+    ev = {"pull_request": {"head": {"repo": {"full_name": "mallory/swapchan" if fork else repo}}}}
     return {"github": {"event_name": "pull_request", "repository": repo, "event": ev},
             "vars": ({"RUNNER_LABELS": labels} if labels else {})}
 
