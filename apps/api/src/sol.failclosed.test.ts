@@ -29,6 +29,7 @@ describe("Solana helpers fail closed without blocktools (no TS fallback)", () =>
     expect(() => oc.onCurve(new Uint8Array(32))).toThrow(/blocktools unavailable/);
     expect(() => oc.snsKey("bonfida")).toThrow(/blocktools unavailable/);
     expect(() => sv.ata(sv.SYSTEM, sv.WSOL)).toThrow(/blocktools unavailable/);
+    expect(() => sv.parseSvmBase64("AA==")).toThrow(/blocktools unavailable/);
     expect(() => sr.marinadeReserve()).toThrow(/blocktools unavailable/);
     expect(() => sr.anchorDisc("claim")).toThrow(/blocktools unavailable/);
     expect(() => tt.decodeSolana("AA==")).toThrow(/blocktools unavailable/);

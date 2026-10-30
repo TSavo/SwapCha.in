@@ -103,3 +103,44 @@ describe("decodeSolana (txtools) on 150 mainnet txs vs RPC json ground truth", (
     expect(() => decodeSolana("")).toThrow(/cannot decode/);
   });
 });
+
+describe("guard parseSvmBase64 (blocktools decode) == decodeSolana, exposes keys + data", () => {
+  // The old hand-rolled wire reader only handled legacy + v0 (version !== 1); blocktools decodes all three.
+  it("legacy + v0: fee payer, signers and the instruction program list agree with decodeSolana", () => {
+    const ok = fx.txs.filter((t) => t.version !== 1);
+    expect(ok.length).toBe(140);
+    for (const t of ok) {
+      const p = sv.parseSvmBase64(t.tx);
+      const d = decodeSolana(t.tx);
+      expect(p.feePayer).toBe(d.feePayer);
+      expect(p.signers).toEqual(d.signers);
+      // decodeSolana dedupes program ids; parseSvmBase64 keeps one per instruction
+      expect([...new Set(p.ixs.map((i) => i.programId))]).toEqual(d.programs);
+      // every instruction carries the raw keys array (undefined for lookup-table accounts) and data bytes
+      for (const ix of p.ixs) {
+        expect(ix.data).toBeInstanceOf(Uint8Array);
+        expect(Array.isArray(ix.keys)).toBe(true);
+      }
+    }
+  });
+  it("matches the RPC ground truth (same corpus decodeSolana is checked against)", () => {
+    for (const t of fx.txs.filter((t) => t.version !== 1)) {
+      const p = sv.parseSvmBase64(t.tx);
+      expect(p.feePayer).toBe(t.feePayer);
+      expect(p.signers).toEqual(t.signers);
+      expect([...new Set(p.ixs.map((i) => i.programId))]).toEqual(t.programs);
+    }
+  });
+  it("address-lookup-table accounts stay undefined (fail-closed destination), like the old parser", () => {
+    const withLookups = fx.txs
+      .filter((t) => t.version !== 1)
+      .map((t) => sv.parseSvmBase64(t.tx))
+      .find((p) => p.ixs.some((ix) => ix.keys.some((k) => k === undefined)));
+    expect(withLookups).toBeDefined();
+  });
+  it("truncated / garbage refused (fail closed)", () => {
+    const t = Buffer.from(fx.txs[0]!.tx, "base64");
+    expect(() => sv.parseSvmBase64(t.subarray(0, t.length - 5).toString("base64"))).toThrow();
+    expect(() => sv.parseSvmBase64("")).toThrow();
+  });
+});
