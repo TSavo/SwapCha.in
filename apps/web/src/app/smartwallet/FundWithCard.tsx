@@ -48,7 +48,8 @@ export default function FundWithCard({
     }
   };
 
-  if (!CLIENT_KEY) return <div className="text-xs text-red-300">Card on-ramp isn’t configured.</div>;
+  if (!CLIENT_KEY)
+    return <div className="text-xs text-red-300">Card on-ramp isn’t configured.</div>;
 
   if (order) {
     return (

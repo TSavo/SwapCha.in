@@ -46,15 +46,34 @@ export type UtxoSendPlan = {
 function toBaseUnits(amount: string, decimals: number): bigint {
   const [whole, frac = ""] = amount.trim().split(".");
   if (frac.length > decimals) throw new Error(`more than ${decimals} decimal places`);
-  return BigInt(whole || "0") * 10n ** BigInt(decimals) + BigInt((frac + "0".repeat(decimals)).slice(0, decimals) || "0");
+  return (
+    BigInt(whole || "0") * 10n ** BigInt(decimals) +
+    BigInt((frac + "0".repeat(decimals)).slice(0, decimals) || "0")
+  );
 }
 
 /** Independent guard: verifyTx re-reads the built tx/PSBT and checks it pays `recipient`, change to `from`, fee ≤ cap. */
-function verifyUtxo(coin: string, txOrPsbt: string, recipient: string, change: string, maxFee: bigint) {
+function verifyUtxo(
+  coin: string,
+  txOrPsbt: string,
+  recipient: string,
+  change: string,
+  maxFee: bigint,
+) {
   const w = blocktools();
   if (!w) return null;
   const v = JSON.parse(
-    w.verifyTx(txOrPsbt, coin, [recipient], [change], undefined, maxFee.toString(), false, null, null),
+    w.verifyTx(
+      txOrPsbt,
+      coin,
+      [recipient],
+      [change],
+      undefined,
+      maxFee.toString(),
+      false,
+      null,
+      null,
+    ),
   ) as { ok?: boolean; failures?: string[]; warnings?: string[] };
   return { ok: v.ok === true, failures: v.failures ?? [], warnings: v.warnings ?? [] };
 }
@@ -65,11 +84,14 @@ async function buildBtcSend(
   o: { to: string; amount: string; from?: string | undefined },
 ): Promise<UtxoSendPlan> {
   if (!blocktools())
-    throw new Error("blocktools is unavailable, so SwapChan won't offer an unverified BTC transaction; try again later");
+    throw new Error(
+      "blocktools is unavailable, so SwapChan won't offer an unverified BTC transaction; try again later",
+    );
   if (!o.from) throw new Error("the sending address (from) is required for a BTC send");
   const from = o.from.trim();
   const to = o.to.trim();
-  if (!btAddrValid("btc", to)) throw new Error(`"${to}" is not a valid Bitcoin address (recipient)`);
+  if (!btAddrValid("btc", to))
+    throw new Error(`"${to}" is not a valid Bitcoin address (recipient)`);
   const rate = await btcFeeRate(f);
 
   // "max": sweep every UTXO to the recipient (one output, no change). BTC is segwit, so no prev_tx needed.
@@ -138,16 +160,21 @@ export async function buildUtxoSend(
   const c: CoinRow | undefined = COINS[coin as Coin];
   if (!c) throw new Error(`unknown coin "${o.coin}"`);
   if (!blocktools())
-    throw new Error(`blocktools is unavailable, so SwapChan won't offer an unverified ${c.sym} transaction; try again later`);
+    throw new Error(
+      `blocktools is unavailable, so SwapChan won't offer an unverified ${c.sym} transaction; try again later`,
+    );
   if (!o.from) throw new Error("the sending address (from) is required for a UTXO send");
   const from = o.from.trim();
   const to = o.to.trim();
-  if (!btAddrValid(coin, from)) throw new Error(`"${from}" is not a valid ${c.sym} address (sender)`);
-  if (!btAddrValid(coin, to)) throw new Error(`"${to}" is not a valid ${c.sym} address (recipient)`);
+  if (!btAddrValid(coin, from))
+    throw new Error(`"${from}" is not a valid ${c.sym} address (sender)`);
+  if (!btAddrValid(coin, to))
+    throw new Error(`"${to}" is not a valid ${c.sym} address (recipient)`);
 
   // "max": sweep everything to the recipient (reuses the fully-tested per-coin sweep: legacy prevtx, pos-ntime, zec, groestl).
   if (o.amount.trim().toLowerCase() === "max") {
-    if (!c.sweep) throw new Error(`send-all isn't supported for ${c.sym} yet; give a specific amount`);
+    if (!c.sweep)
+      throw new Error(`send-all isn't supported for ${c.sym} yet; give a specific amount`);
     const s = (await utxoSweep(f, coin as Coin, from, to, c.feeRate)) as {
       psbt?: string;
       unsigned_tx?: string;
@@ -179,7 +206,9 @@ export async function buildUtxoSend(
 
   const all = (await coinUtxos(f, coin as Coin, from, env))
     .filter((u) => BigInt(u.value) > 0n)
-    .sort((a, b) => (BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0));
+    .sort((a, b) =>
+      BigInt(b.value) > BigInt(a.value) ? 1 : BigInt(b.value) < BigInt(a.value) ? -1 : 0,
+    );
   if (!all.length) throw new Error(`no ${c.sym} found on ${from}`);
 
   // Generous pre-selection; btBuildPsbt computes the real fee and change. Input ~148 vB legacy / ~68 vB segwit.
@@ -205,8 +234,14 @@ export async function buildUtxoSend(
   const prev = new Map<string, string>();
   if (!segwitSender) {
     const ps = (c.prev ?? (c.src && c.src.type !== "cryptoid" ? [c.src] : [])) as PrevSource[];
-    if (!ps.length) throw new Error(`${c.sym}: no raw-transaction source, so input amounts can't be proven`);
-    const { got, failed } = await fetchPrevTxs(f, coin, ps, take.map((u) => u.txid));
+    if (!ps.length)
+      throw new Error(`${c.sym}: no raw-transaction source, so input amounts can't be proven`);
+    const { got, failed } = await fetchPrevTxs(
+      f,
+      coin,
+      ps,
+      take.map((u) => u.txid),
+    );
     const missing = take.filter((u) => !got.has(u.txid.toLowerCase()));
     if (missing.length)
       throw new Error(
@@ -219,7 +254,13 @@ export async function buildUtxoSend(
   try {
     built = btBuildPsbt(
       coin,
-      take.map((u) => ({ txid: u.txid, vout: u.vout, amount: u.value, address: from, prev_tx: prev.get(u.txid.toLowerCase()) })),
+      take.map((u) => ({
+        txid: u.txid,
+        vout: u.vout,
+        amount: u.value,
+        address: from,
+        prev_tx: prev.get(u.txid.toLowerCase()),
+      })),
       to,
       amount,
       from, // change back to the sender

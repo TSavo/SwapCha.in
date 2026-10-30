@@ -58,7 +58,10 @@ async function trc20Decimals(
 }
 
 /** Latest block → the ref_block fields a Tron tx must carry (so it can't be replayed on a stale chain tip). */
-async function tronRefBlock(f: F, env: NodeJS.ProcessEnv): Promise<{ bytes: string; hash: string }> {
+async function tronRefBlock(
+  f: F,
+  env: NodeJS.ProcessEnv,
+): Promise<{ bytes: string; hash: string }> {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (env.TRONGRID_API_KEY) headers["TRON-PRO-API-KEY"] = env.TRONGRID_API_KEY;
   const r = await f("https://api.trongrid.io/wallet/getnowblock", {
@@ -115,7 +118,10 @@ export async function buildTronSend(
     if (amt <= 0n) throw new Error("amount must be above zero");
     token = t!;
     wantAmount = amt.toString();
-    plan = { ...base, trc20: { contract: t, amount: wantAmount, fee_limit_sun: TRC20_FEE_LIMIT_SUN } };
+    plan = {
+      ...base,
+      trc20: { contract: t, amount: wantAmount, fee_limit_sun: TRC20_FEE_LIMIT_SUN },
+    };
   } else {
     const sun = toUnits(o.amount, 6); // TRX has 6 decimals
     if (sun <= 0n) throw new Error("amount must be above zero");
@@ -146,7 +152,8 @@ export async function buildTronSend(
     const ct = d.contracts?.[0];
     if (!ct) failures.push("no_contract");
     else if (isTrc20) {
-      if (ct.type !== "TriggerSmartContract" || !ct.trc20_transfer) failures.push("not_a_trc20_transfer");
+      if (ct.type !== "TriggerSmartContract" || !ct.trc20_transfer)
+        failures.push("not_a_trc20_transfer");
       else {
         if (ct.trc20_transfer.to !== to) failures.push("recipient_mismatch");
         if (ct.trc20_transfer.amount !== wantAmount) failures.push("amount_mismatch");

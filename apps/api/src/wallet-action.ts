@@ -63,16 +63,9 @@ export type ProposedAction = ModelAction & { actionId: string };
 /** Actions that require the user to do something in their wallet (and thus a sign-gate id). */
 export function isActionable(
   a: ModelAction,
-): a is Extract<
-  ModelAction,
-  { type: "sign_and_send" | "sign_message" | "switch_chain" }
-> {
+): a is Extract<ModelAction, { type: "sign_and_send" | "sign_message" | "switch_chain" }> {
   // onramp (card on-ramp) is intentionally NOT actionable yet — MoonPay signature validation is
   // unresolved on their side, so we don't surface a card checkout. Re-add "onramp" here (and in the
   // web page's isActionable) to turn it back on once MoonPay validates. The schema keeps the literal.
-  return (
-    a.type === "sign_and_send" ||
-    a.type === "sign_message" ||
-    a.type === "switch_chain"
-  );
+  return a.type === "sign_and_send" || a.type === "sign_message" || a.type === "switch_chain";
 }
