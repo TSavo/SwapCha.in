@@ -573,6 +573,64 @@ export function encodeFunctionData(p: {
 }
 export const encodeAbiParameters = (params: readonly AbiParam[], values: readonly unknown[]): Hex =>
   encodeRaw(`(${params.map(canonType).join(",")})`, params, values);
+
+/** ABI decoding (blocktools evmAbiDecode). Drop-in for viem's decodeFunctionData / decodeAbiParameters: the
+ *  guard feeds the same viem-style ABI items and reads back the same native values (bigint ints, named-tuple
+ *  objects, element arrays, checksummed addresses). blocktools returns ints as decimal strings and tuples as
+ *  positional arrays, so the value tree is re-shaped against the viem param tree — which also carries the
+ *  component names viem keys named tuples by (the raw `types` path has none). Fail closed: throws when the
+ *  WASM is unavailable or the calldata does not decode (the guard's tryDecode catches it, as with viem). */
+type AbiArg = { readonly value: unknown };
+/** blocktools value (ints as decimal strings, tuples as positional arrays) -> viem's native value for `p`. */
+const abiValueOf = (p: AbiParam, v: unknown): unknown => {
+  const arr = /^(.*)\[\d*\]$/.exec(p.type);
+  if (arr) return (v as unknown[]).map((x) => abiValueOf({ ...p, type: arr[1]! }, x));
+  if (p.type.startsWith("tuple")) {
+    const cs = p.components ?? [];
+    const vals = v as unknown[];
+    const parts = cs.map((c, i) => abiValueOf(c, vals[i]));
+    if (cs.length > 0 && cs.every((c) => c.name)) {
+      const o: Record<string, unknown> = {};
+      cs.forEach((c, i) => {
+        o[c.name!] = parts[i];
+      });
+      return o;
+    }
+    return parts;
+  }
+  const m = /^u?int(\d*)$/.exec(p.type);
+  // viem decodes int/uint with size <= 48 bits as a JS number, larger as bigint.
+  if (m) return Number(m[1] || "256") <= 48 ? Number(v) : BigInt(v as string);
+  return v;
+};
+export function decodeFunctionData(p: { readonly abi: readonly unknown[]; readonly data: Hex }): {
+  functionName: string;
+  args: readonly unknown[];
+} {
+  const r = JSON.parse(
+    need().evmAbiDecode(JSON.stringify({ input: p.data, abi: JSON.stringify(p.abi) })),
+  ) as { status?: string; signature?: string; args?: AbiArg[] };
+  if (r.status !== "ok" || !r.signature || !Array.isArray(r.args))
+    throw new Error(`abi: cannot decode ${String(p.data).slice(0, 10)}`);
+  const f = (p.abi as AbiFn[]).find(
+    (x) =>
+      x.type === "function" &&
+      `${x.name}(${(x.inputs ?? []).map(canonType).join(",")})` === r.signature,
+  );
+  if (!f) throw new Error(`abi: decoded ${r.signature} is not in the abi`);
+  const ins = f.inputs ?? [];
+  return { functionName: f.name!, args: ins.map((pp, i) => abiValueOf(pp, r.args![i]!.value)) };
+}
+export function decodeAbiParameters(params: readonly AbiParam[], data: Hex): unknown[] {
+  const r = JSON.parse(
+    need().evmAbiDecode(
+      JSON.stringify({ input: data, types: `(${params.map(canonType).join(",")})` }),
+    ),
+  ) as { status?: string; args?: AbiArg[] };
+  if (r.status !== "ok" || !Array.isArray(r.args) || r.args.length !== params.length)
+    throw new Error("abi: cannot decode parameters");
+  return params.map((pp, i) => abiValueOf(pp, r.args![i]!.value));
+}
 /** CoW appData hash: keccak-256 of the exact UTF-8 JSON document. */
 export const btAppDataHash = (doc: string): Hex =>
   btKeccak256(`0x${Buffer.from(doc, "utf8").toString("hex")}`);
