@@ -2581,15 +2581,27 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
         chain: z
           .string()
           .max(40)
-          .describe("EVM chain name or id (base, ethereum, 8453, …) or a UTXO coin slug (btc, ltc, doge, bch, …)"),
-        to: z.string().max(200).describe("recipient: a 0x address, a UTXO address, or a name (ENS/Basenames)"),
-        amount: z.string().max(100).describe('decimal amount in the coin/token units, or "max" (UTXO) to send all'),
+          .describe(
+            "EVM chain name or id (base, ethereum, 8453, …) or a UTXO coin slug (btc, ltc, doge, bch, …)",
+          ),
+        to: z
+          .string()
+          .max(200)
+          .describe("recipient: a 0x address, a UTXO address, or a name (ENS/Basenames)"),
+        amount: z
+          .string()
+          .max(100)
+          .describe('decimal amount in the coin/token units, or "max" (UTXO) to send all'),
         token: z
           .string()
           .max(100)
           .optional()
           .describe("EVM only: token contract address; omit (or 'native') for the native coin"),
-        from: z.string().max(100).optional().describe("the sending wallet address (required for UTXO)"),
+        from: z
+          .string()
+          .max(100)
+          .optional()
+          .describe("the sending wallet address (required for UTXO)"),
       }),
       annotations: ro,
     },

@@ -24,13 +24,21 @@ const PLACEHOLDER = { nonce: 0, gas: 21000, gasPrice: "1000000000" };
 
 /** Common EVM chain names/aliases -> chainId (ids from onchain.ts EVM_IDS). Numeric ids also accepted. */
 const EVM_NAMES: Record<string, number> = {
-  ethereum: 1, eth: 1, mainnet: 1,
+  ethereum: 1,
+  eth: 1,
+  mainnet: 1,
   base: 8453,
-  arbitrum: 42161, arb: 42161,
-  optimism: 10, op: 10,
-  polygon: 137, matic: 137,
-  bnb: 56, bsc: 56, "bnb chain": 56,
-  avalanche: 43114, avax: 43114,
+  arbitrum: 42161,
+  arb: 42161,
+  optimism: 10,
+  op: 10,
+  polygon: 137,
+  matic: 137,
+  bnb: 56,
+  bsc: 56,
+  "bnb chain": 56,
+  avalanche: 43114,
+  avax: 43114,
   linea: 59144,
   scroll: 534352,
 };
@@ -110,7 +118,11 @@ export type SendPlan = {
  * "native"/omitted for the native coin); `amount` is a human decimal. Returns the unsigned tx + a verifyTx
  * verdict that re-reads the recipient out of the built transaction.
  */
-export async function buildEvmSend(f: F, env: NodeJS.ProcessEnv, o: EvmSendArgs): Promise<SendPlan> {
+export async function buildEvmSend(
+  f: F,
+  env: NodeJS.ProcessEnv,
+  o: EvmSendArgs,
+): Promise<SendPlan> {
   if (!EVM_IDS.includes(o.chainId)) throw new Error(`unsupported EVM chain ${o.chainId}`);
   const w = blocktools();
   if (!w) throw new Error("blocktools is unavailable; not offering an unverified transaction");
@@ -121,7 +133,8 @@ export async function buildEvmSend(f: F, env: NodeJS.ProcessEnv, o: EvmSendArgs)
   let to = o.to.trim();
   if (!isAddress(to)) {
     const r = (await resolveName(f, env, to)) as { address?: string } | null;
-    if (!r?.address || !isAddress(r.address)) throw new Error(`could not resolve recipient "${o.to}"`);
+    if (!r?.address || !isAddress(r.address))
+      throw new Error(`could not resolve recipient "${o.to}"`);
     to = r.address;
   }
   to = getAddress(to);
@@ -131,7 +144,8 @@ export async function buildEvmSend(f: F, env: NodeJS.ProcessEnv, o: EvmSendArgs)
   let token: string | null = null;
   const t = o.token?.trim();
   if (t && t.toLowerCase() !== "native") {
-    if (!isAddress(t)) throw new Error("token must be a 0x contract address (or omit it for the native coin)");
+    if (!isAddress(t))
+      throw new Error("token must be a 0x contract address (or omit it for the native coin)");
     const resolved = await tokenResolver(onchainReader(env))(o.chainId, t);
     if (!resolved) throw new Error(`"${t}" is not an ERC-20 on chain ${o.chainId}`);
     decimals = resolved.decimals;

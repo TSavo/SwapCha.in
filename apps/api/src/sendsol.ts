@@ -32,7 +32,8 @@ export async function buildSolSend(
   o: { to: string; amount: string; token?: string | undefined; from?: string | undefined },
 ): Promise<SolSendPlan> {
   const w = blocktools();
-  if (!w) throw new Error("blocktools is unavailable; not offering an unverified Solana transaction");
+  if (!w)
+    throw new Error("blocktools is unavailable; not offering an unverified Solana transaction");
   if (!o.from) throw new Error("the sending address (from) is required for a Solana send");
   const from = o.from.trim();
   const to = o.to.trim();

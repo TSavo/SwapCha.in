@@ -643,7 +643,9 @@ export default function SmartWalletPage() {
                 walletAddress={address ?? ""}
                 suggestedUsd={pending.suggestedUsd}
                 onClose={() => {
-                  void report(pending.actionId, { status: "rejected" }).then(() => setPending(null));
+                  void report(pending.actionId, { status: "rejected" }).then(() =>
+                    setPending(null),
+                  );
                 }}
               />
             )}

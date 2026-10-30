@@ -1,5 +1,5 @@
-import { Hono } from "hono";
 import { createHmac } from "node:crypto";
+import { Hono } from "hono";
 
 type F = typeof fetch;
 
@@ -49,7 +49,9 @@ export async function createOnrampOrder(
     payment: { method: "card", receiptEmail: args.email },
     recipient: { walletAddress: args.walletAddress },
   });
-  console.log(`[onramp] create order chain=${args.chainId} token=${tokenLocator} amount=${amount} base=${base}`);
+  console.log(
+    `[onramp] create order chain=${args.chainId} token=${tokenLocator} amount=${amount} base=${base}`,
+  );
   const r = await f(`${base}/orders`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": serverKey },
@@ -70,7 +72,9 @@ export async function createOnrampOrder(
   }
   if (!r.ok || !j?.order?.orderId || !j?.clientSecret) {
     console.error(`[onramp] crossmint ${r.status}: ${text.slice(0, 400)}`);
-    throw new Error(`crossmint order failed (${r.status}): ${j?.message ?? "no order/clientSecret"}`);
+    throw new Error(
+      `crossmint order failed (${r.status}): ${j?.message ?? "no order/clientSecret"}`,
+    );
   }
   console.log(`[onramp] order ok ${j.order.orderId} status=${j.payment?.status}`);
   return {
@@ -102,7 +106,11 @@ const MOONPAY_HOSTS = new Set(["buy-sandbox.moonpay.com", "buy.moonpay.com"]);
  * validate, so this must be the SDK's output. We validate the host and that the URL carries our own
  * publishable apiKey, so we never sign an arbitrary third party's widget link with our secret.
  */
-export function signMoonpayUrl(pubKey: string, secretKey: string, rawUrl: string): { signature: string } {
+export function signMoonpayUrl(
+  pubKey: string,
+  secretKey: string,
+  rawUrl: string,
+): { signature: string } {
   let u: URL;
   try {
     u = new URL(rawUrl);
@@ -110,11 +118,14 @@ export function signMoonpayUrl(pubKey: string, secretKey: string, rawUrl: string
     throw new Error("bad url");
   }
   if (!MOONPAY_HOSTS.has(u.hostname)) throw new Error(`unexpected host ${u.hostname}`);
-  if (u.searchParams.get("apiKey") !== pubKey) throw new Error("apiKey does not match this environment");
+  if (u.searchParams.get("apiKey") !== pubKey)
+    throw new Error("apiKey does not match this environment");
   // Sign the query string including the leading "?", exactly as the SDK/widget sees it. Standard
   // base64 (not base64url); the SDK URL-encodes it when it appends &signature=.
   const signature = createHmac("sha256", secretKey).update(u.search).digest("base64");
-  console.log(`[onramp] moonpay sign host=${u.hostname} currency=${u.searchParams.get("currencyCode")} amount=${u.searchParams.get("baseCurrencyAmount")}`);
+  console.log(
+    `[onramp] moonpay sign host=${u.hostname} currency=${u.searchParams.get("currencyCode")} amount=${u.searchParams.get("baseCurrencyAmount")}`,
+  );
   return { signature };
 }
 
