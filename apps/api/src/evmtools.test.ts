@@ -77,6 +77,23 @@ describe("EVM dev tools (blocktools) match viem", () => {
     }
   });
 
+  // The MCP builds its unsigned ERC-20 approve txs by calling this endpoint (apps/mcp erc20ApproveData); the user
+  // signs the result, so the calldata must be byte-identical to the viem encodeFunctionData it replaced.
+  it("evm-abi encode approve(address,uint256) is byte-identical to viem", () => {
+    const abi = parseAbi(["function approve(address spender, uint256 amount)"]);
+    for (const amount of [0n, 1n, 10n ** 6n, 10n ** 18n, 2n ** 256n - 1n]) {
+      const want = encodeFunctionData({ abi, functionName: "approve", args: [BOB, amount] });
+      const r = ok("evm-abi", {
+        op: "encode",
+        sig: "approve(address,uint256)",
+        args: JSON.stringify([BOB, amount.toString()]),
+      });
+      expect(r.status).toBe("ok");
+      expect(r.data).toBe(want);
+      expect(r.selector).toBe("0x095ea7b3");
+    }
+  });
+
   it("evm-abi inspect finds the ERC-20 interface and selectors", () => {
     const r = ok("evm-abi", {
       op: "inspect",
