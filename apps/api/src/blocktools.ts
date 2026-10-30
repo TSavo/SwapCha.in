@@ -263,6 +263,10 @@ export type BtDecoded = {
   address?: string;
   /** exact decimal string (from amount_str) */
   amount?: string;
+  /** input/output position (0-based) in the tx */
+  index?: number;
+  /** script classification: p2pkh / p2sh / p2wpkh / p2wsh / p2tr / op_return / nonstandard / ... */
+  kind?: string;
 }[];
 /** decodeTx lines (summary, inputs, outputs) for a built tx/PSBT. Throws on a decode error. */
 export function btDecode(tx: string, chain: string): BtDecoded | null {
