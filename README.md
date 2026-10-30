@@ -10,7 +10,7 @@ SwapChan fans out a single swap request to 0x, CoW, LI.FI, Across and Relay at o
 
 Your agent asks in plain English → SwapChan fans out to every router, ranks by net USD after gas, and hands back an **unsigned** transaction. Your wallet signs.
 
-![SwapChan agent call: swap 100 USDC Ethereum→Base, routes ranked, unsigned tx built, user confirms](https://raw.githubusercontent.com/TSavo/SwapCha.in/main/docs/agent-call.gif)
+![SwapChan agent call: swap 100 USDC Ethereum→Base, routes ranked, unsigned tx built, user confirms](https://raw.githubusercontent.com/TSavo/swapchan/main/docs/agent-call.gif)
 
 ### find_money: paste your addresses, get your money back
 
@@ -20,7 +20,7 @@ Coverage goes beyond EVM: Solana, Tron, Bitcoin, Bitcoin forks and old coins (BC
 
 Lost the wallet app but still have the phrase, keystore or key? `recovery_guide` (and [swapchan.com/recover](https://swapchan.com/recover)) walks you through deriving your **public** addresses offline with [blocktools](https://github.com/TSavo/blocktools) ([v0.1.1 release](https://github.com/TSavo/blocktools/releases/tag/v0.1.1): Linux x86_64 only, check it with `sha256sum -c SHA256SUMS`; other systems build from source), e.g. `seed-to-master < seed.txt | derive --preset scan-js --address-list > addresses.txt`, then pasting addresses.txt into `find_money_batch`. Your seed and keys never leave your machine; SwapChan never sees them.
 
-![SwapChan find_money: paste addresses, scan chains, "I found $4,538 for you", ranked recovery steps, swap all to USDC](https://raw.githubusercontent.com/TSavo/SwapCha.in/main/docs/find-money.gif)
+![SwapChan find_money: paste addresses, scan chains, "I found $4,538 for you", ranked recovery steps, swap all to USDC](https://raw.githubusercontent.com/TSavo/swapchan/main/docs/find-money.gif)
 
 ## Use it as an MCP server
 

@@ -6,7 +6,7 @@
   "version": "0.3.0",
   "websiteUrl": "https://swapchan.com",
   "repository": {
-    "url": "https://github.com/TSavo/SwapCha.in",
+    "url": "https://github.com/TSavo/swapchan",
     "source": "github",
     "subfolder": "apps/mcp"
   },
