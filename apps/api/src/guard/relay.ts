@@ -1,5 +1,6 @@
 import { getOrderId, type VmType } from "@relay-protocol/settlement-sdk";
-import { decodeFunctionData, type Hex, parseAbi } from "viem";
+import { type Hex, parseAbi } from "viem";
+import { decodeFunctionData } from "../blocktools.js";
 import { RELAY_DEPOSITORY_PINS } from "./relayPins.js";
 
 /**

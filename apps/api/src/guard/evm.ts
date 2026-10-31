@@ -1,11 +1,5 @@
-import {
-  decodeAbiParameters,
-  decodeFunctionData,
-  type Hex,
-  parseAbi,
-  parseAbiParameters,
-} from "viem";
-import { btSelector } from "../blocktools.js";
+import { type Hex, parseAbi, parseAbiParameters } from "viem";
+import { btSelector, decodeAbiParameters, decodeFunctionData } from "../blocktools.js";
 
 /** Router ABIs we decode (selectors observed live on each provider's routes, 2026-10). */
 export const ABIS = {
@@ -133,7 +127,17 @@ export function decodeEvm(provider: string, data: Hex): Decoded | null {
   if (!d) {
     if (key !== "lifi") return null;
     try {
-      const [b] = decodeAbiParameters(BRIDGE_DATA, `0x${data.slice(10)}`);
+      const [b] = decodeAbiParameters(BRIDGE_DATA, `0x${data.slice(10)}`) as unknown as [
+        {
+          bridge: string;
+          receiver: string;
+          minAmount: bigint;
+          sendingAssetId: string;
+          destinationChainId: bigint;
+          hasSourceSwaps: boolean;
+          hasDestinationCall: boolean;
+        },
+      ];
       return {
         fn: `lifi-bridge:${b.bridge}`,
         recipient: lc(b.receiver),
