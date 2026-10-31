@@ -381,7 +381,14 @@ export type BtSolTx = {
   num_required_signatures: number;
   accounts: { pubkey: string; signer: boolean; writable: boolean }[];
   address_table_lookups: { table: string; writable: number[]; readonly: number[] }[];
-  instructions: ({ program: string; kind: string } & Record<string, unknown>)[];
+  instructions: ({
+    program: string;
+    kind: string;
+    /** indices into `accounts`; an index beyond `accounts.length` is an address-lookup-table account (unresolved here) */
+    account_indexes: number[];
+    /** raw instruction data as hex ("" when empty) */
+    data_hex: string;
+  } & Record<string, unknown>)[];
   signatures: { signer: string; status: "valid" | "invalid" | "unsigned" }[];
   message_hex: string;
 };

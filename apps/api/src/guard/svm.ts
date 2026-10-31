@@ -1,5 +1,5 @@
-import { base58, base64, hex } from "@scure/base";
-import { btSolAta, btSolPda } from "../blocktools.js";
+import { base64, hex } from "@scure/base";
+import { btSolAta, btSolDecodeTx, btSolPda } from "../blocktools.js";
 
 export const TOKEN = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 export const TOKEN22 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
@@ -22,49 +22,25 @@ export interface Ix {
   data: Uint8Array;
 }
 
-const shortvec = (b: Uint8Array, o: { i: number }) => {
-  let len = 0;
-  let shift = 0;
-  for (;;) {
-    const x = b[o.i++]!;
-    len |= (x & 0x7f) << shift;
-    if (!(x & 0x80)) return len;
-    shift += 7;
-  }
-};
-
-/** Minimal Solana tx parser (legacy + v0). Program ids are always static keys. */
+/**
+ * Decode a Solana wire tx (legacy + v0) with the blocktools wasm (replaces the hand-rolled shortvec/account/
+ * instruction reader, 9b... migration). blocktools resolves each instruction's `account_indexes` against the
+ * message's static account keys; an index into an address-lookup table (beyond the static keys) stays
+ * `undefined` here, exactly as the old parser left it (checkSvmIxs treats an unknown destination as a failure).
+ * Program ids are static message keys. Fails closed: throws when the wasm is unavailable or the tx is malformed.
+ */
 export function parseSvmBase64(b64: string): { feePayer: string; signers: string[]; ixs: Ix[] } {
-  const b = base64.decode(b64);
-  const o = { i: 0 };
-  const nSig = shortvec(b, o);
-  o.i += 64 * nSig;
-  if (b[o.i]! & 0x80) o.i++; // versioned prefix
-  const nReq = b[o.i++]!;
-  o.i += 2;
-  const nKeys = shortvec(b, o);
-  const keys: string[] = [];
-  for (let k = 0; k < nKeys; k++) {
-    keys.push(base58.encode(b.slice(o.i, o.i + 32)));
-    o.i += 32;
-  }
-  o.i += 32; // blockhash
-  const signers = keys.slice(0, nReq);
+  const d = btSolDecodeTx(Buffer.from(base64.decode(b64)).toString("hex"));
+  const keys = d.accounts.map((a) => a.pubkey);
+  const signers = keys.slice(0, d.num_required_signatures);
   const sset = new Set(signers);
-  const nIx = shortvec(b, o);
-  const ixs: Ix[] = [];
-  for (let k = 0; k < nIx; k++) {
-    const programId = keys[b[o.i++]!];
-    if (!programId) throw new Error("program id not in static keys");
-    const nAcc = shortvec(b, o);
-    const idx = [...b.slice(o.i, o.i + nAcc)];
-    o.i += nAcc;
-    const dl = shortvec(b, o);
-    const data = b.slice(o.i, o.i + dl);
-    o.i += dl;
-    ixs.push({ programId, keys: idx.map((j) => keys[j]), signers: sset, data });
-  }
-  return { feePayer: keys[0]!, signers, ixs };
+  const ixs: Ix[] = d.instructions.map((ix) => ({
+    programId: ix.program,
+    keys: ix.account_indexes.map((j) => keys[j]),
+    signers: sset,
+    data: hex.decode(ix.data_hex),
+  }));
+  return { feePayer: d.fee_payer, signers, ixs };
 }
 
 type RelayIx = {
