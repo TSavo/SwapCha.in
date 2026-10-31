@@ -1,6 +1,7 @@
 import {
   encodeAbiParameters,
   encodeFunctionData,
+  getAddress,
   type Hex,
   keccak256,
   maxUint256,
@@ -9,8 +10,10 @@ import {
   parseAbiParameters,
   toFunctionSelector,
   toHex,
+  decodeFunctionData as vDec,
 } from "viem";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { decodeFunctionData as btDec } from "./blocktools.js";
 
 // Only the RPC layer is mocked. Factory / vault reads answer like the real contracts would.
 type Log = { address: string; topics: string[]; data: string };
@@ -578,6 +581,154 @@ describe("blueMarketId: blocktools abi.encode + keccak256 is byte-identical to v
       { loanToken: ZERO, collateralToken: ZERO, oracle: ZERO, irm: ZERO, lltv: maxUint256 },
     ];
     for (const mp of cases) expect(blueMarketId(mp)).toBe(viemMarketId(mp));
+  });
+});
+
+describe("decodeLending decode: blocktools is value-identical to viem (named fields preserved)", () => {
+  // decodeLending now decodes with the blocktools WASM (viem-parity coder). This proves the decoded
+  // values — including the NAMED struct fields decodeLending reads (mp.loanToken, tin.tokenIn,
+  // t.pendleSwap, t.swapData.swapType, ...) — are byte-for-byte what viem returns, so no guard
+  // decision changes. Ground truth is viem's own decodeFunctionData on the same ABIs viem encoded.
+  let seed = 0x1e4d1a9b;
+  const rnd = () => {
+    seed = (Math.imul(seed ^ (seed >>> 15), 0x2c1b3c6d) + 0x6d2b79f5) >>> 0;
+    return seed / 2 ** 32;
+  };
+  const ri = (n: number) => Math.floor(rnd() * n);
+  const rbytes = (n: number) => toHex(Uint8Array.from({ length: n }, () => ri(256)));
+  type P = { type: string; name?: string; components?: readonly P[] };
+  const genVal = (p: P): unknown => {
+    const arr = /^(.*)\[(\d*)\]$/.exec(p.type);
+    if (arr)
+      return Array.from({ length: arr[2] ? Number(arr[2]) : ri(3) }, () =>
+        genVal({ ...p, type: arr[1]! }),
+      );
+    if (p.type === "tuple")
+      return Object.fromEntries((p.components ?? []).map((c) => [c.name, genVal(c)]));
+    const m = /^(u?)int(\d+)$/.exec(p.type);
+    if (m) {
+      const bits = BigInt(m[2]!);
+      const max = m[1] ? 2n ** bits - 1n : 2n ** (bits - 1n) - 1n;
+      const min = m[1] ? 0n : -(2n ** (bits - 1n));
+      const edge = ri(3);
+      if (edge === 0) return max;
+      if (edge === 1) return min;
+      return min + (BigInt(rbytes(Number(bits) / 8)) % (max - min + 1n));
+    }
+    if (p.type === "address") return getAddress(rbytes(20));
+    if (p.type === "bool") return ri(2) === 1;
+    if (p.type === "bytes") return rbytes(ri(40));
+    if (p.type === "string") return ["", "héllo ✓", "a".repeat(ri(20))][ri(3)];
+    const n = /^bytes(\d+)$/.exec(p.type);
+    if (n) return rbytes(Number(n![1]));
+    throw new Error(`unhandled type ${p.type}`);
+  };
+
+  // Exactly the ABIs decodeLending / the bundler step decoder feed to decodeFunctionData. READS is
+  // excluded: it is only ever encoded for an eth_call and read back with decodeFunctionResult, never
+  // decoded here (and its zero-arg asset()/SY()/PT() are the one spot where viem returns args
+  // `undefined` while the wrapper returns `[]` — irrelevant since no decode target is zero-arg).
+  const DECODE_ABIS = [
+    L.ERC4626,
+    L.MORPHO_BLUE,
+    L.AAVE_POOL,
+    L.MERKL,
+    L.PENDLE_ROUTER,
+    L.BUNDLER3,
+    L.GENERAL_ADAPTER1,
+  ];
+  it("matches viem on every function of every lending ABI (30 random calls each)", () => {
+    let fns = 0;
+    for (const abi of DECODE_ABIS) {
+      for (const item of abi as readonly P[]) {
+        if ((item as { type: string }).type !== "function") continue;
+        const inputs = (item as { inputs?: readonly P[] }).inputs ?? [];
+        for (let i = 0; i < 30; i++) {
+          const args = inputs.map(genVal);
+          const data = encodeFunctionData({
+            abi: abi as never,
+            functionName: (item as { name: string }).name as never,
+            args: args as never,
+          }) as Hex;
+          const v = vDec({ abi: abi as never, data });
+          const b = btDec({ abi, data });
+          expect(b.functionName).toBe(v.functionName);
+          expect(b.args).toEqual(v.args); // deep-equal incl. named tuple objects
+        }
+        fns++;
+      }
+    }
+    expect(fns).toBeGreaterThan(25);
+  });
+
+  it("Morpho Blue supply: named marketParams + onBehalf read identically", () => {
+    const data = enc(L.MORPHO_BLUE, "supply", [MP_EVIL, 10n ** 6n, 0n, ATTACKER, "0x"]);
+    const b = btDec({ abi: L.MORPHO_BLUE, data });
+    expect(b.args).toEqual(vDec({ abi: L.MORPHO_BLUE as never, data }).args);
+    const mp = b.args[0] as MarketParams;
+    expect(mp.loanToken.toLowerCase()).toBe(USDC);
+    expect(mp.collateralToken.toLowerCase()).toBe(REWARD);
+    expect(mp.oracle.toLowerCase()).toBe(ATTACKER);
+    expect(mp.lltv).toBe(MP_EVIL.lltv);
+    expect(String(b.args[3]).toLowerCase()).toBe(ATTACKER); // onBehalf
+    // decodeLending reads these same named fields
+    const d = decodeLending(data);
+    expect(d?.beneficiaries.find((x) => x.role === "onBehalf")?.address.toLowerCase()).toBe(
+      ATTACKER,
+    );
+  });
+
+  it("Pendle swapExactTokenForPt: nested TokenInput.swapData fields read identically", () => {
+    const lim = {
+      limitRouter: ZERO,
+      epsSkipMarket: 0n,
+      normalFills: [],
+      flashFills: [],
+      optData: "0x",
+    };
+    const ap = {
+      guessMin: 0n,
+      guessMax: maxUint256,
+      guessOffchain: 0n,
+      maxIteration: 256n,
+      eps: 10n ** 14n,
+    };
+    const evilIn = {
+      ...tokenIn,
+      pendleSwap: ATTACKER,
+      swapData: { swapType: 2, extRouter: ATTACKER, extCalldata: "0xdead", needScale: true },
+    };
+    const data = enc(L.PENDLE_ROUTER, "swapExactTokenForPt", [ME, MARKET, 1n, ap, evilIn, lim]);
+    const b = btDec({ abi: L.PENDLE_ROUTER, data });
+    expect(b.args).toEqual(vDec({ abi: L.PENDLE_ROUTER as never, data }).args);
+    const tin = b.args[4] as {
+      tokenIn: string;
+      netTokenIn: bigint;
+      pendleSwap: string;
+      swapData: { swapType: number; extRouter: string; extCalldata: string; needScale: boolean };
+    };
+    expect(tin.tokenIn.toLowerCase()).toBe(USDC);
+    expect(tin.netTokenIn).toBe(tokenIn.netTokenIn);
+    expect(tin.pendleSwap.toLowerCase()).toBe(ATTACKER);
+    expect(tin.swapData.swapType).toBe(2);
+    expect(tin.swapData.extRouter.toLowerCase()).toBe(ATTACKER);
+    expect(tin.swapData.needScale).toBe(true);
+    expect(String(b.args[0]).toLowerCase()).toBe(ME); // receiver
+  });
+
+  it("GeneralAdapter1 erc4626Deposit + morphoWithdraw: named fields read identically", () => {
+    const dep = enc(L.GENERAL_ADAPTER1, "erc4626Deposit", [VAULT, 10n ** 6n, 10n ** 27n, ME]);
+    expect(btDec({ abi: L.GENERAL_ADAPTER1, data: dep }).args).toEqual(
+      vDec({ abi: L.GENERAL_ADAPTER1 as never, data: dep }).args,
+    );
+    const wd = enc(L.GENERAL_ADAPTER1, "morphoWithdraw", [MP, 1n, 0n, 0n, ME]);
+    const b = btDec({ abi: L.GENERAL_ADAPTER1, data: wd });
+    expect(b.args).toEqual(vDec({ abi: L.GENERAL_ADAPTER1 as never, data: wd }).args);
+    expect((b.args[0] as MarketParams).loanToken.toLowerCase()).toBe(USDC);
+  });
+
+  it("throws (like viem) on calldata that matches no lending ABI function", () => {
+    expect(() => btDec({ abi: L.ERC4626, data: "0xdeadbeef" })).toThrow();
   });
 });
 

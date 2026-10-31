@@ -25,6 +25,7 @@ import {
 } from "viem";
 import {
   blocktools,
+  decodeFunctionData as btDecodeFunctionData,
   encodeAbiParameters as btEncodeAbiParameters,
   btKeccak256,
 } from "./blocktools.js";
@@ -239,9 +240,20 @@ export interface LendingDecoded {
   args: readonly unknown[];
 }
 
+/**
+ * Decode `data` against one viem-style ABI. Decoding runs in the vendored, keyless blocktools WASM
+ * (its viem-parity ABI coder, evmAbiDecode); it returns the same native values viem would — bigint
+ * ints and NAMED tuple objects (mp.loanToken, tin.tokenIn, t.pendleSwap, t.swapData.swapType, ...),
+ * which the callers below read by name. Proven value-identical to viem in the parity test. If the
+ * WASM fails to load (`blocktools()` is null), fall back to viem so the guard still decodes.
+ */
 function tryAbi(abi: readonly unknown[], data: Hex) {
   try {
-    return decodeFunctionData({ abi: abi as never, data }) as {
+    return (
+      blocktools()
+        ? btDecodeFunctionData({ abi, data })
+        : decodeFunctionData({ abi: abi as never, data })
+    ) as {
       functionName: string;
       args: readonly unknown[];
     };
