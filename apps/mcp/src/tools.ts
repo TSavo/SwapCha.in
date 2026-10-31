@@ -18,14 +18,7 @@ import {
   UTXO_CHAIN_COUNT,
   vmOf,
 } from "@swapchan/shared";
-import {
-  createPublicClient,
-  encodeFunctionData,
-  erc20Abi,
-  http,
-  isAddress,
-  type Address as ViemAddress,
-} from "viem";
+import { createPublicClient, erc20Abi, http, isAddress, type Address as ViemAddress } from "viem";
 import { z } from "zod";
 import { ApiError, type SwapChanApi } from "./api.js";
 import { imageData, mascotsFor, SITE, SWAP_CHAN, swapUrl } from "./art.js";
@@ -136,6 +129,30 @@ async function readAllowance(
     functionName: "allowance",
     args: [owner as ViemAddress, spender as ViemAddress],
   });
+}
+
+/**
+ * ERC-20 approve(spender, amount) calldata built by the vendored blocktools wasm, reached through the existing
+ * /tools/evm-abi encode endpoint (apps/api DEV_TOOLS -> evmAbiEncode) rather than viem. These are unsigned txs the
+ * user's own wallet signs, so the calldata must be byte-identical to what viem produced; blocktools evmAbiEncode is
+ * proven byte-for-byte equal to viem's encodeFunctionData (apps/api abiencode.parity + evmtools parity tests).
+ * blocktools exposes no approve-specific builder (evmApproveCall only *verifies* calldata; buildEvmTransfer only
+ * emits native/transfer calls), so the approve selector+args are encoded via the general ABI encoder.
+ */
+async function erc20ApproveData(
+  api: SwapChanApi,
+  spender: string,
+  amount: bigint,
+): Promise<string> {
+  const r = await api.devTool("evm-abi", {
+    op: "encode",
+    sig: "approve(address,uint256)",
+    args: [spender, amount.toString()],
+  });
+  const data = (r.result as { data?: unknown } | undefined)?.data;
+  if (typeof data !== "string" || !/^0x[0-9a-fA-F]*$/.test(data))
+    throw new ApiError(502, "blocktools evm-abi encode returned no approve calldata");
+  return data;
 }
 const SCAN_CHAIN_IDS: Record<string, number | undefined> = {
   solana: 792703809,
@@ -697,11 +714,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
                   chainId: tx.chainId,
                   to: pick.request.fromToken,
                   value: "0",
-                  data: encodeFunctionData({
-                    abi: erc20Abi,
-                    functionName: "approve",
-                    args: [pick.approvalAddress as ViemAddress, need],
-                  }),
+                  data: await erc20ApproveData(api, pick.approvalAddress, need),
                 },
                 note: "Exact-amount approval. Send and confirm this first.",
               };
@@ -906,11 +919,7 @@ export function createSwapChanServer(api: SwapChanApi, cfg: Config): McpServer {
             approvalTx = {
               chainId: a.chainId,
               to: a.sellToken,
-              data: encodeFunctionData({
-                abi: erc20Abi,
-                functionName: "approve",
-                args: [built.approvalAddress as ViemAddress, sell],
-              }),
+              data: await erc20ApproveData(api, built.approvalAddress, sell),
               value: "0",
             };
         } catch {}

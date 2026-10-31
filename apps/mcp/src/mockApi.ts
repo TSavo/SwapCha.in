@@ -1,6 +1,6 @@
 // Test-only mock of the SwapChan HTTP API (packages/shared contract). Also runnable: `node src/mockApi.ts`.
 import { createServer, type Server } from "node:http";
-import { keccak256, toBytes } from "viem";
+import { encodeFunctionData, erc20Abi, keccak256, toBytes } from "viem";
 
 // Test mock only; production computes this in apps/api via blocktools.
 const appDataHash = (doc: string) => keccak256(toBytes(doc));
@@ -147,7 +147,23 @@ export function startMockApi(port = 0): Promise<{ server: Server; url: string; c
       const tool = u.pathname.slice(7);
       if (tool === "detect-address")
         return send(400, { ok: false, tool, error_code: "unrecognized", error: "unrecognized" });
-      return send(200, { ok: true, tool, result: { echo: JSON.parse(raw || "{}") } });
+      // evm-abi encode: production runs blocktools evmAbiEncode; the mock reproduces the same bytes with viem
+      // so the approve-calldata path (build_swap_tx / build_limit_order) is exercised end to end.
+      const body = raw ? JSON.parse(raw) : {};
+      if (tool === "evm-abi" && body.op === "encode" && body.sig === "approve(address,uint256)") {
+        const [spender, amount] = body.args as [string, string];
+        const data = encodeFunctionData({
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [spender as `0x${string}`, BigInt(amount)],
+        });
+        return send(200, {
+          ok: true,
+          tool,
+          result: { status: "ok", data, selector: data.slice(0, 10) },
+        });
+      }
+      return send(200, { ok: true, tool, result: { echo: body } });
     }
     switch (u.pathname) {
       case "/chains":
