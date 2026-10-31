@@ -1,14 +1,54 @@
+import { recoverMessageAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { describe, expect, it } from "vitest";
 import { chatRoutes } from "./chat.js";
 import { SessionBus } from "./session-bus.js";
 import { openSessionStore } from "./sessions.js";
-import { authRoutes, cookieAddress, requireWalletAuth, siweMessage } from "./siwe.js";
+import {
+  authRoutes,
+  cookieAddress,
+  recoverSigner,
+  requireWalletAuth,
+  siweMessage,
+} from "./siwe.js";
 
 const ENV = { SWAPCHAN_SESSION_SECRET: "test-secret-abcdefghijklmnop" };
 // A fixed throwaway key (test only, never funded).
 const KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as const;
 const ACCT = privateKeyToAccount(KEY);
+
+describe("recoverSigner (blocktools msgVerify) parity with viem", () => {
+  it("recovers the same signer viem's recoverMessageAddress does", async () => {
+    for (const message of [
+      "hi",
+      siweMessage(ACCT.address, "deadbeef".repeat(4), "2026-01-01T00:00:00.000Z"),
+      "unicode: café ☕ \n multi-line",
+    ]) {
+      const signature = await ACCT.signMessage({ message });
+      const viem = await recoverMessageAddress({ message, signature: signature as `0x${string}` });
+      const bt = await recoverSigner(ACCT.address, message, signature);
+      expect(bt.toLowerCase()).toBe(viem.toLowerCase());
+      expect(bt.toLowerCase()).toBe(ACCT.address.toLowerCase());
+    }
+  });
+
+  it("rejects a malformed signature (same as the old viem path: /verify → 401)", async () => {
+    for (const bad of ["0x", "0x1234", "nothex"])
+      await expect(recoverSigner(ACCT.address, "hi", bad)).rejects.toThrow();
+  });
+
+  it("recovers a signer different from the claimed address on a mismatched signature", async () => {
+    const signature = await ACCT.signMessage({ message: "hi" });
+    // Claiming a different address does not change who signed: recovered stays the real signer,
+    // and the /verify handler's own equality check turns that into signature_mismatch.
+    const recovered = await recoverSigner(
+      "0x1111111111111111111111111111111111111111",
+      "hi",
+      signature,
+    );
+    expect(recovered.toLowerCase()).toBe(ACCT.address.toLowerCase());
+  });
+});
 
 describe("SmartWallet sign-to-view cookie", () => {
   it("round-trips a signed cookie and rejects tampering/expiry", () => {

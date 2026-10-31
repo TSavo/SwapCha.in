@@ -23,6 +23,11 @@ import {
   parseAbi,
   parseAbiParameters,
 } from "viem";
+import {
+  blocktools,
+  encodeAbiParameters as btEncodeAbiParameters,
+  btKeccak256,
+} from "./blocktools.js";
 
 const lc = (s?: string) => (s ?? "").toLowerCase();
 
@@ -360,8 +365,29 @@ export interface MarketParams {
   irm: string;
   lltv: bigint;
 }
-/** Morpho Blue market id = keccak256(abi.encode(marketParams)) (morpho-blue src/libraries/MarketParamsLib.sol). */
+/**
+ * Morpho Blue market id = keccak256(abi.encode(marketParams)) (morpho-blue src/libraries/MarketParamsLib.sol).
+ *
+ * The abi.encode + keccak256 run in the vendored, keyless blocktools WASM (its viem-parity ABI coder
+ * and evmKeccak256). The encoding is byte-identical to viem's `encodeAbiParameters`, so the market id
+ * — and therefore every market-gate decision keyed on it — is unchanged (proven in the parity test).
+ * If the WASM fails to load (`blocktools()` is null), fall back to viem so the guard still works.
+ */
 export function blueMarketId(mp: MarketParams): Hex {
+  if (blocktools()) {
+    return btKeccak256(
+      btEncodeAbiParameters(
+        [
+          { type: "address" },
+          { type: "address" },
+          { type: "address" },
+          { type: "address" },
+          { type: "uint256" },
+        ],
+        [mp.loanToken, mp.collateralToken, mp.oracle, mp.irm, mp.lltv],
+      ),
+    );
+  }
   return keccak256(
     encodeAbiParameters(parseAbiParameters("address, address, address, address, uint256"), [
       mp.loanToken as Hex,
