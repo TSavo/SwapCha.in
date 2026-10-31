@@ -69,6 +69,8 @@ type Wasm = {
   decodeAccountInfo(hex: string): string;
   base58Encode(hex: string): string;
   base58Decode(s: string): string;
+  /** bech32/bech32m witness program of a bc1 address: {version, program_hex (fromWords after the version), words_hex (raw 5-bit words)} */
+  bech32WitnessProgram(addr: string): string;
   solIsOnCurve(addr: string): boolean;
   solFindProgramAddress(seedsJson: string, program: string): string;
   solAssociatedTokenAddress(owner: string, mint: string, tokenProgram: string): string;
@@ -267,6 +269,8 @@ export type BtDecoded = {
   index?: number;
   /** script classification: p2pkh / p2sh / p2wpkh / p2wsh / p2tr / op_return / nonstandard / ... */
   kind?: string;
+  /** for an op_return output: hex of the pushed data (the memo payload); blocktools 982722e+ */
+  op_return?: string;
 }[];
 /** decodeTx lines (summary, inputs, outputs) for a built tx/PSBT. Throws on a decode error. */
 export function btDecode(tx: string, chain: string): BtDecoded | null {
@@ -347,6 +351,13 @@ export const btB58Encode = (b: Uint8Array) => need().base58Encode(hexOf(b));
 /** Raw bytes of a bitcoin-alphabet base58 string; throws bad_base58. */
 export const btB58Decode = (s: string) =>
   Uint8Array.from(Buffer.from(need().base58Decode(s), "hex"));
+/** bech32/bech32m witness program of a bc1/bc1p address: {version, program_hex, words_hex}. Throws on a non-segwit address or a bad checksum. */
+export const btBech32Witness = (a: string) =>
+  JSON.parse(need().bech32WitnessProgram(a)) as {
+    version: number;
+    program_hex: string;
+    words_hex: string;
+  };
 /** Is this 32-byte string a valid ed25519 point (a wallet key)? PDAs are off-curve. */
 export const btSolOnCurve = (b: Uint8Array) => need().solIsOnCurve(btB58Encode(b));
 /** findProgramAddress: highest-bump off-curve sha256(seeds|bump|program|"ProgramDerivedAddress"). */
