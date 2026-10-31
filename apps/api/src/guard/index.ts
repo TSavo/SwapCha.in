@@ -16,7 +16,7 @@ import {
 } from "@swapchan/shared";
 import * as bitcoin from "bitcoinjs-lib";
 import type { Hex } from "viem";
-import { btVerifyThorSend } from "../blocktools.js";
+import { btB58Decode, btDecode, btVerifyThorSend } from "../blocktools.js";
 import { UTXO_DEST, validateUtxoRecipient } from "../utxodest.js";
 import { fullAddr } from "../utxosend.js";
 import {
@@ -101,18 +101,23 @@ export function needles(a: string): string[] {
   if (/^0x[0-9a-fA-F]{40}$/.test(a)) out.push(lc(a).slice(2));
   else
     try {
-      if (/^T/.test(a) && a.length === 34) out.push(hex.encode(base58.decode(a).slice(1, 21)));
+      // base58 decoded via blocktools' vendored base58Decode (byte-for-byte == @scure base58.decode on
+      // valid input; proven in btcheck.test.ts). Tron: drop the 0x41 version byte, keep the 20-byte hash.
+      if (/^T/.test(a) && a.length === 34) out.push(hex.encode(btB58Decode(a).slice(1, 21)));
       else if (/^bc1/i.test(a)) {
+        // Kept hand-rolled: blocktools has no helper that returns the BARE witness-program bytes or the
+        // raw 5-bit words (addressToScript returns the full scriptPubKey, not these calldata needles).
         const codec = lc(a).startsWith("bc1p") ? bech32m : bech32;
         const w = codec.decode(lc(a) as `${string}1${string}`);
         out.push(hex.encode(codec.fromWords(w.words.slice(1))));
         out.push(hex.encode(Uint8Array.from(w.words.slice(1)))); // 5-bit words (LayerSwap)
       } else if (a.length >= 32) {
-        const b = base58.decode(a);
+        const b = btB58Decode(a);
         if (b.length === 32) out.push(hex.encode(b));
       }
     } catch {
-      /* ascii only */
+      /* ascii only (also when the blocktools wasm is unavailable: fail closed — a vanished needle can
+         only make `contains` stricter, never looser) */
     }
   return out;
 }
@@ -668,6 +673,18 @@ async function checkBtc(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
     const v = await thorVault(ctx, p.req.fromChainId);
     allowedTo = v ? [v.address] : [];
   }
+  // PRIMARY decoder: the vendored blocktools wasm (not mainnet-only, and it decodes script kinds the old
+  // bitcoin.address.fromOutputScript path could not — e.g. Taproot, which this process never inits ECC for).
+  // Its failure names are mapped onto the guard's reasons; a decode error or missing wasm fails closed.
+  let dec: ReturnType<typeof btDecode>;
+  try {
+    dec = btDecode(s, "btc");
+  } catch (e) {
+    return c.bad("decode", `blocktools cannot decode the PSBT: ${(e as Error).message}`);
+  }
+  if (!dec) return c.bad("blocktools", "blocktools decoder unavailable");
+  // Independent second decode: bitcoin.address.fromOutputScript vs blocktools must agree (PSBT + unsigned,
+  // every input owned by the taker, output count / address / value identical). Keeps crossCheckPsbt's guarantees.
   const outs = psbt.txOutputs.map((o) => {
     try {
       return {
@@ -680,26 +697,28 @@ async function checkBtc(c: Acc, p: Payload, n: NonEvmTx, ctx: GuardCtx, dest?: s
   });
   const x = crossCheckPsbt(s, outs, taker);
   c.test("blocktools", x.length === 0, x.join("; "));
+  // Output decisions (pays / change / value) read from the blocktools decode, ordered by tx index.
   let out = 0n;
-  let memo: string | null = null;
   const bad: string[] = [];
   const pays: string[] = [];
-  for (const o of psbt.txOutputs) {
-    if (o.script[0] === 0x6a) {
-      memo = Buffer.from(o.script.subarray(2)).toString("utf8");
-      continue;
-    }
-    let a = "";
-    try {
-      a = bitcoin.address.fromOutputScript(o.script, bitcoin.networks.bitcoin);
-    } catch {
+  const bOuts = dec
+    .filter((o) => o.role === "output")
+    .sort((o1, o2) => (o1.index ?? 0) - (o2.index ?? 0));
+  for (const o of bOuts) {
+    if (o.kind === "op_return") continue; // memo output; read below from the raw script bytes
+    if (!o.address) {
       bad.push("non-standard output");
       continue;
     }
-    if (a === taker) continue; // change
-    out += BigInt(o.value);
-    pays.push(a);
+    if (o.address === taker) continue; // change
+    out += BigInt(o.amount ?? "0");
+    pays.push(o.address);
   }
+  // The OP_RETURN memo bytes: blocktools decodeTx reports the op_return output but not its payload, so the
+  // memo is read from the raw script (last OP_RETURN wins, as before). The THORChain memo check is unchanged.
+  let memo: string | null = null;
+  for (const o of psbt.txOutputs)
+    if (o.script[0] === 0x6a) memo = Buffer.from(o.script.subarray(2)).toString("utf8");
   // Relay BTC uses a per-request deposit address (not derivable): allow exactly one payment.
   const relayDeposit = p.provider === "relay" && pays.length === 1;
   for (const a of pays)
